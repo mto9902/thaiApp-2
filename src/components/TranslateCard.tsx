@@ -41,16 +41,16 @@ export default function TranslateCard({
         <View style={styles.divider} />
 
         <View style={styles.sentenceRow}>
-          {breakdown && breakdown.length > 0 ? (
+          {breakdown?.length ? (
             breakdown.map((word, index) => (
               <Text
                 key={index}
                 style={[
                   styles.thaiText,
-                  word.grammar && styles.grammarHighlight,
+                  word?.grammar && styles.grammarHighlight,
                 ]}
               >
-                {word.thai}
+                {word?.thai}
               </Text>
             ))
           ) : (

@@ -42,6 +42,10 @@ export default function PracticeCSV() {
     handleGenerate();
   }, [id]);
 
+  useEffect(() => {
+    console.log("BREAKDOWN STATE:", breakdown);
+  }, [breakdown]);
+
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
   }
@@ -76,6 +80,8 @@ export default function PracticeCSV() {
       setGrammarPoint(grammarObject);
 
       const result = await getPractice(grammarObject.id);
+
+      console.log("API RESULT:", result);
 
       setSentence(result?.sentence || "");
       setRomanization(result?.romanization || "");
@@ -124,7 +130,6 @@ export default function PracticeCSV() {
     if (isCorrect) {
       setResultMessage("Correct!");
 
-      // wait 1 second, then generate next sentence
       setTimeout(() => {
         handleGenerate();
         setResultMessage("");
