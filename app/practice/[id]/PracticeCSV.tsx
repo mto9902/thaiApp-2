@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useEffect, useState } from "react";
@@ -83,12 +84,23 @@ export default function PracticeCSV() {
 
       console.log("API RESULT:", result);
 
-      setSentence(result?.sentence || "");
+      setSentence(result?.thai || "");
       setRomanization(result?.romanization || "");
-      setTranslation(result?.translation || "");
+      setTranslation(result?.english || "");
 
       const safeBreakdown = result?.breakdown || [];
       setBreakdown(safeBreakdown);
+
+      await fetch("http://192.168.1.121:3000/track-words", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          words: safeBreakdown,
+        }),
+      });
 
       const formattedWords = safeBreakdown.map((w: any, i: number) => ({
         thai: w?.thai || "",

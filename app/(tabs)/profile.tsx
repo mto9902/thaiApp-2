@@ -6,25 +6,42 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Profile() {
   const [userId, setUserId] = useState<number | null>(null);
+  const [progress, setProgress] = useState<any>(null);
+
   const router = useRouter();
 
   useEffect(() => {
     loadUser();
+    loadProgress();
   }, []);
 
   async function loadUser() {
     const token = await AsyncStorage.getItem("token");
-
     if (!token) return;
 
     const decoded: any = jwtDecode(token);
-
     setUserId(decoded.userId);
+  }
+
+  async function loadProgress() {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const res = await fetch("http://192.168.1.121:3000/vocab/progress", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setProgress(data);
+    } catch (err) {
+      console.error("Failed to load progress:", err);
+    }
   }
 
   async function logout() {
     await AsyncStorage.removeItem("token");
-
     router.replace("/login");
   }
 
@@ -33,12 +50,52 @@ export default function Profile() {
       <Text style={styles.title}>Profile</Text>
 
       <Text style={styles.info}>User ID: {userId}</Text>
-
       <Text style={styles.info}>Logged in</Text>
 
       <TouchableOpacity style={styles.button} onPress={logout}>
         <Text style={styles.buttonText}>Logout</Text>
       </TouchableOpacity>
+
+      {/* DEBUG SECTION */}
+
+      <Text style={styles.debugTitle}>Debug</Text>
+
+      <TouchableOpacity
+        style={styles.debugButton}
+        onPress={() => router.push("/debug/VocabStats")}
+      >
+        <Text style={styles.buttonText}>Vocab Stats</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.debugButton}
+        onPress={() => router.push("/debug/review")}
+      >
+        <Text style={styles.buttonText}>Vocab Review</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.debugButton}
+        onPress={() => router.push("/debug/MasteryStats")}
+      >
+        <Text style={styles.buttonText}>Mastery Stats</Text>
+      </TouchableOpacity>
+
+      {/* DAILY PROGRESS */}
+
+      <View style={styles.statsBox}>
+        <Text style={styles.stat}>
+          Today's reviews: {progress?.reviews_today || 0}
+        </Text>
+
+        <Text style={styles.stat}>
+          Words learned today: {progress?.words_learned_today || 0}
+        </Text>
+
+        <Text style={styles.stat}>
+          Mastered words: {progress?.mastered_words || 0}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -70,5 +127,33 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     fontWeight: "700",
+  },
+
+  debugTitle: {
+    marginTop: 40,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  debugButton: {
+    marginTop: 12,
+    backgroundColor: "#444",
+    padding: 12,
+    borderRadius: 8,
+  },
+
+  statsBox: {
+    marginTop: 30,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: "black",
+    borderRadius: 12,
+    backgroundColor: "#fff",
+  },
+
+  stat: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 6,
   },
 });

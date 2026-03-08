@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 
 export default function ProgressScreen() {
   return (
@@ -11,12 +11,12 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
   },
   text: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
