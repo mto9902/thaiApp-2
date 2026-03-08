@@ -12,10 +12,7 @@ export default function LessonHeader({ title }: LessonHeaderProps) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => router.replace("/")}
-      >
+      <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color="black" />
       </TouchableOpacity>
 

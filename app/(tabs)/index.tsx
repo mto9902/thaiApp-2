@@ -86,9 +86,7 @@ export default function GrammarList() {
 
         <TouchableOpacity
           style={[styles.card, { backgroundColor: "#90CAF9" }]}
-          onPress={() =>
-            router.push("/practice/PracticeCSV?grammar=present_simple")
-          }
+          onPress={() => router.push("/practice/CSVGrammarIndex")}
         >
           <View style={styles.cardHeader}>
             <View style={styles.textContainer}>
@@ -125,12 +123,7 @@ export default function GrammarList() {
               styles.card,
               { backgroundColor: COLORS[index % COLORS.length] },
             ]}
-            onPress={() =>
-              router.push({
-                pathname: "/grammar/[id]",
-                params: { id: item.id },
-              })
-            }
+            onPress={() => router.push(`/practice/${item.id}`)}
           >
             <View style={styles.cardHeader}>
               <View style={styles.textContainer}>

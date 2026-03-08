@@ -3,26 +3,28 @@ import * as Speech from "expo-speech";
 import { useEffect, useState } from "react";
 
 import {
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import GenerateButton from "../../src/components/GenerateButton";
-import Header from "../../src/components/Header";
-import TranslateCard from "../../src/components/TranslateCard";
-import WordCard from "../../src/components/WordCard";
+import GenerateButton from "../../../src/components/GenerateButton";
+import Header from "../../../src/components/Header";
+import TranslateCard from "../../../src/components/TranslateCard";
+import WordCard from "../../../src/components/WordCard";
 
-import { getPractice } from "../../src/api/getPractice";
-
-import { grammarPoints } from "../../src/data/grammar";
+import { getPractice } from "../../../src/api/getPractice";
+import { grammarPoints } from "../../../src/data/grammar";
 
 const COLORS = ["#42A5F5", "#FF4081", "#66BB6A", "#FF9800", "#AB47BC"];
 
 export default function PracticeCSV() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+
   const [sentence, setSentence] = useState("");
   const [romanization, setRomanization] = useState("");
   const [translation, setTranslation] = useState("");
@@ -33,31 +35,19 @@ export default function PracticeCSV() {
 
   const [loading, setLoading] = useState(false);
 
-  const [exerciseType, setExerciseType] = useState<"rapid" | "wordOrder">(
-    "rapid",
-  );
-
   const [builtSentence, setBuiltSentence] = useState<string[]>([]);
   const [resultMessage, setResultMessage] = useState("");
 
-  const { grammar } = useLocalSearchParams();
-  const router = useRouter();
-
   useEffect(() => {
     handleGenerate();
-  }, [grammar]);
-
-  function nextExerciseType(current: string) {
-    if (current === "rapid") return "wordOrder";
-    return "rapid";
-  }
+  }, [id]);
 
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
   }
 
-  function findGrammarById(id: string) {
-    return grammarPoints.find((g) => g.id === id);
+  function findGrammarById(grammarId: string) {
+    return grammarPoints.find((g) => g.id === grammarId);
   }
 
   function shuffleWordsNotCorrectOrder(formattedWords: any[], correct: any[]) {
@@ -79,14 +69,11 @@ export default function PracticeCSV() {
       setResultMessage("");
 
       const grammarObject =
-        typeof grammar === "string"
-          ? findGrammarById(grammar) || getRandomGrammar()
+        typeof id === "string"
+          ? findGrammarById(id) || getRandomGrammar()
           : getRandomGrammar();
 
       setGrammarPoint(grammarObject);
-
-      const nextType = nextExerciseType(exerciseType);
-      setExerciseType(nextType);
 
       const result = await getPractice(grammarObject.id);
 
@@ -110,7 +97,6 @@ export default function PracticeCSV() {
       );
 
       setWords(shuffled);
-
       setBuiltSentence([]);
     } catch (error) {
       console.error("Practice generation failed:", error);
@@ -133,17 +119,25 @@ export default function PracticeCSV() {
 
   function checkAnswer() {
     const correct = breakdown.map((w: any) => w?.thai || "");
-
     const isCorrect = JSON.stringify(correct) === JSON.stringify(builtSentence);
 
-    setResultMessage(isCorrect ? "Correct!" : "Try again");
+    if (isCorrect) {
+      setResultMessage("Correct!");
+
+      // wait 1 second, then generate next sentence
+      setTimeout(() => {
+        handleGenerate();
+        setResultMessage("");
+      }, 1000);
+    } else {
+      setResultMessage("Try again");
+    }
   }
 
   const speakWord = (word: string) => {
     if (!word) return;
 
     Speech.stop();
-
     Speech.speak(word, {
       language: "th-TH",
       rate: 0.9,
@@ -154,91 +148,68 @@ export default function PracticeCSV() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <Header
-          title="Practice CSV"
-          onBack={() => router.push(`/grammar/${grammar}`)}
+          title={grammarPoint?.title || "Practice"}
+          onBack={() => router.back()}
         />
 
         {loading ? (
           <Text style={{ textAlign: "center", marginTop: 40 }}>Loading...</Text>
         ) : (
           <>
-            {exerciseType === "rapid" && (
-              <>
-                <TranslateCard
-                  sentence={sentence}
-                  breakdown={breakdown}
-                  romanization={romanization}
-                  english={translation}
-                  grammarPoint={grammarPoint?.title}
-                />
+            <TranslateCard
+              sentence={sentence}
+              breakdown={breakdown}
+              romanization={romanization}
+              english={translation}
+              grammarPoint={grammarPoint?.title}
+            />
 
-                <View style={styles.wordScrapsSection}>
-                  <Text style={styles.wordScrapsTitle}>WORDSCRAPS</Text>
+            <View style={styles.wordScrapsSection}>
+              <Text style={styles.wordScrapsTitle}>BUILD THE SENTENCE</Text>
 
-                  <View style={styles.wordCardsGrid}>
-                    {words.map((word, idx) => (
-                      <WordCard
-                        key={idx}
-                        thai={word.thai}
-                        english={word.english}
-                        backgroundColor={word.color}
-                        rotation={word.rotation}
-                        onPress={() => speakWord(word.thai)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              </>
-            )}
-
-            {exerciseType === "wordOrder" && (
-              <View style={styles.wordScrapsSection}>
-                <Text style={styles.wordScrapsTitle}>BUILD THE SENTENCE</Text>
-
-                <View style={styles.builder}>
-                  {builtSentence.map((word, i) => (
-                    <Text key={i} style={styles.builderWord}>
-                      {word}
-                    </Text>
-                  ))}
-                </View>
-
-                <View style={styles.controls}>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={undoLastWord}
-                  >
-                    <Text style={styles.controlText}>Undo</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={resetSentence}
-                  >
-                    <Text style={styles.controlText}>Reset</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.wordCardsGrid}>
-                  {words.map((word, idx) => (
-                    <WordCard
-                      key={idx}
-                      thai={word.thai}
-                      english={word.english}
-                      backgroundColor={word.color}
-                      rotation={word.rotation}
-                      onPress={() => handleWordTap(word.thai)}
-                    />
-                  ))}
-                </View>
-
-                <GenerateButton title="Check" onPress={checkAnswer} />
-
-                {resultMessage !== "" && (
-                  <Text style={styles.resultText}>{resultMessage}</Text>
-                )}
+              <View style={styles.builder}>
+                {builtSentence.map((word, i) => (
+                  <Text key={i} style={styles.builderWord}>
+                    {word}
+                  </Text>
+                ))}
               </View>
-            )}
+
+              <View style={styles.controls}>
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={undoLastWord}
+                >
+                  <Text style={styles.controlText}>Undo</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={resetSentence}
+                >
+                  <Text style={styles.controlText}>Reset</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.wordCardsGrid}>
+                {words.map((word, idx) => (
+                  <WordCard
+                    key={idx}
+                    thai={word.thai}
+                    english={word.english}
+                    backgroundColor={word.color}
+                    rotation={word.rotation}
+                    onPress={() => handleWordTap(word.thai)}
+                  />
+                ))}
+              </View>
+
+              <GenerateButton title="Check" onPress={checkAnswer} />
+
+              {resultMessage !== "" && (
+                <Text style={styles.resultText}>{resultMessage}</Text>
+              )}
+            </View>
 
             <GenerateButton onPress={handleGenerate} />
           </>

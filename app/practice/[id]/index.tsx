@@ -1,33 +1,49 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Stack,
+    useFocusEffect,
+    useLocalSearchParams,
+    useRouter,
+} from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import LessonHeader from "../../src/components/LessonHeader";
-import { grammarPoints } from "../../src/data/grammar";
-
+import LessonHeader from "../../../src/components/LessonHeader";
+import { grammarPoints } from "../../../src/data/grammar";
 
 export default function GrammarDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
+  const scrollRef = useRef<ScrollView>(null);
+
   const [bookmarked, setBookmarked] = useState(false);
 
   const grammar = grammarPoints.find((p) => p.id === id);
 
+  // Reset scroll when returning to this screen
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, []),
+  );
+
   useEffect(() => {
-    checkBookmark();
-  }, []);
+    if (id) {
+      checkBookmark();
+    }
+  }, [id]);
 
   async function checkBookmark() {
     try {
@@ -42,7 +58,6 @@ export default function GrammarDetail() {
       const data = await res.json();
 
       const exists = data.some((b: any) => b.grammar_id === id);
-
       setBookmarked(exists);
     } catch (err) {
       console.error(err);
@@ -84,7 +99,7 @@ export default function GrammarDetail() {
 
   if (!grammar) {
     return (
-      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <Text>Grammar point not found</Text>
       </SafeAreaView>
     );
@@ -103,22 +118,17 @@ export default function GrammarDetail() {
     ],
   };
 
-  const focus = grammar.focus || {
-    particle: "Focus point",
-    meaning: "The meaning of the key word.",
-  };
-
   const handlePlayAudio = (text: string) => {
     Alert.alert("Audio playback", `Playing: ${text}`);
   };
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <LessonHeader title={grammar.title} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleSection}>
           <View style={styles.levelBadge}>
             <Text style={styles.levelText}>LEVEL {grammar.level}</Text>
@@ -179,7 +189,7 @@ export default function GrammarDetail() {
 
             <View style={styles.divider} />
 
-            <Text style={styles.romanText}>"{example.roman}"</Text>
+            <Text style={styles.romanText}>{example.roman}</Text>
 
             <View style={styles.englishContainer}>
               <Text style={styles.englishText}>{example.english}</Text>
@@ -212,24 +222,9 @@ export default function GrammarDetail() {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>GRAMMAR FOCUS</Text>
-
-          <View style={styles.focusCard}>
-            <View style={styles.focusIcon}>
-              <Ionicons name="star" size={20} color="black" />
-            </View>
-
-            <View style={styles.focusContent}>
-              <Text style={styles.focusParticle}>{focus.particle}</Text>
-              <Text style={styles.focusMeaning}>{focus.meaning}</Text>
-            </View>
-          </View>
-        </View>
-
         <TouchableOpacity
           style={styles.ctaButton}
-          onPress={() => router.push(`/practice/${grammar.id}`)}
+          onPress={() => router.push(`/practice/${id}/PracticeCSV`)}
         >
           <Text style={styles.ctaText}>START PRACTICE</Text>
           <Ionicons name="flash" size={24} color="black" />
@@ -241,6 +236,7 @@ export default function GrammarDetail() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F5F5" },
+
   scrollContent: { padding: 20, paddingBottom: 100 },
 
   bookmarkButton: {
@@ -266,7 +262,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
     marginBottom: -10,
-    zIndex: 1,
   },
 
   levelText: { color: "white", fontSize: 12, fontWeight: "900" },
@@ -391,32 +386,6 @@ const styles = StyleSheet.create({
   breakdownThai: { fontSize: 18, fontWeight: "bold" },
 
   breakdownEnglish: { fontSize: 10, fontWeight: "900", opacity: 0.8 },
-
-  focusCard: {
-    flexDirection: "row",
-    backgroundColor: "#FFF4E6",
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "black",
-    alignItems: "center",
-  },
-
-  focusIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#FD7E14",
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "black",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-
-  focusParticle: { fontSize: 20, fontWeight: "900" },
-
-  focusMeaning: { fontSize: 15, fontWeight: "700" },
 
   ctaButton: {
     backgroundColor: "#FFFF00",

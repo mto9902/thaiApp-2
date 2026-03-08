@@ -1,9 +1,9 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-
 import {
-  SafeAreaView,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,432 +11,435 @@ import {
   View,
 } from "react-native";
 
-import GenerateButton from "../../src/components/GenerateButton";
-import Header from "../../src/components/Header";
-import TranslateCard from "../../src/components/TranslateCard";
-import WordCard from "../../src/components/WordCard";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { generateSentence } from "../../src/api/generateSentence";
-import { generateTransform } from "../../src/api/generateTransform";
-
+import LessonHeader from "../../src/components/LessonHeader";
 import { grammarPoints } from "../../src/data/grammar";
 
-const COLORS = ["#42A5F5", "#FF4081", "#66BB6A", "#FF9800", "#AB47BC"];
-
-type TransformOption = {
-  thai: string;
-  romanization: string;
-  english: string;
-};
-
-export default function Practice() {
-  const [sentence, setSentence] = useState("");
-  const [romanization, setRomanization] = useState("");
-  const [translation, setTranslation] = useState("");
-  const [grammarPoint, setGrammarPoint] = useState<any>(null);
-
-  const [words, setWords] = useState<any[]>([]);
-  const [breakdown, setBreakdown] = useState<any[]>([]);
-
-  const [loading, setLoading] = useState(false);
-
-  const [exerciseType, setExerciseType] = useState<
-    "rapid" | "wordOrder" | "transform"
-  >("rapid");
-
-  const [builtSentence, setBuiltSentence] = useState<string[]>([]);
-  const [resultMessage, setResultMessage] = useState("");
-
-  const [transformOptions, setTransformOptions] = useState<TransformOption[]>(
-    [],
+export default function GrammarDetail() {
+  const { grammar } = useLocalSearchParams<{ grammar: string }>();
+  console.log("grammar param:", grammar);
+  console.log(
+    "available ids:",
+    grammarPoints.map((g) => g.id),
   );
-  const [correctIndex, setCorrectIndex] = useState<number | null>(null);
-
-  const { grammar } = useLocalSearchParams();
   const router = useRouter();
 
+  const [bookmarked, setBookmarked] = useState(false);
+
+  const grammarPoint = grammarPoints.find((p) => p.id === grammar);
+
   useEffect(() => {
-    handleGenerate();
+    if (grammar) {
+      checkBookmark();
+    }
   }, [grammar]);
 
-  function nextExerciseType(current: string) {
-    if (current === "rapid") return "wordOrder";
-    if (current === "wordOrder") return "transform";
-    return "rapid";
-  }
-
-  function getRandomGrammar() {
-    return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
-  }
-
-  function findGrammarById(id: string) {
-    return grammarPoints.find((g) => g.id === id);
-  }
-
-  function shuffleWordsNotCorrectOrder(formattedWords: any[], correct: any[]) {
-    let shuffled;
-
-    do {
-      shuffled = [...formattedWords].sort(() => Math.random() - 0.5);
-    } while (
-      JSON.stringify(shuffled.map((w) => w.thai)) ===
-      JSON.stringify(correct.map((w) => w.thai))
-    );
-
-    return shuffled;
-  }
-
-  const handleGenerate = async () => {
+  async function checkBookmark() {
     try {
-      setLoading(true);
-      setResultMessage("");
+      const token = await AsyncStorage.getItem("token");
 
-      const grammarObject =
-        typeof grammar === "string"
-          ? findGrammarById(grammar) || getRandomGrammar()
-          : getRandomGrammar();
+      const res = await fetch("http://192.168.1.121:3000/bookmarks", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      setGrammarPoint(grammarObject);
+      const data = await res.json();
 
-      const nextType = nextExerciseType(exerciseType);
-      setExerciseType(nextType);
+      const exists = data.some((b: any) => b.grammar_id === grammar);
 
-      if (nextType === "transform") {
-        const transform = await generateTransform(grammarObject.aiPrompt);
-
-        setSentence(transform?.base_sentence?.thai || "");
-        setRomanization(transform?.base_sentence?.romanization || "");
-        setTranslation(transform?.base_sentence?.english || "");
-
-        setTransformOptions(transform?.options || []);
-        setCorrectIndex(transform?.correct_index ?? null);
-
-        setWords([]);
-        setBreakdown([]);
-      } else {
-        const result = await generateSentence(grammarObject.aiPrompt);
-
-        setSentence(result?.sentence || "");
-        setRomanization(result?.romanization || "");
-
-        setTranslation(
-          result?.translation ||
-            (result?.breakdown || [])
-              .map((w: any) => w?.english || "")
-              .join(" "),
-        );
-
-        const safeBreakdown = result?.breakdown || [];
-        setBreakdown(safeBreakdown);
-
-        const formattedWords = safeBreakdown.map((w: any, i: number) => ({
-          thai: w?.thai || "",
-          english: (w?.english || "").toUpperCase(),
-          color: COLORS[i % COLORS.length],
-          rotation: Math.random() * 6 - 3,
-        }));
-
-        const shuffled = shuffleWordsNotCorrectOrder(
-          formattedWords,
-          safeBreakdown,
-        );
-
-        setWords(shuffled);
-      }
-
-      setBuiltSentence([]);
-    } catch (error) {
-      console.error("Generation failed:", error);
-    } finally {
-      setLoading(false);
+      setBookmarked(exists);
+    } catch (err) {
+      console.error(err);
     }
+  }
+
+  async function toggleBookmark() {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      if (bookmarked) {
+        await fetch("http://192.168.1.121:3000/bookmark", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ grammarId: grammar }),
+        });
+
+        setBookmarked(false);
+      } else {
+        await fetch("http://192.168.1.121:3000/bookmark", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ grammarId: grammar }),
+        });
+
+        setBookmarked(true);
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Bookmark failed");
+    }
+  }
+
+  if (!grammarPoint) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+        <Text>Grammar point not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const explanation =
+    grammarPoint.explanation || "No explanation provided yet.";
+
+  const pattern = grammarPoint.pattern || "PATTERN + HERE";
+
+  const example = grammarPoint.example || {
+    thai: "ตัวอย่างประโยค",
+    roman: "tua-yàang bprà-yòohk",
+    english: "Example sentence",
+    breakdown: [
+      { thai: "ตัวอย่าง", english: "example" },
+      { thai: "ประโยค", english: "sentence" },
+    ],
   };
 
-  function handleWordTap(word: string) {
-    setBuiltSentence([...builtSentence, word]);
-  }
+  const focus = grammarPoint.focus || {
+    particle: "Focus point",
+    meaning: "The meaning of the key word.",
+  };
 
-  function undoLastWord() {
-    setBuiltSentence((prev) => prev.slice(0, -1));
-  }
-
-  function resetSentence() {
-    setBuiltSentence([]);
-  }
-
-  function checkAnswer() {
-    const correct = breakdown.map((w: any) => w?.thai || "");
-
-    const isCorrect = JSON.stringify(correct) === JSON.stringify(builtSentence);
-
-    setResultMessage(isCorrect ? "Correct!" : "Try again");
-  }
-
-  function checkTransform(index: number) {
-    if (correctIndex === null) return;
-
-    setResultMessage(index === correctIndex ? "Correct!" : "Try again");
-  }
-
-  const speakWord = (word: string) => {
-    if (!word) return;
-
-    Speech.stop();
-
-    Speech.speak(word, {
-      language: "th-TH",
-      rate: 0.9,
-    });
+  const handlePlayAudio = (text: string) => {
+    Alert.alert("Audio playback", `Playing: ${text}`);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Header
-          title="Practice"
-          onBack={() => router.push(`/grammar/${grammar}`)}
-        />
+    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
 
-        {loading ? (
-          <Text style={{ textAlign: "center", marginTop: 40 }}>Loading...</Text>
-        ) : (
-          <>
-            {exerciseType === "rapid" && (
-              <>
-                <TranslateCard
-                  sentence={sentence}
-                  breakdown={breakdown}
-                  romanization={romanization}
-                  english={translation}
-                  grammarPoint={grammarPoint?.title}
-                />
+      <LessonHeader title={grammarPoint.title} />
 
-                <View style={styles.wordScrapsSection}>
-                  <Text style={styles.wordScrapsTitle}>WORDSCRAPS</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.titleSection}>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelText}>LEVEL {grammarPoint.level}</Text>
+          </View>
 
-                  <View style={styles.wordCardsGrid}>
-                    {words.map((word, idx) => (
-                      <WordCard
-                        key={idx}
-                        thai={word.thai}
-                        english={word.english}
-                        backgroundColor={word.color}
-                        rotation={word.rotation}
-                        onPress={() => speakWord(word.thai)}
-                      />
-                    ))}
-                  </View>
+          <View style={styles.titleCard}>
+            <Text style={styles.title}>{grammarPoint.title.toUpperCase()}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.bookmarkButton}
+          onPress={toggleBookmark}
+        >
+          <Ionicons
+            name={bookmarked ? "bookmark" : "bookmark-outline"}
+            size={22}
+            color="black"
+          />
+          <Text style={styles.bookmarkText}>
+            {bookmarked ? "BOOKMARKED" : "SAVE BOOKMARK"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>CONCEPT</Text>
+
+          <View style={styles.conceptCard}>
+            <Text style={styles.explanation}>{explanation}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>SENTENCE PATTERN</Text>
+
+          <View style={styles.patternCard}>
+            <Text style={styles.patternText}>{pattern}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>EXAMPLE</Text>
+
+          <View style={styles.exampleCard}>
+            <View style={styles.exampleHeader}>
+              <Ionicons name="megaphone-outline" size={24} color="black" />
+              <Text style={styles.exampleHeaderText}>PRACTICE THIS</Text>
+            </View>
+
+            <Text style={styles.thaiText}>{example.thai}</Text>
+
+            <TouchableOpacity
+              style={styles.audioButton}
+              onPress={() => handlePlayAudio(example.thai)}
+            >
+              <Ionicons name="volume-high" size={28} color="black" />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <Text style={styles.romanText}>"{example.roman}"</Text>
+
+            <View style={styles.englishContainer}>
+              <Text style={styles.englishText}>{example.english}</Text>
+            </View>
+
+            <View style={styles.breakdownContainer}>
+              {example.breakdown.map((item, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.breakdownCard,
+                    {
+                      backgroundColor: [
+                        "#FFCC00",
+                        "#FF66CC",
+                        "#66CCFF",
+                        "#99FF66",
+                      ][index % 4],
+                    },
+                  ]}
+                >
+                  <Text style={styles.breakdownThai}>{item.thai}</Text>
+
+                  <Text style={styles.breakdownEnglish}>
+                    {item.english.toUpperCase()}
+                  </Text>
                 </View>
-              </>
-            )}
+              ))}
+            </View>
+          </View>
+        </View>
 
-            {exerciseType === "wordOrder" && (
-              <View style={styles.wordScrapsSection}>
-                <Text style={styles.wordScrapsTitle}>BUILD THE SENTENCE</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>GRAMMAR FOCUS</Text>
 
-                <View style={styles.builder}>
-                  {builtSentence.map((word, i) => (
-                    <Text key={i} style={styles.builderWord}>
-                      {word}
-                    </Text>
-                  ))}
-                </View>
+          <View style={styles.focusCard}>
+            <View style={styles.focusIcon}>
+              <Ionicons name="star" size={20} color="black" />
+            </View>
 
-                <View style={styles.controls}>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={undoLastWord}
-                  >
-                    <Text style={styles.controlText}>Undo</Text>
-                  </TouchableOpacity>
+            <View style={styles.focusContent}>
+              <Text style={styles.focusParticle}>{focus.particle}</Text>
+              <Text style={styles.focusMeaning}>{focus.meaning}</Text>
+            </View>
+          </View>
+        </View>
 
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={resetSentence}
-                  >
-                    <Text style={styles.controlText}>Reset</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.wordCardsGrid}>
-                  {words.map((word, idx) => (
-                    <WordCard
-                      key={idx}
-                      thai={word.thai}
-                      english={word.english}
-                      backgroundColor={word.color}
-                      rotation={word.rotation}
-                      onPress={() => handleWordTap(word.thai)}
-                    />
-                  ))}
-                </View>
-
-                <GenerateButton title="Check" onPress={checkAnswer} />
-
-                {resultMessage !== "" && (
-                  <Text style={styles.resultText}>{resultMessage}</Text>
-                )}
-              </View>
-            )}
-
-            {exerciseType === "transform" && (
-              <View style={styles.transformBox}>
-                <Text style={styles.transformInstruction}>
-                  Apply the grammar rule
-                </Text>
-
-                <Text style={styles.transformSentence}>{sentence}</Text>
-                <Text style={styles.transformRomanization}>{romanization}</Text>
-                <Text style={styles.transformTranslation}>{translation}</Text>
-
-                {transformOptions.map((opt, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.transformOption}
-                    onPress={() => checkTransform(i)}
-                  >
-                    <Text style={styles.optionThai}>{opt?.thai || ""}</Text>
-                    <Text style={styles.optionRomanization}>
-                      {opt?.romanization || ""}
-                    </Text>
-                    <Text style={styles.optionEnglish}>
-                      {opt?.english || ""}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-
-                {resultMessage !== "" && (
-                  <Text style={styles.resultText}>{resultMessage}</Text>
-                )}
-              </View>
-            )}
-
-            <GenerateButton onPress={handleGenerate} />
-          </>
-        )}
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={() =>
+            router.push(`/practice/PracticeCSV?grammar=${grammar}`)
+          }
+        >
+          <Text style={styles.ctaText}>START PRACTICE</Text>
+          <Ionicons name="flash" size={24} color="black" />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F5F5F5" },
-  container: { paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  scrollContent: { padding: 20, paddingBottom: 100 },
 
-  wordScrapsSection: {
-    marginTop: 40,
-    paddingHorizontal: 20,
-  },
-
-  wordScrapsTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    marginBottom: 20,
-  },
-
-  builder: {
-    minHeight: 60,
-    borderWidth: 3,
-    borderColor: "black",
-    marginBottom: 20,
+  bookmarkButton: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-    padding: 10,
+    gap: 10,
+    padding: 12,
+    backgroundColor: "#FFF9C4",
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "black",
+    marginBottom: 25,
   },
 
-  builderWord: {
-    fontSize: 24,
-    fontWeight: "900",
-    marginHorizontal: 6,
+  bookmarkText: { fontWeight: "900" },
+
+  titleSection: { marginBottom: 30, alignItems: "center" },
+
+  levelBadge: {
+    backgroundColor: "black",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginBottom: -10,
+    zIndex: 1,
   },
 
-  controls: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
+  levelText: { color: "white", fontSize: 12, fontWeight: "900" },
 
-  controlButton: {
-    backgroundColor: "#000",
-    paddingVertical: 8,
+  titleCard: {
+    backgroundColor: "#FFFF00",
+    borderWidth: 3,
+    borderColor: "black",
     paddingHorizontal: 20,
-    marginHorizontal: 8,
-    borderRadius: 8,
+    paddingVertical: 15,
+    width: "100%",
   },
 
-  controlText: {
-    color: "white",
-    fontWeight: "700",
-  },
+  title: { fontSize: 28, fontWeight: "900", textAlign: "center" },
 
-  wordCardsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
+  section: { marginBottom: 35 },
 
-  transformBox: {
-    marginTop: 40,
-    paddingHorizontal: 20,
-  },
-
-  transformInstruction: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-
-  transformSentence: {
-    fontSize: 28,
+  sectionLabel: {
+    fontSize: 14,
     fontWeight: "900",
-    textAlign: "center",
+    color: "#757575",
+    marginBottom: 10,
+    letterSpacing: 2,
   },
 
-  transformRomanization: {
-    textAlign: "center",
-    marginTop: 6,
-  },
-
-  transformTranslation: {
-    textAlign: "center",
-    marginBottom: 20,
-    fontSize: 16,
-    color: "#555",
-  },
-
-  transformOption: {
+  conceptCard: {
     backgroundColor: "white",
     borderWidth: 2,
     borderColor: "black",
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 20,
   },
 
-  optionThai: {
-    fontSize: 22,
-    fontWeight: "800",
-    textAlign: "center",
+  explanation: { fontSize: 17, fontWeight: "600", lineHeight: 24 },
+
+  patternCard: {
+    backgroundColor: "#E7F1FF",
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "black",
   },
 
-  optionRomanization: {
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 4,
+  patternText: { fontSize: 20, fontWeight: "900", textAlign: "center" },
+
+  exampleCard: {
+    backgroundColor: "white",
+    padding: 25,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: "black",
+    alignItems: "center",
   },
 
-  optionEnglish: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#555",
+  exampleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+    gap: 8,
   },
 
-  resultText: {
-    textAlign: "center",
-    fontSize: 20,
-    fontWeight: "900",
-    marginTop: 10,
+  exampleHeaderText: { fontSize: 12, fontWeight: "900" },
+
+  audioButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 2,
+    borderColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 5,
   },
+
+  thaiText: { fontSize: 42, fontWeight: "bold", textAlign: "center" },
+
+  divider: {
+    height: 2,
+    backgroundColor: "#E0E0E0",
+    width: "100%",
+    marginVertical: 15,
+  },
+
+  romanText: {
+    fontSize: 18,
+    fontStyle: "italic",
+    textAlign: "center",
+    fontWeight: "600",
+    marginBottom: 15,
+  },
+
+  englishContainer: {
+    backgroundColor: "#FAFAFA",
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#E0E0E0",
+    borderStyle: "dashed",
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  englishText: { fontSize: 18, fontWeight: "800", textAlign: "center" },
+
+  breakdownContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 12,
+  },
+
+  breakdownCard: {
+    padding: 10,
+    borderWidth: 2,
+    borderColor: "black",
+    borderRadius: 8,
+    alignItems: "center",
+    minWidth: 80,
+  },
+
+  breakdownThai: { fontSize: 18, fontWeight: "bold" },
+
+  breakdownEnglish: { fontSize: 10, fontWeight: "900", opacity: 0.8 },
+
+  focusCard: {
+    flexDirection: "row",
+    backgroundColor: "#FFF4E6",
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "black",
+    alignItems: "center",
+  },
+
+  focusIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#FD7E14",
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+  },
+
+  focusParticle: { fontSize: 20, fontWeight: "900" },
+
+  focusMeaning: { fontSize: 15, fontWeight: "700" },
+
+  ctaButton: {
+    backgroundColor: "#FFFF00",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: "black",
+    marginTop: 20,
+    gap: 12,
+  },
+
+  ctaText: { fontSize: 22, fontWeight: "900" },
 });
