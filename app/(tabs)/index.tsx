@@ -83,6 +83,29 @@ export default function GrammarList() {
             <Ionicons name="arrow-forward" size={16} color="black" />
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: "#90CAF9" }]}
+          onPress={() =>
+            router.push("/practice/PracticeCSV?grammar=present_simple")
+          }
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.textContainer}>
+              <Text style={styles.levelLabel}>TEST</Text>
+              <Text style={styles.grammarTitle}>CSV PRACTICE</Text>
+            </View>
+
+            <View style={styles.iconContainer}>
+              <Ionicons name="flask-outline" size={24} color="black" />
+            </View>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <Text style={styles.footerText}>OPEN TEST</Text>
+            <Ionicons name="arrow-forward" size={16} color="black" />
+          </View>
+        </TouchableOpacity>
       </>
     );
   }
