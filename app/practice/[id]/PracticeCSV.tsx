@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useEffect, useState } from "react";
+import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
 import {
   SafeAreaView,
@@ -19,7 +20,18 @@ import WordCard from "../../../src/components/WordCard";
 import { getPractice } from "../../../src/api/getPractice";
 import { grammarPoints } from "../../../src/data/grammar";
 
-const COLORS = ["#42A5F5", "#FF4081", "#66BB6A", "#FF9800", "#AB47BC"];
+// Tone-based colors — one color per Thai tone
+const TONE_COLORS: Record<string, string> = {
+  mid: "#42A5F5", // blue
+  low: "#AB47BC", // purple
+  falling: "#FF4081", // pink
+  high: "#FF9800", // orange
+  rising: "#66BB6A", // green
+};
+
+function toneColor(tone?: string): string {
+  return TONE_COLORS[tone ?? ""] ?? "#42A5F5";
+}
 
 // mode = "breakdown" → BreakdownExercise (study sentence + word-by-word breakdown)
 // mode = "wordScraps" → WordScraps (build the sentence from shuffled tiles)
@@ -41,6 +53,8 @@ export default function PracticeCSV() {
 
   const [builtSentence, setBuiltSentence] = useState<string[]>([]);
   const [resultMessage, setResultMessage] = useState("");
+
+  const [toneGuideVisible, setToneGuideVisible] = useState(false);
 
   useEffect(() => {
     fetchAndShow("breakdown");
@@ -98,10 +112,10 @@ export default function PracticeCSV() {
         });
       }
 
-      const formattedWords = safeBreakdown.map((w: any, i: number) => ({
+      const formattedWords = safeBreakdown.map((w: any) => ({
         thai: w?.thai || "",
         english: (w?.english || "").toUpperCase(),
-        color: COLORS[i % COLORS.length],
+        color: toneColor(w?.tone),
         rotation: Math.random() * 6 - 3,
       }));
 
@@ -165,7 +179,13 @@ export default function PracticeCSV() {
           <Text style={styles.loadingText}>Loading...</Text>
         ) : (
           <>
+            <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+            <ToneGuide
+              visible={toneGuideVisible}
+              onClose={() => setToneGuideVisible(false)}
+            />
             {/* BreakdownExercise — sentence + word-by-word breakdown tiles */}
+
             {mode === "breakdown" && (
               <View style={styles.breakdownSection}>
                 <Text style={styles.exampleLabel}>EXAMPLE</Text>
@@ -194,7 +214,7 @@ export default function PracticeCSV() {
                         key={i}
                         style={[
                           styles.wordTile,
-                          { backgroundColor: COLORS[i % COLORS.length] },
+                          { backgroundColor: toneColor(w?.tone) },
                         ]}
                         onPress={() => speakWord(w.thai)}
                       >
