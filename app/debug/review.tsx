@@ -22,6 +22,12 @@ export default function DebugReview() {
 
     const data = await res.json();
 
+    if (data.done) {
+      setQuestion(null);
+      setFeedback("All reviews finished for today 🎉");
+      return;
+    }
+
     setQuestion(data);
     setFeedback(null);
   }
@@ -46,7 +52,7 @@ export default function DebugReview() {
   if (!question) {
     return (
       <SafeAreaView style={{ padding: 20 }}>
-        <Text>Loading...</Text>
+        <Text style={{ fontSize: 22 }}>{feedback || "Loading..."}</Text>
       </SafeAreaView>
     );
   }
