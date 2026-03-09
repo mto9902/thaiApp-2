@@ -14,13 +14,15 @@ import {
 
 import GenerateButton from "../../../src/components/GenerateButton";
 import Header from "../../../src/components/Header";
-import TranslateCard from "../../../src/components/TranslateCard";
 import WordCard from "../../../src/components/WordCard";
 
 import { getPractice } from "../../../src/api/getPractice";
 import { grammarPoints } from "../../../src/data/grammar";
 
 const COLORS = ["#42A5F5", "#FF4081", "#66BB6A", "#FF9800", "#AB47BC"];
+
+// mode = "breakdown" → BreakdownExercise (study sentence + word-by-word breakdown)
+// mode = "wordScraps" → WordScraps (build the sentence from shuffled tiles)
 
 export default function PracticeCSV() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,6 +35,7 @@ export default function PracticeCSV() {
 
   const [words, setWords] = useState<any[]>([]);
   const [breakdown, setBreakdown] = useState<any[]>([]);
+  const [mode, setMode] = useState<"breakdown" | "wordScraps">("breakdown");
 
   const [loading, setLoading] = useState(false);
 
@@ -40,12 +43,8 @@ export default function PracticeCSV() {
   const [resultMessage, setResultMessage] = useState("");
 
   useEffect(() => {
-    handleGenerate();
+    fetchAndShow("breakdown");
   }, [id]);
-
-  useEffect(() => {
-    console.log("BREAKDOWN STATE:", breakdown);
-  }, [breakdown]);
 
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
@@ -57,18 +56,17 @@ export default function PracticeCSV() {
 
   function shuffleWordsNotCorrectOrder(formattedWords: any[], correct: any[]) {
     let shuffled;
-
     do {
       shuffled = [...formattedWords].sort(() => Math.random() - 0.5);
     } while (
       JSON.stringify(shuffled.map((w) => w.thai)) ===
       JSON.stringify(correct.map((w) => w.thai))
     );
-
     return shuffled;
   }
 
-  const handleGenerate = async () => {
+  // Single shared fetch. Only switches mode after a successful fetch.
+  const fetchAndShow = async (nextMode: "breakdown" | "wordScraps") => {
     try {
       setLoading(true);
       setResultMessage("");
@@ -78,29 +76,27 @@ export default function PracticeCSV() {
           ? findGrammarById(id) || getRandomGrammar()
           : getRandomGrammar();
 
-      setGrammarPoint(grammarObject);
-
       const result = await getPractice(grammarObject.id);
-
-      console.log("API RESULT:", result);
 
       setSentence(result?.thai || "");
       setRomanization(result?.romanization || "");
       setTranslation(result?.english || "");
+      setGrammarPoint(grammarObject);
 
       const safeBreakdown = result?.breakdown || [];
       setBreakdown(safeBreakdown);
 
-      await fetch("http://192.168.1.121:3000/track-words", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          words: safeBreakdown,
-        }),
-      });
+      // Only add words to SRS after user has studied them in BreakdownExercise
+      if (nextMode === "breakdown") {
+        await fetch("http://192.168.1.121:3000/track-words", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ words: safeBreakdown }),
+        });
+      }
 
       const formattedWords = safeBreakdown.map((w: any, i: number) => ({
         thai: w?.thai || "",
@@ -109,13 +105,9 @@ export default function PracticeCSV() {
         rotation: Math.random() * 6 - 3,
       }));
 
-      const shuffled = shuffleWordsNotCorrectOrder(
-        formattedWords,
-        safeBreakdown,
-      );
-
-      setWords(shuffled);
+      setWords(shuffleWordsNotCorrectOrder(formattedWords, safeBreakdown));
       setBuiltSentence([]);
+      setMode(nextMode);
     } catch (error) {
       console.error("Practice generation failed:", error);
     } finally {
@@ -141,24 +133,24 @@ export default function PracticeCSV() {
 
     if (isCorrect) {
       setResultMessage("Correct!");
-
       setTimeout(() => {
-        handleGenerate();
-        setResultMessage("");
+        fetchAndShow("breakdown");
       }, 1000);
     } else {
       setResultMessage("Try again");
     }
   }
 
+  const speakSentence = () => {
+    if (!sentence) return;
+    Speech.stop();
+    Speech.speak(sentence, { language: "th-TH", rate: 0.9 });
+  };
+
   const speakWord = (word: string) => {
     if (!word) return;
-
     Speech.stop();
-    Speech.speak(word, {
-      language: "th-TH",
-      rate: 0.9,
-    });
+    Speech.speak(word, { language: "th-TH", rate: 0.9 });
   };
 
   return (
@@ -170,65 +162,109 @@ export default function PracticeCSV() {
         />
 
         {loading ? (
-          <Text style={{ textAlign: "center", marginTop: 40 }}>Loading...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         ) : (
           <>
-            <TranslateCard
-              sentence={sentence}
-              breakdown={breakdown}
-              romanization={romanization}
-              english={translation}
-              grammarPoint={grammarPoint?.title}
-            />
+            {/* BreakdownExercise — sentence + word-by-word breakdown tiles */}
+            {mode === "breakdown" && (
+              <View style={styles.breakdownSection}>
+                <Text style={styles.exampleLabel}>EXAMPLE</Text>
 
-            <View style={styles.wordScrapsSection}>
-              <Text style={styles.wordScrapsTitle}>BUILD THE SENTENCE</Text>
+                <View style={styles.card}>
+                  <Text style={styles.practiceThisLabel}>📢 PRACTICE THIS</Text>
 
-              <View style={styles.builder}>
-                {builtSentence.map((word, i) => (
-                  <Text key={i} style={styles.builderWord}>
-                    {word}
-                  </Text>
-                ))}
+                  <Text style={styles.sentence}>{sentence}</Text>
+
+                  <TouchableOpacity
+                    style={styles.soundButton}
+                    onPress={speakSentence}
+                  >
+                    <Text style={styles.soundText}>🔊</Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.romanization}>{romanization}</Text>
+
+                  <View style={styles.translationBox}>
+                    <Text style={styles.translationText}>{translation}</Text>
+                  </View>
+
+                  <View style={styles.wordTiles}>
+                    {breakdown.map((w: any, i: number) => (
+                      <TouchableOpacity
+                        key={i}
+                        style={[
+                          styles.wordTile,
+                          { backgroundColor: COLORS[i % COLORS.length] },
+                        ]}
+                        onPress={() => speakWord(w.thai)}
+                      >
+                        <Text style={styles.wordTileThai}>{w.thai}</Text>
+                        <Text style={styles.wordTileEnglish}>
+                          {w.english.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <GenerateButton
+                  title="New Sentence"
+                  onPress={() => fetchAndShow("wordScraps")}
+                />
               </View>
+            )}
 
-              <View style={styles.controls}>
-                <TouchableOpacity
-                  style={styles.controlButton}
-                  onPress={undoLastWord}
-                >
-                  <Text style={styles.controlText}>Undo</Text>
-                </TouchableOpacity>
+            {/* WordScraps — build the sentence from shuffled tiles */}
+            {mode === "wordScraps" && (
+              <View style={styles.wordScrapsSection}>
+                <Text style={styles.wordScrapsTitle}>BUILD THE SENTENCE</Text>
 
-                <TouchableOpacity
-                  style={styles.controlButton}
-                  onPress={resetSentence}
-                >
-                  <Text style={styles.controlText}>Reset</Text>
-                </TouchableOpacity>
+                <View style={styles.builder}>
+                  {builtSentence.map((word, i) => (
+                    <Text key={i} style={styles.builderWord}>
+                      {word}
+                    </Text>
+                  ))}
+                </View>
+
+                <View style={styles.controls}>
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={undoLastWord}
+                  >
+                    <Text style={styles.controlText}>Undo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={resetSentence}
+                  >
+                    <Text style={styles.controlText}>Reset</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.wordCardsGrid}>
+                  {words.map((word, idx) => (
+                    <WordCard
+                      key={idx}
+                      thai={word.thai}
+                      english={word.english}
+                      backgroundColor={word.color}
+                      rotation={word.rotation}
+                      onPress={() => {
+                        speakWord(word.thai);
+                        handleWordTap(word.thai);
+                      }}
+                    />
+                  ))}
+                </View>
+
+                <GenerateButton title="Check" onPress={checkAnswer} />
+
+                {resultMessage !== "" && (
+                  <Text style={styles.resultText}>{resultMessage}</Text>
+                )}
               </View>
-
-              <View style={styles.wordCardsGrid}>
-                {words.map((word, idx) => (
-                  <WordCard
-                    key={idx}
-                    thai={word.thai}
-                    english={word.english}
-                    backgroundColor={word.color}
-                    rotation={word.rotation}
-                    onPress={() => handleWordTap(word.thai)}
-                  />
-                ))}
-              </View>
-
-              <GenerateButton title="Check" onPress={checkAnswer} />
-
-              {resultMessage !== "" && (
-                <Text style={styles.resultText}>{resultMessage}</Text>
-              )}
-            </View>
-
-            <GenerateButton onPress={handleGenerate} />
+            )}
           </>
         )}
       </ScrollView>
@@ -239,7 +275,121 @@ export default function PracticeCSV() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F5F5F5" },
   container: { paddingBottom: 40 },
+  loadingText: { textAlign: "center", marginTop: 40 },
 
+  // ── BreakdownExercise ──────────────────────────────────────
+  breakdownSection: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+  },
+
+  exampleLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#888",
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 24,
+  },
+
+  practiceThisLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#555",
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+
+  sentence: {
+    fontSize: 32,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+
+  soundButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "#ddd",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+
+  soundText: {
+    fontSize: 22,
+  },
+
+  romanization: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+
+  translationBox: {
+    borderWidth: 1.5,
+    borderColor: "#ccc",
+    borderStyle: "dashed",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    width: "100%",
+    alignItems: "center",
+  },
+
+  translationText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#222",
+    textAlign: "center",
+  },
+
+  wordTiles: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  wordTile: {
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    minWidth: 60,
+  },
+
+  wordTileThai: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#fff",
+  },
+
+  wordTileEnglish: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
+    opacity: 0.85,
+    marginTop: 2,
+  },
+
+  // ── WordScraps ─────────────────────────────────────────────
   wordScrapsSection: {
     marginTop: 40,
     paddingHorizontal: 20,

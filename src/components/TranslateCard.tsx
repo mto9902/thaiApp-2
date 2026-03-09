@@ -191,3 +191,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+/* <TranslateCard
+              sentence={sentence}
+              breakdown={breakdown}
+              romanization={romanization}
+              english={translation}
+              grammarPoint={grammarPoint?.title}
+            />
+            */
