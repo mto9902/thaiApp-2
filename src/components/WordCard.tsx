@@ -1,11 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface WordCardProps {
   thai: string;
   english: string;
   backgroundColor: string;
   rotation?: number;
+  isGrammar?: boolean;
   onPress?: () => void;
 }
 
@@ -14,6 +15,7 @@ export default function WordCard({
   english,
   backgroundColor,
   rotation = 0,
+  isGrammar = false,
   onPress,
 }: WordCardProps) {
   return (
@@ -21,10 +23,16 @@ export default function WordCard({
       style={[
         styles.card,
         { backgroundColor, transform: [{ rotate: `${rotation}deg` }] },
+        isGrammar && styles.grammarCard,
       ]}
       onPress={onPress}
       activeOpacity={0.8}
     >
+      {isGrammar && (
+        <View style={styles.grammarBadge}>
+          <Text style={styles.grammarBadgeIcon}>🧩</Text>
+        </View>
+      )}
       <Text style={styles.thaiText}>{thai}</Text>
       <Text style={styles.englishText}>{english.toUpperCase()}</Text>
     </TouchableOpacity>
@@ -48,6 +56,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
+  },
+
+  grammarCard: {
+    borderStyle: "dashed",
+    borderWidth: 2.5,
+    borderColor: "rgba(255,255,255,0.85)",
+  },
+
+  grammarBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+  },
+
+  grammarBadgeIcon: {
+    fontSize: 12,
   },
 
   thaiText: {

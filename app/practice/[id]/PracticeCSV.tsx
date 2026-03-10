@@ -52,7 +52,12 @@ interface SentenceData {
   thai: string;
   romanization: string;
   english: string;
-  breakdown: { thai: string; english: string; tone?: string }[];
+  breakdown: {
+    thai: string;
+    english: string;
+    tone?: string;
+    grammar?: boolean;
+  }[];
 }
 
 interface MatchOption {
@@ -84,37 +89,56 @@ function buildMatchOptions(
   return options.sort(() => Math.random() - 0.5);
 }
 
+const MAX_FREE_TILES = 4;
+
+function computePrefill(
+  breakdown: SentenceData["breakdown"],
+): (string | null)[] {
+  const total = breakdown.length;
+
+  if (total <= MAX_FREE_TILES) {
+    return breakdown.map(() => null);
+  }
+
+  const numToPrefill = total - MAX_FREE_TILES;
+
+  const eligible = breakdown
+    .map((w, i) => ({ i, grammar: !!w.grammar }))
+    .filter((x) => !x.grammar)
+    .map((x) => x.i);
+
+  const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+  const prefillIndices = new Set(shuffled.slice(0, numToPrefill));
+
+  return breakdown.map((w, i) => (prefillIndices.has(i) ? w.thai : null));
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function PracticeCSV() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  // ── Round counter (for logging)
   const roundRef = useRef(0);
 
-  // ── Sentence state
   const [sentence, setSentence] = useState("");
   const [romanization, setRomanization] = useState("");
   const [translation, setTranslation] = useState("");
   const [grammarPoint, setGrammarPoint] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<SentenceData["breakdown"]>([]);
 
-  // ── WordScraps state
   const [words, setWords] = useState<any[]>([]);
   const [builtSentence, setBuiltSentence] = useState<string[]>([]);
+  const [prefilled, setPrefilled] = useState<(string | null)[]>([]);
 
-  // ── MatchThai state
   const [matchOptions, setMatchOptions] = useState<MatchOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [matchRevealed, setMatchRevealed] = useState(false);
 
-  // ── Shared state
   const [mode, setMode] = useState<Mode>("breakdown");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<"" | "correct" | "wrong">("");
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
 
-  // ── Fade animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
     fadeAnim.setValue(0);
@@ -130,7 +154,6 @@ export default function PracticeCSV() {
     fetchRound(randomMode());
   }, [id]);
 
-  // ── Grammar helpers ──────────────────────────────────────────────────────────
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
   }
@@ -143,7 +166,6 @@ export default function PracticeCSV() {
       : getRandomGrammar();
   }
 
-  // ── Fetch helpers ────────────────────────────────────────────────────────────
   async function fetchSentence(gid: string): Promise<SentenceData> {
     const t0 = Date.now();
     const res = await getPractice(gid);
@@ -159,7 +181,6 @@ export default function PracticeCSV() {
     return data;
   }
 
-  // ── SRS tracking ─────────────────────────────────────────────────────────────
   async function trackWords(
     wordsToTrack: SentenceData["breakdown"],
     trigger: string,
@@ -196,7 +217,6 @@ export default function PracticeCSV() {
     return s;
   }
 
-  // ── Main fetch & setup ───────────────────────────────────────────────────────
   const fetchRound = async (nextMode: Mode) => {
     const round = ++roundRef.current;
     console.log(`\n══════════════════════════════════════`);
@@ -226,17 +246,25 @@ export default function PracticeCSV() {
       setGrammarPoint(gobj);
       setBreakdown(main.breakdown);
 
-      // WordScraps tiles
-      const formatted = main.breakdown.map((w) => ({
+      const slots = computePrefill(main.breakdown);
+      setPrefilled(slots);
+
+      const freeWords = main.breakdown.filter((_, i) => slots[i] === null);
+      const formatted = freeWords.map((w) => ({
         thai: w.thai,
         english: w.english.toUpperCase(),
         color: toneColor(w.tone),
         rotation: Math.random() * 4 - 2,
+        isGrammar: !!w.grammar,
       }));
-      setWords(shuffleNotSame(formatted, main.breakdown));
+      setWords(shuffleNotSame(formatted, freeWords));
       setBuiltSentence([]);
 
-      // MatchThai — fetch distractors
+      const prefilledCount = slots.filter((s) => s !== null).length;
+      console.log(
+        `[Round ${round}] WordScraps: ${main.breakdown.length} words, ${prefilledCount} pre-filled, ${freeWords.length} free tiles`,
+      );
+
       if (nextMode === "matchThai") {
         console.log(`[Round ${round}] Fetching 3 distractors…`);
         const extras = await Promise.all([
@@ -256,12 +284,10 @@ export default function PracticeCSV() {
     }
   };
 
-  // ── Next exercise (random) ───────────────────────────────────────────────────
   function nextExercise() {
     fetchRound(randomMode());
   }
 
-  // ── WordScraps actions ───────────────────────────────────────────────────────
   function handleWordTap(word: string) {
     setBuiltSentence((p) => {
       const next = [...p, word];
@@ -284,10 +310,21 @@ export default function PracticeCSV() {
   }
 
   function checkWordScraps() {
+    const fullSentence: string[] = [];
+    let userIdx = 0;
+    for (let i = 0; i < prefilled.length; i++) {
+      if (prefilled[i] !== null) {
+        fullSentence.push(prefilled[i]!);
+      } else if (userIdx < builtSentence.length) {
+        fullSentence.push(builtSentence[userIdx]);
+        userIdx++;
+      }
+    }
+
     const correct = breakdown.map((w) => w.thai);
-    const ok = JSON.stringify(correct) === JSON.stringify(builtSentence);
+    const ok = JSON.stringify(correct) === JSON.stringify(fullSentence);
     console.log(
-      `[WordScraps] Check: ${ok ? "✅ CORRECT" : "❌ WRONG"} — expected [${correct.join(", ")}] got [${builtSentence.join(", ")}]`,
+      `[WordScraps] Check: ${ok ? "✅ CORRECT" : "❌ WRONG"} — expected [${correct.join(", ")}] got [${fullSentence.join(", ")}]`,
     );
     setResult(ok ? "correct" : "wrong");
     if (ok) {
@@ -296,7 +333,6 @@ export default function PracticeCSV() {
     }
   }
 
-  // ── MatchThai actions ────────────────────────────────────────────────────────
   function selectOption(idx: number) {
     if (matchRevealed) return;
     setSelectedOption(idx);
@@ -313,22 +349,20 @@ export default function PracticeCSV() {
     }
   }
 
-  // ── Speech ───────────────────────────────────────────────────────────────────
   const speak = (t: string) => {
     Speech.stop();
     Speech.speak(t, { language: "th-TH", rate: 0.9 });
   };
 
-  // ── Derived ──────────────────────────────────────────────────────────────────
+  const freeTileCount = prefilled.filter((s) => s === null).length;
   const wordProgress =
-    breakdown.length > 0 ? builtSentence.length / breakdown.length : 0;
+    freeTileCount > 0 ? builtSentence.length / freeTileCount : 0;
   const meta = MODE_META[mode];
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={st.safe}>
       <ScrollView
-        contentContainerStyle={s.scroll}
+        contentContainerStyle={st.scroll}
         showsVerticalScrollIndicator={false}
       >
         <Header
@@ -337,72 +371,78 @@ export default function PracticeCSV() {
         />
 
         {loading ? (
-          <View style={s.loadingWrap}>
-            <View style={s.loadingPulse} />
-            <Text style={s.loadingLabel}>Generating…</Text>
+          <View style={st.loadingWrap}>
+            <View style={st.loadingPulse} />
+            <Text style={st.loadingLabel}>Generating…</Text>
           </View>
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
             {/* ── Mode header ── */}
-            <View style={s.modeHeader}>
-              <View style={s.modeTagRow}>
-                <View style={s.modeTag}>
-                  <Text style={s.modeTagText}>{meta.tag}</Text>
+            <View style={st.modeHeader}>
+              <View style={st.modeTagRow}>
+                <View style={st.modeTag}>
+                  <Text style={st.modeTagText}>{meta.tag}</Text>
                 </View>
                 <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
               </View>
-              <Text style={s.modeTitle}>{meta.title}</Text>
+              <Text style={st.modeTitle}>{meta.title}</Text>
             </View>
 
             {/* ══════════════════════════════════════════════
                 BREAKDOWN (Study)
             ══════════════════════════════════════════════ */}
             {mode === "breakdown" && (
-              <View style={s.exerciseWrap}>
-                <View style={s.studyCard}>
+              <View style={st.exerciseWrap}>
+                <View style={st.studyCard}>
                   <TouchableOpacity
-                    style={s.speakerBtn}
+                    style={st.speakerBtn}
                     onPress={() => speak(sentence)}
                     activeOpacity={0.7}
                   >
-                    <Text style={s.speakerIcon}>🔊</Text>
+                    <Text style={st.speakerIcon}>🔊</Text>
                   </TouchableOpacity>
 
-                  <Text style={s.studySentence}>
+                  <Text style={st.studySentence}>
                     {breakdown.map((w, i) => (
                       <Text key={i} style={{ color: toneColor(w.tone) }}>
                         {w.thai}
                       </Text>
                     ))}
                   </Text>
-                  <Text style={s.studyRoman}>{romanization}</Text>
+                  <Text style={st.studyRoman}>{romanization}</Text>
 
-                  <View style={s.divider} />
+                  <View style={st.divider} />
 
-                  <Text style={s.studyEnglish}>{translation}</Text>
+                  <Text style={st.studyEnglish}>{translation}</Text>
                 </View>
 
                 {/* Word breakdown */}
-                <View style={s.tileSection}>
-                  <Text style={s.tileSectionLabel}>WORD BREAKDOWN</Text>
-                  <View style={s.tileRow}>
+                <View style={st.tileSection}>
+                  <Text style={st.tileSectionLabel}>WORD BREAKDOWN</Text>
+                  <View style={st.tileRow}>
                     {breakdown.map((w, i) => (
                       <TouchableOpacity
                         key={i}
                         style={[
-                          s.studyTile,
+                          st.studyTile,
                           { backgroundColor: toneColor(w.tone) },
+                          w.grammar && st.grammarTile,
                         ]}
                         onPress={() => speak(w.thai)}
                         activeOpacity={0.8}
                       >
-                        <Text style={s.studyTileThai}>{w.thai}</Text>
-                        <Text style={s.studyTileEng}>
+                        {w.grammar && (
+                          <View style={st.grammarBadge}>
+                            <Text style={st.grammarBadgeIcon}>🧩</Text>
+                          </View>
+                        )}
+                        <Text style={st.studyTileThai}>{w.thai}</Text>
+                        <Text style={st.studyTileEng}>
                           {w.english.toUpperCase()}
                         </Text>
                         {w.tone && (
-                          <View style={s.tonePill}>
-                            <Text style={s.tonePillText}>{w.tone}</Text>
+                          <View style={st.tonePill}>
+                            <Text style={st.tonePillText}>{w.tone}</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -411,14 +451,14 @@ export default function PracticeCSV() {
                 </View>
 
                 <TouchableOpacity
-                  style={s.primaryBtn}
+                  style={st.primaryBtn}
                   onPress={() => {
                     trackWords(breakdown, "breakdown-next");
                     fetchRound(randomMode());
                   }}
                   activeOpacity={0.85}
                 >
-                  <Text style={s.primaryBtnText}>Got it — Next →</Text>
+                  <Text style={st.primaryBtnText}>Got it — Next →</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -427,17 +467,17 @@ export default function PracticeCSV() {
                 WORDSCRAPS (Build)
             ══════════════════════════════════════════════ */}
             {mode === "wordScraps" && (
-              <View style={s.exerciseWrap}>
-                <View style={s.promptCard}>
-                  <Text style={s.promptLabel}>TRANSLATE INTO THAI</Text>
-                  <Text style={s.promptText}>{translation}</Text>
+              <View style={st.exerciseWrap}>
+                <View style={st.promptCard}>
+                  <Text style={st.promptLabel}>TRANSLATE INTO THAI</Text>
+                  <Text style={st.promptText}>{translation}</Text>
                 </View>
 
                 {/* Progress */}
-                <View style={s.progressTrack}>
+                <View style={st.progressTrack}>
                   <View
                     style={[
-                      s.progressFill,
+                      st.progressFill,
                       { width: `${Math.round(wordProgress * 100)}%` as any },
                     ]}
                   />
@@ -446,22 +486,55 @@ export default function PracticeCSV() {
                 {/* Builder zone */}
                 <View
                   style={[
-                    s.builderZone,
-                    result === "correct" && s.builderCorrect,
-                    result === "wrong" && s.builderWrong,
+                    st.builderZone,
+                    result === "correct" && st.builderCorrect,
+                    result === "wrong" && st.builderWrong,
                   ]}
                 >
-                  {builtSentence.length === 0 ? (
-                    <Text style={s.builderPlaceholder}>
+                  {builtSentence.length === 0 &&
+                  prefilled.every((s) => s === null) ? (
+                    <Text style={st.builderPlaceholder}>
                       Tap words below to build…
                     </Text>
                   ) : (
-                    <View style={s.builderWords}>
-                      {builtSentence.map((w, i) => (
-                        <View key={i} style={s.builderChip}>
-                          <Text style={s.builderChipText}>{w}</Text>
-                        </View>
-                      ))}
+                    <View style={st.builderWords}>
+                      {(() => {
+                        const chips: React.ReactNode[] = [];
+                        let userIdx = 0;
+                        for (let i = 0; i < prefilled.length; i++) {
+                          if (prefilled[i] !== null) {
+                            chips.push(
+                              <View
+                                key={`pre-${i}`}
+                                style={st.builderChipLocked}
+                              >
+                                <Text style={st.builderChipLockedText}>
+                                  {prefilled[i]}
+                                </Text>
+                              </View>,
+                            );
+                          } else if (userIdx < builtSentence.length) {
+                            chips.push(
+                              <View key={`usr-${i}`} style={st.builderChip}>
+                                <Text style={st.builderChipText}>
+                                  {builtSentence[userIdx]}
+                                </Text>
+                              </View>,
+                            );
+                            userIdx++;
+                          } else {
+                            chips.push(
+                              <View
+                                key={`gap-${i}`}
+                                style={st.builderSlotEmpty}
+                              >
+                                <Text style={st.builderSlotEmptyText}>?</Text>
+                              </View>,
+                            );
+                          }
+                        }
+                        return chips;
+                      })()}
                     </View>
                   )}
                 </View>
@@ -470,16 +543,16 @@ export default function PracticeCSV() {
                 {result !== "" && (
                   <View
                     style={[
-                      s.resultBanner,
-                      result === "correct" ? s.resultOk : s.resultBad,
+                      st.resultBanner,
+                      result === "correct" ? st.resultOk : st.resultBad,
                     ]}
                   >
-                    <Text style={s.resultEmoji}>
+                    <Text style={st.resultEmoji}>
                       {result === "correct" ? "🎉" : "😅"}
                     </Text>
                     <Text
                       style={[
-                        s.resultLabel,
+                        st.resultLabel,
                         {
                           color: result === "correct" ? "#2E7D32" : "#BF360C",
                         },
@@ -493,25 +566,25 @@ export default function PracticeCSV() {
                 )}
 
                 {/* Undo / Reset */}
-                <View style={s.actionRow}>
+                <View style={st.actionRow}>
                   <TouchableOpacity
-                    style={s.actionBtn}
+                    style={st.actionBtn}
                     onPress={undoLastWord}
                     activeOpacity={0.7}
                   >
-                    <Text style={s.actionBtnText}>← Undo</Text>
+                    <Text style={st.actionBtnText}>← Undo</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={s.actionBtn}
+                    style={st.actionBtn}
                     onPress={resetSentence}
                     activeOpacity={0.7}
                   >
-                    <Text style={s.actionBtnText}>↺ Reset</Text>
+                    <Text style={st.actionBtnText}>↺ Reset</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Tiles */}
-                <View style={s.wordCardsGrid}>
+                <View style={st.wordCardsGrid}>
                   {words.map((word, idx) => (
                     <WordCard
                       key={idx}
@@ -519,6 +592,7 @@ export default function PracticeCSV() {
                       english={word.english}
                       backgroundColor={word.color}
                       rotation={word.rotation}
+                      isGrammar={word.isGrammar}
                       onPress={() => {
                         speak(word.thai);
                         handleWordTap(word.thai);
@@ -528,23 +602,23 @@ export default function PracticeCSV() {
                 </View>
 
                 <TouchableOpacity
-                  style={s.primaryBtn}
+                  style={st.primaryBtn}
                   onPress={checkWordScraps}
                   activeOpacity={0.85}
                 >
-                  <Text style={s.primaryBtnText}>Check Answer</Text>
+                  <Text style={st.primaryBtnText}>Check Answer</Text>
                 </TouchableOpacity>
 
                 {result !== "correct" && (
                   <TouchableOpacity
-                    style={[s.primaryBtn, s.secondaryBtn]}
+                    style={[st.primaryBtn, st.secondaryBtn]}
                     onPress={() => {
                       console.log("[WordScraps] Skipped");
                       fetchRound(randomMode());
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={[s.primaryBtnText, s.secondaryBtnText]}>
+                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
                       Skip →
                     </Text>
                   </TouchableOpacity>
@@ -556,13 +630,13 @@ export default function PracticeCSV() {
                 MATCHTHAI (Pick correct sentence)
             ══════════════════════════════════════════════ */}
             {mode === "matchThai" && (
-              <View style={s.exerciseWrap}>
-                <View style={s.promptCard}>
-                  <Text style={s.promptLabel}>FIND THE THAI FOR</Text>
-                  <Text style={s.promptText}>{translation}</Text>
+              <View style={st.exerciseWrap}>
+                <View style={st.promptCard}>
+                  <Text style={st.promptLabel}>FIND THE THAI FOR</Text>
+                  <Text style={st.promptText}>{translation}</Text>
                 </View>
 
-                <View style={s.optionsGrid}>
+                <View style={st.optionsGrid}>
                   {matchOptions.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
                     const isCorrect = opt.isCorrect;
@@ -589,24 +663,32 @@ export default function PracticeCSV() {
                       <TouchableOpacity
                         key={idx}
                         style={[
-                          s.optionCard,
+                          st.optionCard,
                           { borderColor, backgroundColor: bgColor },
                         ]}
                         onPress={() => selectOption(idx)}
                         activeOpacity={matchRevealed ? 1 : 0.75}
                       >
-                        <View style={s.optionTiles}>
+                        <View style={st.optionTiles}>
                           {opt.breakdown.map((w, wi) => (
                             <TouchableOpacity
                               key={wi}
                               style={[
-                                s.optionTile,
+                                st.optionTile,
                                 { backgroundColor: toneColor(w.tone) },
+                                w.grammar && st.grammarOptionTile,
                               ]}
                               onPress={() => speak(w.thai)}
                             >
-                              <Text style={s.optionTileThai}>{w.thai}</Text>
-                              <Text style={s.optionTileEng}>
+                              {w.grammar && (
+                                <View style={st.grammarBadgeSmall}>
+                                  <Text style={st.grammarBadgeSmallIcon}>
+                                    🧩
+                                  </Text>
+                                </View>
+                              )}
+                              <Text style={st.optionTileThai}>{w.thai}</Text>
+                              <Text style={st.optionTileEng}>
                                 {w.english.toUpperCase()}
                               </Text>
                             </TouchableOpacity>
@@ -614,15 +696,15 @@ export default function PracticeCSV() {
                         </View>
 
                         {matchRevealed && isCorrect && (
-                          <View style={s.badge}>
-                            <Text style={[s.badgeText, { color: "#2E7D32" }]}>
+                          <View style={st.badge}>
+                            <Text style={[st.badgeText, { color: "#2E7D32" }]}>
                               ✓ Correct
                             </Text>
                           </View>
                         )}
                         {matchRevealed && isSelected && !isCorrect && (
-                          <View style={[s.badge, s.badgeWrong]}>
-                            <Text style={[s.badgeText, { color: "#BF360C" }]}>
+                          <View style={[st.badge, st.badgeWrong]}>
+                            <Text style={[st.badgeText, { color: "#BF360C" }]}>
                               ✗ Wrong
                             </Text>
                           </View>
@@ -632,20 +714,19 @@ export default function PracticeCSV() {
                   })}
                 </View>
 
-                {/* Result */}
                 {result !== "" && (
                   <View
                     style={[
-                      s.resultBanner,
-                      result === "correct" ? s.resultOk : s.resultBad,
+                      st.resultBanner,
+                      result === "correct" ? st.resultOk : st.resultBad,
                     ]}
                   >
-                    <Text style={s.resultEmoji}>
+                    <Text style={st.resultEmoji}>
                       {result === "correct" ? "🎉" : "😅"}
                     </Text>
                     <Text
                       style={[
-                        s.resultLabel,
+                        st.resultLabel,
                         {
                           color: result === "correct" ? "#2E7D32" : "#BF360C",
                         },
@@ -660,11 +741,11 @@ export default function PracticeCSV() {
 
                 {matchRevealed && result === "wrong" && (
                   <TouchableOpacity
-                    style={[s.primaryBtn, s.secondaryBtn]}
+                    style={[st.primaryBtn, st.secondaryBtn]}
                     onPress={() => fetchRound(randomMode())}
                     activeOpacity={0.85}
                   >
-                    <Text style={[s.primaryBtnText, s.secondaryBtnText]}>
+                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
                       Continue →
                     </Text>
                   </TouchableOpacity>
@@ -672,14 +753,14 @@ export default function PracticeCSV() {
 
                 {!matchRevealed && (
                   <TouchableOpacity
-                    style={[s.primaryBtn, s.secondaryBtn]}
+                    style={[st.primaryBtn, st.secondaryBtn]}
                     onPress={() => {
                       console.log("[MatchThai] Skipped");
                       fetchRound(randomMode());
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={[s.primaryBtnText, s.secondaryBtnText]}>
+                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
                       Skip →
                     </Text>
                   </TouchableOpacity>
@@ -708,12 +789,10 @@ const SHADOW = {
   elevation: 3,
 } as const;
 
-const s = StyleSheet.create({
-  // ── Layout ─────────────────────────────────────────────────
+const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F7F6F3" },
   scroll: { paddingBottom: 64 },
 
-  // ── Loading ────────────────────────────────────────────────
   loadingWrap: { alignItems: "center", paddingTop: 120, gap: 14 },
   loadingPulse: {
     width: 40,
@@ -723,7 +802,6 @@ const s = StyleSheet.create({
   },
   loadingLabel: { fontSize: 14, color: "#AAA", fontWeight: "600" },
 
-  // ── Mode header ────────────────────────────────────────────
   modeHeader: {
     paddingHorizontal: 22,
     paddingTop: 20,
@@ -754,14 +832,12 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
   },
 
-  // ── Exercise wrapper ───────────────────────────────────────
   exerciseWrap: {
     paddingHorizontal: 22,
     paddingTop: 18,
     gap: 16,
   },
 
-  // ── Study card ─────────────────────────────────────────────
   studyCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: R + 4,
@@ -810,7 +886,6 @@ const s = StyleSheet.create({
     lineHeight: 24,
   },
 
-  // ── Tile section ───────────────────────────────────────────
   tileSection: { gap: 10 },
   tileSectionLabel: {
     fontSize: 10,
@@ -857,7 +932,36 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ── Primary button ─────────────────────────────────────────
+  // ── Grammar tile styles (breakdown mode) ───────────────────
+  grammarTile: {
+    borderWidth: 2.5,
+    borderColor: "rgba(255,255,255,0.85)",
+    borderStyle: "dashed",
+  },
+  grammarBadge: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+  },
+  grammarBadgeIcon: {
+    fontSize: 10,
+  },
+
+  // ── Grammar tile styles (matchThai mode) ───────────────────
+  grammarOptionTile: {
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.8)",
+    borderStyle: "dashed",
+  },
+  grammarBadgeSmall: {
+    position: "absolute",
+    top: 1,
+    right: 2,
+  },
+  grammarBadgeSmallIcon: {
+    fontSize: 8,
+  },
+
   primaryBtn: {
     backgroundColor: "#1A1A1A",
     borderRadius: 12,
@@ -878,7 +982,6 @@ const s = StyleSheet.create({
     color: "#555",
   },
 
-  // ── Prompt card ────────────────────────────────────────────
   promptCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: R,
@@ -900,7 +1003,6 @@ const s = StyleSheet.create({
     lineHeight: 26,
   },
 
-  // ── Progress bar ───────────────────────────────────────────
   progressTrack: {
     height: 3,
     backgroundColor: "#E8E8E4",
@@ -913,7 +1015,6 @@ const s = StyleSheet.create({
     borderRadius: 2,
   },
 
-  // ── Builder zone ───────────────────────────────────────────
   builderZone: {
     backgroundColor: "#FFFFFF",
     borderRadius: R,
@@ -958,8 +1059,37 @@ const s = StyleSheet.create({
     fontWeight: "800",
     color: "#1A1A1A",
   },
+  builderChipLocked: {
+    backgroundColor: "#E2E2DD",
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: "#D0D0CA",
+    borderStyle: "dashed",
+  },
+  builderChipLockedText: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#999",
+  },
+  builderSlotEmpty: {
+    backgroundColor: "#FAFAF8",
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: "#D8D8D2",
+    borderStyle: "dashed",
+    minWidth: 44,
+    alignItems: "center" as const,
+  },
+  builderSlotEmptyText: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#CCC",
+  },
 
-  // ── Action row ─────────────────────────────────────────────
   actionRow: { flexDirection: "row", gap: 10 },
   actionBtn: {
     flex: 1,
@@ -976,14 +1106,12 @@ const s = StyleSheet.create({
     color: "#888",
   },
 
-  // ── Word cards grid ────────────────────────────────────────
   wordCardsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
   },
 
-  // ── Result banner ──────────────────────────────────────────
   resultBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -997,7 +1125,6 @@ const s = StyleSheet.create({
   resultEmoji: { fontSize: 20 },
   resultLabel: { fontSize: 14, fontWeight: "700" },
 
-  // ── Match options ──────────────────────────────────────────
   optionsGrid: { gap: 10 },
   optionCard: {
     backgroundColor: "#FFFFFF",
@@ -1028,7 +1155,6 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // ── Badges ─────────────────────────────────────────────────
   badge: {
     alignSelf: "flex-start",
     backgroundColor: "#F0FAF2",
