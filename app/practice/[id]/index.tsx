@@ -6,6 +6,7 @@ import {
     useLocalSearchParams,
     useRouter,
 } from "expo-router";
+import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -21,6 +22,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import LessonHeader from "../../../src/components/LessonHeader";
 import { grammarPoints } from "../../../src/data/grammar";
+
+// ── Tone colors (shared with PracticeCSV) ──────────────────────────────────────
+const TONE_COLORS: Record<string, string> = {
+  mid: "#5B9BD5",
+  low: "#9B72CF",
+  falling: "#E8607A",
+  high: "#F0983E",
+  rising: "#5EBA7D",
+};
+
+function toneColor(tone?: string): string {
+  return TONE_COLORS[tone ?? ""] ?? "#5B9BD5";
+}
+
+// ── TTS helper ─────────────────────────────────────────────────────────────────
+function speak(text: string) {
+  Speech.stop();
+  Speech.speak(text, { language: "th-TH", rate: 0.9 });
+}
 
 export default function GrammarDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -118,10 +138,6 @@ export default function GrammarDetail() {
     ],
   };
 
-  const handlePlayAudio = (text: string) => {
-    Alert.alert("Audio playback", `Playing: ${text}`);
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -178,11 +194,20 @@ export default function GrammarDetail() {
               <Text style={styles.exampleHeaderText}>PRACTICE THIS</Text>
             </View>
 
-            <Text style={styles.thaiText}>{example.thai}</Text>
+            {/* ── Thai sentence with tone colors ── */}
+            <Text style={styles.thaiText}>
+              {example.breakdown.map((item: any, index: number) => (
+                <Text key={index} style={{ color: toneColor(item.tone) }}>
+                  {item.thai}
+                </Text>
+              ))}
+            </Text>
 
+            {/* ── Speaker button with real TTS ── */}
             <TouchableOpacity
               style={styles.audioButton}
-              onPress={() => handlePlayAudio(example.thai)}
+              onPress={() => speak(example.thai)}
+              activeOpacity={0.7}
             >
               <Ionicons name="volume-high" size={28} color="black" />
             </TouchableOpacity>
@@ -195,28 +220,28 @@ export default function GrammarDetail() {
               <Text style={styles.englishText}>{example.english}</Text>
             </View>
 
+            {/* ── Word breakdown with tone colors + TTS ── */}
             <View style={styles.breakdownContainer}>
-              {example.breakdown.map((item, index) => (
-                <View
+              {example.breakdown.map((item: any, index: number) => (
+                <TouchableOpacity
                   key={index}
                   style={[
                     styles.breakdownCard,
-                    {
-                      backgroundColor: [
-                        "#FFCC00",
-                        "#FF66CC",
-                        "#66CCFF",
-                        "#99FF66",
-                      ][index % 4],
-                    },
+                    { backgroundColor: toneColor(item.tone) },
                   ]}
+                  onPress={() => speak(item.thai)}
+                  activeOpacity={0.8}
                 >
                   <Text style={styles.breakdownThai}>{item.thai}</Text>
-
                   <Text style={styles.breakdownEnglish}>
                     {item.english.toUpperCase()}
                   </Text>
-                </View>
+                  {item.tone && (
+                    <View style={styles.tonePill}>
+                      <Text style={styles.tonePillText}>{item.tone}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -376,16 +401,35 @@ const styles = StyleSheet.create({
 
   breakdownCard: {
     padding: 10,
-    borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
     minWidth: 80,
   },
 
-  breakdownThai: { fontSize: 18, fontWeight: "bold" },
+  breakdownThai: { fontSize: 18, fontWeight: "bold", color: "#fff" },
 
-  breakdownEnglish: { fontSize: 10, fontWeight: "900", opacity: 0.8 },
+  breakdownEnglish: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#fff",
+    opacity: 0.8,
+    marginTop: 2,
+  },
+
+  tonePill: {
+    marginTop: 5,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 4,
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+  },
+
+  tonePillText: {
+    fontSize: 8,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.5,
+  },
 
   ctaButton: {
     backgroundColor: "#FFFF00",
