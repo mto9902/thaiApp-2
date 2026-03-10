@@ -2,7 +2,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useEffect, useState } from "react";
-import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
 import {
   SafeAreaView,
@@ -53,8 +52,6 @@ export default function PracticeCSV() {
 
   const [builtSentence, setBuiltSentence] = useState<string[]>([]);
   const [resultMessage, setResultMessage] = useState("");
-
-  const [toneGuideVisible, setToneGuideVisible] = useState(false);
 
   useEffect(() => {
     fetchAndShow("breakdown");
@@ -179,13 +176,7 @@ export default function PracticeCSV() {
           <Text style={styles.loadingText}>Loading...</Text>
         ) : (
           <>
-            <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
-            <ToneGuide
-              visible={toneGuideVisible}
-              onClose={() => setToneGuideVisible(false)}
-            />
             {/* BreakdownExercise — sentence + word-by-word breakdown tiles */}
-
             {mode === "breakdown" && (
               <View style={styles.breakdownSection}>
                 <Text style={styles.exampleLabel}>EXAMPLE</Text>
@@ -238,6 +229,12 @@ export default function PracticeCSV() {
             {mode === "wordScraps" && (
               <View style={styles.wordScrapsSection}>
                 <Text style={styles.wordScrapsTitle}>BUILD THE SENTENCE</Text>
+
+                <View style={styles.translationPrompt}>
+                  <Text style={styles.translationPromptText}>
+                    {translation}
+                  </Text>
+                </View>
 
                 <View style={styles.builder}>
                   {builtSentence.map((word, i) => (
@@ -418,7 +415,34 @@ const styles = StyleSheet.create({
   wordScrapsTitle: {
     fontSize: 22,
     fontWeight: "900",
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+
+  translationPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  translationPromptLabel: {
+    fontSize: 16,
+  },
+
+  translationPromptText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#222",
+    flexShrink: 1,
   },
 
   builder: {
