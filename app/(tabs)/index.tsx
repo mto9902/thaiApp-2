@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import {
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,16 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
-import { grammarPoints } from "../../src/data/grammar";
-
-const COLORS = [
-  "#42A5F5",
-  "#FF4081",
-  "#66BB6A",
-  "#FF9800",
-  "#AB47BC",
-  "#007AFF",
-];
 
 export default function GrammarList() {
   const router = useRouter();
@@ -86,21 +76,21 @@ export default function GrammarList() {
 
         <TouchableOpacity
           style={[styles.card, { backgroundColor: "#90CAF9" }]}
-          onPress={() => router.push("/practice/CSVGrammarIndex")}
+          onPress={() => router.push("/practice/levels")}
         >
           <View style={styles.cardHeader}>
             <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>TEST</Text>
-              <Text style={styles.grammarTitle}>CSV PRACTICE</Text>
+              <Text style={styles.levelLabel}>ALL LEVELS</Text>
+              <Text style={styles.grammarTitle}>GRAMMAR</Text>
             </View>
 
             <View style={styles.iconContainer}>
-              <Ionicons name="flask-outline" size={24} color="black" />
+              <Ionicons name="book-outline" size={24} color="black" />
             </View>
           </View>
 
           <View style={styles.cardFooter}>
-            <Text style={styles.footerText}>OPEN TEST</Text>
+            <Text style={styles.footerText}>START LEARNING</Text>
             <Ionicons name="arrow-forward" size={16} color="black" />
           </View>
         </TouchableOpacity>
@@ -112,39 +102,9 @@ export default function GrammarList() {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <Header title="Grammar" onBack={() => router.replace("/")} />
 
-      <FlatList
-        data={grammarPoints}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={renderIntroCards}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={[
-              styles.card,
-              { backgroundColor: COLORS[index % COLORS.length] },
-            ]}
-            onPress={() => router.push(`/practice/${item.id}`)}
-          >
-            <View style={styles.cardHeader}>
-              <View style={styles.textContainer}>
-                <Text style={styles.levelLabel}>LEVEL {item.level}</Text>
-                <Text style={styles.grammarTitle}>
-                  {item.title.toUpperCase()}
-                </Text>
-              </View>
-
-              <View style={styles.iconContainer}>
-                <Ionicons name="book-outline" size={24} color="black" />
-              </View>
-            </View>
-
-            <View style={styles.cardFooter}>
-              <Text style={styles.footerText}>VIEW LESSON</Text>
-              <Ionicons name="arrow-forward" size={16} color="black" />
-            </View>
-          </TouchableOpacity>
-        )}
-      />
+      <ScrollView contentContainerStyle={styles.listContent}>
+        {renderIntroCards()}
+      </ScrollView>
     </SafeAreaView>
   );
 }
