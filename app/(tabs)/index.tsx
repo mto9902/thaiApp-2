@@ -33,33 +33,12 @@ export default function GrammarList() {
     return (
       <>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: "#81C784" }]}
-          onPress={() => router.push("/vowels/")}
-        >
-          <View style={styles.cardHeader}>
-            <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>BEGINNER</Text>
-              <Text style={styles.grammarTitle}>THAI VOWELS</Text>
-            </View>
-
-            <View style={styles.iconContainer}>
-              <Ionicons name="chatbubble-outline" size={24} color="black" />
-            </View>
-          </View>
-
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerText}>START LEARNING</Text>
-            <Ionicons name="arrow-forward" size={16} color="black" />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.card, { backgroundColor: "#FFD54F" }]}
           onPress={() => router.push("/alphabet/")}
         >
           <View style={styles.cardHeader}>
             <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>BEGINNER</Text>
+              <Text style={styles.levelLabel}>CONSONANTS & VOWELS</Text>
               <Text style={styles.grammarTitle}>THAI ALPHABET</Text>
             </View>
 

@@ -259,7 +259,7 @@ export const alphabet = [
     romanization: "kho khuat",
     sound: "kh",
     example: { thai: "ขวด", romanization: "khuat", english: "bottle" },
-    group: 3,
+    group: 2,
   },
 
   // LOW CLASS – 2 (13)
