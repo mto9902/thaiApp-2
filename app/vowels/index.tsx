@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
+import VowelText from "../../src/components/VowelText";
 import { vowels } from "../../src/data/vowels";
 
 const COLORS = [
@@ -59,9 +60,7 @@ export default function VowelHome() {
 
               <View style={styles.vowelRow}>
                 {groupVowels.map((v, j) => (
-                  <Text key={j} style={styles.vowelPreview}>
-                    {v.example}
-                  </Text>
+                  <VowelText key={j} example={v.example} style={styles.vowelPreview} />
                 ))}
               </View>
 
