@@ -1,26 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo } from "react";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useRouter } from "expo-router";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { grammarPoints } from "../../src/data/grammar";
-
-const COLORS = [
-  "#42A5F5",
-  "#FF4081",
-  "#66BB6A",
-  "#FF9800",
-  "#AB47BC",
-  "#007AFF",
-];
 
 const LEVEL_NAMES: Record<number, string> = {
   1: "Beginner",
@@ -28,55 +12,71 @@ const LEVEL_NAMES: Record<number, string> = {
   3: "Advanced",
 };
 
-export default function CSVGrammarIndex() {
-  const router = useRouter();
-  const { level } = useLocalSearchParams<{ level?: string }>();
+const LEVEL_COLORS: Record<number, string> = {
+  1: "#66BB6A",
+  2: "#42A5F5",
+  3: "#FF4081",
+};
 
-  const filtered = useMemo(() => {
-    if (!level) return grammarPoints;
-    return grammarPoints.filter((p) => p.level === Number(level));
-  }, [level]);
+const LEVEL_ICONS: Record<number, keyof typeof Ionicons.glyphMap> = {
+  1: "leaf-outline",
+  2: "flame-outline",
+  3: "diamond-outline",
+};
 
-  const title = level
-    ? `${LEVEL_NAMES[Number(level)] || `Level ${level}`} Grammar`
-    : "Grammar";
-
-  function openPractice(id: string) {
-    router.push(`/practice/${id}`);
+function getLevels() {
+  const levelMap = new Map<number, number>();
+  for (const point of grammarPoints) {
+    levelMap.set(point.level, (levelMap.get(point.level) || 0) + 1);
   }
+  return Array.from(levelMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([level, count]) => ({ level, count }));
+}
+
+export default function GrammarLevels() {
+  const router = useRouter();
+  const levels = getLevels();
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
-      <Header title={title} onBack={() => router.back()} />
+      <Header title="Grammar Levels" onBack={() => router.back()} />
 
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
+        data={levels}
+        keyExtractor={(item) => String(item.level)}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.card,
-              { backgroundColor: COLORS[index % COLORS.length] },
+              { backgroundColor: LEVEL_COLORS[item.level] || "#42A5F5" },
             ]}
-            onPress={() => openPractice(item.id)}
+            onPress={() =>
+              router.push(`/practice/CSVGrammarIndex?level=${item.level}`)
+            }
           >
             <View style={styles.cardHeader}>
               <View style={styles.textContainer}>
                 <Text style={styles.levelLabel}>LEVEL {item.level}</Text>
-
                 <Text style={styles.grammarTitle}>
-                  {item.title.toUpperCase()}
+                  {(LEVEL_NAMES[item.level] || `Level ${item.level}`).toUpperCase()}
                 </Text>
               </View>
 
               <View style={styles.iconContainer}>
-                <Ionicons name="flash" size={24} color="black" />
+                <Ionicons
+                  name={LEVEL_ICONS[item.level] || "book-outline"}
+                  size={24}
+                  color="black"
+                />
               </View>
             </View>
 
             <View style={styles.cardFooter}>
-              <Text style={styles.footerText}>START PRACTICE</Text>
+              <Text style={styles.footerText}>
+                {item.count} {item.count === 1 ? "LESSON" : "LESSONS"}
+              </Text>
               <Ionicons name="arrow-forward" size={16} color="black" />
             </View>
           </TouchableOpacity>
