@@ -5,13 +5,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 type HeaderProps = {
   title?: string;
   onBack?: () => void;
+  showClose?: boolean;
 };
 
-export default function Header({ title, onBack }: HeaderProps) {
+export default function Header({ title, onBack, showClose }: HeaderProps) {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.iconButton} onPress={onBack}>
-        <Ionicons name="close-outline" size={24} color="black" />
+        <Ionicons name={showClose ? "close-outline" : "arrow-back"} size={24} color="black" />
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>

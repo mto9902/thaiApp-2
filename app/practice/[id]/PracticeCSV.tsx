@@ -368,6 +368,7 @@ export default function PracticeCSV() {
         <Header
           title={grammarPoint?.title || "Practice"}
           onBack={() => router.back()}
+          showClose
         />
 
         {loading ? (
