@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../../src/components/Header";
+import VowelText from "../../../src/components/VowelText";
 import { vowels } from "../../../src/data/vowels";
 
 type Vowel = {
@@ -188,7 +189,7 @@ export default function VowelPractice() {
                   <Text style={st.speakerIcon}>🔊</Text>
                 </TouchableOpacity>
 
-                <Text style={st.charLarge}>{currentItem.example}</Text>
+                <VowelText example={currentItem.example} style={st.charLarge} />
                 <Text style={st.studySymbol}>{currentItem.symbol}</Text>
                 <Text style={st.studyName}>{currentItem.name}</Text>
 
@@ -234,7 +235,7 @@ export default function VowelPractice() {
                       onPress={() => handleMatchSelect(i)}
                       disabled={revealed}
                     >
-                      <Text style={st.optionCharText}>{opt.example}</Text>
+                      <VowelText example={opt.example} style={st.optionCharText} />
                       {revealed && (
                         <Text style={st.optionSubText}>{opt.name}</Text>
                       )}
@@ -277,7 +278,7 @@ export default function VowelPractice() {
             <>
               <View style={st.promptCard}>
                 <Text style={st.promptLabel}>WHAT SOUND DOES THIS VOWEL MAKE?</Text>
-                <Text style={st.promptCharLarge}>{currentItem.example}</Text>
+                <VowelText example={currentItem.example} style={st.promptCharLarge} />
               </View>
 
               <View style={st.optionsGrid}>

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import VowelText from "../../src/components/VowelText";
 import { vowels } from "../../src/data/vowels";
 
 export default function VowelLesson() {
@@ -33,7 +34,7 @@ export default function VowelLesson() {
             style={styles.tile}
             onPress={() => speak(vowel.example)}
           >
-            <Text style={styles.example}>{vowel.example}</Text>
+            <VowelText example={vowel.example} style={styles.example} />
 
             <Text style={styles.name}>
               {vowel.name !== "..." ? vowel.name : vowel.symbol}
