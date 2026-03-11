@@ -1,14 +1,14 @@
 export const vowels = [
   /* BEFORE CONSONANT */
 
-  { symbol: "เ", example: "เก", name: "สระเอะ", sound: "e", group: 1 },
-  { symbol: "เ", example: "เกะ", name: "สระเอ", sound: "e", group: 1 },
+  { symbol: "เ", example: "เกะ", name: "สระเอะ", sound: "e", group: 1 },
+  { symbol: "เ", example: "เก", name: "สระเอ", sound: "ee", group: 1 },
 
-  { symbol: "แ", example: "แก", name: "สระแอะ", sound: "ae", group: 1 },
-  { symbol: "แ", example: "แกะ", name: "สระแอ", sound: "ae", group: 1 },
+  { symbol: "แ", example: "แกะ", name: "สระแอะ", sound: "ae", group: 1 },
+  { symbol: "แ", example: "แก", name: "สระแอ", sound: "aee", group: 1 },
 
   { symbol: "โ", example: "โกะ", name: "สระโอะ", sound: "o", group: 1 },
-  { symbol: "โ", example: "โก", name: "สระโอ", sound: "o", group: 1 },
+  { symbol: "โ", example: "โก", name: "สระโอ", sound: "oo", group: 1 },
 
   { symbol: "ใ", example: "ใก", name: "สระใอ", sound: "ai", group: 1 },
   { symbol: "ไ", example: "ไก", name: "สระไอ", sound: "ai", group: 1 },
