@@ -73,6 +73,27 @@ export default function GrammarList() {
             <Ionicons name="arrow-forward" size={16} color="black" />
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: "#CE93D8" }]}
+          onPress={() => router.navigate("/(tabs)/explore")}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.textContainer}>
+              <Text style={styles.levelLabel}>BOOKMARKED LESSONS</Text>
+              <Text style={styles.grammarTitle}>MY GRAMMAR</Text>
+            </View>
+
+            <View style={styles.iconContainer}>
+              <Ionicons name="bookmark-outline" size={24} color="black" />
+            </View>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <Text style={styles.footerText}>VIEW BOOKMARKS</Text>
+            <Ionicons name="arrow-forward" size={16} color="black" />
+          </View>
+        </TouchableOpacity>
       </>
     );
   }
