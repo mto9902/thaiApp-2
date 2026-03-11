@@ -77,9 +77,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "REVIEW",
+          title: "MY GRAMMAR",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="refresh" color={color} />
+            <CustomTabBarIcon focused={focused} name="bookmark" color={color} />
           ),
         }}
       />

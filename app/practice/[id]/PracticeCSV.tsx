@@ -19,6 +19,7 @@ import WordCard from "../../../src/components/WordCard";
 
 import { getPractice } from "../../../src/api/getPractice";
 import { grammarPoints } from "../../../src/data/grammar";
+import { saveRound } from "../../../src/utils/grammarProgress";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const TONE_COLORS: Record<string, string> = {
@@ -327,6 +328,7 @@ export default function PracticeCSV() {
       `[WordScraps] Check: ${ok ? "✅ CORRECT" : "❌ WRONG"} — expected [${correct.join(", ")}] got [${fullSentence.join(", ")}]`,
     );
     setResult(ok ? "correct" : "wrong");
+    saveRound(grammarObject().id, ok);
     if (ok) {
       trackWords(breakdown, "wordScraps-correct");
       setTimeout(() => fetchRound(randomMode()), 1200);
@@ -343,6 +345,7 @@ export default function PracticeCSV() {
       `[MatchThai] Selected option ${idx}: "${opt.thai}" — ${ok ? "✅ CORRECT" : "❌ WRONG"}`,
     );
     setResult(ok ? "correct" : "wrong");
+    saveRound(grammarObject().id, ok);
     if (ok) {
       trackWords(breakdown, "matchThai-correct");
       setTimeout(() => fetchRound(randomMode()), 1400);
@@ -455,6 +458,7 @@ export default function PracticeCSV() {
                   style={st.primaryBtn}
                   onPress={() => {
                     trackWords(breakdown, "breakdown-next");
+                    saveRound(grammarObject().id, true);
                     fetchRound(randomMode());
                   }}
                   activeOpacity={0.85}
