@@ -14,6 +14,9 @@ export default function VowelLesson() {
   const router = useRouter();
 
   const lessonVowels = vowels.filter((v) => v.group === Number(group));
+  const hasPracticeData = lessonVowels.some(
+    (v) => v.sound !== "..." && v.name !== "...",
+  );
 
   function speak(text: string) {
     Speech.speak(text, { language: "th-TH", rate: 0.8 });
@@ -32,24 +35,30 @@ export default function VowelLesson() {
           >
             <Text style={styles.example}>{vowel.example}</Text>
 
-            <Text style={styles.name}>{vowel.name}</Text>
+            <Text style={styles.name}>
+              {vowel.name !== "..." ? vowel.name : vowel.symbol}
+            </Text>
 
-            <Text style={styles.sound}>{vowel.sound}</Text>
+            <Text style={styles.sound}>
+              {vowel.sound !== "..." ? vowel.sound : ""}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <TouchableOpacity
-        style={styles.practiceButton}
-        onPress={() =>
-          router.push({
-            pathname: "/vowels/practice/[group]",
-            params: { group },
-          } as any)
-        }
-      >
-        <Text style={styles.practiceText}>Start Practice</Text>
-      </TouchableOpacity>
+      {hasPracticeData && (
+        <TouchableOpacity
+          style={styles.practiceButton}
+          onPress={() =>
+            router.push({
+              pathname: "/vowels/practice/[group]",
+              params: { group },
+            } as any)
+          }
+        >
+          <Text style={styles.practiceText}>Start Practice</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }

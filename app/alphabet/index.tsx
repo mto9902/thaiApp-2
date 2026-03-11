@@ -1,150 +1,56 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
-import { alphabet } from "../../src/data/alphabet";
-import { vowels } from "../../src/data/vowels";
-
-const CONSONANT_COLORS = ["#FFD54F", "#42A5F5", "#FF4081", "#66BB6A"];
-const VOWEL_COLOR = "#81C784";
 
 export default function AlphabetScreen() {
   const router = useRouter();
-
-  const consonantGroups = [
-    { group: 1, title: "Mid Class", subtitle: "กลาง" },
-    { group: 2, title: "High Class", subtitle: "สูง" },
-    { group: 3, title: "Low Class I", subtitle: "ต่ำ ๑" },
-    { group: 4, title: "Low Class II", subtitle: "ต่ำ ๒" },
-  ];
-
-  const vowelGroups = [
-    { group: 1, title: "Before Consonant" },
-    { group: 2, title: "After Consonant" },
-    { group: 3, title: "Above Consonant" },
-    { group: 4, title: "Below Consonant" },
-    { group: 5, title: "Around Consonant I" },
-    { group: 6, title: "Around Consonant II" },
-  ];
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Header title="Alphabet" onBack={() => router.back()} />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-
-        {/* ── Alphabet Trainer ───────────────────────────────── */}
+      <View style={styles.content}>
         <TouchableOpacity
-          style={styles.trainerCard}
-          onPress={() => router.push("/trainer")}
+          style={[styles.card, { backgroundColor: "#FFD54F" }]}
+          onPress={() => router.push("/alphabet/consonants" as any)}
         >
           <View style={styles.cardHeader}>
             <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>ADVANCED</Text>
-              <Text style={styles.cardTitle}>ALPHABET TRAINER</Text>
+              <Text style={styles.levelLabel}>44 LETTERS</Text>
+              <Text style={styles.cardTitle}>CONSONANTS</Text>
             </View>
             <View style={styles.iconContainer}>
-              <Ionicons name="construct-outline" size={24} color="black" />
+              <Ionicons name="language-outline" size={24} color="black" />
             </View>
           </View>
-          <Text style={styles.cardDesc}>
-            Combine consonants &amp; vowels to generate real words
-          </Text>
           <View style={styles.cardFooter}>
-            <Text style={styles.footerText}>OPEN TRAINER</Text>
+            <Text style={styles.footerText}>START LEARNING</Text>
             <Ionicons name="arrow-forward" size={16} color="black" />
           </View>
         </TouchableOpacity>
 
-        {/* ── Consonants section ────────────────────────────── */}
-        <Text style={styles.sectionLabel}>CONSONANTS</Text>
-
-        {consonantGroups.map((lesson, i) => {
-          const letters = alphabet.filter((l) => l.group === lesson.group);
-          return (
-            <TouchableOpacity
-              key={lesson.group}
-              style={[styles.card, { backgroundColor: CONSONANT_COLORS[i % CONSONANT_COLORS.length] }]}
-              onPress={() => router.push(`/alphabet/${lesson.group}` as any)}
-            >
-              <View style={styles.cardHeader}>
-                <View style={styles.textContainer}>
-                  <Text style={styles.levelLabel}>{lesson.subtitle}</Text>
-                  <Text style={styles.cardTitle}>{lesson.title.toUpperCase()}</Text>
-                </View>
-                <View style={styles.iconContainer}>
-                  <Ionicons name="book-outline" size={24} color="black" />
-                </View>
-              </View>
-
-              <View style={styles.letterRow}>
-                {letters.slice(0, 12).map((l) => (
-                  <Text key={l.letter} style={styles.letterPreview}>
-                    {l.letter}
-                  </Text>
-                ))}
-                {letters.length > 12 && (
-                  <Text style={styles.letterMore}>+{letters.length - 12}</Text>
-                )}
-              </View>
-
-              <View style={styles.cardFooter}>
-                <Text style={styles.footerText}>
-                  {letters.length} LETTERS
-                </Text>
-                <Ionicons name="arrow-forward" size={16} color="black" />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* ── Vowels section ────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>VOWELS</Text>
-
-        {vowelGroups.map((lesson) => {
-          const groupVowels = vowels.filter((v) => v.group === lesson.group);
-          return (
-            <TouchableOpacity
-              key={lesson.group}
-              style={[styles.card, { backgroundColor: VOWEL_COLOR }]}
-              onPress={() => router.push(`/vowels/${lesson.group}` as any)}
-            >
-              <View style={styles.cardHeader}>
-                <View style={styles.textContainer}>
-                  <Text style={styles.levelLabel}>GROUP {lesson.group}</Text>
-                  <Text style={styles.cardTitle}>{lesson.title.toUpperCase()}</Text>
-                </View>
-                <View style={styles.iconContainer}>
-                  <Ionicons name="chatbubble-outline" size={24} color="black" />
-                </View>
-              </View>
-
-              <View style={styles.letterRow}>
-                {groupVowels.map((v, i) => (
-                  <Text key={i} style={styles.letterPreview}>
-                    {v.example}
-                  </Text>
-                ))}
-              </View>
-
-              <View style={styles.cardFooter}>
-                <Text style={styles.footerText}>
-                  {groupVowels.length} VOWELS
-                </Text>
-                <Ionicons name="arrow-forward" size={16} color="black" />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: "#81C784" }]}
+          onPress={() => router.push("/vowels/")}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.textContainer}>
+              <Text style={styles.levelLabel}>GROUPS 1–6</Text>
+              <Text style={styles.cardTitle}>VOWELS</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <Ionicons name="chatbubble-outline" size={24} color="black" />
+            </View>
+          </View>
+          <View style={styles.cardFooter}>
+            <Text style={styles.footerText}>START LEARNING</Text>
+            <Ionicons name="arrow-forward" size={16} color="black" />
+          </View>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -155,40 +61,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
 
-  scroll: {
+  content: {
     padding: 20,
     paddingTop: 10,
-  },
-
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: "rgba(0,0,0,0.4)",
-    letterSpacing: 2,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-
-  // ── Cards ──────────────────────────────────────────────────
-  trainerCard: {
-    backgroundColor: "#CE93D8",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
-    marginBottom: 24,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
   },
 
   card: {
     borderWidth: 3,
     borderColor: "black",
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 20,
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 6, height: 6 },
@@ -201,7 +83,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 15,
   },
 
   textContainer: {
@@ -209,25 +91,18 @@ const styles = StyleSheet.create({
   },
 
   levelLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "900",
-    color: "rgba(0,0,0,0.55)",
-    marginBottom: 3,
+    color: "rgba(0,0,0,0.6)",
+    marginBottom: 4,
     letterSpacing: 1,
   },
 
   cardTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "900",
     color: "black",
-    lineHeight: 24,
-  },
-
-  cardDesc: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "rgba(0,0,0,0.65)",
-    marginBottom: 14,
+    lineHeight: 26,
   },
 
   iconContainer: {
@@ -243,26 +118,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
-  },
-
-  letterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 14,
-  },
-
-  letterPreview: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "black",
-  },
-
-  letterMore: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "rgba(0,0,0,0.5)",
-    alignSelf: "center",
   },
 
   cardFooter: {
