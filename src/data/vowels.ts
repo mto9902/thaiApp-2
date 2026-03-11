@@ -34,22 +34,22 @@ export const vowels = [
   /* SURROUNDING CONSONANT */
 
   // Around consonant 1
-  { symbol: "เ◌ะ", example: "เกะ", name: "...", sound: "...", group: 5 },
-  { symbol: "เ◌", example: "เก", name: "...", sound: "...", group: 5 },
-  { symbol: "แ◌ะ", example: "แกะ", name: "...", sound: "...", group: 5 },
-  { symbol: "แ◌", example: "แก", name: "...", sound: "...", group: 5 },
-  { symbol: "โ◌ะ", example: "โกะ", name: "...", sound: "...", group: 5 },
-  { symbol: "โ◌", example: "โก", name: "...", sound: "...", group: 5 },
+  { symbol: "เ◌ะ", example: "เกะ", name: "สระเอะ", sound: "e", group: 5 },
+  { symbol: "เ◌", example: "เก", name: "สระเอ", sound: "ee", group: 5 },
+  { symbol: "แ◌ะ", example: "แกะ", name: "สระแอะ", sound: "ae", group: 5 },
+  { symbol: "แ◌", example: "แก", name: "สระแอ", sound: "aee", group: 5 },
+  { symbol: "โ◌ะ", example: "โกะ", name: "สระโอะ", sound: "o", group: 5 },
+  { symbol: "โ◌", example: "โก", name: "สระโอ", sound: "oo", group: 5 },
 
   // Around consonant 2
-  { symbol: "เ◌าะ", example: "เกาะ", name: "...", sound: "...", group: 6 },
-  { symbol: "◌อ", example: "กอ", name: "...", sound: "...", group: 6 },
-  { symbol: "เ◌อะ", example: "เกอะ", name: "...", sound: "...", group: 6 },
-  { symbol: "เ◌อ", example: "เกอ", name: "...", sound: "...", group: 6 },
-  { symbol: "เ◌ียะ", example: "เกียะ", name: "...", sound: "...", group: 6 },
-  { symbol: "เ◌ีย", example: "เกีย", name: "...", sound: "...", group: 6 },
-  { symbol: "เ◌ือะ", example: "เกือะ", name: "...", sound: "...", group: 6 },
-  { symbol: "เ◌ือ", example: "เกือ", name: "...", sound: "...", group: 6 },
-  { symbol: "◌ัวะ", example: "กัวะ", name: "...", sound: "...", group: 6 },
-  { symbol: "◌ัว", example: "กัว", name: "...", sound: "...", group: 6 },
+  { symbol: "เ◌าะ", example: "เกาะ", name: "สระเอาะ", sound: "aw", group: 6 },
+  { symbol: "◌อ", example: "กอ", name: "สระออ", sound: "aww", group: 6 },
+  { symbol: "เ◌อะ", example: "เกอะ", name: "สระเออะ", sound: "oe", group: 6 },
+  { symbol: "เ◌อ", example: "เกอ", name: "สระเออ", sound: "oee", group: 6 },
+  { symbol: "เ◌ียะ", example: "เกียะ", name: "สระเอียะ", sound: "ia", group: 6 },
+  { symbol: "เ◌ีย", example: "เกีย", name: "สระเอีย", sound: "iaa", group: 6 },
+  { symbol: "เ◌ือะ", example: "เกือะ", name: "สระเอือะ", sound: "uea", group: 6 },
+  { symbol: "เ◌ือ", example: "เกือ", name: "สระเอือ", sound: "ueaa", group: 6 },
+  { symbol: "◌ัวะ", example: "กัวะ", name: "สระอัวะ", sound: "ua", group: 6 },
+  { symbol: "◌ัว", example: "กัว", name: "สระอัว", sound: "uaa", group: 6 },
 ];
