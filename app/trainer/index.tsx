@@ -132,8 +132,8 @@ function ConsonantCard({
         style={[
           styles.consonantCard,
           {
-            backgroundColor: isSelected ? info.color : "white",
-            borderColor: info.color,
+            backgroundColor: isSelected ? info.color : "#FFFBF0",
+            borderColor: isSelected ? info.color : "rgba(0,0,0,0.1)",
           },
         ]}
         onPress={onPress}
