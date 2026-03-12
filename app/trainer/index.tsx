@@ -169,7 +169,7 @@ function ConsonantCard({
           </View>
         </View>
         {isSelected && (
-          <View style={[styles.selectedBadge, { borderColor: info.color }]}>
+          <View style={styles.selectedBadge}>
             <Ionicons name="checkmark" size={16} color="black" />
           </View>
         )}
@@ -212,7 +212,7 @@ function VowelCard({
       <TouchableOpacity
         style={[
           styles.vowelCard,
-          { backgroundColor: isSelected ? "#FFD54F" : "white" },
+          { backgroundColor: isSelected ? "#FFD54F" : "#FFFBF0" },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
