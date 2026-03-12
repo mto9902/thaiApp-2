@@ -7,8 +7,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
+import Header from "../../src/components/Header";
 import VowelText from "../../src/components/VowelText";
 import { vowels } from "../../src/data/vowels";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 export default function VowelLesson() {
   const { group } = useLocalSearchParams();
@@ -24,104 +29,131 @@ export default function VowelLesson() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Vowel Lesson</Text>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Header title="Vowel Lesson" onBack={() => router.back()} />
 
-      <View style={styles.grid}>
-        {lessonVowels.map((vowel, i) => (
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.grid}>
+          {lessonVowels.map((vowel, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.tile}
+              onPress={() => speak(vowel.example)}
+              activeOpacity={0.7}
+            >
+              <VowelText example={vowel.example} style={styles.example} />
+              <Text style={styles.name}>
+                {vowel.name !== "..." ? vowel.name : vowel.symbol}
+              </Text>
+              <Text style={styles.sound}>
+                {vowel.sound !== "..." ? vowel.sound : ""}
+              </Text>
+              <View style={styles.soundIcon}>
+                <Ionicons name="volume-high" size={14} color={Sketch.orange} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {hasPracticeData && (
           <TouchableOpacity
-            key={i}
-            style={styles.tile}
-            onPress={() => speak(vowel.example)}
+            style={styles.practiceButton}
+            onPress={() =>
+              router.push({
+                pathname: "/vowels/practice/[group]",
+                params: { group },
+              } as any)
+            }
           >
-            <VowelText example={vowel.example} style={styles.example} />
-
-            <Text style={styles.name}>
-              {vowel.name !== "..." ? vowel.name : vowel.symbol}
-            </Text>
-
-            <Text style={styles.sound}>
-              {vowel.sound !== "..." ? vowel.sound : ""}
-            </Text>
+            <Ionicons name="play" size={20} color={Sketch.cardBg} />
+            <Text style={styles.practiceText}>Start Practice</Text>
           </TouchableOpacity>
-        ))}
-      </View>
-
-      {hasPracticeData && (
-        <TouchableOpacity
-          style={styles.practiceButton}
-          onPress={() =>
-            router.push({
-              pathname: "/vowels/practice/[group]",
-              params: { group },
-            } as any)
-          }
-        >
-          <Text style={styles.practiceText}>Start Practice</Text>
-        </TouchableOpacity>
-      )}
-    </ScrollView>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    padding: 20,
+    backgroundColor: Sketch.paper,
   },
 
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 20,
+  scroll: {
+    padding: 20,
+    paddingTop: 16,
   },
 
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 28,
   },
 
   tile: {
-    width: "30%",
-    backgroundColor: "#f3f3f3",
+    width: "31%",
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 14,
     alignItems: "center",
+    minHeight: 130,
+    ...sketchShadow(3),
   },
 
   example: {
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: "bold",
-  },
-
-  symbol: {
-    fontSize: 20,
-    marginTop: 4,
+    color: Sketch.ink,
   },
 
   name: {
     fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.ink,
     marginTop: 4,
+    textAlign: "center",
   },
 
   sound: {
     fontSize: 12,
-    color: "#666",
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+    marginTop: 2,
+  },
+
+  soundIcon: {
+    width: 28,
+    height: 28,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Sketch.inkFaint,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 6,
   },
 
   practiceButton: {
-    backgroundColor: "#4CAF50",
-    padding: 16,
-    borderRadius: 10,
-    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.orange,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
+    paddingVertical: 16,
+    gap: 10,
+    ...sketchShadow(4),
   },
 
   practiceText: {
-    color: "white",
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
+    color: Sketch.cardBg,
+    fontSize: 16,
+    fontWeight: "900",
   },
 });
