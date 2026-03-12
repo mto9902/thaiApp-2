@@ -1,7 +1,8 @@
+import { API_BASE } from "../config";
 import { sessionId } from "../session/session";
 
 export async function generateSentence(grammar: string) {
-  const res = await fetch("http://192.168.1.121:3000/generate", {
+  const res = await fetch(`${API_BASE}/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

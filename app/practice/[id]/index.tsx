@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import LessonHeader from "../../../src/components/LessonHeader";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
+import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
 import { isGuestUser } from "../../../src/utils/auth";
 
@@ -77,7 +78,7 @@ export default function GrammarDetail() {
 
       const token = await AsyncStorage.getItem("token");
 
-      const res = await fetch("http://192.168.1.121:3000/bookmarks", {
+      const res = await fetch(`${API_BASE}/bookmarks`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -97,7 +98,7 @@ export default function GrammarDetail() {
       const token = await AsyncStorage.getItem("token");
 
       if (bookmarked) {
-        await fetch("http://192.168.1.121:3000/bookmark", {
+        await fetch(`${API_BASE}/bookmark`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -108,7 +109,7 @@ export default function GrammarDetail() {
 
         setBookmarked(false);
       } else {
-        await fetch("http://192.168.1.121:3000/bookmark", {
+        await fetch(`${API_BASE}/bookmark`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

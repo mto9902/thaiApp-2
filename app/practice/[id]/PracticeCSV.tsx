@@ -14,11 +14,12 @@ import {
   View,
 } from "react-native";
 
-import Header from "../../../src/components/Header";
+import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import WordCard from "../../../src/components/WordCard";
 
 import { getPractice } from "../../../src/api/getPractice";
+import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
 import { saveRound } from "../../../src/utils/grammarProgress";
 
@@ -194,26 +195,10 @@ export default function PracticeCSV() {
     })();
   }, []);
 
-  function toggleRoman() {
-    setShowRoman((prev) => {
-      const next = !prev;
-      AsyncStorage.setItem(PREF_ROMANIZATION, String(next));
-      return next;
-    });
-  }
-  function toggleEnglish() {
-    setShowEnglish((prev) => {
-      const next = !prev;
-      AsyncStorage.setItem(PREF_ENGLISH, String(next));
-      return next;
-    });
-  }
-  function toggleAutoplayTTS() {
-    setAutoplayTTS((prev) => {
-      const next = !prev;
-      AsyncStorage.setItem(PREF_AUTOPLAY_TTS, String(next));
-      return next;
-    });
+  function handleSettingsChange(s: SettingsState) {
+    setShowRoman(s.showRoman);
+    setShowEnglish(s.showEnglish);
+    setAutoplayTTS(s.autoplayTTS);
   }
 
   useEffect(() => {
@@ -275,7 +260,7 @@ export default function PracticeCSV() {
     );
     try {
       const t0 = Date.now();
-      const resp = await fetch("http://192.168.1.121:3000/track-words", {
+      const resp = await fetch(`${API_BASE}/track-words`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -481,6 +466,7 @@ export default function PracticeCSV() {
           }
           onBack={() => router.back()}
           showClose
+          onSettingsChange={handleSettingsChange}
         />
 
         {loading ? (
@@ -496,61 +482,7 @@ export default function PracticeCSV() {
                 <View style={st.modeTag}>
                   <Text style={st.modeTagText}>{meta.tag}</Text>
                 </View>
-                <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <View style={st.toggleBar}>
-                    <TouchableOpacity
-                      style={[st.togglePill, showRoman && st.togglePillActive]}
-                      onPress={toggleRoman}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          st.togglePillText,
-                          showRoman && st.togglePillTextActive,
-                        ]}
-                      >
-                        Aa
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        st.togglePill,
-                        showEnglish && st.togglePillActive,
-                      ]}
-                      onPress={toggleEnglish}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          st.togglePillText,
-                          showEnglish && st.togglePillTextActive,
-                        ]}
-                      >
-                        EN
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        st.togglePill,
-                        autoplayTTS && st.togglePillActive,
-                      ]}
-                      onPress={toggleAutoplayTTS}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          st.togglePillText,
-                          autoplayTTS && st.togglePillTextActive,
-                        ]}
-                      >
-                        {autoplayTTS ? "\uD83D\uDD0A" : "\uD83D\uDD07"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
-                </View>
+                <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
               </View>
               <Text style={st.modeTitle}>{meta.title}</Text>
             </View>
@@ -1372,28 +1304,4 @@ const st = StyleSheet.create({
   badgeWrong: { backgroundColor: "#FEF5F6" },
   badgeText: { fontSize: 12, fontWeight: "800" },
 
-  toggleBar: {
-    flexDirection: "row",
-    gap: 5,
-  },
-  togglePill: {
-    paddingVertical: 5,
-    paddingHorizontal: 9,
-    borderRadius: 8,
-    backgroundColor: "#F0F0ED",
-    borderWidth: 1.5,
-    borderColor: "#E0E0DC",
-  },
-  togglePillActive: {
-    backgroundColor: "#1A1A1A",
-    borderColor: "#1A1A1A",
-  },
-  togglePillText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#888",
-  },
-  togglePillTextActive: {
-    color: "#FFF",
-  },
 });

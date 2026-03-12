@@ -1,5 +1,7 @@
+import { API_BASE } from "../config";
+
 export async function getPractice(grammar?: string) {
-  const response = await fetch("http://192.168.1.121:3000/practice-csv", {
+  const response = await fetch(`${API_BASE}/practice-csv`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { API_BASE } from "../src/config";
 
 export default function Register() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
 
   async function handleRegister() {
-    const res = await fetch("http://192.168.1.121:3000/signup", {
+    const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

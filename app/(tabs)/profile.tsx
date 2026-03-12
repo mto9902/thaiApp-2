@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { API_BASE } from "../../src/config";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
 
 export default function Profile() {
@@ -35,7 +36,7 @@ export default function Profile() {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      const res = await fetch("http://192.168.1.121:3000/vocab/progress", {
+      const res = await fetch(`${API_BASE}/vocab/progress`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { API_BASE } from "../src/config";
 
 export default function Login() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function Login() {
   }
 
   async function handleLogin() {
-    const res = await fetch("http://192.168.1.121:3000/login", {
+    const res = await fetch(`${API_BASE}/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc --noEmit)",
-      "Bash(grep -l \"checkAuth\\\\|router.replace.*login\" app/**/*.tsx)"
+      "Bash(grep -l \"checkAuth\\\\|router.replace.*login\" app/**/*.tsx)",
+      "Bash(grep -n \"192.168.1.121:3000\" /c/Users/Lux/thai-generator/thaiApp-2/app/practice/[id]/PracticeCSV.tsx)"
     ]
   }
 }

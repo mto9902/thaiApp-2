@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
+import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
 import { isGuestUser } from "../../src/utils/auth";
 import {
@@ -75,7 +76,7 @@ export default function MyGrammarScreen() {
       }
 
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch("http://192.168.1.121:3000/bookmarks", {
+      const res = await fetch(`${API_BASE}/bookmarks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

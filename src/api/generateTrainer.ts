@@ -1,9 +1,11 @@
+import { API_BASE } from "../config";
+
 export async function generateTrainer(
   consonants: string[],
   vowels: string[],
   difficulty: "easy" | "medium" | "hard",
 ) {
-  const response = await fetch("http://192.168.1.121:3000/alphabet-trainer", {
+  const response = await fetch(`${API_BASE}/alphabet-trainer`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

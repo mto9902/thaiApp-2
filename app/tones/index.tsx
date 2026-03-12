@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
-import { MINIMAL_PAIRS, TONES, type ToneData } from "../../src/data/tones";
+import { MINIMAL_PAIRS, TONE_MARKS, TONES, type ToneData } from "../../src/data/tones";
 
 // ── TTS helper ───────────────────────────────────────────────────────────────
 
@@ -124,6 +124,46 @@ export default function TonesScreen() {
         {TONES.map((tone) => (
           <ToneCard key={tone.name} tone={tone} />
         ))}
+
+        {/* Section: Tone marks */}
+        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>TONE MARKS</Text>
+        <Text style={styles.sectionSubtitle}>
+          4 written marks placed above consonants. The mid tone has no mark.
+        </Text>
+
+        <View style={styles.toneMarksCard}>
+          <View style={styles.toneMarksRow}>
+            {TONE_MARKS.map((tm, i) => (
+              <View key={i} style={styles.toneMarkItem}>
+                <View style={[styles.toneMarkBox, { borderColor: tm.color }]}>
+                  <Text style={[styles.toneMarkSymbol, { color: tm.color }]}>
+                    {tm.mark || "\u2715"}
+                  </Text>
+                </View>
+                <Text style={[styles.toneMarkThaiName, { color: tm.color }]}>
+                  {tm.thaiName}
+                </Text>
+                <Text style={styles.toneMarkRomanName}>{tm.romanName}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Detailed cards for each mark */}
+          {TONE_MARKS.map((tm, i) => (
+            <View key={i} style={[styles.toneMarkDetail, { borderLeftColor: tm.color }]}>
+              <View style={styles.toneMarkDetailHeader}>
+                <Text style={[styles.toneMarkDetailSymbol, { color: tm.color }]}>
+                  {tm.symbol}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toneMarkDetailName}>{tm.thaiName}</Text>
+                  <Text style={styles.toneMarkDetailRoman}>{tm.romanName}</Text>
+                </View>
+              </View>
+              <Text style={styles.toneMarkDetailDesc}>{tm.description}</Text>
+            </View>
+          ))}
+        </View>
 
         {/* Section: Minimal pairs */}
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>MINIMAL PAIRS</Text>
@@ -340,6 +380,87 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#999",
     marginTop: 1,
+  },
+
+  // Tone marks
+  toneMarksCard: {
+    backgroundColor: "white",
+    borderWidth: 3,
+    borderColor: "black",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    gap: 14,
+  },
+  toneMarksRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  toneMarkItem: {
+    alignItems: "center",
+    flex: 1,
+    gap: 4,
+  },
+  toneMarkBox: {
+    width: 48,
+    height: 48,
+    borderWidth: 2.5,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+  },
+  toneMarkSymbol: {
+    fontSize: 24,
+    fontWeight: "900",
+  },
+  toneMarkThaiName: {
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  toneMarkRomanName: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: "#999",
+  },
+  toneMarkDetail: {
+    borderLeftWidth: 5,
+    borderLeftColor: "#DDD",
+    backgroundColor: "#FAFAFA",
+    borderRadius: 10,
+    padding: 12,
+    gap: 6,
+  },
+  toneMarkDetailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  toneMarkDetailSymbol: {
+    fontSize: 32,
+    fontWeight: "900",
+  },
+  toneMarkDetailName: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111",
+  },
+  toneMarkDetailRoman: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#888",
+  },
+  toneMarkDetailDesc: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#555",
+    lineHeight: 19,
   },
 
   // Minimal pairs

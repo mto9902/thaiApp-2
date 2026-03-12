@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import { canAccessApp } from "../../src/utils/auth";
+import { canAccessApp, isGuestUser } from "../../src/utils/auth";
 import {
   ScrollView,
   StyleSheet,
@@ -17,9 +17,11 @@ import Header from "../../src/components/Header";
 
 export default function GrammarList() {
   const router = useRouter();
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
     checkAuth();
+    isGuestUser().then(setIsGuest);
   }, []);
 
   async function checkAuth() {
@@ -115,6 +117,29 @@ export default function GrammarList() {
             <Ionicons name="arrow-forward" size={16} color="black" />
           </View>
         </TouchableOpacity>
+
+        {!isGuest && (
+          <TouchableOpacity
+            style={[styles.card, { backgroundColor: "#EF5350" }]}
+            onPress={() => router.push("/review/" as any)}
+          >
+            <View style={styles.cardHeader}>
+              <View style={styles.textContainer}>
+                <Text style={styles.levelLabel}>SPACED REPETITION</Text>
+                <Text style={[styles.grammarTitle, { color: "white" }]}>VOCAB REVIEW</Text>
+              </View>
+
+              <View style={styles.iconContainer}>
+                <Ionicons name="flash-outline" size={24} color="black" />
+              </View>
+            </View>
+
+            <View style={styles.cardFooter}>
+              <Text style={styles.footerText}>START REVIEW</Text>
+              <Ionicons name="arrow-forward" size={16} color="black" />
+            </View>
+          </TouchableOpacity>
+        )}
       </>
     );
   }
