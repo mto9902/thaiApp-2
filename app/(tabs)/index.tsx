@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
+
+import { canAccessApp } from "../../src/utils/auth";
 import {
   ScrollView,
   StyleSheet,
@@ -22,9 +23,8 @@ export default function GrammarList() {
   }, []);
 
   async function checkAuth() {
-    const token = await AsyncStorage.getItem("token");
-
-    if (!token) {
+    const allowed = await canAccessApp();
+    if (!allowed) {
       router.replace("/login");
     }
   }
@@ -44,6 +44,27 @@ export default function GrammarList() {
 
             <View style={styles.iconContainer}>
               <Ionicons name="language-outline" size={24} color="black" />
+            </View>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <Text style={styles.footerText}>START LEARNING</Text>
+            <Ionicons name="arrow-forward" size={16} color="black" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: "#FF8A65" }]}
+          onPress={() => router.push("/tones/" as any)}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.textContainer}>
+              <Text style={styles.levelLabel}>5 TONES</Text>
+              <Text style={styles.grammarTitle}>THAI TONES</Text>
+            </View>
+
+            <View style={styles.iconContainer}>
+              <Ionicons name="musical-notes-outline" size={24} color="black" />
             </View>
           </View>
 

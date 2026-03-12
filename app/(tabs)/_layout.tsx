@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+
+import { canAccessApp } from "../../src/utils/auth";
 import { StyleSheet, View } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
@@ -33,9 +34,9 @@ export default function TabLayout() {
   }, []);
 
   async function checkAuth() {
-    const token = await AsyncStorage.getItem("token");
+    const allowed = await canAccessApp();
 
-    if (!token) {
+    if (!allowed) {
       router.replace("/login");
       return;
     }

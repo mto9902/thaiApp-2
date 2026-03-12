@@ -2,11 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function Login() {
@@ -15,6 +15,11 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  async function handleGuest() {
+    await AsyncStorage.setItem("isGuest", "true");
+    router.replace("/(tabs)");
+  }
+
   async function handleLogin() {
     const res = await fetch("http://192.168.1.121:3000/login", {
       method: "POST",
@@ -22,15 +27,19 @@ export default function Login() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email,
+        email: email.toLowerCase().trim(),
         password,
       }),
     });
 
     const data = await res.json();
 
-    await AsyncStorage.setItem("token", data.token);
+    if (!res.ok) {
+      alert(data.error || "Login failed");
+      return;
+    }
 
+    await AsyncStorage.setItem("token", data.token);
     router.replace("/(tabs)");
   }
 
@@ -61,6 +70,16 @@ export default function Login() {
         <Text style={{ marginTop: 20, textAlign: "center" }}>
           Create account
         </Text>
+      </TouchableOpacity>
+
+      <View style={styles.divider}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>or</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <TouchableOpacity style={styles.guestButton} onPress={handleGuest}>
+        <Text style={styles.guestButtonText}>Continue as Guest</Text>
       </TouchableOpacity>
     </View>
   );
@@ -95,5 +114,34 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     fontWeight: "700",
+  },
+
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#DDD",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    color: "#999",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  guestButton: {
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#DDD",
+    borderRadius: 8,
+  },
+  guestButtonText: {
+    textAlign: "center",
+    fontWeight: "700",
+    color: "#757575",
   },
 });

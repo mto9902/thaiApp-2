@@ -4,6 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 interface WordCardProps {
   thai: string;
   english: string;
+  romanization?: string;
   backgroundColor: string;
   rotation?: number;
   isGrammar?: boolean;
@@ -13,6 +14,7 @@ interface WordCardProps {
 export default function WordCard({
   thai,
   english,
+  romanization,
   backgroundColor,
   rotation = 0,
   isGrammar = false,
@@ -34,6 +36,9 @@ export default function WordCard({
         </View>
       )}
       <Text style={styles.thaiText}>{thai}</Text>
+      {romanization ? (
+        <Text style={styles.romanText}>{romanization}</Text>
+      ) : null}
       <Text style={styles.englishText}>{english.toUpperCase()}</Text>
     </TouchableOpacity>
   );
@@ -80,6 +85,16 @@ const styles = StyleSheet.create({
     color: "white",
     marginBottom: 4,
     textAlign: "center",
+  },
+
+  romanText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#fff",
+    opacity: 0.85,
+    marginBottom: 3,
+    textAlign: "center",
+    letterSpacing: 0.3,
   },
 
   englishText: {

@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
+import { isGuestUser } from "../../src/utils/auth";
 import {
   GrammarProgressData,
   getAllProgress,
@@ -60,9 +61,19 @@ export default function MyGrammarScreen() {
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   async function loadData() {
     try {
+      const guest = await isGuestUser();
+      setIsGuest(guest);
+
+      if (guest) {
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       const token = await AsyncStorage.getItem("token");
       const res = await fetch("http://192.168.1.121:3000/bookmarks", {
         headers: { Authorization: `Bearer ${token}` },
@@ -99,8 +110,12 @@ export default function MyGrammarScreen() {
 
   function handleQuickMix() {
     if (bookmarked.length === 0) return;
-    const random = bookmarked[Math.floor(Math.random() * bookmarked.length)];
-    router.push(`/practice/${random.id}/PracticeCSV`);
+    const shuffled = [...bookmarked]
+      .sort(() => Math.random() - 0.5)
+      .map((g) => g.id);
+    router.push(
+      `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}`,
+    );
   }
 
   // ── Empty state ────────────────────────────────────────────────────────────
@@ -203,7 +218,24 @@ export default function MyGrammarScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
         >
-          {bookmarked.length === 0 ? (
+          {isGuest ? (
+            <View style={st.emptyWrap}>
+              <View style={st.emptyIcon}>
+                <Ionicons name="person-outline" size={48} color="#BDBDBD" />
+              </View>
+              <Text style={st.emptyTitle}>GUEST MODE</Text>
+              <Text style={st.emptySubtitle}>
+                Log in to save bookmarks and track your grammar practice progress.
+              </Text>
+              <TouchableOpacity
+                style={st.browseCta}
+                onPress={() => router.push("/login")}
+              >
+                <Text style={st.browseCtaText}>LOG IN</Text>
+                <Ionicons name="arrow-forward" size={16} color="black" />
+              </TouchableOpacity>
+            </View>
+          ) : bookmarked.length === 0 ? (
             renderEmpty()
           ) : (
             <>

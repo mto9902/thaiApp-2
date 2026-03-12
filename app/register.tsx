@@ -2,11 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function Register() {
@@ -21,16 +21,17 @@ export default function Register() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
+      body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
     });
 
     const data = await res.json();
 
-    await AsyncStorage.setItem("token", data.token);
+    if (!res.ok) {
+      alert(data.error || "Signup failed");
+      return;
+    }
 
+    await AsyncStorage.setItem("token", data.token);
     router.replace("/(tabs)");
   }
 
@@ -43,6 +44,10 @@ export default function Register() {
         value={email}
         onChangeText={setEmail}
         style={styles.input}
+        autoComplete="off"
+        textContentType="none"
+        inputMode="email"
+        nativeID="register-email"
       />
 
       <TextInput
@@ -51,6 +56,9 @@ export default function Register() {
         value={password}
         onChangeText={setPassword}
         style={styles.input}
+        autoComplete="new-password"
+        textContentType="newPassword"
+        nativeID="register-password"
       />
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>

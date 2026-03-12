@@ -8,55 +8,9 @@ import {
     View,
 } from "react-native";
 
-// ── Tone data ─────────────────────────────────────────────────────────────────
+import { TONES as TONE_DATA, toLegacyTone } from "../data/tones";
 
-const TONES = [
-  {
-    name: "Mid",
-    thai: "กลาง",
-    color: "#42A5F5",
-    symbol: "—",
-    description: "Flat, steady pitch. No rise or fall.",
-    example: { thai: "มา", rom: "maa", english: "come" },
-    pitchPoints: [0.5, 0.5, 0.5, 0.5, 0.5],
-  },
-  {
-    name: "Low",
-    thai: "เอก",
-    color: "#AB47BC",
-    symbol: "↓",
-    description: "Starts low, stays flat below mid level.",
-    example: { thai: "ไม่", rom: "mâi", english: "not" },
-    pitchPoints: [0.2, 0.2, 0.2, 0.2, 0.2],
-  },
-  {
-    name: "Falling",
-    thai: "โท",
-    color: "#FF4081",
-    symbol: "↘",
-    description: "Starts high, falls sharply to low.",
-    example: { thai: "ไม้", rom: "mâi", english: "wood" },
-    pitchPoints: [0.9, 0.8, 0.6, 0.35, 0.15],
-  },
-  {
-    name: "High",
-    thai: "ตรี",
-    color: "#FF9800",
-    symbol: "↑",
-    description: "Starts mid-high, rises slightly then levels off high.",
-    example: { thai: "น้ำ", rom: "náam", english: "water" },
-    pitchPoints: [0.65, 0.7, 0.78, 0.85, 0.9],
-  },
-  {
-    name: "Rising",
-    thai: "จัตวา",
-    color: "#66BB6A",
-    symbol: "↗",
-    description: "Starts low, dips, then rises to high.",
-    example: { thai: "ฉัน", rom: "chǎn", english: "I (female)" },
-    pitchPoints: [0.4, 0.25, 0.2, 0.55, 0.88],
-  },
-];
+const TONES = TONE_DATA.map(toLegacyTone);
 
 // ── Pitch curve SVG ───────────────────────────────────────────────────────────
 

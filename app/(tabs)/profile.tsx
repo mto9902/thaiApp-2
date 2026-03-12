@@ -4,15 +4,23 @@ import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { clearAuthState, isGuestUser } from "../../src/utils/auth";
+
 export default function Profile() {
   const [userId, setUserId] = useState<number | null>(null);
   const [progress, setProgress] = useState<any>(null);
+  const [isGuest, setIsGuest] = useState(false);
 
   const router = useRouter();
 
   useEffect(() => {
-    loadUser();
-    loadProgress();
+    isGuestUser().then((g) => {
+      setIsGuest(g);
+      if (!g) {
+        loadUser();
+        loadProgress();
+      }
+    });
   }, []);
 
   async function loadUser() {
@@ -41,8 +49,26 @@ export default function Profile() {
   }
 
   async function logout() {
-    await AsyncStorage.removeItem("token");
+    await clearAuthState();
     router.replace("/login");
+  }
+
+  if (isGuest) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Guest Mode</Text>
+        <Text style={styles.info}>You're browsing as a guest</Text>
+        <Text style={[styles.info, { color: "#999", marginTop: 8, textAlign: "center", paddingHorizontal: 30 }]}>
+          Log in to save your progress, bookmarks, and vocabulary
+        </Text>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: "#42A5F5" }]}
+          onPress={logout}
+        >
+          <Text style={styles.buttonText}>Log In</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (

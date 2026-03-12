@@ -21,7 +21,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import LessonHeader from "../../../src/components/LessonHeader";
+import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { grammarPoints } from "../../../src/data/grammar";
+import { isGuestUser } from "../../../src/utils/auth";
 
 // ── Tone colors (shared with PracticeCSV) ──────────────────────────────────────
 const TONE_COLORS: Record<string, string> = {
@@ -49,6 +51,8 @@ export default function GrammarDetail() {
   const scrollRef = useRef<ScrollView>(null);
 
   const [bookmarked, setBookmarked] = useState(false);
+  const [toneGuideVisible, setToneGuideVisible] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   const grammar = grammarPoints.find((p) => p.id === id);
 
@@ -61,12 +65,16 @@ export default function GrammarDetail() {
 
   useEffect(() => {
     if (id) {
+      isGuestUser().then(setIsGuest);
       checkBookmark();
     }
   }, [id]);
 
   async function checkBookmark() {
     try {
+      const guest = await isGuestUser();
+      if (guest) return;
+
       const token = await AsyncStorage.getItem("token");
 
       const res = await fetch("http://192.168.1.121:3000/bookmarks", {
@@ -155,19 +163,28 @@ export default function GrammarDetail() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.bookmarkButton}
-          onPress={toggleBookmark}
-        >
-          <Ionicons
-            name={bookmarked ? "bookmark" : "bookmark-outline"}
-            size={22}
-            color="black"
-          />
-          <Text style={styles.bookmarkText}>
-            {bookmarked ? "BOOKMARKED" : "SAVE BOOKMARK"}
-          </Text>
-        </TouchableOpacity>
+        {isGuest ? (
+          <View style={[styles.bookmarkButton, { opacity: 0.5 }]}>
+            <Ionicons name="bookmark-outline" size={22} color="#999" />
+            <Text style={[styles.bookmarkText, { color: "#999" }]}>
+              LOG IN TO BOOKMARK
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.bookmarkButton}
+            onPress={toggleBookmark}
+          >
+            <Ionicons
+              name={bookmarked ? "bookmark" : "bookmark-outline"}
+              size={22}
+              color="black"
+            />
+            <Text style={styles.bookmarkText}>
+              {bookmarked ? "BOOKMARKED" : "SAVE BOOKMARK"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>CONCEPT</Text>
@@ -190,8 +207,11 @@ export default function GrammarDetail() {
 
           <View style={styles.exampleCard}>
             <View style={styles.exampleHeader}>
-              <Ionicons name="megaphone-outline" size={24} color="black" />
-              <Text style={styles.exampleHeaderText}>PRACTICE THIS</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="megaphone-outline" size={24} color="black" />
+                <Text style={styles.exampleHeaderText}>PRACTICE THIS</Text>
+              </View>
+              <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
             </View>
 
             {/* ── Thai sentence with tone colors ── */}
@@ -255,6 +275,11 @@ export default function GrammarDetail() {
           <Ionicons name="flash" size={24} color="black" />
         </TouchableOpacity>
       </ScrollView>
+
+      <ToneGuide
+        visible={toneGuideVisible}
+        onClose={() => setToneGuideVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -344,8 +369,9 @@ const styles = StyleSheet.create({
   exampleHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 15,
-    gap: 8,
+    width: "100%",
   },
 
   exampleHeaderText: { fontSize: 12, fontWeight: "900" },

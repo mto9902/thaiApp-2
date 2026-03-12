@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { isGuestUser } from "../../../src/utils/auth";
 import * as Speech from "expo-speech";
 import { useEffect, useRef, useState } from "react";
 
@@ -48,6 +49,11 @@ const MODE_META: Record<Mode, { tag: string; title: string }> = {
   matchThai: { tag: "MATCH", title: "Find the correct Thai" },
 };
 
+// ── Preference keys ──────────────────────────────────────────────────────────
+const PREF_ROMANIZATION = "pref_show_romanization";
+const PREF_ENGLISH = "pref_show_english";
+const PREF_AUTOPLAY_TTS = "pref_autoplay_tts";
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SentenceData {
   thai: string;
@@ -63,6 +69,7 @@ interface SentenceData {
 
 interface MatchOption {
   thai: string;
+  romanization: string;
   breakdown: SentenceData["breakdown"];
   isCorrect: boolean;
 }
@@ -80,9 +87,15 @@ function buildMatchOptions(
   );
 
   const options: MatchOption[] = [
-    { thai: correct.thai, breakdown: correct.breakdown, isCorrect: true },
+    {
+      thai: correct.thai,
+      romanization: correct.romanization,
+      breakdown: correct.breakdown,
+      isCorrect: true,
+    },
     ...picked.map((d) => ({
       thai: d.thai,
+      romanization: d.romanization,
       breakdown: d.breakdown,
       isCorrect: false,
     })),
@@ -114,18 +127,31 @@ function computePrefill(
   return breakdown.map((w, i) => (prefillIndices.has(i) ? w.thai : null));
 }
 
+/** Split sentence-level romanization into per-word tokens aligned to breakdown */
+function splitRomanization(
+  romanization: string,
+  breakdownLength: number,
+): string[] {
+  const tokens = romanization.split(/\s+/);
+  // Pad with empty strings if mismatch
+  return Array.from({ length: breakdownLength }, (_, i) => tokens[i] ?? "");
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function PracticeCSV() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, mix } = useLocalSearchParams<{ id: string; mix?: string }>();
   const router = useRouter();
 
   const roundRef = useRef(0);
+  const mixIdsRef = useRef<string[]>([]);
+  const mixIndexRef = useRef(0);
 
   const [sentence, setSentence] = useState("");
   const [romanization, setRomanization] = useState("");
   const [translation, setTranslation] = useState("");
   const [grammarPoint, setGrammarPoint] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<SentenceData["breakdown"]>([]);
+  const [romanTokens, setRomanTokens] = useState<string[]>([]);
 
   const [words, setWords] = useState<any[]>([]);
   const [builtSentence, setBuiltSentence] = useState<string[]>([]);
@@ -140,6 +166,10 @@ export default function PracticeCSV() {
   const [result, setResult] = useState<"" | "correct" | "wrong">("");
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
 
+  const [showRoman, setShowRoman] = useState(true);
+  const [showEnglish, setShowEnglish] = useState(true);
+  const [autoplayTTS, setAutoplayTTS] = useState(true);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
     fadeAnim.setValue(0);
@@ -150,10 +180,55 @@ export default function PracticeCSV() {
     }).start();
   }
 
+  // Load toggle preferences
   useEffect(() => {
-    console.log(`[PracticeCSV] Mounted — grammar id: ${id ?? "random"}`);
+    (async () => {
+      const [roman, english, tts] = await Promise.all([
+        AsyncStorage.getItem(PREF_ROMANIZATION),
+        AsyncStorage.getItem(PREF_ENGLISH),
+        AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
+      ]);
+      if (roman !== null) setShowRoman(roman === "true");
+      if (english !== null) setShowEnglish(english === "true");
+      if (tts !== null) setAutoplayTTS(tts === "true");
+    })();
+  }, []);
+
+  function toggleRoman() {
+    setShowRoman((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(PREF_ROMANIZATION, String(next));
+      return next;
+    });
+  }
+  function toggleEnglish() {
+    setShowEnglish((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(PREF_ENGLISH, String(next));
+      return next;
+    });
+  }
+  function toggleAutoplayTTS() {
+    setAutoplayTTS((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(PREF_AUTOPLAY_TTS, String(next));
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    if (mix) {
+      mixIdsRef.current = mix.split(",");
+      mixIndexRef.current = 0;
+      console.log(
+        `[PracticeCSV] Mounted — Quick Mix: ${mixIdsRef.current.length} grammar IDs`,
+      );
+    } else {
+      mixIdsRef.current = [];
+      console.log(`[PracticeCSV] Mounted — grammar id: ${id ?? "random"}`);
+    }
     fetchRound(randomMode());
-  }, [id]);
+  }, [id, mix]);
 
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
@@ -162,6 +237,11 @@ export default function PracticeCSV() {
     return grammarPoints.find((g) => g.id === gid);
   }
   function grammarObject() {
+    if (mixIdsRef.current.length > 0) {
+      const currentId =
+        mixIdsRef.current[mixIndexRef.current % mixIdsRef.current.length];
+      return findGrammarById(currentId) || getRandomGrammar();
+    }
     return typeof id === "string"
       ? findGrammarById(id) || getRandomGrammar()
       : getRandomGrammar();
@@ -186,6 +266,9 @@ export default function PracticeCSV() {
     wordsToTrack: SentenceData["breakdown"],
     trigger: string,
   ) {
+    const guest = await isGuestUser();
+    if (guest) return;
+
     const vocabList = wordsToTrack.map((w) => w.thai);
     console.log(
       `[SRS] Tracking ${wordsToTrack.length} vocab → [${vocabList.join(", ")}] (trigger: ${trigger})`,
@@ -247,18 +330,36 @@ export default function PracticeCSV() {
       setGrammarPoint(gobj);
       setBreakdown(main.breakdown);
 
+      // Split sentence romanization into per-word tokens
+      const perWordRoman = splitRomanization(
+        main.romanization,
+        main.breakdown.length,
+      );
+      setRomanTokens(perWordRoman);
+
       const slots = computePrefill(main.breakdown);
       setPrefilled(slots);
 
-      const freeWords = main.breakdown.filter((_, i) => slots[i] === null);
-      const formatted = freeWords.map((w) => ({
-        thai: w.thai,
-        english: w.english.toUpperCase(),
-        color: toneColor(w.tone),
-        rotation: Math.random() * 4 - 2,
-        isGrammar: !!w.grammar,
-      }));
-      setWords(shuffleNotSame(formatted, freeWords));
+      // Build free word tiles with romanization attached
+      const freeIndices: number[] = [];
+      slots.forEach((s, i) => {
+        if (s === null) freeIndices.push(i);
+      });
+
+      const formatted = freeIndices.map((i) => {
+        const w = main.breakdown[i];
+        return {
+          thai: w.thai,
+          english: w.english.toUpperCase(),
+          roman: perWordRoman[i] ?? "",
+          color: toneColor(w.tone),
+          rotation: Math.random() * 4 - 2,
+          isGrammar: !!w.grammar,
+        };
+      });
+
+      const freeWords = freeIndices.map((i) => main.breakdown[i]);
+      setWords(shuffleNotSame(formatted, formatted));
       setBuiltSentence([]);
 
       const prefilledCount = slots.filter((s) => s !== null).length;
@@ -278,6 +379,10 @@ export default function PracticeCSV() {
 
       setMode(nextMode);
       fadeIn();
+
+      if (mixIdsRef.current.length > 0) {
+        mixIndexRef.current++;
+      }
     } catch (err) {
       console.error(`[Round ${round}] fetchRound FAILED:`, err);
     } finally {
@@ -369,7 +474,11 @@ export default function PracticeCSV() {
         showsVerticalScrollIndicator={false}
       >
         <Header
-          title={grammarPoint?.title || "Practice"}
+          title={
+            mixIdsRef.current.length > 0
+              ? "Quick Mix"
+              : grammarPoint?.title || "Practice"
+          }
           onBack={() => router.back()}
           showClose
         />
@@ -387,7 +496,61 @@ export default function PracticeCSV() {
                 <View style={st.modeTag}>
                   <Text style={st.modeTagText}>{meta.tag}</Text>
                 </View>
-                <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <View style={st.toggleBar}>
+                    <TouchableOpacity
+                      style={[st.togglePill, showRoman && st.togglePillActive]}
+                      onPress={toggleRoman}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          st.togglePillText,
+                          showRoman && st.togglePillTextActive,
+                        ]}
+                      >
+                        Aa
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        st.togglePill,
+                        showEnglish && st.togglePillActive,
+                      ]}
+                      onPress={toggleEnglish}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          st.togglePillText,
+                          showEnglish && st.togglePillTextActive,
+                        ]}
+                      >
+                        EN
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        st.togglePill,
+                        autoplayTTS && st.togglePillActive,
+                      ]}
+                      onPress={toggleAutoplayTTS}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          st.togglePillText,
+                          autoplayTTS && st.togglePillTextActive,
+                        ]}
+                      >
+                        {autoplayTTS ? "\uD83D\uDD0A" : "\uD83D\uDD07"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+                </View>
               </View>
               <Text style={st.modeTitle}>{meta.title}</Text>
             </View>
@@ -413,11 +576,15 @@ export default function PracticeCSV() {
                       </Text>
                     ))}
                   </Text>
-                  <Text style={st.studyRoman}>{romanization}</Text>
+                  {showRoman && (
+                    <Text style={st.studyRoman}>{romanization}</Text>
+                  )}
 
                   <View style={st.divider} />
 
-                  <Text style={st.studyEnglish}>{translation}</Text>
+                  {showEnglish && (
+                    <Text style={st.studyEnglish}>{translation}</Text>
+                  )}
                 </View>
 
                 {/* Word breakdown */}
@@ -432,7 +599,7 @@ export default function PracticeCSV() {
                           { backgroundColor: toneColor(w.tone) },
                           w.grammar && st.grammarTile,
                         ]}
-                        onPress={() => speak(w.thai)}
+                        onPress={() => autoplayTTS && speak(w.thai)}
                         activeOpacity={0.8}
                       >
                         {w.grammar && (
@@ -441,9 +608,16 @@ export default function PracticeCSV() {
                           </View>
                         )}
                         <Text style={st.studyTileThai}>{w.thai}</Text>
-                        <Text style={st.studyTileEng}>
-                          {w.english.toUpperCase()}
-                        </Text>
+                        {showRoman && romanTokens[i] ? (
+                          <Text style={st.studyTileRoman}>
+                            {romanTokens[i]}
+                          </Text>
+                        ) : null}
+                        {showEnglish && (
+                          <Text style={st.studyTileEng}>
+                            {w.english.toUpperCase()}
+                          </Text>
+                        )}
                         {w.tone && (
                           <View style={st.tonePill}>
                             <Text style={st.tonePillText}>{w.tone}</Text>
@@ -594,12 +768,13 @@ export default function PracticeCSV() {
                     <WordCard
                       key={idx}
                       thai={word.thai}
-                      english={word.english}
+                      english={showEnglish ? word.english : ""}
+                      romanization={showRoman ? word.roman : ""}
                       backgroundColor={word.color}
                       rotation={word.rotation}
                       isGrammar={word.isGrammar}
                       onPress={() => {
-                        speak(word.thai);
+                        if (autoplayTTS) speak(word.thai);
                         handleWordTap(word.thai);
                       }}
                     />
@@ -645,6 +820,10 @@ export default function PracticeCSV() {
                   {matchOptions.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
                     const isCorrect = opt.isCorrect;
+                    const optRomanTokens = splitRomanization(
+                      opt.romanization,
+                      opt.breakdown.length,
+                    );
 
                     let borderColor = "#E8E8E4";
                     let bgColor = "#FFFFFF";
@@ -683,7 +862,7 @@ export default function PracticeCSV() {
                                 { backgroundColor: toneColor(w.tone) },
                                 w.grammar && st.grammarOptionTile,
                               ]}
-                              onPress={() => speak(w.thai)}
+                              onPress={() => autoplayTTS && speak(w.thai)}
                             >
                               {w.grammar && (
                                 <View style={st.grammarBadgeSmall}>
@@ -693,9 +872,16 @@ export default function PracticeCSV() {
                                 </View>
                               )}
                               <Text style={st.optionTileThai}>{w.thai}</Text>
-                              <Text style={st.optionTileEng}>
-                                {w.english.toUpperCase()}
-                              </Text>
+                              {showRoman && optRomanTokens[wi] ? (
+                                <Text style={st.optionTileRoman}>
+                                  {optRomanTokens[wi]}
+                                </Text>
+                              ) : null}
+                              {showEnglish && (
+                                <Text style={st.optionTileEng}>
+                                  {w.english.toUpperCase()}
+                                </Text>
+                              )}
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -914,6 +1100,14 @@ const st = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     color: "#fff",
+  },
+  studyTileRoman: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#fff",
+    opacity: 0.85,
+    marginTop: 2,
+    letterSpacing: 0.3,
   },
   studyTileEng: {
     fontSize: 9,
@@ -1152,6 +1346,14 @@ const st = StyleSheet.create({
     alignItems: "center",
   },
   optionTileThai: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  optionTileRoman: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: "#fff",
+    opacity: 0.85,
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
   optionTileEng: {
     fontSize: 9,
     fontWeight: "700",
@@ -1169,4 +1371,29 @@ const st = StyleSheet.create({
   },
   badgeWrong: { backgroundColor: "#FEF5F6" },
   badgeText: { fontSize: 12, fontWeight: "800" },
+
+  toggleBar: {
+    flexDirection: "row",
+    gap: 5,
+  },
+  togglePill: {
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 8,
+    backgroundColor: "#F0F0ED",
+    borderWidth: 1.5,
+    borderColor: "#E0E0DC",
+  },
+  togglePillActive: {
+    backgroundColor: "#1A1A1A",
+    borderColor: "#1A1A1A",
+  },
+  togglePillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#888",
+  },
+  togglePillTextActive: {
+    color: "#FFF",
+  },
 });
