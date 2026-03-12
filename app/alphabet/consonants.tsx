@@ -83,19 +83,6 @@ function ConsonantCard({ lesson, color, onPress }: any) {
           )}
         </View>
 
-        {/* ── Letter Count Indicator ──────────────────────────────── */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${(letters.length / 44) * 100}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.countText}>{letters.length} / 44 LETTERS</Text>
-        </View>
-
         <View style={styles.cardFooter}>
           <Text style={styles.footerText}>VIEW LESSON</Text>
           <Ionicons name="arrow-forward" size={16} color="black" />
@@ -312,33 +299,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "rgba(0,0,0,0.6)",
     marginTop: 2,
-  },
-
-  progressContainer: {
-    marginBottom: 14,
-  },
-
-  progressBar: {
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.15)",
-  },
-
-  progressFill: {
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: 3,
-  },
-
-  countText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "rgba(0,0,0,0.5)",
-    letterSpacing: 0.5,
   },
 
   cardFooter: {
