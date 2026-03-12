@@ -402,30 +402,15 @@ export default function Trainer() {
           </View>
         </View>
 
-        {/* SELECTION SUMMARY */}
-        <View style={styles.summarySection}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Difficulty</Text>
-              <Text style={styles.summaryValue}>{difficulty.toUpperCase()}</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Combos</Text>
-              <Text style={styles.summaryValue}>
-                ~{consonantCount * vowelCount}
-              </Text>
-            </View>
+        {/* VALIDATION WARNING */}
+        {!isValid && (
+          <View style={styles.validationWarning}>
+            <Ionicons name="alert-circle" size={16} color="#FF6B6B" />
+            <Text style={styles.validationText}>
+              Select at least one consonant class and vowel group to continue
+            </Text>
           </View>
-          {!isValid && (
-            <View style={styles.validationWarning}>
-              <Ionicons name="alert-circle" size={16} color="#FF6B6B" />
-              <Text style={styles.validationText}>
-                Select at least one consonant class and vowel group
-              </Text>
-            </View>
-          )}
-        </View>
+        )}
 
         {/* GENERATE BUTTON */}
         <TouchableOpacity
@@ -485,56 +470,62 @@ const styles = StyleSheet.create({
   },
 
   scroll: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 32,
   },
 
   headerSection: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
 
   headerTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "900",
     color: "black",
     marginBottom: 8,
+    lineHeight: 32,
   },
 
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
     color: "rgba(0,0,0,0.6)",
-    lineHeight: 20,
+    lineHeight: 18,
   },
 
   section: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
 
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 14,
   },
 
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
-    color: "rgba(0,0,0,0.6)",
-    letterSpacing: 1,
+    color: "rgba(0,0,0,0.5)",
+    letterSpacing: 0.8,
+    flex: 1,
   },
 
   sectionCount: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#FFD54F",
+    color: "#FF9800",
+    backgroundColor: "rgba(255, 152, 0, 0.08)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
 
   difficultyRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
 
   diffButton: {
@@ -542,18 +533,18 @@ const styles = StyleSheet.create({
     minHeight: 56,
     borderWidth: 2,
     borderColor: "black",
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.9,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 3,
   },
 
   diffButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "900",
     color: "rgba(0,0,0,0.5)",
     textAlign: "center",
@@ -566,30 +557,31 @@ const styles = StyleSheet.create({
   consonantGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
   },
 
   consonantCard: {
     width: "48%",
-    minHeight: 140,
+    minHeight: 130,
     borderWidth: 2,
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.9,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 3,
   },
 
   consonantTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
-    color: "rgba(0,0,0,0.6)",
-    marginBottom: 10,
+    color: "rgba(0,0,0,0.5)",
+    marginBottom: 12,
     textAlign: "center",
+    lineHeight: 16,
   },
 
   consonantTitleActive: {
@@ -625,29 +617,29 @@ const styles = StyleSheet.create({
   vowelGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
   },
 
   vowelCard: {
     width: "48%",
-    minHeight: 100,
+    minHeight: 110,
     borderWidth: 2,
     borderColor: "black",
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.9,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 3,
   },
 
   vowelTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
-    color: "rgba(0,0,0,0.6)",
+    color: "rgba(0,0,0,0.5)",
     marginBottom: 8,
     textAlign: "center",
   },
@@ -657,8 +649,8 @@ const styles = StyleSheet.create({
   },
 
   vowelPreview: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: "black",
     textAlign: "center",
   },
@@ -675,67 +667,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  summarySection: {
-    backgroundColor: "white",
-    borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 0,
-    elevation: 2,
-  },
-
-  summaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-
-  summaryItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(0,0,0,0.5)",
-    marginBottom: 4,
-  },
-
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "black",
-  },
-
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "rgba(0,0,0,0.1)",
-  },
-
   validationWarning: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    backgroundColor: "rgba(255, 107, 107, 0.1)",
-    borderWidth: 1,
+    gap: 12,
+    backgroundColor: "rgba(255, 107, 107, 0.12)",
+    borderWidth: 2,
     borderColor: "#FF6B6B",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
   },
 
   validationText: {
     flex: 1,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#FF6B6B",
+    lineHeight: 18,
   },
 
   generateButton: {
@@ -745,11 +694,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFD54F",
     borderWidth: 3,
     borderColor: "black",
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    gap: 10,
-    marginBottom: 28,
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    gap: 12,
+    marginBottom: 24,
     shadowColor: "#000",
     shadowOffset: { width: 6, height: 6 },
     shadowOpacity: 1,
@@ -758,16 +707,16 @@ const styles = StyleSheet.create({
   },
 
   generateButtonDisabled: {
-    backgroundColor: "#E0E0E0",
-    opacity: 0.6,
-    shadowOpacity: 0.3,
+    backgroundColor: "#E8E8E8",
+    borderColor: "rgba(0,0,0,0.2)",
+    shadowOpacity: 0.2,
   },
 
   generateText: {
     color: "black",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "900",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 
   resultsSection: {
@@ -798,7 +747,7 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontSize: 28,
     fontWeight: "900",
-    color: "#FFD54F",
+    color: "#FF9800",
   },
 
   wordCard: {
