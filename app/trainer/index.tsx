@@ -170,7 +170,7 @@ function ConsonantCard({
         </View>
         {isSelected && (
           <View style={[styles.selectedBadge, { borderColor: info.color }]}>
-            <Ionicons name="checkmark" size={16} color={info.color} />
+            <Ionicons name="checkmark" size={16} color="black" />
           </View>
         )}
       </TouchableOpacity>
