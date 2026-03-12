@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 type Word = {
   thai: string;
@@ -59,7 +60,7 @@ export default function TranslateCard({
         </View>
 
         <TouchableOpacity style={styles.audioButton} onPress={playAudio}>
-          <Ionicons name="volume-high" size={32} color="black" />
+          <Ionicons name="volume-high" size={28} color={Sketch.ink} />
         </TouchableOpacity>
 
         <View style={styles.divider} />
@@ -84,29 +85,27 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "white",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 20,
-    padding: 30,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 18,
+    padding: 28,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 8, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(6),
   },
 
   grammarLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#9E9E9E",
+    fontSize: 11,
+    fontWeight: "800",
+    color: Sketch.inkMuted,
     marginBottom: 4,
+    letterSpacing: 1.5,
   },
 
   grammarValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
     marginBottom: 5,
   },
 
@@ -118,59 +117,57 @@ const styles = StyleSheet.create({
   },
 
   thaiText: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: "bold",
-    color: "#000",
+    color: Sketch.ink,
     textAlign: "center",
     marginBottom: 10,
   },
 
   grammarHighlight: {
-    backgroundColor: "#FFFF00",
+    backgroundColor: Sketch.orange,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     paddingHorizontal: 6,
     borderRadius: 6,
+    color: Sketch.cardBg,
   },
 
   audioButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     justifyContent: "center",
     alignItems: "center",
     marginVertical: 10,
-    backgroundColor: "white",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    backgroundColor: Sketch.cardBg,
+    ...sketchShadow(2),
   },
 
   divider: {
     height: 2,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: Sketch.inkFaint,
     width: "100%",
     marginVertical: 15,
   },
 
   romanizationText: {
-    fontSize: 20,
+    fontSize: 18,
     fontStyle: "italic",
-    color: "#757575",
+    color: Sketch.inkLight,
     textAlign: "center",
     fontWeight: "600",
   },
 
   englishContainer: {
-    marginTop: 20,
-    backgroundColor: "#FAFAFA",
+    marginTop: 18,
+    backgroundColor: Sketch.paperDark,
     padding: 15,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#E0E0E0",
+    borderColor: Sketch.inkFaint,
     borderStyle: "dashed",
     width: "100%",
     alignItems: "center",
@@ -179,24 +176,15 @@ const styles = StyleSheet.create({
   englishLabel: {
     fontSize: 10,
     fontWeight: "900",
-    color: "#9E9E9E",
+    color: Sketch.inkMuted,
     marginBottom: 4,
     letterSpacing: 1,
   },
 
   englishText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
-    color: "#333",
+    color: Sketch.inkLight,
     textAlign: "center",
   },
 });
-
-/* <TranslateCard
-              sentence={sentence}
-              breakdown={breakdown}
-              romanization={romanization}
-              english={translation}
-              grammarPoint={grammarPoint?.title}
-            />
-            */

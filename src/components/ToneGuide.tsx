@@ -9,32 +9,15 @@ import {
 } from "react-native";
 
 import { TONES as TONE_DATA, toLegacyTone } from "../data/tones";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 const TONES = TONE_DATA.map(toLegacyTone);
-
-// ── Pitch curve SVG ───────────────────────────────────────────────────────────
 
 function PitchCurve({ points, color }: { points: number[]; color: string }) {
   const W = 80;
   const H = 40;
   const pad = 6;
 
-  const coords = points.map((p, i) => ({
-    x: pad + (i / (points.length - 1)) * (W - pad * 2),
-    y: pad + (1 - p) * (H - pad * 2),
-  }));
-
-  // smooth bezier path
-  let d = `M ${coords[0].x} ${coords[0].y}`;
-  for (let i = 1; i < coords.length; i++) {
-    const prev = coords[i - 1];
-    const curr = coords[i];
-    const cx = (prev.x + curr.x) / 2;
-    d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
-  }
-
-  // React Native doesn't have SVG natively — we approximate with dots + line
-  // Use a simple visual bar chart instead
   return (
     <View
       style={{
@@ -61,12 +44,9 @@ function PitchCurve({ points, color }: { points: number[]; color: string }) {
   );
 }
 
-// ── Tone card ─────────────────────────────────────────────────────────────────
-
 function ToneCard({ tone }: { tone: (typeof TONES)[0] }) {
   return (
     <View style={[styles.card, { borderLeftColor: tone.color }]}>
-      {/* Header row */}
       <View style={styles.cardHeader}>
         <View style={[styles.colorDot, { backgroundColor: tone.color }]}>
           <Text style={styles.symbolText}>{tone.symbol}</Text>
@@ -78,10 +58,8 @@ function ToneCard({ tone }: { tone: (typeof TONES)[0] }) {
         <PitchCurve points={tone.pitchPoints} color={tone.color} />
       </View>
 
-      {/* Description */}
       <Text style={styles.cardDesc}>{tone.description}</Text>
 
-      {/* Example word */}
       <View
         style={[styles.examplePill, { backgroundColor: tone.color + "18" }]}
       >
@@ -94,8 +72,6 @@ function ToneCard({ tone }: { tone: (typeof TONES)[0] }) {
     </View>
   );
 }
-
-// ── Main component ─────────────────────────────────────────────────────────────
 
 type Props = {
   visible: boolean;
@@ -110,15 +86,11 @@ export default function ToneGuide({ visible, onClose }: Props) {
       transparent
       onRequestClose={onClose}
     >
-      {/* Backdrop */}
       <Pressable style={styles.backdrop} onPress={onClose} />
 
-      {/* Sheet */}
       <View style={styles.sheet}>
-        {/* Handle */}
         <View style={styles.handle} />
 
-        {/* Title */}
         <View style={styles.titleRow}>
           <View>
             <Text style={styles.title}>Thai Tones</Text>
@@ -129,7 +101,6 @@ export default function ToneGuide({ visible, onClose }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Color legend strip */}
         <View style={styles.legendStrip}>
           {TONES.map((t) => (
             <View key={t.name} style={styles.legendItem}>
@@ -139,7 +110,6 @@ export default function ToneGuide({ visible, onClose }: Props) {
           ))}
         </View>
 
-        {/* Cards */}
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
@@ -157,48 +127,40 @@ export default function ToneGuide({ visible, onClose }: Props) {
   );
 }
 
-// ── Trigger button (drop-in for practicecsv.tsx) ──────────────────────────────
-
 export function ToneGuideButton({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.triggerBtn} onPress={onPress}>
-      <Text style={styles.triggerIcon}>🎵</Text>
       <Text style={styles.triggerLabel}>TONE GUIDE</Text>
     </TouchableOpacity>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  // modal
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: "#FAFAFA",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: Sketch.paper,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderColor: Sketch.ink,
     maxHeight: "88%",
     paddingTop: 12,
     paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 12,
   },
   handle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#DDD",
+    backgroundColor: Sketch.inkFaint,
     alignSelf: "center",
     marginBottom: 16,
   },
 
-  // title
   titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -206,14 +168,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "900",
-    color: "#111",
+    color: Sketch.ink,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 13,
-    color: "#888",
+    color: Sketch.inkMuted,
     fontWeight: "500",
     marginTop: 2,
   },
@@ -221,30 +183,29 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#EEE",
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
     justifyContent: "center",
     alignItems: "center",
   },
   closeBtnText: {
     fontSize: 14,
-    color: "#555",
+    color: Sketch.ink,
     fontWeight: "700",
   },
 
-  // legend strip
   legendStrip: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
+    backgroundColor: Sketch.cardBg,
     borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    ...sketchShadow(2),
   },
   legendItem: {
     alignItems: "center",
@@ -254,29 +215,27 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: Sketch.ink,
   },
   legendLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#555",
+    color: Sketch.inkLight,
   },
 
-  // scroll
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 40, gap: 12 },
 
-  // tone card
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: Sketch.cardBg,
     borderRadius: 14,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
     padding: 16,
-    borderLeftWidth: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderLeftWidth: 6,
     gap: 10,
+    ...sketchShadow(3),
   },
   cardHeader: {
     flexDirection: "row",
@@ -287,6 +246,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -301,17 +262,17 @@ const styles = StyleSheet.create({
   toneName: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#111",
+    color: Sketch.ink,
   },
   toneThai: {
     fontSize: 12,
-    color: "#888",
+    color: Sketch.inkMuted,
     fontWeight: "600",
     marginTop: 1,
   },
   cardDesc: {
     fontSize: 13,
-    color: "#555",
+    color: Sketch.inkLight,
     lineHeight: 19,
     fontWeight: "500",
   },
@@ -322,6 +283,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
+    borderWidth: 1.5,
+    borderColor: Sketch.inkFaint,
   },
   exampleThai: {
     fontSize: 20,
@@ -329,50 +292,40 @@ const styles = StyleSheet.create({
   },
   exampleRom: {
     fontSize: 13,
-    color: "#666",
+    color: Sketch.inkLight,
     fontWeight: "600",
   },
   exampleEng: {
     fontSize: 13,
-    color: "#999",
+    color: Sketch.inkMuted,
     fontWeight: "500",
   },
 
-  // footer
   footer: {
     textAlign: "center",
     fontSize: 12,
-    color: "#AAA",
+    color: Sketch.inkMuted,
     marginTop: 8,
     fontWeight: "500",
   },
 
-  // trigger button
   triggerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "#fff",
-    borderWidth: 1.5,
-    borderColor: "#DDD",
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    gap: 5,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     alignSelf: "flex-end",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  triggerIcon: {
-    fontSize: 15,
+    ...sketchShadow(2),
   },
   triggerLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
-    color: "#444",
+    color: Sketch.ink,
     letterSpacing: 0.8,
   },
 });

@@ -12,14 +12,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { grammarPoints } from "../../src/data/grammar";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 const COLORS = [
-  "#42A5F5",
-  "#FF4081",
-  "#66BB6A",
-  "#FF9800",
-  "#AB47BC",
-  "#007AFF",
+  Sketch.blue,
+  Sketch.red,
+  Sketch.green,
+  Sketch.orange,
+  Sketch.purple,
+  Sketch.pink,
 ];
 
 const LEVEL_NAMES: Record<number, string> = {
@@ -64,20 +65,19 @@ export default function CSVGrammarIndex() {
             <View style={styles.cardHeader}>
               <View style={styles.textContainer}>
                 <Text style={styles.levelLabel}>LEVEL {item.level}</Text>
-
                 <Text style={styles.grammarTitle}>
                   {item.title.toUpperCase()}
                 </Text>
               </View>
 
               <View style={styles.iconContainer}>
-                <Ionicons name="flash" size={24} color="black" />
+                <Ionicons name="flash" size={22} color={Sketch.ink} />
               </View>
             </View>
 
             <View style={styles.cardFooter}>
               <Text style={styles.footerText}>START PRACTICE</Text>
-              <Ionicons name="arrow-forward" size={16} color="black" />
+              <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
             </View>
           </TouchableOpacity>
         )}
@@ -89,7 +89,7 @@ export default function CSVGrammarIndex() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Sketch.paper,
   },
 
   listContent: {
@@ -98,24 +98,19 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
-    marginBottom: 20,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
+    marginBottom: 18,
     padding: 20,
-
-    shadowColor: "#000",
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
+    ...sketchShadow(5),
   },
 
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 15,
+    marginBottom: 14,
   },
 
   textContainer: {
@@ -123,9 +118,9 @@ const styles = StyleSheet.create({
   },
 
   levelLabel: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: "rgba(0,0,0,0.6)",
+    fontSize: 11,
+    fontWeight: "800",
+    color: "rgba(0,0,0,0.5)",
     marginBottom: 4,
     letterSpacing: 1,
   },
@@ -133,42 +128,38 @@ const styles = StyleSheet.create({
   grammarTitle: {
     fontSize: 22,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
     lineHeight: 26,
   },
 
   iconContainer: {
-    width: 44,
-    height: 44,
-    backgroundColor: "white",
+    width: 42,
+    height: 42,
+    backgroundColor: Sketch.cardBg,
     borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 22,
+    borderColor: Sketch.ink,
+    borderRadius: 21,
     justifyContent: "center",
     alignItems: "center",
-
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(2),
   },
 
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(255,255,255,0.35)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: "flex-start",
     gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.15)",
   },
 
   footerText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
   },
 });

@@ -12,15 +12,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { MINIMAL_PAIRS, TONE_MARKS, TONES, type ToneData } from "../../src/data/tones";
-
-// ── TTS helper ───────────────────────────────────────────────────────────────
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 function speak(text: string) {
   Speech.stop();
   Speech.speak(text, { language: "th-TH", rate: 0.75 });
 }
-
-// ── Pitch curve (bar chart) ──────────────────────────────────────────────────
 
 function PitchCurve({ points, color }: { points: number[]; color: string }) {
   const H = 48;
@@ -43,12 +40,9 @@ function PitchCurve({ points, color }: { points: number[]; color: string }) {
   );
 }
 
-// ── Tone card ────────────────────────────────────────────────────────────────
-
 function ToneCard({ tone }: { tone: ToneData }) {
   return (
     <View style={[styles.toneCard, { borderLeftColor: tone.color }]}>
-      {/* Header */}
       <View style={styles.toneHeader}>
         <View style={[styles.toneIcon, { backgroundColor: tone.color }]}>
           <Text style={styles.toneSymbol}>{tone.symbol}</Text>
@@ -60,10 +54,8 @@ function ToneCard({ tone }: { tone: ToneData }) {
         <PitchCurve points={tone.pitchPoints} color={tone.color} />
       </View>
 
-      {/* Description */}
       <Text style={styles.toneDesc}>{tone.description}</Text>
 
-      {/* Examples */}
       <View style={styles.examplesRow}>
         {tone.examples.map((ex, i) => (
           <TouchableOpacity
@@ -72,9 +64,7 @@ function ToneCard({ tone }: { tone: ToneData }) {
             onPress={() => speak(ex.thai)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.exampleThai, { color: tone.color }]}>
-              {ex.thai}
-            </Text>
+            <Text style={[styles.exampleThai, { color: tone.color }]}>{ex.thai}</Text>
             <Text style={styles.exampleRom}>{ex.rom}</Text>
             <Text style={styles.exampleEng}>{ex.english}</Text>
             <Ionicons name="volume-medium-outline" size={14} color={tone.color} style={{ marginTop: 2 }} />
@@ -85,8 +75,6 @@ function ToneCard({ tone }: { tone: ToneData }) {
   );
 }
 
-// ── Main screen ──────────────────────────────────────────────────────────────
-
 export default function TonesScreen() {
   const router = useRouter();
 
@@ -95,10 +83,9 @@ export default function TonesScreen() {
       <Header title="Thai Tones" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Intro */}
         <View style={styles.introCard}>
           <View style={styles.introIconRow}>
-            <Ionicons name="musical-notes" size={20} color="#FF8A65" />
+            <Ionicons name="musical-notes" size={20} color={Sketch.orange} />
             <Text style={styles.introLabel}>WHY TONES MATTER</Text>
           </View>
           <Text style={styles.introText}>
@@ -108,7 +95,6 @@ export default function TonesScreen() {
           </Text>
         </View>
 
-        {/* Color legend */}
         <View style={styles.legendStrip}>
           {TONES.map((t) => (
             <View key={t.name} style={styles.legendItem}>
@@ -118,14 +104,12 @@ export default function TonesScreen() {
           ))}
         </View>
 
-        {/* Section: 5 tones */}
         <Text style={styles.sectionTitle}>THE 5 TONES</Text>
 
         {TONES.map((tone) => (
           <ToneCard key={tone.name} tone={tone} />
         ))}
 
-        {/* Section: Tone marks */}
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>TONE MARKS</Text>
         <Text style={styles.sectionSubtitle}>
           4 written marks placed above consonants. The mid tone has no mark.
@@ -140,21 +124,16 @@ export default function TonesScreen() {
                     {tm.mark || "\u2715"}
                   </Text>
                 </View>
-                <Text style={[styles.toneMarkThaiName, { color: tm.color }]}>
-                  {tm.thaiName}
-                </Text>
+                <Text style={[styles.toneMarkThaiName, { color: tm.color }]}>{tm.thaiName}</Text>
                 <Text style={styles.toneMarkRomanName}>{tm.romanName}</Text>
               </View>
             ))}
           </View>
 
-          {/* Detailed cards for each mark */}
           {TONE_MARKS.map((tm, i) => (
             <View key={i} style={[styles.toneMarkDetail, { borderLeftColor: tm.color }]}>
               <View style={styles.toneMarkDetailHeader}>
-                <Text style={[styles.toneMarkDetailSymbol, { color: tm.color }]}>
-                  {tm.symbol}
-                </Text>
+                <Text style={[styles.toneMarkDetailSymbol, { color: tm.color }]}>{tm.symbol}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.toneMarkDetailName}>{tm.thaiName}</Text>
                   <Text style={styles.toneMarkDetailRoman}>{tm.romanName}</Text>
@@ -165,7 +144,6 @@ export default function TonesScreen() {
           ))}
         </View>
 
-        {/* Section: Minimal pairs */}
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>MINIMAL PAIRS</Text>
         <Text style={styles.sectionSubtitle}>
           Same sound, different tone = different word. Tap to hear.
@@ -184,9 +162,7 @@ export default function TonesScreen() {
                   onPress={() => speak(pair.thai)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.pairThai, { color: pair.color }]}>
-                    {pair.thai}
-                  </Text>
+                  <Text style={[styles.pairThai, { color: pair.color }]}>{pair.thai}</Text>
                   <Text style={styles.pairRom}>{pair.rom}</Text>
                   <Text style={styles.pairEng}>{pair.english}</Text>
                   <View style={[styles.toneBadge, { backgroundColor: pair.color }]}>
@@ -198,7 +174,6 @@ export default function TonesScreen() {
           </View>
         ))}
 
-        {/* Footer tip */}
         <Text style={styles.footerTip}>
           Listen carefully to the pitch of each word. With practice, your ear
           will learn to distinguish all five tones naturally.
@@ -208,12 +183,10 @@ export default function TonesScreen() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Sketch.paper,
   },
   content: {
     padding: 20,
@@ -221,19 +194,14 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Intro card
   introCard: {
-    backgroundColor: "white",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     padding: 20,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
+    ...sketchShadow(5),
   },
   introIconRow: {
     flexDirection: "row",
@@ -242,81 +210,65 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   introLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.5,
-    color: "#FF8A65",
+    color: Sketch.orange,
   },
   introText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#444",
+    color: Sketch.inkLight,
     lineHeight: 22,
   },
 
-  // Legend
   legendStrip: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "white",
+    backgroundColor: Sketch.cardBg,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    ...sketchShadow(3),
   },
-  legendItem: {
-    alignItems: "center",
-    gap: 4,
-  },
+  legendItem: { alignItems: "center", gap: 4 },
   legendDot: {
     width: 16,
     height: 16,
     borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Sketch.ink,
   },
-  legendLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#555",
-  },
+  legendLabel: { fontSize: 10, fontWeight: "800", color: Sketch.inkLight },
 
-  // Section
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "900",
     letterSpacing: 1.5,
-    color: "black",
+    color: Sketch.ink,
     marginBottom: 12,
   },
   sectionSubtitle: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#888",
+    color: Sketch.inkMuted,
     marginBottom: 16,
     marginTop: -6,
   },
 
-  // Tone card
   toneCard: {
-    backgroundColor: "white",
-    borderWidth: 3,
-    borderColor: "black",
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
     borderLeftWidth: 7,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 18,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
+    marginBottom: 14,
     gap: 12,
+    ...sketchShadow(4),
   },
   toneHeader: {
     flexDirection: "row",
@@ -327,86 +279,40 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
     justifyContent: "center",
     alignItems: "center",
   },
-  toneSymbol: {
-    fontSize: 20,
-    color: "white",
-    fontWeight: "900",
-  },
-  toneName: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#111",
-  },
-  toneThai: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#888",
-    marginTop: 1,
-  },
-  toneDesc: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
-    lineHeight: 20,
-  },
-  examplesRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
+  toneSymbol: { fontSize: 20, color: "white", fontWeight: "900" },
+  toneName: { fontSize: 18, fontWeight: "900", color: Sketch.ink },
+  toneThai: { fontSize: 13, fontWeight: "700", color: Sketch.inkMuted, marginTop: 1 },
+  toneDesc: { fontSize: 14, fontWeight: "600", color: Sketch.inkLight, lineHeight: 20 },
+  examplesRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   examplePill: {
     alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: 10,
+    borderWidth: 2,
     paddingVertical: 10,
     paddingHorizontal: 14,
     minWidth: 80,
   },
-  exampleThai: {
-    fontSize: 22,
-    fontWeight: "900",
-  },
-  exampleRom: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#777",
-    marginTop: 2,
-  },
-  exampleEng: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#999",
-    marginTop: 1,
-  },
+  exampleThai: { fontSize: 22, fontWeight: "900" },
+  exampleRom: { fontSize: 11, fontWeight: "600", color: Sketch.inkLight, marginTop: 2 },
+  exampleEng: { fontSize: 11, fontWeight: "700", color: Sketch.inkMuted, marginTop: 1 },
 
-  // Tone marks
   toneMarksCard: {
-    backgroundColor: "white",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     padding: 18,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
     gap: 14,
+    ...sketchShadow(4),
   },
-  toneMarksRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 6,
-  },
-  toneMarkItem: {
-    alignItems: "center",
-    flex: 1,
-    gap: 4,
-  },
+  toneMarksRow: { flexDirection: "row", justifyContent: "space-between", gap: 6 },
+  toneMarkItem: { alignItems: "center", flex: 1, gap: 4 },
   toneMarkBox: {
     width: 48,
     height: 48,
@@ -414,129 +320,55 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: Sketch.paperDark,
   },
-  toneMarkSymbol: {
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  toneMarkThaiName: {
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  toneMarkRomanName: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: "#999",
-  },
+  toneMarkSymbol: { fontSize: 24, fontWeight: "900" },
+  toneMarkThaiName: { fontSize: 11, fontWeight: "800" },
+  toneMarkRomanName: { fontSize: 9, fontWeight: "600", color: Sketch.inkMuted },
   toneMarkDetail: {
     borderLeftWidth: 5,
-    borderLeftColor: "#DDD",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: Sketch.paperDark,
     borderRadius: 10,
     padding: 12,
     gap: 6,
   },
-  toneMarkDetailHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  toneMarkDetailSymbol: {
-    fontSize: 32,
-    fontWeight: "900",
-  },
-  toneMarkDetailName: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#111",
-  },
-  toneMarkDetailRoman: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#888",
-  },
-  toneMarkDetailDesc: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#555",
-    lineHeight: 19,
-  },
+  toneMarkDetailHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  toneMarkDetailSymbol: { fontSize: 32, fontWeight: "900" },
+  toneMarkDetailName: { fontSize: 15, fontWeight: "900", color: Sketch.ink },
+  toneMarkDetailRoman: { fontSize: 12, fontWeight: "600", color: Sketch.inkMuted },
+  toneMarkDetailDesc: { fontSize: 13, fontWeight: "600", color: Sketch.inkLight, lineHeight: 19 },
 
-  // Minimal pairs
   pairCard: {
-    backgroundColor: "white",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     padding: 18,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  pairLabel: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#111",
-    marginBottom: 4,
-  },
-  pairDesc: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#999",
     marginBottom: 14,
+    ...sketchShadow(4),
   },
-  pairGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
+  pairLabel: { fontSize: 16, fontWeight: "900", color: Sketch.ink, marginBottom: 4 },
+  pairDesc: { fontSize: 12, fontWeight: "600", color: Sketch.inkMuted, marginBottom: 14 },
+  pairGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   pairPill: {
     alignItems: "center",
-    borderWidth: 2,
-    borderRadius: 14,
+    borderWidth: 2.5,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     minWidth: 85,
   },
-  pairThai: {
-    fontSize: 26,
-    fontWeight: "900",
-  },
-  pairRom: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#777",
-    marginTop: 3,
-  },
-  pairEng: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#999",
-    marginTop: 1,
-  },
-  toneBadge: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 6,
-  },
-  toneBadgeText: {
-    fontSize: 9,
-    fontWeight: "900",
-    color: "white",
-    letterSpacing: 0.5,
-  },
+  pairThai: { fontSize: 26, fontWeight: "900" },
+  pairRom: { fontSize: 11, fontWeight: "600", color: Sketch.inkLight, marginTop: 3 },
+  pairEng: { fontSize: 11, fontWeight: "700", color: Sketch.inkMuted, marginTop: 1 },
+  toneBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginTop: 6 },
+  toneBadgeText: { fontSize: 9, fontWeight: "900", color: "white", letterSpacing: 0.5 },
 
-  // Footer
   footerTip: {
     textAlign: "center",
     fontSize: 13,
     fontWeight: "500",
-    color: "#AAA",
+    color: Sketch.inkMuted,
     marginTop: 16,
     lineHeight: 19,
   },

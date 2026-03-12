@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 interface GenerateButtonProps {
   onPress: () => void;
@@ -21,20 +22,16 @@ export default function GenerateButton({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#FFFF00",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 20,
+    backgroundColor: Sketch.orange,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     marginHorizontal: 20,
-    marginTop: 40,
-    marginBottom: 40,
-    paddingVertical: 18,
+    marginTop: 30,
+    marginBottom: 30,
+    paddingVertical: 16,
     alignItems: "center",
-
-    shadowColor: "#000",
-    shadowOffset: { width: 8, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(5),
   },
 
   content: {
@@ -44,10 +41,9 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
-    color: "black",
-    marginLeft: 10,
+    color: Sketch.cardBg,
     textTransform: "uppercase",
   },
 });

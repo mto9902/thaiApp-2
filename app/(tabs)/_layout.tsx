@@ -7,6 +7,7 @@ import { StyleSheet, View } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Sketch, sketchShadow } from "@/constants/theme";
 import "react-native-get-random-values";
 
 const CustomTabBarIcon = ({
@@ -19,7 +20,7 @@ const CustomTabBarIcon = ({
   color: string;
 }) => (
   <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
-    <Ionicons size={24} name={name} color={color} />
+    <Ionicons size={22} name={name} color={focused ? Sketch.ink : Sketch.inkMuted} />
   </View>
 );
 
@@ -49,28 +50,33 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "black",
-        tabBarInactiveTintColor: "#757575",
+        tabBarActiveTintColor: Sketch.ink,
+        tabBarInactiveTintColor: Sketch.inkMuted,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          height: 90,
-          paddingBottom: 25,
-          paddingTop: 10,
+          height: 88,
+          paddingBottom: 24,
+          paddingTop: 8,
+          backgroundColor: Sketch.paper,
+          borderTopWidth: 2,
+          borderTopColor: Sketch.ink,
         },
         tabBarLabelStyle: {
-          fontWeight: "900",
+          fontWeight: "800",
           fontSize: 10,
-          marginTop: 5,
+          marginTop: 4,
+          color: Sketch.ink,
+          letterSpacing: 0.5,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "LEARN",
+          title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="book" color={color} />
+            <CustomTabBarIcon focused={focused} name="home-outline" color={color} />
           ),
         }}
       />
@@ -78,9 +84,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "MY GRAMMAR",
+          title: "Library",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="bookmark" color={color} />
+            <CustomTabBarIcon focused={focused} name="book-outline" color={color} />
           ),
         }}
       />
@@ -88,13 +94,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          title: "PROGRESS",
+          title: "Write",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon
-              focused={focused}
-              name="bar-chart"
-              color={color}
-            />
+            <CustomTabBarIcon focused={focused} name="pencil-outline" color={color} />
           ),
         }}
       />
@@ -102,9 +104,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "PROFILE",
+          title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="person" color={color} />
+            <CustomTabBarIcon focused={focused} name="person-outline" color={color} />
           ),
         }}
       />
@@ -115,18 +117,15 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabIconContainer: {
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
 
   tabIconFocused: {
-    backgroundColor: "#FFFF00",
+    backgroundColor: Sketch.orange,
     borderWidth: 2,
-    borderColor: "black",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    borderColor: Sketch.ink,
+    ...sketchShadow(2),
   },
 });
