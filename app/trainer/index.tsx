@@ -105,7 +105,7 @@ function ConsonantCard({
 }) {
   const letters = alphabet
     .filter((l) => l.group === info.id)
-    .slice(0, 3);
+    .slice(0, 4);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -141,24 +141,36 @@ function ConsonantCard({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Text
-          style={[
-            styles.consonantTitle,
-            isSelected && styles.consonantTitleActive,
-          ]}
-        >
-          {info.title}
-        </Text>
-        <View style={styles.letterPreview}>
-          {letters.map((l) => (
-            <Text key={l.letter} style={styles.previewLetter}>
-              {l.letter}
+        <View style={styles.consonantCardContent}>
+          <View style={styles.consonantTextSection}>
+            <Text
+              style={[
+                styles.consonantTitle,
+                isSelected && styles.consonantTitleActive,
+              ]}
+            >
+              {info.title}
             </Text>
-          ))}
+            <Text
+              style={[
+                styles.consonantSubtitle,
+                isSelected && styles.consonantSubtitleActive,
+              ]}
+            >
+              {letters.length} letters
+            </Text>
+          </View>
+          <View style={styles.letterPreview}>
+            {letters.map((l) => (
+              <Text key={l.letter} style={styles.previewLetter}>
+                {l.letter}
+              </Text>
+            ))}
+          </View>
         </View>
         {isSelected && (
-          <View style={styles.selectedBadge}>
-            <Ionicons name="checkmark" size={14} color={info.color} />
+          <View style={[styles.selectedBadge, { borderColor: info.color }]}>
+            <Ionicons name="checkmark" size={16} color={info.color} />
           </View>
         )}
       </TouchableOpacity>
@@ -207,18 +219,30 @@ function VowelCard({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Text
-          style={[
-            styles.vowelTitle,
-            isSelected && styles.vowelTitleActive,
-          ]}
-        >
-          {info.title}
-        </Text>
-        <Text style={styles.vowelPreview}>{info.description}</Text>
+        <View style={styles.vowelCardContent}>
+          <View style={styles.vowelTextSection}>
+            <Text
+              style={[
+                styles.vowelTitle,
+                isSelected && styles.vowelTitleActive,
+              ]}
+            >
+              {info.title}
+            </Text>
+            <Text
+              style={[
+                styles.vowelSubtitle,
+                isSelected && styles.vowelSubtitleActive,
+              ]}
+            >
+              Vowels
+            </Text>
+          </View>
+          <Text style={styles.vowelPreview}>{info.description}</Text>
+        </View>
         {isSelected && (
           <View style={styles.vowelSelectedBadge}>
-            <Ionicons name="checkmark" size={12} color="black" />
+            <Ionicons name="checkmark" size={16} color="black" />
           </View>
         )}
       </TouchableOpacity>
@@ -495,7 +519,7 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    marginBottom: 24,
+    marginBottom: 26,
   },
 
   sectionHeader: {
@@ -555,19 +579,16 @@ const styles = StyleSheet.create({
   },
 
   consonantGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 12,
   },
 
   consonantCard: {
-    width: "48%",
-    minHeight: 130,
+    width: "100%",
     borderWidth: 2,
-    borderRadius: 16,
-    padding: 16,
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 14,
+    padding: 14,
+    paddingRight: 48,
     shadowColor: "#000",
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 0.9,
@@ -575,60 +596,74 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
+  consonantCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  consonantTextSection: {
+    flex: 1,
+  },
+
   consonantTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "900",
     color: "rgba(0,0,0,0.5)",
-    marginBottom: 12,
-    textAlign: "center",
-    lineHeight: 16,
+    marginBottom: 4,
   },
 
   consonantTitleActive: {
     color: "black",
   },
 
+  consonantSubtitle: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(0,0,0,0.4)",
+  },
+
+  consonantSubtitleActive: {
+    color: "rgba(0,0,0,0.6)",
+  },
+
   letterPreview: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
+    gap: 6,
   },
 
   previewLetter: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "900",
     color: "black",
   },
 
   selectedBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "black",
   },
 
   vowelGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 12,
   },
 
   vowelCard: {
-    width: "48%",
-    minHeight: 110,
+    width: "100%",
     borderWidth: 2,
     borderColor: "black",
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 14,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingRight: 48,
     shadowColor: "#000",
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 0.9,
@@ -636,32 +671,52 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
+  vowelCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  vowelTextSection: {
+    flex: 1,
+  },
+
   vowelTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "900",
     color: "rgba(0,0,0,0.5)",
-    marginBottom: 8,
-    textAlign: "center",
+    marginBottom: 4,
   },
 
   vowelTitleActive: {
     color: "black",
   },
 
+  vowelSubtitle: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(0,0,0,0.4)",
+  },
+
+  vowelSubtitleActive: {
+    color: "rgba(0,0,0,0.6)",
+  },
+
   vowelPreview: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "800",
     color: "black",
-    textAlign: "center",
+    marginLeft: 12,
   },
 
   vowelSelectedBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "black",
     justifyContent: "center",
     alignItems: "center",
