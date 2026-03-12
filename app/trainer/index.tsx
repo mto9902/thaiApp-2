@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
 
   letterPreview: {
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
   },
 
   previewLetter: {
@@ -708,6 +708,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "black",
     marginLeft: 12,
+    letterSpacing: 6,
   },
 
   vowelSelectedBadge: {
@@ -717,9 +718,11 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "black",
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "black",
   },
 
   validationWarning: {
