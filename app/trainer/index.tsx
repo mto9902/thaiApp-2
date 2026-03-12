@@ -449,13 +449,10 @@ export default function Trainer() {
           {loading ? (
             <>
               <ActivityIndicator size="small" color="black" />
-              <Text style={styles.generateText}>Generating...</Text>
+              <Text style={styles.generateText}>Creating...</Text>
             </>
           ) : (
-            <>
-              <Ionicons name="sparkles" size={20} color="black" />
-              <Text style={styles.generateText}>Generate Words</Text>
-            </>
+            <Text style={styles.generateText}>Create Words</Text>
           )}
         </TouchableOpacity>
 
@@ -550,6 +547,7 @@ const styles = StyleSheet.create({
   difficultyRow: {
     flexDirection: "row",
     gap: 12,
+    marginTop: 14,
   },
 
   diffButton: {
@@ -650,6 +648,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
+    borderColor: "black",
   },
 
   vowelGrid: {
@@ -755,7 +754,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 16,
     paddingHorizontal: 32,
-    gap: 12,
     marginBottom: 24,
     shadowColor: "#000",
     shadowOffset: { width: 6, height: 6 },
