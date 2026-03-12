@@ -18,14 +18,12 @@ import ToneGuide, { ToneGuideButton } from "../../src/components/ToneGuide";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import { isGuestUser } from "../../src/utils/auth";
+import { Sketch, sketchShadow } from "@/constants/theme";
+
+const BREAKDOWN_COLORS = [Sketch.yellow, Sketch.pink, Sketch.blue, Sketch.green];
 
 export default function GrammarDetail() {
   const { grammar } = useLocalSearchParams<{ grammar: string }>();
-  console.log("grammar param:", grammar);
-  console.log(
-    "available ids:",
-    grammarPoints.map((g) => g.id),
-  );
   const router = useRouter();
 
   const [bookmarked, setBookmarked] = useState(false);
@@ -45,20 +43,12 @@ export default function GrammarDetail() {
     try {
       const guest = await isGuestUser();
       if (guest) return;
-
       const token = await AsyncStorage.getItem("token");
-
       const res = await fetch(`${API_BASE}/bookmarks`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
-
-      const exists = data.some((b: any) => b.grammar_id === grammar);
-
-      setBookmarked(exists);
+      setBookmarked(data.some((b: any) => b.grammar_id === grammar));
     } catch (err) {
       console.error(err);
     }
@@ -67,28 +57,19 @@ export default function GrammarDetail() {
   async function toggleBookmark() {
     try {
       const token = await AsyncStorage.getItem("token");
-
       if (bookmarked) {
         await fetch(`${API_BASE}/bookmark`, {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ grammarId: grammar }),
         });
-
         setBookmarked(false);
       } else {
         await fetch(`${API_BASE}/bookmark`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ grammarId: grammar }),
         });
-
         setBookmarked(true);
       }
     } catch (err) {
@@ -105,11 +86,8 @@ export default function GrammarDetail() {
     );
   }
 
-  const explanation =
-    grammarPoint.explanation || "No explanation provided yet.";
-
+  const explanation = grammarPoint.explanation || "No explanation provided yet.";
   const pattern = grammarPoint.pattern || "PATTERN + HERE";
-
   const example = grammarPoint.example || {
     thai: "ตัวอย่างประโยค",
     roman: "tua-yàang bprà-yòohk",
@@ -119,7 +97,6 @@ export default function GrammarDetail() {
       { thai: "ประโยค", english: "sentence" },
     ],
   };
-
   const focus = grammarPoint.focus || {
     particle: "Focus point",
     meaning: "The meaning of the key word.",
@@ -132,7 +109,6 @@ export default function GrammarDetail() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-
       <LessonHeader title={grammarPoint.title} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -140,7 +116,6 @@ export default function GrammarDetail() {
           <View style={styles.levelBadge}>
             <Text style={styles.levelText}>LEVEL {grammarPoint.level}</Text>
           </View>
-
           <View style={styles.titleCard}>
             <Text style={styles.title}>{grammarPoint.title.toUpperCase()}</Text>
           </View>
@@ -148,30 +123,18 @@ export default function GrammarDetail() {
 
         {isGuest ? (
           <View style={[styles.bookmarkButton, { opacity: 0.5 }]}>
-            <Ionicons name="bookmark-outline" size={22} color="#999" />
-            <Text style={[styles.bookmarkText, { color: "#999" }]}>
-              LOG IN TO BOOKMARK
-            </Text>
+            <Ionicons name="bookmark-outline" size={20} color={Sketch.inkMuted} />
+            <Text style={[styles.bookmarkText, { color: Sketch.inkMuted }]}>LOG IN TO BOOKMARK</Text>
           </View>
         ) : (
-          <TouchableOpacity
-            style={styles.bookmarkButton}
-            onPress={toggleBookmark}
-          >
-            <Ionicons
-              name={bookmarked ? "bookmark" : "bookmark-outline"}
-              size={22}
-              color="black"
-            />
-            <Text style={styles.bookmarkText}>
-              {bookmarked ? "BOOKMARKED" : "SAVE BOOKMARK"}
-            </Text>
+          <TouchableOpacity style={styles.bookmarkButton} onPress={toggleBookmark}>
+            <Ionicons name={bookmarked ? "bookmark" : "bookmark-outline"} size={20} color={Sketch.ink} />
+            <Text style={styles.bookmarkText}>{bookmarked ? "BOOKMARKED" : "SAVE BOOKMARK"}</Text>
           </TouchableOpacity>
         )}
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>CONCEPT</Text>
-
           <View style={styles.conceptCard}>
             <Text style={styles.explanation}>{explanation}</Text>
           </View>
@@ -179,7 +142,6 @@ export default function GrammarDetail() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>SENTENCE PATTERN</Text>
-
           <View style={styles.patternCard}>
             <Text style={styles.patternText}>{pattern}</Text>
           </View>
@@ -187,11 +149,10 @@ export default function GrammarDetail() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>EXAMPLE</Text>
-
           <View style={styles.exampleCard}>
             <View style={styles.exampleHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Ionicons name="megaphone-outline" size={24} color="black" />
+                <Ionicons name="megaphone-outline" size={22} color={Sketch.ink} />
                 <Text style={styles.exampleHeaderText}>PRACTICE THIS</Text>
               </View>
               <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
@@ -199,15 +160,11 @@ export default function GrammarDetail() {
 
             <Text style={styles.thaiText}>{example.thai}</Text>
 
-            <TouchableOpacity
-              style={styles.audioButton}
-              onPress={() => handlePlayAudio(example.thai)}
-            >
-              <Ionicons name="volume-high" size={28} color="black" />
+            <TouchableOpacity style={styles.audioButton} onPress={() => handlePlayAudio(example.thai)}>
+              <Ionicons name="volume-high" size={26} color={Sketch.ink} />
             </TouchableOpacity>
 
             <View style={styles.divider} />
-
             <Text style={styles.romanText}>"{example.roman}"</Text>
 
             <View style={styles.englishContainer}>
@@ -220,21 +177,11 @@ export default function GrammarDetail() {
                   key={index}
                   style={[
                     styles.breakdownCard,
-                    {
-                      backgroundColor: [
-                        "#FFCC00",
-                        "#FF66CC",
-                        "#66CCFF",
-                        "#99FF66",
-                      ][index % 4],
-                    },
+                    { backgroundColor: BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.length] },
                   ]}
                 >
                   <Text style={styles.breakdownThai}>{item.thai}</Text>
-
-                  <Text style={styles.breakdownEnglish}>
-                    {item.english.toUpperCase()}
-                  </Text>
+                  <Text style={styles.breakdownEnglish}>{item.english.toUpperCase()}</Text>
                 </View>
               ))}
             </View>
@@ -243,12 +190,10 @@ export default function GrammarDetail() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>GRAMMAR FOCUS</Text>
-
           <View style={styles.focusCard}>
             <View style={styles.focusIcon}>
-              <Ionicons name="star" size={20} color="black" />
+              <Ionicons name="star" size={18} color={Sketch.cardBg} />
             </View>
-
             <View style={styles.focusContent}>
               <Text style={styles.focusParticle}>{focus.particle}</Text>
               <Text style={styles.focusMeaning}>{focus.meaning}</Text>
@@ -258,25 +203,20 @@ export default function GrammarDetail() {
 
         <TouchableOpacity
           style={styles.ctaButton}
-          onPress={() =>
-            router.push(`/practice/PracticeCSV?grammar=${grammar}`)
-          }
+          onPress={() => router.push(`/practice/PracticeCSV?grammar=${grammar}`)}
         >
           <Text style={styles.ctaText}>START PRACTICE</Text>
-          <Ionicons name="flash" size={24} color="black" />
+          <Ionicons name="flash" size={22} color={Sketch.cardBg} />
         </TouchableOpacity>
       </ScrollView>
 
-      <ToneGuide
-        visible={toneGuideVisible}
-        onClose={() => setToneGuideVisible(false)}
-      />
+      <ToneGuide visible={toneGuideVisible} onClose={() => setToneGuideVisible(false)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  container: { flex: 1, backgroundColor: Sketch.paper },
   scrollContent: { padding: 20, paddingBottom: 100 },
 
   bookmarkButton: {
@@ -285,78 +225,76 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     padding: 12,
-    backgroundColor: "#FFF9C4",
+    backgroundColor: Sketch.yellowLight,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     marginBottom: 25,
+    ...sketchShadow(2),
   },
+  bookmarkText: { fontWeight: "900", color: Sketch.ink, fontSize: 13 },
 
-  bookmarkText: { fontWeight: "900" },
-
-  titleSection: { marginBottom: 30, alignItems: "center" },
-
+  titleSection: { marginBottom: 28, alignItems: "center" },
   levelBadge: {
-    backgroundColor: "black",
+    backgroundColor: Sketch.ink,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
     marginBottom: -10,
     zIndex: 1,
   },
-
-  levelText: { color: "white", fontSize: 12, fontWeight: "900" },
+  levelText: { color: "white", fontSize: 11, fontWeight: "900", letterSpacing: 1 },
 
   titleCard: {
-    backgroundColor: "#FFFF00",
-    borderWidth: 3,
-    borderColor: "black",
+    backgroundColor: Sketch.orange,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 10,
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 16,
     width: "100%",
+    ...sketchShadow(4),
   },
+  title: { fontSize: 24, fontWeight: "900", textAlign: "center", color: Sketch.cardBg },
 
-  title: { fontSize: 28, fontWeight: "900", textAlign: "center" },
-
-  section: { marginBottom: 35 },
-
+  section: { marginBottom: 30 },
   sectionLabel: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "900",
-    color: "#757575",
+    color: Sketch.inkMuted,
     marginBottom: 10,
     letterSpacing: 2,
   },
 
   conceptCard: {
-    backgroundColor: "white",
+    backgroundColor: Sketch.cardBg,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     borderRadius: 12,
     padding: 20,
+    ...sketchShadow(3),
   },
-
-  explanation: { fontSize: 17, fontWeight: "600", lineHeight: 24 },
+  explanation: { fontSize: 16, fontWeight: "600", lineHeight: 24, color: Sketch.ink },
 
   patternCard: {
-    backgroundColor: "#E7F1FF",
+    backgroundColor: Sketch.yellowLight,
     padding: 20,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
+    ...sketchShadow(3),
   },
-
-  patternText: { fontSize: 20, fontWeight: "900", textAlign: "center" },
+  patternText: { fontSize: 18, fontWeight: "900", textAlign: "center", color: Sketch.ink },
 
   exampleCard: {
-    backgroundColor: "white",
-    padding: 25,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: "black",
+    backgroundColor: Sketch.cardBg,
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
     alignItems: "center",
+    ...sketchShadow(5),
   },
-
   exampleHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -364,109 +302,100 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     width: "100%",
   },
-
-  exampleHeaderText: { fontSize: 12, fontWeight: "900" },
+  exampleHeaderText: { fontSize: 11, fontWeight: "900", color: Sketch.ink, letterSpacing: 1 },
 
   audioButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     justifyContent: "center",
     alignItems: "center",
     marginVertical: 5,
+    backgroundColor: Sketch.cardBg,
+    ...sketchShadow(2),
   },
 
-  thaiText: { fontSize: 42, fontWeight: "bold", textAlign: "center" },
-
-  divider: {
-    height: 2,
-    backgroundColor: "#E0E0E0",
-    width: "100%",
-    marginVertical: 15,
-  },
-
+  thaiText: { fontSize: 38, fontWeight: "bold", textAlign: "center", color: Sketch.ink },
+  divider: { height: 2, backgroundColor: Sketch.inkFaint, width: "100%", marginVertical: 15 },
   romanText: {
-    fontSize: 18,
+    fontSize: 16,
     fontStyle: "italic",
     textAlign: "center",
     fontWeight: "600",
+    color: Sketch.inkLight,
     marginBottom: 15,
   },
 
   englishContainer: {
-    backgroundColor: "#FAFAFA",
+    backgroundColor: Sketch.paperDark,
     padding: 15,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#E0E0E0",
+    borderColor: Sketch.inkFaint,
     borderStyle: "dashed",
     width: "100%",
     alignItems: "center",
     marginBottom: 20,
   },
-
-  englishText: { fontSize: 18, fontWeight: "800", textAlign: "center" },
+  englishText: { fontSize: 17, fontWeight: "800", textAlign: "center", color: Sketch.inkLight },
 
   breakdownContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    gap: 12,
+    gap: 10,
   },
-
   breakdownCard: {
     padding: 10,
-    borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 8,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 10,
     alignItems: "center",
     minWidth: 80,
+    ...sketchShadow(2),
   },
-
-  breakdownThai: { fontSize: 18, fontWeight: "bold" },
-
-  breakdownEnglish: { fontSize: 10, fontWeight: "900", opacity: 0.8 },
+  breakdownThai: { fontSize: 18, fontWeight: "bold", color: Sketch.ink },
+  breakdownEnglish: { fontSize: 10, fontWeight: "900", color: Sketch.ink, opacity: 0.7 },
 
   focusCard: {
     flexDirection: "row",
-    backgroundColor: "#FFF4E6",
+    backgroundColor: Sketch.yellowLight,
     padding: 20,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     alignItems: "center",
+    ...sketchShadow(3),
   },
-
   focusIcon: {
     width: 40,
     height: 40,
-    backgroundColor: "#FD7E14",
+    backgroundColor: Sketch.orange,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
   },
-
-  focusParticle: { fontSize: 20, fontWeight: "900" },
-
-  focusMeaning: { fontSize: 15, fontWeight: "700" },
+  focusContent: { flex: 1 },
+  focusParticle: { fontSize: 18, fontWeight: "900", color: Sketch.ink },
+  focusMeaning: { fontSize: 14, fontWeight: "700", color: Sketch.inkLight },
 
   ctaButton: {
-    backgroundColor: "#FFFF00",
+    backgroundColor: Sketch.orange,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
-    borderRadius: 16,
-    borderWidth: 3,
-    borderColor: "black",
+    paddingVertical: 18,
+    borderRadius: 14,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
     marginTop: 20,
-    gap: 12,
+    gap: 10,
+    ...sketchShadow(5),
   },
-
-  ctaText: { fontSize: 22, fontWeight: "900" },
+  ctaText: { fontSize: 20, fontWeight: "900", color: Sketch.cardBg },
 });

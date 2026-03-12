@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "../src/config";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 export default function Register() {
   const router = useRouter();
@@ -19,9 +21,7 @@ export default function Register() {
   async function handleRegister() {
     const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
     });
 
@@ -37,66 +37,112 @@ export default function Register() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <View style={styles.titleCard}>
+          <Text style={styles.title}>Create Account</Text>
+        </View>
 
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        autoComplete="off"
-        textContentType="none"
-        inputMode="email"
-        nativeID="register-email"
-      />
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor={Sketch.inkMuted}
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          autoComplete="off"
+          textContentType="none"
+          inputMode="email"
+          nativeID="register-email"
+        />
 
-      <TextInput
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        autoComplete="new-password"
-        textContentType="newPassword"
-        nativeID="register-password"
-      />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor={Sketch.inkMuted}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          nativeID="register-password"
+        />
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Create Account</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>CREATE ACCOUNT</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.linkText}>Back to Login</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: Sketch.paper,
+  },
+
   container: {
     flex: 1,
     justifyContent: "center",
     padding: 30,
   },
 
-  title: {
-    fontSize: 32,
-    fontWeight: "900",
+  titleCard: {
+    backgroundColor: Sketch.orange,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignSelf: "flex-start",
     marginBottom: 30,
+    ...sketchShadow(4),
+  },
+
+  title: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: Sketch.cardBg,
   },
 
   input: {
-    borderWidth: 2,
-    borderColor: "black",
-    padding: 12,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 16,
+    fontSize: 16,
+    fontWeight: "600",
+    backgroundColor: Sketch.cardBg,
+    color: Sketch.ink,
   },
 
   button: {
-    backgroundColor: "black",
+    backgroundColor: Sketch.ink,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 12,
     padding: 16,
+    alignItems: "center",
+    ...sketchShadow(4),
   },
 
   buttonText: {
-    color: "white",
+    color: Sketch.cardBg,
+    fontWeight: "900",
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+
+  linkText: {
+    marginTop: 20,
     textAlign: "center",
     fontWeight: "700",
+    color: Sketch.orange,
+    fontSize: 15,
   },
 });

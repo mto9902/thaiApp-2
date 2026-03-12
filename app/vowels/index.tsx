@@ -12,14 +12,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../src/components/Header";
 import VowelText from "../../src/components/VowelText";
 import { vowels } from "../../src/data/vowels";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 const COLORS = [
-  "#81C784",
-  "#4DB6AC",
-  "#64B5F6",
-  "#BA68C8",
-  "#F06292",
-  "#FFB74D",
+  Sketch.green,
+  Sketch.blue,
+  Sketch.blue,
+  Sketch.purple,
+  Sketch.pink,
+  Sketch.orange,
 ];
 
 export default function VowelHome() {
@@ -54,7 +55,7 @@ export default function VowelHome() {
                   <Text style={styles.cardTitle}>{lesson.title.toUpperCase()}</Text>
                 </View>
                 <View style={styles.iconContainer}>
-                  <Ionicons name="chatbubble-outline" size={24} color="black" />
+                  <Ionicons name="chatbubble-outline" size={22} color={Sketch.ink} />
                 </View>
               </View>
 
@@ -68,7 +69,7 @@ export default function VowelHome() {
                 <Text style={styles.footerText}>
                   {groupVowels.length} VOWELS
                 </Text>
-                <Ionicons name="arrow-forward" size={16} color="black" />
+                <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
               </View>
             </TouchableOpacity>
           );
@@ -81,7 +82,7 @@ export default function VowelHome() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Sketch.paper,
   },
 
   scroll: {
@@ -90,16 +91,12 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     marginBottom: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
+    ...sketchShadow(5),
   },
 
   cardHeader: {
@@ -115,8 +112,8 @@ const styles = StyleSheet.create({
 
   levelLabel: {
     fontSize: 11,
-    fontWeight: "900",
-    color: "rgba(0,0,0,0.55)",
+    fontWeight: "800",
+    color: "rgba(0,0,0,0.5)",
     marginBottom: 3,
     letterSpacing: 1,
   },
@@ -124,23 +121,20 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
     lineHeight: 24,
   },
 
   iconContainer: {
-    width: 44,
-    height: 44,
-    backgroundColor: "white",
+    width: 42,
+    height: 42,
+    backgroundColor: Sketch.cardBg,
     borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 22,
+    borderColor: Sketch.ink,
+    borderRadius: 21,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(2),
   },
 
   vowelRow: {
@@ -153,25 +147,25 @@ const styles = StyleSheet.create({
   vowelPreview: {
     fontSize: 22,
     fontWeight: "800",
-    color: "black",
+    color: Sketch.ink,
   },
 
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(255,255,255,0.35)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: "flex-start",
     gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.15)",
   },
 
   footerText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
   },
 });

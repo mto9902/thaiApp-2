@@ -1,6 +1,7 @@
 import * as Speech from "expo-speech";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Sketch, sketchShadow } from "@/constants/theme";
 import GenerateButton from "./GenerateButton";
 import WordCard from "./WordCard";
 
@@ -28,7 +29,6 @@ export default function BuildSentence({
   function handleWordTap(word: string) {
     Speech.stop();
     Speech.speak(word, { language: "th-TH", rate: 0.9 });
-
     setBuiltSentence((prev) => [...prev, word]);
   }
 
@@ -42,12 +42,10 @@ export default function BuildSentence({
 
   function checkAnswer() {
     const correct = breakdown.map((w: any) => w?.thai || "");
-
     const isCorrect = JSON.stringify(correct) === JSON.stringify(builtSentence);
 
     if (isCorrect) {
       setResultMessage("Correct!");
-
       setTimeout(() => {
         handleGenerate();
         setBuiltSentence([]);
@@ -96,7 +94,17 @@ export default function BuildSentence({
       <GenerateButton title="Check" onPress={checkAnswer} />
 
       {resultMessage !== "" && (
-        <Text style={styles.result}>{resultMessage}</Text>
+        <Text
+          style={[
+            styles.result,
+            {
+              color:
+                resultMessage === "Correct!" ? Sketch.green : Sketch.red,
+            },
+          ]}
+        >
+          {resultMessage}
+        </Text>
       )}
 
       <GenerateButton title="New Sentence" onPress={handleGenerate} />
@@ -106,41 +114,54 @@ export default function BuildSentence({
 
 const styles = StyleSheet.create({
   section: { marginTop: 40, paddingHorizontal: 20 },
-  title: { fontSize: 22, fontWeight: "900", marginBottom: 20 },
+  title: {
+    fontSize: 20,
+    fontWeight: "900",
+    marginBottom: 20,
+    color: Sketch.ink,
+    letterSpacing: 1,
+  },
 
   builder: {
     minHeight: 60,
-    borderWidth: 3,
-    borderColor: "black",
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 12,
+    borderStyle: "dashed",
     marginBottom: 20,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
     padding: 10,
+    backgroundColor: Sketch.cardBg,
   },
 
   builderWord: {
     fontSize: 24,
     fontWeight: "900",
     marginHorizontal: 6,
+    color: Sketch.ink,
   },
 
   controls: {
     flexDirection: "row",
     justifyContent: "center",
     marginBottom: 20,
+    gap: 10,
   },
 
   button: {
-    backgroundColor: "#000",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginHorizontal: 8,
-    borderRadius: 8,
+    backgroundColor: Sketch.ink,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
+    ...sketchShadow(2),
   },
 
-  buttonText: { color: "white", fontWeight: "700" },
+  buttonText: { color: "white", fontWeight: "800", fontSize: 13 },
 
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
 

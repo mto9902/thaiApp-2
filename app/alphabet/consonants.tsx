@@ -1,8 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef } from "react";
 import {
-  Animated,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,8 +11,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
-const COLORS = ["#FFD54F", "#42A5F5", "#FF4081", "#66BB6A"];
+const COLORS = [Sketch.yellow, Sketch.blue, Sketch.red, Sketch.green];
 
 const GROUPS = [
   { group: 1, title: "Mid Class", subtitle: "กลาง" },
@@ -25,137 +24,86 @@ const GROUPS = [
 
 function ConsonantCard({ lesson, color, onPress }: any) {
   const letters = alphabet.filter((l) => l.group === lesson.group);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 8,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 8,
-    }).start();
-  };
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: color }]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.textContainer}>
-            <Text style={styles.levelLabel}>{lesson.subtitle}</Text>
-            <Text style={styles.cardTitle}>
-              {lesson.title.toUpperCase()}
-            </Text>
-          </View>
-          <View style={styles.iconContainer}>
-            <Ionicons name="book-outline" size={24} color="black" />
-          </View>
+    <TouchableOpacity
+      style={[styles.card, { backgroundColor: color }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.textContainer}>
+          <Text style={styles.levelLabel}>{lesson.subtitle}</Text>
+          <Text style={styles.cardTitle}>{lesson.title.toUpperCase()}</Text>
         </View>
+        <View style={styles.iconContainer}>
+          <Ionicons name="book-outline" size={22} color={Sketch.ink} />
+        </View>
+      </View>
 
-        {/* ── Polished Letter Preview Grid ─────────────────────────── */}
-        <View style={styles.letterPreviewSection}>
-          <View style={styles.letterGrid}>
-            {letters.slice(0, 6).map((l, idx) => (
-              <View key={l.letter} style={styles.letterTile}>
-                <Text style={styles.letterPreview}>{l.letter}</Text>
-              </View>
-            ))}
-          </View>
-          {letters.length > 6 && (
-            <View style={styles.moreLettersContainer}>
-              <Text style={styles.letterMore}>+{letters.length - 6}</Text>
-              <Text style={styles.moreText}>more</Text>
+      <View style={styles.letterPreviewSection}>
+        <View style={styles.letterGrid}>
+          {letters.slice(0, 6).map((l) => (
+            <View key={l.letter} style={styles.letterTile}>
+              <Text style={styles.letterPreview}>{l.letter}</Text>
             </View>
-          )}
+          ))}
         </View>
+        {letters.length > 6 && (
+          <View style={styles.moreLettersContainer}>
+            <Text style={styles.letterMore}>+{letters.length - 6}</Text>
+            <Text style={styles.moreText}>more</Text>
+          </View>
+        )}
+      </View>
 
-        <View style={styles.cardFooter}>
-          <Text style={styles.footerText}>VIEW LESSON</Text>
-          <Ionicons name="arrow-forward" size={16} color="black" />
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+      <View style={styles.cardFooter}>
+        <Text style={styles.footerText}>VIEW LESSON</Text>
+        <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
 export default function ConsonantsScreen() {
   const router = useRouter();
-  const trainerScaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handleTrainerPressIn = () => {
-    Animated.spring(trainerScaleAnim, {
-      toValue: 0.98,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 8,
-    }).start();
-  };
-
-  const handleTrainerPressOut = () => {
-    Animated.spring(trainerScaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 8,
-    }).start();
-  };
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Header title="Consonants" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* ── Alphabet Trainer ───────────────────────────────── */}
-        <Animated.View style={{ transform: [{ scale: trainerScaleAnim }] }}>
-          <TouchableOpacity
-            style={styles.trainerCard}
-            onPress={() => router.push("/trainer")}
-            onPressIn={handleTrainerPressIn}
-            onPressOut={handleTrainerPressOut}
-            activeOpacity={0.9}
-          >
-            <View style={styles.cardHeader}>
-              <View style={styles.textContainer}>
-                <Text style={styles.levelLabel}>ADVANCED</Text>
-                <Text style={styles.cardTitle}>ALPHABET TRAINER</Text>
-              </View>
-              <View style={styles.iconContainer}>
-                <Ionicons name="construct-outline" size={24} color="black" />
-              </View>
+        <TouchableOpacity
+          style={styles.trainerCard}
+          onPress={() => router.push("/trainer")}
+          activeOpacity={0.85}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.textContainer}>
+              <Text style={styles.levelLabel}>ADVANCED</Text>
+              <Text style={styles.cardTitle}>ALPHABET TRAINER</Text>
             </View>
-            <Text style={styles.cardDesc}>
-              Combine consonants &amp; vowels to generate real words
-            </Text>
-            <View style={styles.cardFooter}>
-              <Text style={styles.footerText}>OPEN TRAINER</Text>
-              <Ionicons name="arrow-forward" size={16} color="black" />
+            <View style={styles.iconContainer}>
+              <Ionicons name="construct-outline" size={22} color={Sketch.ink} />
             </View>
-          </TouchableOpacity>
-        </Animated.View>
+          </View>
+          <Text style={styles.cardDesc}>
+            Combine consonants & vowels to generate real words
+          </Text>
+          <View style={styles.cardFooter}>
+            <Text style={styles.footerText}>OPEN TRAINER</Text>
+            <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
+          </View>
+        </TouchableOpacity>
 
-        {/* ── Consonant class cards ─────────────────────────── */}
-        {GROUPS.map((lesson, i) =>
+        {GROUPS.map((lesson, i) => (
           <ConsonantCard
             key={lesson.group}
             lesson={lesson}
             color={COLORS[i]}
             onPress={() => router.push(`/alphabet/${lesson.group}` as any)}
           />
-        )}
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -164,7 +112,7 @@ export default function ConsonantsScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Sketch.paper,
   },
 
   scroll: {
@@ -173,37 +121,29 @@ const styles = StyleSheet.create({
   },
 
   trainerCard: {
-    backgroundColor: "#CE93D8",
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
-    marginBottom: 20,
+    backgroundColor: Sketch.purple,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
+    marginBottom: 18,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
+    ...sketchShadow(5),
   },
 
   card: {
-    borderWidth: 3,
-    borderColor: "black",
-    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
     marginBottom: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 6, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
+    ...sketchShadow(5),
   },
 
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   textContainer: {
@@ -212,8 +152,8 @@ const styles = StyleSheet.create({
 
   levelLabel: {
     fontSize: 11,
-    fontWeight: "900",
-    color: "rgba(0,0,0,0.55)",
+    fontWeight: "800",
+    color: "rgba(0,0,0,0.5)",
     marginBottom: 3,
     letterSpacing: 1,
   },
@@ -221,34 +161,31 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
     lineHeight: 24,
   },
 
   cardDesc: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(0,0,0,0.65)",
+    color: "rgba(0,0,0,0.6)",
     marginBottom: 14,
   },
 
   iconContainer: {
-    width: 44,
-    height: 44,
-    backgroundColor: "white",
+    width: 42,
+    height: 42,
+    backgroundColor: Sketch.cardBg,
     borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 22,
+    borderColor: Sketch.ink,
+    borderRadius: 21,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(2),
   },
 
   letterPreviewSection: {
-    marginBottom: 16,
+    marginBottom: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -264,23 +201,19 @@ const styles = StyleSheet.create({
   letterTile: {
     width: "22%",
     aspectRatio: 1,
-    backgroundColor: "white",
+    backgroundColor: Sketch.cardBg,
     borderWidth: 2,
-    borderColor: "black",
+    borderColor: Sketch.ink,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 0,
-    elevation: 2,
+    ...sketchShadow(2),
   },
 
   letterPreview: {
     fontSize: 20,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
   },
 
   moreLettersContainer: {
@@ -291,32 +224,32 @@ const styles = StyleSheet.create({
   letterMore: {
     fontSize: 16,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
   },
 
   moreText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "rgba(0,0,0,0.6)",
+    color: "rgba(0,0,0,0.5)",
     marginTop: 2,
   },
 
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(255,255,255,0.35)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: "flex-start",
     gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.15)",
   },
 
   footerText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
-    color: "black",
+    color: Sketch.ink,
   },
 });

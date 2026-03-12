@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Sketch, sketchShadow } from "@/constants/theme";
 
 interface WordCardProps {
   thai: string;
@@ -32,7 +33,7 @@ export default function WordCard({
     >
       {isGrammar && (
         <View style={styles.grammarBadge}>
-          <Text style={styles.grammarBadgeIcon}>🧩</Text>
+          <Text style={styles.grammarBadgeIcon}>*</Text>
         </View>
       )}
       <Text style={styles.thaiText}>{thai}</Text>
@@ -47,20 +48,15 @@ export default function WordCard({
 const styles = StyleSheet.create({
   card: {
     padding: 12,
-    borderWidth: 2,
-    borderColor: "black",
-    borderRadius: 6,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     minWidth: 90,
     minHeight: 90,
     margin: 5,
-
-    // Comic shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(3),
   },
 
   grammarCard: {
@@ -72,11 +68,13 @@ const styles = StyleSheet.create({
   grammarBadge: {
     position: "absolute",
     top: 4,
-    right: 4,
+    right: 6,
   },
 
   grammarBadgeIcon: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: "900",
+    color: "white",
   },
 
   thaiText: {
@@ -98,7 +96,7 @@ const styles = StyleSheet.create({
   },
 
   englishText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
     color: "white",
     opacity: 0.9,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Sketch, sketchShadow } from '@/constants/theme';
 
 interface StatsCardProps {
   streak: number;
@@ -14,7 +15,7 @@ export default function StatsCard({ streak }: StatsCardProps) {
       <View style={styles.content}>
         <Text style={styles.statLabel}>Daily Streak</Text>
         <View style={styles.streakContainer}>
-          <Ionicons name="flame" size={24} color="#FF6F00" />
+          <Ionicons name="flame" size={24} color={Sketch.orange} />
           <Text style={styles.streakValue}>{streak}</Text>
         </View>
       </View>
@@ -24,28 +25,24 @@ export default function StatsCard({ streak }: StatsCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFF9C4', // Very light yellow
-    borderWidth: 2,
-    borderColor: 'black',
-    borderRadius: 8,
+    backgroundColor: Sketch.yellowLight,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 12,
     marginHorizontal: 20,
     marginTop: 30,
     padding: 15,
-    // Comic shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    ...sketchShadow(4),
   },
   headerText: {
     fontWeight: '900',
-    fontSize: 14,
-    color: '#000',
-    textTransform: 'uppercase',
+    fontSize: 13,
+    color: Sketch.ink,
+    letterSpacing: 1,
   },
   divider: {
     height: 2,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: Sketch.inkFaint,
     width: '100%',
     marginVertical: 10,
   },
@@ -55,8 +52,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
+    color: Sketch.ink,
   },
   streakContainer: {
     flexDirection: 'row',
@@ -66,5 +64,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
     marginLeft: 5,
+    color: Sketch.ink,
   },
 });
