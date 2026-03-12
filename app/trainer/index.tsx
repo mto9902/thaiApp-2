@@ -25,18 +25,30 @@ const DIFFICULTY_COLORS = {
   hard: "#FF6B6B",
 };
 
-const CONSONANT_COLORS = ["#FFD54F", "#42A5F5", "#FF4081", "#66BB6A"];
+const CONSONANT_INFO = [
+  { id: 1, title: "Mid Class", color: "#FFD54F" },
+  { id: 2, title: "High Class", color: "#42A5F5" },
+  { id: 3, title: "Low Class I", color: "#FF4081" },
+  { id: 4, title: "Low Class II", color: "#66BB6A" },
+];
 
-function SelectionButton({
-  label,
+const VOWEL_INFO = [
+  { id: 1, title: "Before", description: "เ แ โ ใ ไ" },
+  { id: 2, title: "After", description: "ะ า" },
+  { id: 3, title: "Above", description: "ิ ี ึ ื" },
+  { id: 4, title: "Below", description: "ุ ู" },
+  { id: 5, title: "Around 1", description: "เ◌ะ เ◌ แ◌" },
+  { id: 6, title: "Around 2", description: "เ◌าะ ◌อ เ◌อ" },
+];
+
+function DifficultyButton({
+  level,
   isSelected,
   onPress,
-  color,
 }: {
-  label: string;
+  level: "easy" | "medium" | "hard";
   isSelected: boolean;
   onPress: () => void;
-  color?: string;
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -58,28 +70,139 @@ function SelectionButton({
     }).start();
   };
 
-  const bgColor = isSelected ? (color || "#FFD54F") : "white";
+  const bgColor = isSelected ? DIFFICULTY_COLORS[level] : "white";
+  const label = level.charAt(0).toUpperCase() + level.slice(1);
+
+  return (
+    <Animated.View style={{ flex: 1, transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.diffButton, { backgroundColor: bgColor }]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
+      >
+        <Text style={[styles.diffButtonText, isSelected && styles.diffButtonTextActive]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+function ConsonantCard({
+  info,
+  isSelected,
+  onPress,
+}: {
+  info: (typeof CONSONANT_INFO)[0];
+  isSelected: boolean;
+  onPress: () => void;
+}) {
+  const letters = alphabet.filter((l) => l.group === info.id).slice(0, 3);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 8,
+    }).start();
+  };
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
         style={[
-          styles.selectionButton,
-          { backgroundColor: bgColor },
+          styles.consonantCard,
+          { backgroundColor: isSelected ? info.color : "white" },
+          { borderColor: info.color },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Text
-          style={[
-            styles.selectionButtonText,
-            isSelected && styles.selectionButtonTextActive,
-          ]}
-        >
-          {label}
+        <Text style={[styles.consonantTitle, isSelected && styles.consonantTitleActive]}>
+          {info.title}
         </Text>
+        <View style={styles.letterPreview}>
+          {letters.map((l) => (
+            <Text key={l.letter} style={styles.previewLetter}>
+              {l.letter}
+            </Text>
+          ))}
+        </View>
+        {isSelected && (
+          <View style={styles.selectedBadge}>
+            <Ionicons name="checkmark" size={14} color={info.color} />
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+function VowelCard({
+  info,
+  isSelected,
+  onPress,
+}: {
+  info: (typeof VOWEL_INFO)[0];
+  isSelected: boolean;
+  onPress: () => void;
+}) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 8,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[
+          styles.vowelCard,
+          { backgroundColor: isSelected ? "#FFD54F" : "white" },
+        ]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
+      >
+        <Text style={[styles.vowelTitle, isSelected && styles.vowelTitleActive]}>
+          {info.title}
+        </Text>
+        <Text style={styles.vowelPreview}>{info.description}</Text>
+        {isSelected && (
+          <View style={styles.vowelSelectedBadge}>
+            <Ionicons name="checkmark" size={12} color="black" />
+          </View>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -115,26 +238,10 @@ export default function Trainer() {
 
   const [consonantGroupsSelected, setConsonantGroupsSelected] = useState<
     number[]
-  >([]);
-  const [vowelGroupsSelected, setVowelGroupsSelected] = useState<number[]>([]);
+  >([1]); // Pre-select Mid Class
+  const [vowelGroupsSelected, setVowelGroupsSelected] = useState<number[]>([1]); // Pre-select Before
   const [words, setWords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const consonantGroups = [
-    { id: 1, title: "Mid Class" },
-    { id: 2, title: "High Class" },
-    { id: 3, title: "Low Class 1" },
-    { id: 4, title: "Low Class 2" },
-  ];
-
-  const vowelGroups = [
-    { id: 1, title: "Before" },
-    { id: 2, title: "After" },
-    { id: 3, title: "Above" },
-    { id: 4, title: "Below" },
-    { id: 5, title: "Around 1" },
-    { id: 6, title: "Around 2" },
-  ];
 
   function speakThai(text: string) {
     Speech.speak(text, {
@@ -157,13 +264,6 @@ export default function Trainer() {
   }
 
   async function generateWords() {
-    if (
-      consonantGroupsSelected.length === 0 ||
-      vowelGroupsSelected.length === 0
-    ) {
-      return;
-    }
-
     const consonants = [
       ...new Set(
         alphabet
@@ -197,61 +297,81 @@ export default function Trainer() {
     }
   }
 
+  const isValid = consonantGroupsSelected.length > 0 && vowelGroupsSelected.length > 0;
+  const consonantCount = alphabet.filter((c) =>
+    consonantGroupsSelected.includes(c.group),
+  ).length;
+  const vowelCount = vowels.filter((v) =>
+    vowelGroupsSelected.includes(v.group),
+  ).length;
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Header title="Alphabet Trainer" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Difficulty Section */}
+        {/* Header Text */}
+        <View style={styles.headerSection}>
+          <Text style={styles.headerTitle}>Build Your Practice Set</Text>
+          <Text style={styles.headerSubtitle}>
+            Choose difficulty, consonant classes, and vowel groups to create words
+          </Text>
+        </View>
+
+        {/* DIFFICULTY SECTION */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>DIFFICULTY</Text>
+          <Text style={styles.sectionLabel}>1. DIFFICULTY</Text>
           <View style={styles.difficultyRow}>
             {(["easy", "medium", "hard"] as const).map((d) => (
-              <SelectionButton
+              <DifficultyButton
                 key={d}
-                label={d.charAt(0).toUpperCase() + d.slice(1)}
+                level={d}
                 isSelected={difficulty === d}
                 onPress={() => setDifficulty(d)}
-                color={DIFFICULTY_COLORS[d]}
               />
             ))}
           </View>
         </View>
 
-        {/* Consonant Groups Section */}
+        {/* CONSONANT GROUPS SECTION */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>CONSONANT GROUPS</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>2. CONSONANT CLASSES</Text>
+            <Text style={styles.sectionCount}>{consonantCount} selected</Text>
+          </View>
           <View style={styles.consonantGrid}>
-            {consonantGroups.map((group, idx) => (
-              <SelectionButton
-                key={group.id}
-                label={group.title}
-                isSelected={consonantGroupsSelected.includes(group.id)}
+            {CONSONANT_INFO.map((info) => (
+              <ConsonantCard
+                key={info.id}
+                info={info}
+                isSelected={consonantGroupsSelected.includes(info.id)}
                 onPress={() =>
                   toggleSelection(
-                    group.id,
+                    info.id,
                     consonantGroupsSelected,
                     setConsonantGroupsSelected,
                   )
                 }
-                color={CONSONANT_COLORS[idx]}
               />
             ))}
           </View>
         </View>
 
-        {/* Vowel Groups Section */}
+        {/* VOWEL GROUPS SECTION */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>VOWEL GROUPS</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>3. VOWEL GROUPS</Text>
+            <Text style={styles.sectionCount}>{vowelCount} selected</Text>
+          </View>
           <View style={styles.vowelGrid}>
-            {vowelGroups.map((group) => (
-              <SelectionButton
-                key={group.id}
-                label={group.title}
-                isSelected={vowelGroupsSelected.includes(group.id)}
+            {VOWEL_INFO.map((info) => (
+              <VowelCard
+                key={info.id}
+                info={info}
+                isSelected={vowelGroupsSelected.includes(info.id)}
                 onPress={() =>
                   toggleSelection(
-                    group.id,
+                    info.id,
                     vowelGroupsSelected,
                     setVowelGroupsSelected,
                   )
@@ -261,29 +381,62 @@ export default function Trainer() {
           </View>
         </View>
 
-        {/* Generate Button */}
-        <TouchableOpacity
-          style={styles.generateButton}
-          onPress={generateWords}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="sparkles" size={20} color="black" />
-          <Text style={styles.generateText}>Generate Words</Text>
-        </TouchableOpacity>
-
-        {/* Loading Indicator */}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="black" />
-            <Text style={styles.loadingText}>Creating words...</Text>
+        {/* SELECTION SUMMARY */}
+        <View style={styles.summarySection}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Difficulty</Text>
+              <Text style={styles.summaryValue}>{difficulty.toUpperCase()}</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Total Combinations</Text>
+              <Text style={styles.summaryValue}>~{consonantCount * vowelCount}</Text>
+            </View>
           </View>
-        )}
+          {!isValid && (
+            <View style={styles.validationWarning}>
+              <Ionicons name="alert-circle" size={16} color="#FF6B6B" />
+              <Text style={styles.validationText}>
+                Select at least one consonant class and vowel group
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* GENERATE BUTTON */}
+        <TouchableOpacity
+          style={[
+            styles.generateButton,
+            !isValid && styles.generateButtonDisabled,
+          ]}
+          onPress={generateWords}
+          disabled={!isValid}
+          activeOpacity={isValid ? 0.85 : 1}
+        >
+          {loading ? (
+            <>
+              <ActivityIndicator size="small" color="black" />
+              <Text style={styles.generateText}>Generating...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="sparkles" size={20} color="black" />
+              <Text style={styles.generateText}>Generate Words</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         {/* Results Section */}
         {words.length > 0 && (
           <View style={styles.resultsSection}>
             <View style={styles.resultsHeader}>
-              <Text style={styles.resultsTitle}>Generated Words</Text>
+              <View>
+                <Text style={styles.resultsTitle}>Generated Words</Text>
+                <Text style={styles.resultsSummary}>
+                  {difficulty} • {consonantGroupsSelected.length} class(es) • {vowelGroupsSelected.length} group(s)
+                </Text>
+              </View>
               <Text style={styles.resultsCount}>{words.length}</Text>
             </View>
 
@@ -294,16 +447,6 @@ export default function Trainer() {
                 onPlaySound={speakThai}
               />
             ))}
-          </View>
-        )}
-
-        {/* Empty State */}
-        {!loading && words.length === 0 && (
-          <View style={styles.emptyState}>
-            <Ionicons name="create-outline" size={48} color="rgba(0,0,0,0.2)" />
-            <Text style={styles.emptyStateText}>
-              Select consonant and vowel groups to generate words
-            </Text>
           </View>
         )}
       </ScrollView>
@@ -322,8 +465,33 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
 
+  headerSection: {
+    marginBottom: 28,
+  },
+
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "black",
+    marginBottom: 8,
+  },
+
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "rgba(0,0,0,0.6)",
+    lineHeight: 20,
+  },
+
   section: {
     marginBottom: 28,
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
 
   sectionLabel: {
@@ -331,35 +499,25 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "rgba(0,0,0,0.6)",
     letterSpacing: 1,
-    marginBottom: 12,
+  },
+
+  sectionCount: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFD54F",
   },
 
   difficultyRow: {
     flexDirection: "row",
     gap: 10,
-    justifyContent: "space-between",
   },
 
-  consonantGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-
-  vowelGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-
-  selectionButton: {
+  diffButton: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 56,
     borderWidth: 2,
     borderColor: "black",
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -369,15 +527,190 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  selectionButtonText: {
-    fontSize: 13,
+  diffButtonText: {
+    fontSize: 14,
     fontWeight: "900",
-    color: "rgba(0,0,0,0.6)",
+    color: "rgba(0,0,0,0.5)",
     textAlign: "center",
   },
 
-  selectionButtonTextActive: {
+  diffButtonTextActive: {
     color: "black",
+  },
+
+  consonantGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  consonantCard: {
+    width: "48%",
+    minHeight: 140,
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+
+  consonantTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: "rgba(0,0,0,0.6)",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+
+  consonantTitleActive: {
+    color: "black",
+  },
+
+  letterPreview: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  previewLetter: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "black",
+  },
+
+  selectedBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "black",
+  },
+
+  vowelGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  vowelCard: {
+    width: "48%",
+    minHeight: 100,
+    borderWidth: 2,
+    borderColor: "black",
+    borderRadius: 12,
+    padding: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+
+  vowelTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: "rgba(0,0,0,0.6)",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  vowelTitleActive: {
+    color: "black",
+  },
+
+  vowelPreview: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "black",
+    textAlign: "center",
+  },
+
+  vowelSelectedBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  summarySection: {
+    backgroundColor: "white",
+    borderWidth: 2,
+    borderColor: "black",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+
+  summaryItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(0,0,0,0.5)",
+    marginBottom: 4,
+  },
+
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "black",
+  },
+
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "rgba(0,0,0,0.1)",
+  },
+
+  validationWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    borderWidth: 1,
+    borderColor: "#FF6B6B",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+
+  validationText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FF6B6B",
   },
 
   generateButton: {
@@ -391,7 +724,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 24,
     gap: 10,
-    marginVertical: 20,
+    marginBottom: 28,
     shadowColor: "#000",
     shadowOffset: { width: 6, height: 6 },
     shadowOpacity: 1,
@@ -399,23 +732,17 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
+  generateButtonDisabled: {
+    backgroundColor: "#E0E0E0",
+    opacity: 0.6,
+    shadowOpacity: 0.3,
+  },
+
   generateText: {
     color: "black",
     fontSize: 16,
     fontWeight: "900",
     letterSpacing: 0.5,
-  },
-
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 12,
-  },
-
-  loadingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "rgba(0,0,0,0.6)",
   },
 
   resultsSection: {
@@ -434,6 +761,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "900",
     color: "black",
+  },
+
+  resultsSummary: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "rgba(0,0,0,0.5)",
+    marginTop: 4,
   },
 
   resultsCount: {
@@ -496,19 +830,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "rgba(0,0,0,0.6)",
-  },
-
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    gap: 12,
-  },
-
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "rgba(0,0,0,0.5)",
-    textAlign: "center",
-    maxWidth: "80%",
   },
 });
