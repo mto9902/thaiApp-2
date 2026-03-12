@@ -132,8 +132,8 @@ function ConsonantCard({
         style={[
           styles.consonantCard,
           {
-            backgroundColor: isSelected ? info.color : "#FFFBF0",
-            borderColor: isSelected ? info.color : "rgba(0,0,0,0.1)",
+            backgroundColor: isSelected ? info.color : "white",
+            borderColor: "black",
           },
         ]}
         onPress={onPress}
@@ -212,7 +212,7 @@ function VowelCard({
       <TouchableOpacity
         style={[
           styles.vowelCard,
-          { backgroundColor: isSelected ? "#FFD54F" : "#FFFBF0" },
+          { backgroundColor: isSelected ? "#FFD54F" : "white" },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -584,6 +584,7 @@ const styles = StyleSheet.create({
   consonantCard: {
     width: "100%",
     borderWidth: 2,
+    borderColor: "black",
     borderRadius: 14,
     padding: 14,
     paddingRight: 48,
