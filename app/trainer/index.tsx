@@ -32,12 +32,12 @@ const CONSONANT_INFO = [
 ];
 
 const VOWEL_INFO = [
-  { id: 1, title: "Before", description: "เ แ โ" },
-  { id: 2, title: "After", description: "ะ า" },
-  { id: 3, title: "Above", description: "ิ ี ึ" },
-  { id: 4, title: "Below", description: "ุ ู" },
-  { id: 5, title: "Around 1", description: "เ◌ะ แ◌" },
-  { id: 6, title: "Around 2", description: "เ◌อ เ◌าะ" },
+  { id: 1, title: "Before", description: "เ แ โ", color: "#FFD54F" },
+  { id: 2, title: "After", description: "ะ า", color: "#FF9800" },
+  { id: 3, title: "Above", description: "ิ ี ึ", color: "#FF6B6B" },
+  { id: 4, title: "Below", description: "ุ ู", color: "#90CAF9" },
+  { id: 5, title: "Around 1", description: "เ◌ะ แ◌", color: "#CE93D8" },
+  { id: 6, title: "Around 2", description: "เ◌อ เ◌าะ", color: "#81C784" },
 ];
 
 function DifficultyButton({
@@ -212,7 +212,7 @@ function VowelCard({
       <TouchableOpacity
         style={[
           styles.vowelCard,
-          { backgroundColor: isSelected ? "#FFD54F" : "white" },
+          { backgroundColor: isSelected ? info.color : "white" },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
