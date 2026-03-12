@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -17,7 +17,6 @@ import Header from "../../src/components/Header";
 import { generateTrainer } from "../../src/api/generateTrainer";
 import { alphabet } from "../../src/data/alphabet";
 import { vowels } from "../../src/data/vowels";
-import { useState } from "react";
 
 const DIFFICULTY_COLORS = {
   easy: "#66BB6A",
@@ -33,12 +32,12 @@ const CONSONANT_INFO = [
 ];
 
 const VOWEL_INFO = [
-  { id: 1, title: "Before", description: "เ แ โ ใ ไ" },
+  { id: 1, title: "Before", description: "เ แ โ" },
   { id: 2, title: "After", description: "ะ า" },
-  { id: 3, title: "Above", description: "ิ ี ึ ื" },
+  { id: 3, title: "Above", description: "ิ ี ึ" },
   { id: 4, title: "Below", description: "ุ ู" },
-  { id: 5, title: "Around 1", description: "เ◌ะ เ◌ แ◌" },
-  { id: 6, title: "Around 2", description: "เ◌าะ ◌อ เ◌อ" },
+  { id: 5, title: "Around 1", description: "เ◌ะ แ◌" },
+  { id: 6, title: "Around 2", description: "เ◌อ เ◌าะ" },
 ];
 
 function DifficultyButton({
@@ -82,7 +81,12 @@ function DifficultyButton({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Text style={[styles.diffButtonText, isSelected && styles.diffButtonTextActive]}>
+        <Text
+          style={[
+            styles.diffButtonText,
+            isSelected && styles.diffButtonTextActive,
+          ]}
+        >
           {label}
         </Text>
       </TouchableOpacity>
@@ -99,7 +103,9 @@ function ConsonantCard({
   isSelected: boolean;
   onPress: () => void;
 }) {
-  const letters = alphabet.filter((l) => l.group === info.id).slice(0, 3);
+  const letters = alphabet
+    .filter((l) => l.group === info.id)
+    .slice(0, 3);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -125,15 +131,22 @@ function ConsonantCard({
       <TouchableOpacity
         style={[
           styles.consonantCard,
-          { backgroundColor: isSelected ? info.color : "white" },
-          { borderColor: info.color },
+          {
+            backgroundColor: isSelected ? info.color : "white",
+            borderColor: info.color,
+          },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Text style={[styles.consonantTitle, isSelected && styles.consonantTitleActive]}>
+        <Text
+          style={[
+            styles.consonantTitle,
+            isSelected && styles.consonantTitleActive,
+          ]}
+        >
           {info.title}
         </Text>
         <View style={styles.letterPreview}>
@@ -194,7 +207,12 @@ function VowelCard({
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Text style={[styles.vowelTitle, isSelected && styles.vowelTitleActive]}>
+        <Text
+          style={[
+            styles.vowelTitle,
+            isSelected && styles.vowelTitleActive,
+          ]}
+        >
           {info.title}
         </Text>
         <Text style={styles.vowelPreview}>{info.description}</Text>
@@ -233,13 +251,14 @@ function WordCard({ word, onPlaySound }: any) {
 export default function Trainer() {
   const router = useRouter();
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
-    "easy",
+    "easy"
   );
-
   const [consonantGroupsSelected, setConsonantGroupsSelected] = useState<
     number[]
   >([1]); // Pre-select Mid Class
-  const [vowelGroupsSelected, setVowelGroupsSelected] = useState<number[]>([1]); // Pre-select Before
+  const [vowelGroupsSelected, setVowelGroupsSelected] = useState<number[]>([
+    1,
+  ]); // Pre-select Before
   const [words, setWords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -254,7 +273,7 @@ export default function Trainer() {
   function toggleSelection(
     value: number,
     list: number[],
-    setList: (v: number[]) => void,
+    setList: (v: number[]) => void
   ) {
     if (list.includes(value)) {
       setList(list.filter((v) => v !== value));
@@ -268,7 +287,7 @@ export default function Trainer() {
       ...new Set(
         alphabet
           .filter((c) => consonantGroupsSelected.includes(c.group))
-          .map((c) => c.letter),
+          .map((c) => c.letter)
       ),
     ];
 
@@ -276,7 +295,7 @@ export default function Trainer() {
       ...new Set(
         vowels
           .filter((v) => vowelGroupsSelected.includes(v.group))
-          .map((v) => v.symbol.replace("◌", "")),
+          .map((v) => v.symbol.replace("◌", ""))
       ),
     ];
 
@@ -286,7 +305,7 @@ export default function Trainer() {
       const result = await generateTrainer(
         consonants,
         selectedVowels,
-        difficulty,
+        difficulty
       );
 
       setWords(result.words || []);
@@ -297,12 +316,13 @@ export default function Trainer() {
     }
   }
 
-  const isValid = consonantGroupsSelected.length > 0 && vowelGroupsSelected.length > 0;
+  const isValid =
+    consonantGroupsSelected.length > 0 && vowelGroupsSelected.length > 0;
   const consonantCount = alphabet.filter((c) =>
-    consonantGroupsSelected.includes(c.group),
+    consonantGroupsSelected.includes(c.group)
   ).length;
   const vowelCount = vowels.filter((v) =>
-    vowelGroupsSelected.includes(v.group),
+    vowelGroupsSelected.includes(v.group)
   ).length;
 
   return (
@@ -314,7 +334,8 @@ export default function Trainer() {
         <View style={styles.headerSection}>
           <Text style={styles.headerTitle}>Build Your Practice Set</Text>
           <Text style={styles.headerSubtitle}>
-            Choose difficulty, consonant classes, and vowel groups to create words
+            Choose difficulty, consonant classes, and vowel groups to create
+            words
           </Text>
         </View>
 
@@ -349,7 +370,7 @@ export default function Trainer() {
                   toggleSelection(
                     info.id,
                     consonantGroupsSelected,
-                    setConsonantGroupsSelected,
+                    setConsonantGroupsSelected
                   )
                 }
               />
@@ -373,7 +394,7 @@ export default function Trainer() {
                   toggleSelection(
                     info.id,
                     vowelGroupsSelected,
-                    setVowelGroupsSelected,
+                    setVowelGroupsSelected
                   )
                 }
               />
@@ -390,8 +411,10 @@ export default function Trainer() {
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Combinations</Text>
-              <Text style={styles.summaryValue}>~{consonantCount * vowelCount}</Text>
+              <Text style={styles.summaryLabel}>Total Combos</Text>
+              <Text style={styles.summaryValue}>
+                ~{consonantCount * vowelCount}
+              </Text>
             </View>
           </View>
           {!isValid && (
@@ -434,7 +457,8 @@ export default function Trainer() {
               <View>
                 <Text style={styles.resultsTitle}>Generated Words</Text>
                 <Text style={styles.resultsSummary}>
-                  {difficulty} • {consonantGroupsSelected.length} class(es) • {vowelGroupsSelected.length} group(s)
+                  {difficulty} • {consonantGroupsSelected.length} class(es) •{" "}
+                  {vowelGroupsSelected.length} group(s)
                 </Text>
               </View>
               <Text style={styles.resultsCount}>{words.length}</Text>
@@ -463,6 +487,7 @@ const styles = StyleSheet.create({
   scroll: {
     padding: 20,
     paddingTop: 16,
+    paddingBottom: 32,
   },
 
   headerSection: {
