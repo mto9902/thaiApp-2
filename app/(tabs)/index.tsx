@@ -334,7 +334,7 @@ export default function HomeScreen() {
 
         <View style={styles.spacing} />
 
-        {/* Grammar Modules as Cards */}
+        {/* Grammar Modules */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="layers-outline" size={18} color={Sketch.ink} />
@@ -342,36 +342,53 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.sectionSubtitle}>The Keystone</Text>
 
-          <View style={styles.modulesGrid}>
-            {MODULES.map((mod, i) => (
-              <TouchableOpacity
-                key={mod.level}
-                style={styles.moduleCard}
-                onPress={() =>
-                  router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
-                }
-                activeOpacity={0.7}
-              >
-                <View style={styles.moduleCardHeader}>
-                  <Text style={styles.moduleLevel}>{mod.level}</Text>
-                </View>
-                <Text style={styles.moduleTitle}>{mod.title}</Text>
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${moduleProgress[i]}%` },
-                      ]}
-                    />
+          {moduleProgress.some((p) => p > 0) ? (
+            <View style={styles.modulesGrid}>
+              {MODULES.map((mod, i) => (
+                <TouchableOpacity
+                  key={mod.level}
+                  style={styles.moduleCard}
+                  onPress={() =>
+                    router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
+                  }
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.moduleCardHeader}>
+                    <Text style={styles.moduleLevel}>{mod.level}</Text>
                   </View>
-                  <Text style={styles.progressPercent}>
-                    {moduleProgress[i]}%
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <Text style={styles.moduleTitle}>{mod.title}</Text>
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${moduleProgress[i]}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.progressPercent}>
+                      {moduleProgress[i]}%
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.startGrammarCard}
+              onPress={() => router.push("/practice/levels" as any)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="book-outline" size={28} color={Sketch.orange} />
+              <View style={styles.startGrammarText}>
+                <Text style={styles.startGrammarTitle}>Begin your grammar journey</Text>
+                <Text style={styles.startGrammarSub}>
+                  Explore Thai grammar from A1 to C1
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Sketch.inkMuted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.spacing} />
@@ -573,6 +590,31 @@ const styles = StyleSheet.create({
     color: Sketch.inkLight,
     minWidth: 30,
     textAlign: "right",
+  },
+  // Start Grammar CTA
+  startGrammarCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    padding: 18,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+  },
+  startGrammarText: {
+    flex: 1,
+    gap: 4,
+  },
+  startGrammarTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  startGrammarSub: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
   },
   // Quick Links
   quickLinks: {
