@@ -319,27 +319,29 @@ export default function HomeScreen() {
 
         <View style={styles.spacing} />
 
-        {/* SRS Review */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="sync-outline" size={18} color={Sketch.ink} />
-            <Text style={styles.sectionTitle}>SRS Review</Text>
-          </View>
+        {/* Action Tiles */}
+        <View style={styles.actionRow}>
           <TouchableOpacity
-            style={styles.reviewCard}
+            style={styles.actionTile}
             onPress={() => router.push("/review/" as any)}
             activeOpacity={0.7}
           >
-            <View style={styles.reviewCardLeft}>
-              <Text style={styles.reviewCardCount}>
-                {reviewsDue > 0 ? reviewsDue : 0}
-              </Text>
-              <Text style={styles.reviewCardLabel}>cards due</Text>
-            </View>
-            <View style={styles.reviewCardRight}>
-              <Text style={styles.reviewCardStatus}>{reviewStatusText}</Text>
-              <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
-            </View>
+            <Ionicons name="sync-outline" size={22} color={Sketch.orange} />
+            <Text style={styles.actionTileValue}>
+              {reviewsDue > 0 ? reviewsDue : 0}
+            </Text>
+            <Text style={styles.actionTileLabel}>cards due</Text>
+            <Text style={styles.actionTileMeta}>{reviewStatusText}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionTile}
+            onPress={() => router.push("/trainer" as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="construct-outline" size={22} color={Sketch.purple} />
+            <Text style={styles.actionTileTitle}>Trainer</Text>
+            <Text style={styles.actionTileLabel}>Build words</Text>
           </TouchableOpacity>
         </View>
 
@@ -403,34 +405,6 @@ export default function HomeScreen() {
               <Ionicons name="chevron-forward" size={20} color={Sketch.inkMuted} />
             </TouchableOpacity>
           )}
-        </View>
-
-        <View style={styles.spacing} />
-
-        {/* Alphabet Trainer */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="construct-outline" size={18} color={Sketch.ink} />
-            <Text style={styles.sectionTitle}>Alphabet Trainer</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.trainerCard}
-            onPress={() => router.push("/trainer" as any)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.trainerCardInner}>
-              <View style={styles.trainerIconWrap}>
-                <Ionicons name="construct-outline" size={24} color={Sketch.purple} />
-              </View>
-              <View style={styles.trainerCardText}>
-                <Text style={styles.trainerCardTitle}>Build practice words</Text>
-                <Text style={styles.trainerCardSub}>
-                  Combine consonants & vowels to generate real words
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Sketch.inkMuted} />
-            </View>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.spacing} />
@@ -508,39 +482,40 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     marginTop: 1,
   },
-  // SRS Review Card
-  reviewCard: {
+  // Action Tiles
+  actionRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Sketch.cardBg,
+    gap: 12,
+  },
+  actionTile: {
+    flex: 1,
+    backgroundColor: Sketch.paperDark,
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    minHeight: 120,
   },
-  reviewCardLeft: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
-  },
-  reviewCardCount: {
+  actionTileValue: {
     fontSize: 28,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.ink,
   },
-  reviewCardLabel: {
-    fontSize: 14,
+  actionTileTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  actionTileLabel: {
+    fontSize: 12,
     fontWeight: "500",
-    color: Sketch.inkLight,
+    color: Sketch.inkMuted,
   },
-  reviewCardRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  reviewCardStatus: {
-    fontSize: 13,
+  actionTileMeta: {
+    fontSize: 11,
     fontWeight: "400",
     color: Sketch.inkMuted,
   },
@@ -650,41 +625,6 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
   startGrammarSub: {
-    fontSize: 13,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-  },
-  // Trainer Card
-  trainerCard: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-  },
-  trainerCardInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  trainerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: Sketch.purple + "15",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  trainerCardText: {
-    flex: 1,
-    gap: 4,
-  },
-  trainerCardTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Sketch.ink,
-  },
-  trainerCardSub: {
     fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
