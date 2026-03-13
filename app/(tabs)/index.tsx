@@ -325,7 +325,6 @@ export default function HomeScreen() {
             onPress={() => router.push("/review/" as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="albums-outline" size={22} color={Sketch.orange} />
             <Text style={styles.actionTileValue}>
               {reviewsDue > 0 ? reviewsDue : 0}
             </Text>
@@ -499,7 +498,7 @@ const styles = StyleSheet.create({
   actionTileValue: {
     fontSize: 28,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: Sketch.orange,
   },
   actionTileTitle: {
     fontSize: 16,
