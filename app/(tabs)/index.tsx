@@ -67,6 +67,29 @@ const MODULES: ModuleInfo[] = [
   })),
 ];
 
+function computeStreak(map: Record<string, number>): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let streak = 0;
+  const d = new Date(today);
+  // If no activity today, start checking from yesterday
+  if (!map[localDateKey(d)]) {
+    d.setDate(d.getDate() - 1);
+  }
+  while (map[localDateKey(d)] > 0) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
@@ -296,10 +319,41 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.appTitle}>Keystone</Text>
-          <Text style={styles.appSubtitle}>Your Thai learning ritual</Text>
-        </View>
+        {/* Hero: Today's Summary */}
+        {(() => {
+          const streak = computeStreak(activityMap);
+          const todayCount = activityMap[localDateKey(new Date())] || 0;
+          const greeting = getGreeting();
+          const nudge = streak > 0
+            ? `Keep building — day ${streak}`
+            : "Start a new streak today";
+
+          return (
+            <View style={styles.heroCard}>
+              <Text style={styles.heroGreeting}>{greeting}</Text>
+              <View style={styles.heroStats}>
+                <View style={styles.heroStat}>
+                  <Ionicons name="flame-outline" size={20} color={Sketch.orange} />
+                  <Text style={styles.heroStatValue}>{streak}</Text>
+                  <Text style={styles.heroStatLabel}>day streak</Text>
+                </View>
+                <View style={styles.heroStatDivider} />
+                <View style={styles.heroStat}>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={Sketch.green} />
+                  <Text style={styles.heroStatValue}>{todayCount}</Text>
+                  <Text style={styles.heroStatLabel}>today</Text>
+                </View>
+                <View style={styles.heroStatDivider} />
+                <View style={styles.heroStat}>
+                  <Ionicons name="sync-outline" size={20} color={Sketch.blue} />
+                  <Text style={styles.heroStatValue}>{reviewsDue}</Text>
+                  <Text style={styles.heroStatLabel}>to review</Text>
+                </View>
+              </View>
+              <Text style={styles.heroNudge}>{nudge}</Text>
+            </View>
+          );
+        })()}
 
         <View style={styles.spacing} />
 
@@ -475,6 +529,50 @@ const styles = StyleSheet.create({
   },
   spacing: {
     height: 24,
+  },
+  // Hero Card
+  heroCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    gap: 16,
+  },
+  heroGreeting: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  heroStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  heroStat: {
+    alignItems: "center",
+    gap: 4,
+  },
+  heroStatValue: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  heroStatLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: Sketch.inkFaint,
+  },
+  heroNudge: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    textAlign: "center",
   },
   // SRS Review Card
   reviewCard: {
