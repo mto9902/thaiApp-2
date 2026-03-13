@@ -1,6 +1,6 @@
 /**
- * Sketch / hand-drawn UI theme
- * Inspired by notebook-style design with warm orange accents
+ * Keystone — Clean, minimal UI theme
+ * Inspired by modern language learning apps with terracotta accent
  */
 
 import { Platform, ViewStyle, TextStyle } from 'react-native';
@@ -8,68 +8,64 @@ import { Platform, ViewStyle, TextStyle } from 'react-native';
 // ── Core palette ──────────────────────────────────────────────────────────────
 export const Sketch = {
   // Backgrounds
-  paper: '#F5EFE6',          // warm cream paper
-  paperDark: '#EDE6DA',      // slightly darker paper
-  cardBg: '#FFFDF8',         // warm white for cards
-  
-  // Primary accent
-  orange: '#E8844A',         // warm orange (primary)
-  orangeLight: '#F2A66A',    // lighter orange
-  orangeDark: '#D4693A',     // darker orange for pressed
-  
-  // Secondary
-  yellow: '#F5CE6E',         // warm yellow (sticky notes)
-  yellowLight: '#FBE8A6',    // light yellow
-  
-  // Neutrals
-  ink: '#2D2926',            // dark charcoal (text, borders)
-  inkLight: '#5C5550',       // lighter ink
-  inkMuted: '#9B9490',       // muted text
-  inkFaint: '#C8C0B8',       // faint borders/dividers
-  
-  // Functional
-  green: '#6EAB73',          // success/correct
-  red: '#D96B6B',            // error/wrong
-  blue: '#6A9EC8',           // info
-  purple: '#9B7CB8',         // accent
-  pink: '#D98BAF',           // accent
+  paper: '#FFFFFF',
+  paperDark: '#F5F5F5',
+  cardBg: '#FFFFFF',
 
-  // Level colors  
-  beginner: '#6EAB73',
-  intermediate: '#6A9EC8',
-  advanced: '#D96B6B',
+  // Primary accent
+  orange: '#C4613C',         // terracotta / burnt orange
+  orangeLight: '#D4795A',
+  orangeDark: '#A8502F',
+
+  // Secondary
+  yellow: '#E8C547',
+  yellowLight: '#F5E6A3',
+
+  // Neutrals
+  ink: '#1A1A1A',
+  inkLight: '#555555',
+  inkMuted: '#999999',
+  inkFaint: '#E0E0E0',
+
+  // Functional
+  green: '#4CAF50',
+  red: '#E05252',
+  blue: '#5B8DB8',
+  purple: '#8B6BAE',
+  pink: '#D98BAF',
+
+  // Level colors
+  beginner: '#4CAF50',
+  intermediate: '#5B8DB8',
+  advanced: '#E05252',
 };
 
-// ── Sketch shadow (offset, no blur — comic-style) ────────────────────────────
+// ── Shadow (subtle, modern) ──────────────────────────────────────────────────
 export const sketchShadow = (size: number = 4): ViewStyle => ({
-  shadowColor: Sketch.ink,
-  shadowOffset: { width: size, height: size },
-  shadowOpacity: 0.9,
-  shadowRadius: 0,
-  elevation: size,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: size / 2 },
+  shadowOpacity: 0.06,
+  shadowRadius: size,
+  elevation: size / 2,
 });
 
-// ── Common sketch card style ──────────────────────────────────────────────────
+// ── Common card style ─────────────────────────────────────────────────────────
 export const sketchCard: ViewStyle = {
   backgroundColor: Sketch.cardBg,
-  borderWidth: 2.5,
-  borderColor: Sketch.ink,
-  borderRadius: 14,
+  borderRadius: 12,
   ...sketchShadow(4),
 };
 
-// ── Sketch button base ───────────────────────────────────────────────────────
+// ── Button base ──────────────────────────────────────────────────────────────
 export const sketchButton: ViewStyle = {
-  borderWidth: 2.5,
-  borderColor: Sketch.ink,
-  borderRadius: 12,
-  ...sketchShadow(3),
+  borderRadius: 10,
+  ...sketchShadow(2),
 };
 
-// ── Sketch input ─────────────────────────────────────────────────────────────
+// ── Input ────────────────────────────────────────────────────────────────────
 export const sketchInput: ViewStyle = {
-  borderWidth: 2,
-  borderColor: Sketch.ink,
+  borderWidth: 1,
+  borderColor: Sketch.inkFaint,
   borderRadius: 10,
   backgroundColor: Sketch.cardBg,
   padding: 14,
@@ -78,36 +74,36 @@ export const sketchInput: ViewStyle = {
 // ── Typography presets ───────────────────────────────────────────────────────
 export const sketchText = {
   heading: {
-    fontSize: 24,
-    fontWeight: '900' as const,
+    fontSize: 28,
+    fontWeight: '700' as const,
     color: Sketch.ink,
     letterSpacing: -0.5,
   } as TextStyle,
-  
+
   title: {
     fontSize: 18,
-    fontWeight: '900' as const,
+    fontWeight: '600' as const,
     color: Sketch.ink,
   } as TextStyle,
-  
+
   body: {
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '400' as const,
     color: Sketch.ink,
     lineHeight: 22,
   } as TextStyle,
-  
+
   label: {
     fontSize: 11,
-    fontWeight: '800' as const,
+    fontWeight: '600' as const,
     color: Sketch.inkMuted,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     textTransform: 'uppercase' as const,
   } as TextStyle,
-  
+
   caption: {
     fontSize: 12,
-    fontWeight: '700' as const,
+    fontWeight: '500' as const,
     color: Sketch.inkLight,
   } as TextStyle,
 };

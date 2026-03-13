@@ -7,22 +7,8 @@ import { StyleSheet, View } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import "react-native-get-random-values";
-
-const CustomTabBarIcon = ({
-  focused,
-  name,
-  color,
-}: {
-  focused: boolean;
-  name: any;
-  color: string;
-}) => (
-  <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
-    <Ionicons size={22} name={name} color={focused ? Sketch.ink : Sketch.inkMuted} />
-  </View>
-);
 
 export default function TabLayout() {
   const router = useRouter();
@@ -55,20 +41,23 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          height: 88,
+          height: 84,
           paddingBottom: 24,
-          paddingTop: 8,
+          paddingTop: 10,
           backgroundColor: Sketch.paper,
-          borderTopWidth: 2,
-          borderTopColor: Sketch.ink,
+          borderTopWidth: 1,
+          borderTopColor: Sketch.inkFaint,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontWeight: "800",
-          fontSize: 10,
+          fontWeight: "500",
+          fontSize: 11,
           marginTop: 4,
-          color: Sketch.ink,
-          letterSpacing: 0.5,
+          color: Sketch.inkMuted,
         },
+        tabBarActiveTintColor: Sketch.ink,
+        tabBarInactiveTintColor: Sketch.inkMuted,
       }}
     >
       <Tabs.Screen
@@ -76,7 +65,11 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="home-outline" color={color} />
+            <Ionicons
+              size={22}
+              name={focused ? "home" : "home-outline"}
+              color={focused ? Sketch.ink : Sketch.inkMuted}
+            />
           ),
         }}
       />
@@ -84,9 +77,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Library",
+          title: "Decks",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="book-outline" color={color} />
+            <Ionicons
+              size={22}
+              name={focused ? "layers" : "layers-outline"}
+              color={focused ? Sketch.ink : Sketch.inkMuted}
+            />
           ),
         }}
       />
@@ -94,9 +91,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          title: "Write",
+          title: "Grammar",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="pencil-outline" color={color} />
+            <Ionicons
+              size={22}
+              name={focused ? "book" : "book-outline"}
+              color={focused ? Sketch.ink : Sketch.inkMuted}
+            />
           ),
         }}
       />
@@ -106,26 +107,14 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <CustomTabBarIcon focused={focused} name="person-outline" color={color} />
+            <Ionicons
+              size={22}
+              name={focused ? "person" : "person-outline"}
+              color={focused ? Sketch.ink : Sketch.inkMuted}
+            />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabIconContainer: {
-    padding: 8,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  tabIconFocused: {
-    backgroundColor: Sketch.orange,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    ...sketchShadow(2),
-  },
-});
