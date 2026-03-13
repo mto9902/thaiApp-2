@@ -57,20 +57,20 @@ export default function CSVGrammarIndex() {
         ListHeaderComponent={
           meta ? (
             <View style={styles.levelSummary}>
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelBadgeText}>{selectedLevel}</Text>
-              </View>
               <Text style={styles.levelTitle}>{meta.homeTitle}</Text>
               <Text style={styles.levelSubtitle}>
                 {practiced} of {filtered.length} topics practiced
               </Text>
-              <View style={styles.summaryProgressBar}>
-                <View style={[styles.summaryProgressFill, { width: `${percentage}%` }]} />
+              <View style={styles.summaryProgressRow}>
+                <View style={styles.summaryProgressBar}>
+                  <View style={[styles.summaryProgressFill, { width: `${percentage}%` }]} />
+                </View>
+                <Text style={styles.summaryPercent}>{percentage}%</Text>
               </View>
             </View>
           ) : null
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const done = !!progress[item.id];
           return (
             <TouchableOpacity
@@ -78,16 +78,37 @@ export default function CSVGrammarIndex() {
               onPress={() => router.push(`/practice/${item.id}`)}
               activeOpacity={0.7}
             >
-              <View style={styles.cardLeft}>
-                <View style={[styles.statusDot, done && styles.statusDotDone]} />
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardMeta}>
-                    {done ? "Practiced" : "Not started"}
+              <View style={styles.cardTop}>
+                <View style={styles.cardNumberCol}>
+                  <Text style={[styles.cardNumber, done && styles.cardNumberDone]}>
+                    {String(index + 1).padStart(2, "0")}
                   </Text>
                 </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <View style={styles.patternRow}>
+                    <Text style={styles.patternText}>{item.pattern}</Text>
+                  </View>
+                </View>
+                <View style={styles.cardRight}>
+                  {done ? (
+                    <View style={styles.doneBadge}>
+                      <Ionicons name="checkmark" size={14} color="#fff" />
+                    </View>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={Sketch.inkMuted} />
+                  )}
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Sketch.inkMuted} />
+
+              <View style={styles.cardBottom}>
+                <View style={styles.focusPill}>
+                  <Text style={styles.focusParticle}>{item.focus.particle}</Text>
+                </View>
+                <Text style={styles.focusMeaning} numberOfLines={1}>
+                  {item.focus.meaning}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         }}
@@ -102,7 +123,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Sketch.paper,
   },
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -118,52 +138,46 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Sketch.ink,
   },
-  // Level Summary
+  // Level Summary — clean, no badge box
   levelSummary: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    gap: 8,
-    alignItems: "flex-start",
-  },
-  levelBadge: {
-    backgroundColor: Sketch.orange + "15",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  levelBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.orange,
-    letterSpacing: 0.5,
+    marginBottom: 24,
+    gap: 6,
   },
   levelTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   levelSubtitle: {
     fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
   },
+  summaryProgressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 8,
+  },
   summaryProgressBar: {
-    width: "100%",
+    flex: 1,
     height: 6,
     backgroundColor: Sketch.inkFaint,
     borderRadius: 3,
     overflow: "hidden",
-    marginTop: 4,
   },
   summaryProgressFill: {
     height: "100%",
     backgroundColor: Sketch.orange,
     borderRadius: 3,
+  },
+  summaryPercent: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.orange,
+    minWidth: 32,
+    textAlign: "right",
   },
   // List
   listContent: {
@@ -172,48 +186,93 @@ const styles = StyleSheet.create({
   },
   // Cards
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: Sketch.cardBg,
     borderRadius: 14,
     padding: 16,
-    marginBottom: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    gap: 12,
   },
-  cardLeft: {
+  cardTop: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  cardNumberCol: {
+    width: 28,
+    paddingTop: 2,
+  },
+  cardNumber: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.inkFaint,
+    fontVariant: ["tabular-nums"],
+  },
+  cardNumberDone: {
+    color: Sketch.orange,
+  },
+  cardContent: {
     flex: 1,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Sketch.inkFaint,
-  },
-  statusDotDone: {
-    backgroundColor: Sketch.orange,
-  },
-  cardText: {
-    flex: 1,
-    gap: 3,
+    gap: 6,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: Sketch.ink,
+    lineHeight: 21,
   },
-  cardMeta: {
+  patternRow: {
+    backgroundColor: Sketch.paperDark,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  patternText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    letterSpacing: 0.3,
+  },
+  cardRight: {
+    paddingTop: 2,
+  },
+  doneBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Sketch.orange,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Bottom row — focus particle
+  cardBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingLeft: 28 + 12, // align with content after number
+  },
+  focusPill: {
+    backgroundColor: Sketch.orange + "12",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  focusParticle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.orange,
+  },
+  focusMeaning: {
     fontSize: 12,
     fontWeight: "400",
     color: Sketch.inkMuted,
+    flex: 1,
   },
 });
