@@ -275,7 +275,7 @@ export default function HomeScreen() {
                             backgroundColor: HEATMAP_COLORS[level],
                             marginRight: GAP,
                             marginBottom: GAP,
-                            borderRadius: 2,
+                            borderRadius: 4,
                           }}
                         />
                       );
@@ -298,70 +298,90 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.appTitle}>Keystone</Text>
-          <Text style={styles.appSubtitle}>Thai Grammar Blueprint</Text>
+          <Text style={styles.appSubtitle}>Your Thai learning ritual</Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={styles.spacing} />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity</Text>
-          {renderHeatmap()}
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SRS Review</Text>
-          <View style={styles.reviewCard}>
-            <TouchableOpacity
-              style={styles.reviewButton}
-              onPress={() => router.push("/review/" as any)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.reviewButtonText}>START REVIEW</Text>
-            </TouchableOpacity>
-            <View style={styles.reviewInfo}>
-              <Text style={styles.reviewStat}>
-                <Text style={styles.reviewStatBold}>{reviewsDue}</Text> cards
-                due
-              </Text>
-              <Text style={styles.reviewEstimate}>{reviewStatusText}</Text>
-            </View>
+        {/* Main CTA: START REVIEW */}
+        <View style={styles.reviewSection}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push("/review/" as any)}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="play" size={20} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>Start Review</Text>
+          </TouchableOpacity>
+          <View style={styles.reviewMetadata}>
+            <Text style={styles.reviewMetaMain}>
+              {reviewsDue > 0 ? `${reviewsDue} cards due` : "You're caught up"}
+            </Text>
+            <Text style={styles.reviewMetaSub}>{reviewStatusText}</Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={styles.spacing} />
 
+        {/* Activity */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Grammar Foundations{" "}
-            <Text style={styles.sectionTitleLight}>(The Keystone)</Text>
-          </Text>
-
-          {MODULES.map((mod, i) => (
-            <TouchableOpacity
-              key={mod.level}
-              style={styles.moduleRow}
-              onPress={() =>
-                router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
-              }
-              activeOpacity={0.7}
-            >
-              <Text style={styles.moduleText}>
-                {mod.level} - {mod.title} ({moduleProgress[i]}%)
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={Sketch.inkMuted}
-              />
-            </TouchableOpacity>
-          ))}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="calendar-outline" size={18} color={Sketch.ink} />
+            <Text style={styles.sectionTitle}>Activity</Text>
+          </View>
+          {renderHeatmap()}
         </View>
 
-        <View style={styles.divider} />
+        <View style={styles.spacing} />
+
+        {/* Grammar Modules as Cards */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Access</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="layers-outline" size={18} color={Sketch.ink} />
+            <Text style={styles.sectionTitle}>Grammar Foundations</Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>The Keystone</Text>
+
+          <View style={styles.modulesGrid}>
+            {MODULES.map((mod, i) => (
+              <TouchableOpacity
+                key={mod.level}
+                style={styles.moduleCard}
+                onPress={() =>
+                  router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
+                }
+                activeOpacity={0.7}
+              >
+                <View style={styles.moduleCardHeader}>
+                  <Text style={styles.moduleLevel}>{mod.level}</Text>
+                </View>
+                <Text style={styles.moduleTitle}>{mod.title}</Text>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${moduleProgress[i]}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressPercent}>
+                    {moduleProgress[i]}%
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.spacing} />
+
+        {/* Quick Access */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="star-outline" size={18} color={Sketch.ink} />
+            <Text style={styles.sectionTitle}>Explore</Text>
+          </View>
           <View style={styles.quickLinks}>
             {[
               {
@@ -386,7 +406,11 @@ export default function HomeScreen() {
                 onPress={() => router.push(item.route as any)}
                 activeOpacity={0.7}
               >
-                <Ionicons name={item.icon} size={20} color={Sketch.inkLight} />
+                <Ionicons
+                  name={item.icon}
+                  size={24}
+                  color={Sketch.orange}
+                />
                 <Text style={styles.quickLinkText}>{item.label}</Text>
               </TouchableOpacity>
             ))}
@@ -418,27 +442,72 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   appSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    marginTop: 2,
+    marginTop: 4,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Sketch.inkFaint,
-    marginVertical: 20,
+  spacing: {
+    height: 24,
   },
-  section: {
+  // Main CTA Section
+  reviewSection: {
     gap: 12,
   },
-  sectionTitle: {
+  primaryButton: {
+    backgroundColor: Sketch.orange,
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    borderRadius: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  primaryButtonText: {
     fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.3,
+  },
+  reviewMetadata: {
+    alignItems: "center",
+    gap: 4,
+  },
+  reviewMetaMain: {
+    fontSize: 15,
     fontWeight: "600",
     color: Sketch.ink,
   },
-  sectionTitleLight: {
+  reviewMetaSub: {
+    fontSize: 12,
     fontWeight: "400",
     color: Sketch.inkMuted,
+  },
+  // Sections
+  section: {
+    gap: 16,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    marginLeft: 28,
   },
   heatmapContainer: {
     marginTop: 4,
@@ -449,55 +518,63 @@ const styles = StyleSheet.create({
   heatmapRow: {
     flexDirection: "row",
   },
-  heatmapSquare: {
-    borderRadius: 2,
+  // Module Cards
+  modulesGrid: {
+    gap: 12,
   },
-  reviewCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+  moduleCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  reviewButton: {
-    backgroundColor: Sketch.orange,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+  moduleCardHeader: {
+    marginBottom: 10,
   },
-  reviewButtonText: {
-    fontSize: 13,
+  moduleLevel: {
+    fontSize: 11,
     fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.5,
+    color: Sketch.orange,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
-  reviewInfo: {
-    gap: 2,
-  },
-  reviewStat: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: Sketch.ink,
-  },
-  reviewStatBold: {
-    fontWeight: "700",
-  },
-  reviewEstimate: {
-    fontSize: 13,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-  },
-  moduleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
-  },
-  moduleText: {
+  moduleTitle: {
     fontSize: 15,
-    fontWeight: "400",
+    fontWeight: "600",
     color: Sketch.ink,
+    marginBottom: 12,
   },
+  progressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: Sketch.orange,
+    borderRadius: 3,
+  },
+  progressPercent: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    minWidth: 30,
+    textAlign: "right",
+  },
+  // Quick Links
   quickLinks: {
     flexDirection: "row",
     gap: 12,
@@ -505,14 +582,17 @@ const styles = StyleSheet.create({
   quickLinkCard: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 10,
-    paddingVertical: 16,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   quickLinkText: {
     fontSize: 12,
-    fontWeight: "500",
-    color: Sketch.inkLight,
+    fontWeight: "600",
+    color: Sketch.ink,
   },
 });
