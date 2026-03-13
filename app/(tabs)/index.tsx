@@ -303,26 +303,6 @@ export default function HomeScreen() {
 
         <View style={styles.spacing} />
 
-        {/* Main CTA: START REVIEW */}
-        <View style={styles.reviewSection}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => router.push("/review/" as any)}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="play" size={20} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Start Review</Text>
-          </TouchableOpacity>
-          <View style={styles.reviewMetadata}>
-            <Text style={styles.reviewMetaMain}>
-              {reviewsDue > 0 ? `${reviewsDue} cards due` : "You're caught up"}
-            </Text>
-            <Text style={styles.reviewMetaSub}>{reviewStatusText}</Text>
-          </View>
-        </View>
-
-        <View style={styles.spacing} />
-
         {/* Activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -330,6 +310,32 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>Activity</Text>
           </View>
           {renderHeatmap()}
+        </View>
+
+        <View style={styles.spacing} />
+
+        {/* SRS Review */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="sync-outline" size={18} color={Sketch.ink} />
+            <Text style={styles.sectionTitle}>SRS Review</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.reviewCard}
+            onPress={() => router.push("/review/" as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.reviewCardLeft}>
+              <Text style={styles.reviewCardCount}>
+                {reviewsDue > 0 ? reviewsDue : 0}
+              </Text>
+              <Text style={styles.reviewCardLabel}>cards due</Text>
+            </View>
+            <View style={styles.reviewCardRight}>
+              <Text style={styles.reviewCardStatus}>{reviewStatusText}</Text>
+              <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.spacing} />
@@ -344,34 +350,37 @@ export default function HomeScreen() {
 
           {moduleProgress.some((p) => p > 0) ? (
             <View style={styles.modulesGrid}>
-              {MODULES.map((mod, i) => (
-                <TouchableOpacity
-                  key={mod.level}
-                  style={styles.moduleCard}
-                  onPress={() =>
-                    router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
-                  }
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.moduleCardHeader}>
-                    <Text style={styles.moduleLevel}>{mod.level}</Text>
-                  </View>
-                  <Text style={styles.moduleTitle}>{mod.title}</Text>
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${moduleProgress[i]}%` },
-                        ]}
-                      />
+              {MODULES.map((mod, i) => {
+                if (moduleProgress[i] === 0) return null;
+                return (
+                  <TouchableOpacity
+                    key={mod.level}
+                    style={styles.moduleCard}
+                    onPress={() =>
+                      router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.moduleCardHeader}>
+                      <Text style={styles.moduleLevel}>{mod.level}</Text>
                     </View>
-                    <Text style={styles.progressPercent}>
-                      {moduleProgress[i]}%
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <Text style={styles.moduleTitle}>{mod.title}</Text>
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${moduleProgress[i]}%` },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressPercent}>
+                        {moduleProgress[i]}%
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           ) : (
             <TouchableOpacity
@@ -467,42 +476,39 @@ const styles = StyleSheet.create({
   spacing: {
     height: 24,
   },
-  // Main CTA Section
-  reviewSection: {
-    gap: 12,
-  },
-  primaryButton: {
-    backgroundColor: Sketch.orange,
-    paddingHorizontal: 28,
-    paddingVertical: 18,
-    borderRadius: 18,
+  // SRS Review Card
+  reviewCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    justifyContent: "space-between",
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
-  primaryButtonText: {
-    fontSize: 16,
+  reviewCardLeft: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
+  reviewCardCount: {
+    fontSize: 28,
     fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.3,
+    color: Sketch.orange,
   },
-  reviewMetadata: {
+  reviewCardLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  reviewCardRight: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
-  reviewMetaMain: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Sketch.ink,
-  },
-  reviewMetaSub: {
-    fontSize: 12,
+  reviewCardStatus: {
+    fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
   },
