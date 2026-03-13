@@ -407,6 +407,34 @@ export default function HomeScreen() {
 
         <View style={styles.spacing} />
 
+        {/* Alphabet Trainer */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="construct-outline" size={18} color={Sketch.ink} />
+            <Text style={styles.sectionTitle}>Alphabet Trainer</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.trainerCard}
+            onPress={() => router.push("/trainer" as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.trainerCardInner}>
+              <View style={styles.trainerIconWrap}>
+                <Ionicons name="construct-outline" size={24} color={Sketch.purple} />
+              </View>
+              <View style={styles.trainerCardText}>
+                <Text style={styles.trainerCardTitle}>Build practice words</Text>
+                <Text style={styles.trainerCardSub}>
+                  Combine consonants & vowels to generate real words
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Sketch.inkMuted} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.spacing} />
+
         {/* Quick Access */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -424,11 +452,6 @@ export default function HomeScreen() {
                 label: "Tones",
                 icon: "musical-notes-outline" as const,
                 route: "/tones/",
-              },
-              {
-                label: "Vowels",
-                icon: "ellipse-outline" as const,
-                route: "/vowels/",
               },
             ].map((item, i) => (
               <TouchableOpacity
@@ -627,6 +650,41 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
   startGrammarSub: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+  },
+  // Trainer Card
+  trainerCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+  },
+  trainerCardInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  trainerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Sketch.purple + "15",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  trainerCardText: {
+    flex: 1,
+    gap: 4,
+  },
+  trainerCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  trainerCardSub: {
     fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
