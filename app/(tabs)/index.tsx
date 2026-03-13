@@ -325,7 +325,6 @@ export default function HomeScreen() {
             onPress={() => router.push("/review/" as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="albums-outline" size={22} color={Sketch.orange} />
             <Text style={styles.actionTileValue}>
               {reviewsDue > 0 ? reviewsDue : 0}
             </Text>
@@ -490,11 +489,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     minHeight: 120,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   actionTileValue: {
     fontSize: 28,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: Sketch.orange,
   },
   actionTileTitle: {
     fontSize: 16,
@@ -602,6 +606,11 @@ const styles = StyleSheet.create({
     gap: 14,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   startGrammarText: {
     flex: 1,
@@ -632,6 +641,11 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   quickLinkText: {
     fontSize: 12,
