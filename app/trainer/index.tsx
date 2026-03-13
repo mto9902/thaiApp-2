@@ -1,10 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,11 +12,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import Header from "../../src/components/Header";
+import { Sketch, sketchShadow } from "@/constants/theme";
 import { generateTrainer } from "../../src/api/generateTrainer";
+import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
 import { vowels } from "../../src/data/vowels";
-import { Sketch, sketchShadow } from "@/constants/theme";
 
 const DIFFICULTY_COLORS = {
   easy: Sketch.green,
@@ -93,16 +92,28 @@ function ConsonantCard({
     >
       <View style={styles.consonantCardContent}>
         <View style={styles.consonantTextSection}>
-          <Text style={[styles.consonantTitle, isSelected && styles.consonantTitleActive]}>
+          <Text
+            style={[
+              styles.consonantTitle,
+              isSelected && styles.consonantTitleActive,
+            ]}
+          >
             {info.title}
           </Text>
-          <Text style={[styles.consonantSubtitle, isSelected && styles.consonantSubtitleActive]}>
+          <Text
+            style={[
+              styles.consonantSubtitle,
+              isSelected && styles.consonantSubtitleActive,
+            ]}
+          >
             {letters.length} letters
           </Text>
         </View>
         <View style={styles.letterPreview}>
           {letters.map((l) => (
-            <Text key={l.letter} style={styles.previewLetter}>{l.letter}</Text>
+            <Text key={l.letter} style={styles.previewLetter}>
+              {l.letter}
+            </Text>
           ))}
         </View>
       </View>
@@ -135,10 +146,17 @@ function VowelCard({
     >
       <View style={styles.vowelCardContent}>
         <View style={styles.vowelTextSection}>
-          <Text style={[styles.vowelTitle, isSelected && styles.vowelTitleActive]}>
+          <Text
+            style={[styles.vowelTitle, isSelected && styles.vowelTitleActive]}
+          >
             {info.title}
           </Text>
-          <Text style={[styles.vowelSubtitle, isSelected && styles.vowelSubtitleActive]}>
+          <Text
+            style={[
+              styles.vowelSubtitle,
+              isSelected && styles.vowelSubtitleActive,
+            ]}
+          >
             Vowels
           </Text>
         </View>
@@ -158,11 +176,16 @@ function TrainerWordCard({ word, onPlaySound }: any) {
     <View style={styles.wordCard}>
       <View style={styles.wordHeader}>
         <Text style={styles.wordThai}>{word.thai}</Text>
-        <TouchableOpacity style={styles.soundButton} onPress={() => onPlaySound(word.thai)}>
+        <TouchableOpacity
+          style={styles.soundButton}
+          onPress={() => onPlaySound(word.thai)}
+        >
           <Ionicons name="volume-high" size={20} color={Sketch.ink} />
         </TouchableOpacity>
       </View>
-      {word.romanization && <Text style={styles.wordRoman}>{word.romanization}</Text>}
+      {word.romanization && (
+        <Text style={styles.wordRoman}>{word.romanization}</Text>
+      )}
       <Text style={styles.wordEnglish}>{word.english}</Text>
     </View>
   );
@@ -170,17 +193,36 @@ function TrainerWordCard({ word, onPlaySound }: any) {
 
 export default function Trainer() {
   const router = useRouter();
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
-  const [consonantGroupsSelected, setConsonantGroupsSelected] = useState<number[]>([1]);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
+    "easy",
+  );
+  const [consonantGroupsSelected, setConsonantGroupsSelected] = useState<
+    number[]
+  >([1]);
   const [vowelGroupsSelected, setVowelGroupsSelected] = useState<number[]>([1]);
   const [words, setWords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
+  const [noResults, setNoResults] = useState(false);
 
+  const TTS_RATE: Record<string, number> = {
+    slow: 0.7,
+    normal: 1.0,
+    fast: 1.3,
+  };
   function speakThai(text: string) {
-    Speech.speak(text, { language: "th-TH", pitch: 1, rate: 0.9 });
+    Speech.speak(text, {
+      language: "th-TH",
+      pitch: 1,
+      rate: TTS_RATE[ttsSpeed] || 0.7,
+    });
   }
 
-  function toggleSelection(value: number, list: number[], setList: (v: number[]) => void) {
+  function toggleSelection(
+    value: number,
+    list: number[],
+    setList: (v: number[]) => void,
+  ) {
     if (list.includes(value)) {
       setList(list.filter((v) => v !== value));
     } else {
@@ -189,17 +231,67 @@ export default function Trainer() {
   }
 
   async function generateWords() {
-    const consonants = [...new Set(
-      alphabet.filter((c) => consonantGroupsSelected.includes(c.group)).map((c) => c.letter)
-    )];
-    const selectedVowels = [...new Set(
-      vowels.filter((v) => vowelGroupsSelected.includes(v.group)).map((v) => v.symbol.replace("◌", ""))
-    )];
+    setNoResults(false);
+    setWords([]);
+
+    const TARGET_WORDS = 10;
+
+    const consonants = [
+      ...new Set(
+        alphabet
+          .filter((c) => consonantGroupsSelected.includes(c.group))
+          .map((c) => c.letter),
+      ),
+    ];
+
+    const allowedConsonants = new Set(consonants);
+    const consonantSet = new Set(alphabet.map((a) => a.letter));
+
+    function wordUsesOnlyAllowedConsonants(word: string) {
+      for (const char of word) {
+        if (consonantSet.has(char) && !allowedConsonants.has(char)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    const selectedVowels = [
+      ...new Set(
+        vowels
+          .filter((v) => vowelGroupsSelected.includes(v.group))
+          .map((v) => v.symbol.replace("◌", "")),
+      ),
+    ];
 
     try {
       setLoading(true);
-      const result = await generateTrainer(consonants, selectedVowels, difficulty);
-      setWords(result.words || []);
+
+      let collected: any[] = [];
+      let attempts = 0;
+
+      while (collected.length < TARGET_WORDS && attempts < 5) {
+        attempts++;
+
+        const result = await generateTrainer(
+          consonants,
+          selectedVowels,
+          difficulty,
+        );
+
+        const filtered = (result.words || []).filter((w: any) =>
+          wordUsesOnlyAllowedConsonants(w.thai),
+        );
+
+        collected = [...collected, ...filtered];
+      }
+
+      // decide what to show
+      if (collected.length === 0) {
+        setNoResults(true);
+      } else {
+        setWords(collected.slice(0, TARGET_WORDS));
+      }
     } catch (err) {
       console.error("Trainer error:", err);
     } finally {
@@ -207,19 +299,29 @@ export default function Trainer() {
     }
   }
 
-  const isValid = consonantGroupsSelected.length > 0 && vowelGroupsSelected.length > 0;
-  const consonantCount = alphabet.filter((c) => consonantGroupsSelected.includes(c.group)).length;
-  const vowelCount = vowels.filter((v) => vowelGroupsSelected.includes(v.group)).length;
+  const isValid =
+    consonantGroupsSelected.length > 0 && vowelGroupsSelected.length > 0;
+  const consonantCount = alphabet.filter((c) =>
+    consonantGroupsSelected.includes(c.group),
+  ).length;
+  const vowelCount = vowels.filter((v) =>
+    vowelGroupsSelected.includes(v.group),
+  ).length;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-      <Header title="Alphabet Trainer" onBack={() => router.back()} />
+      <Header
+        title="Alphabet Trainer"
+        onBack={() => router.back()}
+        onSettingsChange={(s) => setTtsSpeed(s.ttsSpeed)}
+      />
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerSection}>
           <Text style={styles.headerTitle}>Build Your Practice Set</Text>
           <Text style={styles.headerSubtitle}>
-            Choose difficulty, consonant classes, and vowel groups to create words
+            Choose difficulty, consonant classes, and vowel groups to create
+            words
           </Text>
         </View>
 
@@ -248,7 +350,13 @@ export default function Trainer() {
                 key={info.id}
                 info={info}
                 isSelected={consonantGroupsSelected.includes(info.id)}
-                onPress={() => toggleSelection(info.id, consonantGroupsSelected, setConsonantGroupsSelected)}
+                onPress={() =>
+                  toggleSelection(
+                    info.id,
+                    consonantGroupsSelected,
+                    setConsonantGroupsSelected,
+                  )
+                }
               />
             ))}
           </View>
@@ -265,7 +373,13 @@ export default function Trainer() {
                 key={info.id}
                 info={info}
                 isSelected={vowelGroupsSelected.includes(info.id)}
-                onPress={() => toggleSelection(info.id, vowelGroupsSelected, setVowelGroupsSelected)}
+                onPress={() =>
+                  toggleSelection(
+                    info.id,
+                    vowelGroupsSelected,
+                    setVowelGroupsSelected,
+                  )
+                }
               />
             ))}
           </View>
@@ -281,7 +395,10 @@ export default function Trainer() {
         )}
 
         <TouchableOpacity
-          style={[styles.generateButton, !isValid && styles.generateButtonDisabled]}
+          style={[
+            styles.generateButton,
+            !isValid && styles.generateButtonDisabled,
+          ]}
           onPress={generateWords}
           disabled={!isValid}
           activeOpacity={isValid ? 0.85 : 1}
@@ -296,21 +413,41 @@ export default function Trainer() {
           )}
         </TouchableOpacity>
 
-        {words.length > 0 && (
+        {!loading && words.length > 0 && (
           <View style={styles.resultsSection}>
             <View style={styles.resultsHeader}>
               <View>
-                <Text style={styles.resultsTitle}>Generated Words</Text>
+                <Text style={styles.resultsTitle}>Created Words</Text>
                 <Text style={styles.resultsSummary}>
-                  {difficulty} · {consonantGroupsSelected.length} class(es) · {vowelGroupsSelected.length} group(s)
+                  {difficulty} · {consonantGroupsSelected.length} class(es) ·{" "}
+                  {vowelGroupsSelected.length} group(s)
                 </Text>
               </View>
-              <Text style={styles.resultsCount}>{words.length}</Text>
             </View>
 
             {words.map((w, i) => (
-              <TrainerWordCard key={i} word={w} onPlaySound={speakThai} />
+              <TrainerWordCard
+                key={`${w.thai}-${i}`}
+                word={w}
+                onPlaySound={speakThai}
+              />
             ))}
+          </View>
+        )}
+
+        {!loading && noResults && (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={28}
+              color={Sketch.orange}
+            />
+            <Text style={styles.emptyTitle}>No Words Found</Text>
+            <Text style={styles.emptyText}>
+              This combination of consonant classes, vowels, and difficulty may
+              not exist in the dictionary. Try selecting more consonants or
+              easier difficulty.
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -323,12 +460,34 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
 
   headerSection: { marginBottom: 24 },
-  headerTitle: { fontSize: 24, fontWeight: "900", color: Sketch.ink, marginBottom: 8, lineHeight: 30 },
-  headerSubtitle: { fontSize: 13, fontWeight: "500", color: Sketch.inkMuted, lineHeight: 18 },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: Sketch.ink,
+    marginBottom: 8,
+    lineHeight: 30,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+    lineHeight: 18,
+  },
 
   section: { marginBottom: 26 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  sectionLabel: { fontSize: 11, fontWeight: "900", color: Sketch.inkMuted, letterSpacing: 0.8, flex: 1 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: Sketch.inkMuted,
+    letterSpacing: 0.8,
+    flex: 1,
+  },
   sectionCount: {
     fontSize: 12,
     fontWeight: "700",
@@ -350,7 +509,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...sketchShadow(3),
   },
-  diffButtonText: { fontSize: 13, fontWeight: "900", color: Sketch.inkMuted, textAlign: "center" },
+  diffButtonText: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: Sketch.inkMuted,
+    textAlign: "center",
+  },
   diffButtonTextActive: { color: Sketch.ink },
 
   consonantGrid: { flexDirection: "column", gap: 12 },
@@ -363,11 +527,25 @@ const styles = StyleSheet.create({
     paddingRight: 48,
     ...sketchShadow(3),
   },
-  consonantCardContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  consonantCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   consonantTextSection: { flex: 1 },
-  consonantTitle: { fontSize: 14, fontWeight: "900", color: Sketch.inkMuted, marginBottom: 4 },
+  consonantTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: Sketch.inkMuted,
+    marginBottom: 4,
+  },
   consonantTitleActive: { color: Sketch.ink },
-  consonantSubtitle: { fontSize: 11, fontWeight: "600", color: Sketch.inkFaint },
+  consonantSubtitle: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Sketch.inkFaint,
+  },
   consonantSubtitleActive: { color: "rgba(0,0,0,0.6)" },
   letterPreview: { flexDirection: "row", gap: 8 },
   previewLetter: { fontSize: 22, fontWeight: "900", color: Sketch.ink },
@@ -395,13 +573,29 @@ const styles = StyleSheet.create({
     paddingRight: 48,
     ...sketchShadow(3),
   },
-  vowelCardContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  vowelCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   vowelTextSection: { flex: 1 },
-  vowelTitle: { fontSize: 14, fontWeight: "900", color: Sketch.inkMuted, marginBottom: 4 },
+  vowelTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: Sketch.inkMuted,
+    marginBottom: 4,
+  },
   vowelTitleActive: { color: Sketch.ink },
   vowelSubtitle: { fontSize: 11, fontWeight: "600", color: Sketch.inkFaint },
   vowelSubtitleActive: { color: "rgba(0,0,0,0.6)" },
-  vowelPreview: { fontSize: 20, fontWeight: "800", color: Sketch.ink, marginLeft: 12, letterSpacing: 6 },
+  vowelPreview: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: Sketch.ink,
+    marginLeft: 12,
+    letterSpacing: 6,
+  },
   vowelSelectedBadge: {
     position: "absolute",
     top: 10,
@@ -427,7 +621,13 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 20,
   },
-  validationText: { flex: 1, fontSize: 13, fontWeight: "700", color: Sketch.red, lineHeight: 18 },
+  validationText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.red,
+    lineHeight: 18,
+  },
 
   generateButton: {
     flexDirection: "row",
@@ -447,12 +647,27 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.inkFaint,
     borderColor: Sketch.inkFaint,
   },
-  generateText: { color: Sketch.cardBg, fontSize: 15, fontWeight: "900", letterSpacing: 0.3 },
+  generateText: {
+    color: Sketch.cardBg,
+    fontSize: 15,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+  },
 
   resultsSection: { marginTop: 16, marginBottom: 32 },
-  resultsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+  resultsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
   resultsTitle: { fontSize: 20, fontWeight: "900", color: Sketch.ink },
-  resultsSummary: { fontSize: 12, fontWeight: "600", color: Sketch.inkMuted, marginTop: 4 },
+  resultsSummary: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    marginTop: 4,
+  },
   resultsCount: { fontSize: 28, fontWeight: "900", color: Sketch.orange },
 
   wordCard: {
@@ -464,7 +679,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...sketchShadow(3),
   },
-  wordHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  wordHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   wordThai: { flex: 1, fontSize: 34, fontWeight: "900", color: Sketch.ink },
   soundButton: {
     width: 44,
@@ -477,6 +697,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...sketchShadow(2),
   },
-  wordRoman: { fontSize: 14, fontWeight: "600", color: Sketch.inkLight, marginBottom: 6 },
+  wordRoman: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    marginBottom: 6,
+  },
   wordEnglish: { fontSize: 14, fontWeight: "500", color: Sketch.inkMuted },
+
+  emptyState: {
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 2.5,
+    borderColor: Sketch.ink,
+    borderRadius: 14,
+    padding: 20,
+    alignItems: "center",
+    marginTop: 16,
+    ...sketchShadow(3),
+  },
+
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: Sketch.ink,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+
+  emptyText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    textAlign: "center",
+    lineHeight: 18,
+  },
 });

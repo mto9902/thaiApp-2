@@ -1,9 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc --noEmit)",
-      "Bash(grep -l \"checkAuth\\\\|router.replace.*login\" app/**/*.tsx)",
-      "Bash(grep -n \"192.168.1.121:3000\" /c/Users/Lux/thai-generator/thaiApp-2/app/practice/[id]/PracticeCSV.tsx)"
+      "Bash(grep -r vocab/review /c/Users/Lux/thai-generator/thaiApp-2 --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(grep -r \"romanization\\\\|romanize\" /c/Users/Lux/thai-generator/thaiApp-2 --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(grep -n \"CREATE TABLE.*user_vocab\\\\|romanization\" /c/Users/Lux/thai-generator/ai-server/*.sql)",
+      "Bash(xargs grep:*)",
+      "WebSearch"
     ]
   }
 }

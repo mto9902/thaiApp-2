@@ -7,6 +7,7 @@ import { API_BASE } from "../../src/config";
 export default function DebugReview() {
   const [question, setQuestion] = useState<any>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [showRoman, setShowRoman] = useState(false);
 
   useEffect(() => {
     loadQuestion();
@@ -42,7 +43,7 @@ export default function DebugReview() {
       setFeedback("Try again");
     }
 
-    await submitVocabAnswer(question.thai, isCorrect);
+    await submitVocabAnswer(question.thai, isCorrect ? "good" : "again");
 
     if (isCorrect) {
       setTimeout(() => {
@@ -60,7 +61,35 @@ export default function DebugReview() {
 
   return (
     <SafeAreaView style={{ padding: 20 }}>
-      <Text style={{ fontSize: 32, marginBottom: 30 }}>{question.thai}</Text>
+      <View
+        style={{
+          marginBottom: 30,
+        }}
+      >
+        <Text style={{ fontSize: 32 }}>{question.thai}</Text>
+        {showRoman && question.romanization ? (
+          <Text style={{ fontSize: 18, marginTop: 6, opacity: 0.8 }}>
+            {question.romanization}
+          </Text>
+        ) : null}
+      </View>
+
+      <TouchableOpacity
+        onPress={() => setShowRoman((v) => !v)}
+        style={{
+          alignSelf: "flex-start",
+          paddingVertical: 8,
+          paddingHorizontal: 14,
+          borderWidth: 2,
+          borderColor: "black",
+          borderRadius: 8,
+          marginBottom: 20,
+        }}
+      >
+        <Text style={{ fontSize: 14, fontWeight: "700" }}>
+          {showRoman ? "Hide Romanization" : "Show Romanization"}
+        </Text>
+      </TouchableOpacity>
 
       {question.choices.map((choice: string, i: number) => (
         <TouchableOpacity

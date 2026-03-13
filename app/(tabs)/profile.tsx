@@ -2,7 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
@@ -13,6 +19,7 @@ import { clearAuthState, isGuestUser } from "../../src/utils/auth";
 export default function Profile() {
   const [userId, setUserId] = useState<number | null>(null);
   const [progress, setProgress] = useState<any>(null);
+  const [vocabStats, setVocabStats] = useState<any>(null);
   const [isGuest, setIsGuest] = useState(false);
 
   const router = useRouter();
@@ -23,6 +30,7 @@ export default function Profile() {
       if (!g) {
         loadUser();
         loadProgress();
+        loadVocabStats();
       }
     });
   }, []);
@@ -47,6 +55,19 @@ export default function Profile() {
     }
   }
 
+  async function loadVocabStats() {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/vocab/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setVocabStats(data);
+    } catch (err) {
+      console.error("Failed to load vocab stats:", err);
+    }
+  }
+
   async function logout() {
     await clearAuthState();
     router.replace("/login");
@@ -55,7 +76,11 @@ export default function Profile() {
   if (isGuest) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-        <Header title="Profile" onBack={() => router.back()} showSettings={false} />
+        <Header
+          title="Profile"
+          onBack={() => router.back()}
+          showSettings={false}
+        />
         <View style={styles.centerWrap}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>?</Text>
@@ -74,7 +99,11 @@ export default function Profile() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-      <Header title="Profile" onBack={() => router.back()} showSettings={false} />
+      <Header
+        title="Profile"
+        onBack={() => router.back()}
+        showSettings={false}
+      />
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.profileCard}>
@@ -88,14 +117,18 @@ export default function Profile() {
         </View>
 
         {/* Daily Progress */}
-        <Text style={styles.sectionLabel}>TODAY'S PROGRESS</Text>
+        <Text style={styles.sectionLabel}>{"TODAY'S PROGRESS"}</Text>
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: Sketch.yellowLight }]}>
-            <Text style={styles.statNum}>{progress?.reviews_today || 0}</Text>
-            <Text style={styles.statLabel}>Reviews</Text>
+          <View
+            style={[styles.statCard, { backgroundColor: Sketch.yellowLight }]}
+          >
+            <Text style={styles.statNum}>{vocabStats?.reviews_due || 0}</Text>
+            <Text style={styles.statLabel}>Reviews Due</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#D4EDDA" }]}>
-            <Text style={styles.statNum}>{progress?.words_learned_today || 0}</Text>
+            <Text style={styles.statNum}>
+              {progress?.words_learned_today || 0}
+            </Text>
             <Text style={styles.statLabel}>Learned</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#E8D5F5" }]}>

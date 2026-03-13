@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
   Modal,
+  Pressable,
   StyleSheet,
   Switch,
   Text,
@@ -64,6 +65,7 @@ export default function Header({
       ttsSpeed: (speed as SettingsState["ttsSpeed"]) || "slow",
     };
     setSettings(s);
+    onSettingsChange?.(s);
   }
 
   function updateSetting<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
@@ -111,12 +113,11 @@ export default function Header({
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <TouchableOpacity
+        <Pressable
           style={styles.backdrop}
-          activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
-          <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Settings</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -190,8 +191,8 @@ export default function Header({
                 ))}
               </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

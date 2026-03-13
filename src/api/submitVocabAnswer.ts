@@ -3,8 +3,7 @@ import { API_BASE } from "../config";
 
 export async function submitVocabAnswer(
   thai: string,
-  correct: boolean,
-  responseMs?: number,
+  grade: "again" | "hard" | "good" | "easy",
 ) {
   const token = await AsyncStorage.getItem("token");
 
@@ -14,7 +13,7 @@ export async function submitVocabAnswer(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ thai, correct, responseMs }),
+    body: JSON.stringify({ thai, grade }),
   });
 
   return res.json();

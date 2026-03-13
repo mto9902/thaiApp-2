@@ -153,6 +153,7 @@ export default function PracticeCSV() {
   const [showRoman, setShowRoman] = useState(true);
   const [showEnglish, setShowEnglish] = useState(true);
   const [autoplayTTS, setAutoplayTTS] = useState(true);
+  const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
@@ -181,6 +182,7 @@ export default function PracticeCSV() {
     setShowRoman(s.showRoman);
     setShowEnglish(s.showEnglish);
     setAutoplayTTS(s.autoplayTTS);
+    setTtsSpeed(s.ttsSpeed);
   }
 
   useEffect(() => {
@@ -223,17 +225,22 @@ export default function PracticeCSV() {
   async function trackWords(
     wordsToTrack: SentenceData["breakdown"],
     trigger: string,
+    romanTokensForWords?: string[],
   ) {
     const guest = await isGuestUser();
     if (guest) return;
     try {
+      const enriched = wordsToTrack.map((w, i) => ({
+        ...w,
+        romanization: romanTokensForWords?.[i] || "",
+      }));
       await fetch(`${API_BASE}/track-words`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ words: wordsToTrack }),
+        body: JSON.stringify({ words: enriched }),
       });
     } catch (err) {
       console.error("[SRS] trackWords failed:", err);
@@ -341,7 +348,7 @@ export default function PracticeCSV() {
     setResult(ok ? "correct" : "wrong");
     saveRound(grammarObject().id, ok);
     if (ok) {
-      trackWords(breakdown, "wordScraps-correct");
+      trackWords(breakdown, "wordScraps-correct", romanTokens);
       setTimeout(() => fetchRound(randomMode()), 1200);
     }
   }
@@ -355,14 +362,15 @@ export default function PracticeCSV() {
     setResult(ok ? "correct" : "wrong");
     saveRound(grammarObject().id, ok);
     if (ok) {
-      trackWords(breakdown, "matchThai-correct");
+      trackWords(breakdown, "matchThai-correct", romanTokens);
       setTimeout(() => fetchRound(randomMode()), 1400);
     }
   }
 
+  const TTS_RATE: Record<string, number> = { slow: 0.7, normal: 1.0, fast: 1.3 };
   const speak = (t: string) => {
     Speech.stop();
-    Speech.speak(t, { language: "th-TH", rate: 0.9 });
+    Speech.speak(t, { language: "th-TH", rate: TTS_RATE[ttsSpeed] || 0.7 });
   };
 
   const freeTileCount = prefilled.filter((s) => s === null).length;
@@ -462,7 +470,7 @@ export default function PracticeCSV() {
                 <TouchableOpacity
                   style={st.primaryBtn}
                   onPress={() => {
-                    trackWords(breakdown, "breakdown-next");
+                    trackWords(breakdown, "breakdown-next", romanTokens);
                     saveRound(grammarObject().id, true);
                     fetchRound(randomMode());
                   }}

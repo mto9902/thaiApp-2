@@ -13,17 +13,29 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Sketch, sketchShadow } from "@/constants/theme";
 import { submitVocabAnswer } from "../../src/api/submitVocabAnswer";
-import Header from "../../src/components/Header";
+import Header, { SettingsState } from "../../src/components/Header";
 import { API_BASE } from "../../src/config";
 import { isGuestUser } from "../../src/utils/auth";
-import { Sketch, sketchShadow } from "@/constants/theme";
 
 type ReviewCard = {
   thai: string;
   correct: string;
   choices: string[];
-  progress: { totalCards: number; cardsRemaining: number; correctNeeded: number };
+  state: string;
+  counts: {
+    newCount: number;
+    learningCount: number;
+    reviewCount: number;
+  };
+  romanization?: string;
+  intervalPreviews?: {
+    again: number;
+    hard: number;
+    good: number;
+    easy: number;
+  };
 };
 
 type SessionSummary = {
@@ -44,17 +56,27 @@ type AnswerResult = {
 };
 
 function formatInterval(days: number): string {
-  if (days < 1) return "< 1 min";
-  if (days === 1) return "1 day";
-  if (days < 30) return `${Math.round(days)} days`;
-  const months = Math.round(days / 30);
-  return months === 1 ? "1 month" : `${months} months`;
+  if (days <= 0) return "< 1m";
+  const totalMins = Math.round(days * 1440);
+  if (totalMins < 1) return "< 1m";
+  if (totalMins < 60) return `${totalMins}m`;
+  if (totalMins < 1440) {
+    const hrs = Math.round(totalMins / 60);
+    return `${hrs}h`;
+  }
+  if (days < 30) {
+    const d = Math.round(days);
+    return d === 1 ? "1d" : `${d}d`;
+  }
+  if (days < 365) {
+    const months = Math.round(days / 30);
+    return months === 1 ? "1mo" : `${months}mo`;
+  }
+  const years = Math.round(days / 365 * 10) / 10;
+  return years === 1 ? "1y" : `${years}y`;
 }
 
-function speak(text: string) {
-  Speech.stop();
-  Speech.speak(text, { language: "th-TH", rate: 0.8 });
-}
+const TTS_RATE: Record<string, number> = { slow: 0.7, normal: 1.0, fast: 1.3 };
 
 export default function ReviewScreen() {
   const router = useRouter();
@@ -64,24 +86,45 @@ export default function ReviewScreen() {
   const [revealed, setRevealed] = useState(false);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [feedback, setFeedback] = useState<AnswerResult | null>(null);
-  const [feedbackType, setFeedbackType] = useState<"promoted" | "lapsed" | null>(null);
+  const [feedbackType, setFeedbackType] = useState<
+    "promoted" | "lapsed" | null
+  >(null);
   const [cardsReviewed, setCardsReviewed] = useState(0);
   const [streak, setStreak] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
-  const [intervalPreviews, setIntervalPreviews] = useState<{
-    again: string; hard: string; good: string; easy: string;
-  }>({ again: "< 1 min", hard: "~1 day", good: "~3 days", easy: "~7 days" });
+  const [waitingMs, setWaitingMs] = useState(0);
 
   const revealAnim = useRef(new Animated.Value(0)).current;
   const feedbackAnim = useRef(new Animated.Value(0)).current;
+  const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { init(); }, []);
+  const [showRoman, setShowRoman] = useState(true);
+  const [showEnglish, setShowEnglish] = useState(true);
+  const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
+
+  function speak(text: string) {
+    Speech.stop();
+    Speech.speak(text, { language: "th-TH", rate: TTS_RATE[ttsSpeed] || 0.7 });
+  }
+
+  useEffect(() => {
+    init();
+    return () => {
+      if (waitTimerRef.current) clearTimeout(waitTimerRef.current);
+    };
+  }, []);
 
   async function init() {
     const guest = await isGuestUser();
     setIsGuest(guest);
     if (!guest) await loadCard();
     setLoading(false);
+  }
+
+  function handleSettingsChange(s: SettingsState) {
+    setShowRoman(s.showRoman);
+    setShowEnglish(s.showEnglish);
+    setTtsSpeed(s.ttsSpeed);
   }
 
   async function loadCard() {
@@ -91,8 +134,31 @@ export default function ReviewScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.done) { setSummary(data.summary); setCard(null); return; }
-      setCard(data);
+      if (data.done) {
+        setSummary(data.summary);
+        setCard(null);
+        return;
+      }
+      if (data.waiting) {
+        // Learning cards pending — poll until next is due
+        const nextDue = new Date(data.nextDueAt).getTime();
+        const waitMs = Math.max(nextDue - Date.now(), 1000);
+        setCard(null);
+        setWaitingMs(waitMs);
+        waitTimerRef.current = setTimeout(() => {
+          setWaitingMs(0);
+          loadCard();
+        }, Math.min(waitMs, 60000)); // poll at most every 60s
+        return;
+      }
+
+      setWaitingMs(0);
+      const normalized: ReviewCard = {
+        ...data,
+        romanization: data.romanization ?? (data as any).roman ?? "",
+      };
+
+      setCard(normalized);
       setRevealed(false);
       setFeedback(null);
       setFeedbackType(null);
@@ -105,48 +171,61 @@ export default function ReviewScreen() {
   function handleReveal() {
     setRevealed(true);
     if (card) speak(card.thai);
-    Animated.timing(revealAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+    Animated.timing(revealAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
   }
 
   async function handleRate(grade: "again" | "hard" | "good" | "easy") {
     if (!card) return;
-    const gradeMap = {
-      again: { correct: false, responseMs: undefined },
-      hard: { correct: true, responseMs: 9000 },
-      good: { correct: true, responseMs: 4000 },
-      easy: { correct: true, responseMs: 1000 },
-    };
-    const { correct, responseMs } = gradeMap[grade];
-    const result: AnswerResult = await submitVocabAnswer(card.thai, correct, responseMs);
+    const correct = grade !== "again";
+    const result: AnswerResult = await submitVocabAnswer(card.thai, grade);
     setFeedback(result);
-    setFeedbackType(result.promoted ? "promoted" : result.lapsed ? "lapsed" : null);
+    setFeedbackType(
+      result.promoted ? "promoted" : result.lapsed ? "lapsed" : null,
+    );
     setCardsReviewed((c) => c + 1);
-    if (correct) setStreak((s) => s + 1); else setStreak(0);
-    if (result.nextReviewDays) {
-      setIntervalPreviews({
-        again: "< 1 min",
-        hard: formatInterval(result.nextReviewDays * 0.5),
-        good: formatInterval(result.nextReviewDays),
-        easy: formatInterval(result.nextReviewDays * 1.5),
-      });
+    if (correct) {
+      setStreak((s) => s + 1);
+    } else {
+      setStreak(0);
     }
     feedbackAnim.setValue(1);
-    Animated.timing(feedbackAnim, { toValue: 0, duration: 600, delay: 400, useNativeDriver: true }).start(() => loadCard());
+    Animated.timing(feedbackAnim, {
+      toValue: 0,
+      duration: 600,
+      delay: 400,
+      useNativeDriver: true,
+    }).start(() => loadCard());
   }
 
   if (isGuest) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-        <Header title="Review" onBack={() => router.back()} />
+        <Header
+          title="Review"
+          onBack={() => router.back()}
+          onSettingsChange={handleSettingsChange}
+        />
         <View style={st.guestWrap}>
           <View style={st.guestIcon}>
-            <Ionicons name="lock-closed-outline" size={44} color={Sketch.inkFaint} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={44}
+              color={Sketch.inkFaint}
+            />
           </View>
           <Text style={st.guestTitle}>LOG IN TO REVIEW</Text>
           <Text style={st.guestSub}>
-            Vocabulary review uses spaced repetition which requires an account to track your progress.
+            Vocabulary review uses spaced repetition which requires an account
+            to track your progress.
           </Text>
-          <TouchableOpacity style={st.guestBtn} onPress={() => router.push("/login")}>
+          <TouchableOpacity
+            style={st.guestBtn}
+            onPress={() => router.push("/login")}
+          >
             <Text style={st.guestBtnText}>LOG IN</Text>
           </TouchableOpacity>
         </View>
@@ -157,7 +236,11 @@ export default function ReviewScreen() {
   if (loading) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-        <Header title="Review" onBack={() => router.back()} />
+        <Header
+          title="Review"
+          onBack={() => router.back()}
+          onSettingsChange={handleSettingsChange}
+        />
         <View style={st.center}>
           <ActivityIndicator size="large" color={Sketch.ink} />
         </View>
@@ -168,7 +251,11 @@ export default function ReviewScreen() {
   if (summary) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-        <Header title="Review" onBack={() => router.back()} />
+        <Header
+          title="Review"
+          onBack={() => router.back()}
+          onSettingsChange={handleSettingsChange}
+        />
         <View style={st.center}>
           <View style={st.summaryCard}>
             <Text style={st.summaryEmoji}>🎉</Text>
@@ -183,11 +270,15 @@ export default function ReviewScreen() {
                 <Text style={st.summaryLabel}>ACCURACY</Text>
               </View>
               <View style={st.summaryItem}>
-                <Text style={[st.summaryNum, { color: Sketch.green }]}>{summary.cardsPromoted}</Text>
+                <Text style={[st.summaryNum, { color: Sketch.green }]}>
+                  {summary.cardsPromoted}
+                </Text>
                 <Text style={st.summaryLabel}>PROMOTED</Text>
               </View>
               <View style={st.summaryItem}>
-                <Text style={[st.summaryNum, { color: Sketch.red }]}>{summary.cardsMissed}</Text>
+                <Text style={[st.summaryNum, { color: Sketch.red }]}>
+                  {summary.cardsMissed}
+                </Text>
                 <Text style={st.summaryLabel}>MISSED</Text>
               </View>
             </View>
@@ -200,10 +291,44 @@ export default function ReviewScreen() {
     );
   }
 
+  if (!card && waitingMs > 0) {
+    const waitSecs = Math.ceil(waitingMs / 1000);
+    const waitDisplay =
+      waitSecs >= 60
+        ? `${Math.ceil(waitSecs / 60)} min`
+        : `${waitSecs}s`;
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
+        <Header
+          title="Review"
+          onBack={() => router.back()}
+          onSettingsChange={handleSettingsChange}
+        />
+        <View style={st.center}>
+          <Text style={st.emptyText}>
+            Next card ready in ~{waitDisplay}
+          </Text>
+          <ActivityIndicator
+            size="small"
+            color={Sketch.inkMuted}
+            style={{ marginBottom: 16 }}
+          />
+          <TouchableOpacity style={st.homeBtn} onPress={() => router.back()}>
+            <Text style={st.homeBtnText}>BACK TO HOME</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!card) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-        <Header title="Review" onBack={() => router.back()} />
+        <Header
+          title="Review"
+          onBack={() => router.back()}
+          onSettingsChange={handleSettingsChange}
+        />
         <View style={st.center}>
           <Text style={st.emptyText}>No cards to review right now!</Text>
           <TouchableOpacity style={st.homeBtn} onPress={() => router.back()}>
@@ -214,22 +339,52 @@ export default function ReviewScreen() {
     );
   }
 
-  const totalCards = card.progress.totalCards;
-  const done = totalCards - card.progress.cardsRemaining;
-  const progressPct = totalCards > 0 ? (done / totalCards) * 100 : 0;
+  const { newCount = 0, learningCount = 0, reviewCount = 0 } = card.counts ?? {};
+  const currentState = card.state ?? "new";
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-      <Header title="Review" onBack={() => router.back()} showClose />
+      <Header
+        title="Review"
+        onBack={() => router.back()}
+        showClose
+        onSettingsChange={handleSettingsChange}
+      />
 
-      <View style={st.progressWrap}>
-        <View style={st.progressTrack}>
-          <View style={[st.progressFill, { width: `${progressPct}%` }]} />
+      <View style={st.countsWrap}>
+        <View style={st.countsRow}>
+          <Text
+            style={[
+              st.countNum,
+              { color: Sketch.blue },
+              currentState === "new" && st.countActive,
+            ]}
+          >
+            {newCount}
+          </Text>
+          <Text style={st.countPlus}>+</Text>
+          <Text
+            style={[
+              st.countNum,
+              { color: Sketch.orange },
+              (currentState === "learning" || currentState === "relearning") &&
+                st.countActive,
+            ]}
+          >
+            {learningCount}
+          </Text>
+          <Text style={st.countPlus}>+</Text>
+          <Text
+            style={[
+              st.countNum,
+              { color: Sketch.green },
+              currentState === "review" && st.countActive,
+            ]}
+          >
+            {reviewCount}
+          </Text>
         </View>
-        <View style={st.progressStats}>
-          <Text style={st.progressText}>{done}/{totalCards}</Text>
-          {streak > 2 && <Text style={st.streakText}>🔥 {streak}</Text>}
-        </View>
+        {streak > 2 && <Text style={st.streakText}>🔥 {streak}</Text>}
       </View>
 
       <View style={st.cardArea}>
@@ -240,7 +395,14 @@ export default function ReviewScreen() {
         >
           <Text style={st.thaiText}>{card.thai}</Text>
 
-          <TouchableOpacity style={st.speakerBtn} onPress={() => speak(card.thai)}>
+          {showRoman && card.romanization ? (
+            <Text style={st.romanText}>{card.romanization}</Text>
+          ) : null}
+
+          <TouchableOpacity
+            style={st.speakerBtn}
+            onPress={() => speak(card.thai)}
+          >
             <Ionicons name="volume-high" size={24} color={Sketch.ink} />
           </TouchableOpacity>
 
@@ -254,8 +416,18 @@ export default function ReviewScreen() {
           )}
 
           {feedbackType && (
-            <Animated.View style={[st.feedbackOverlay, { opacity: feedbackAnim }]}>
-              <Text style={[st.feedbackText, { color: feedbackType === "promoted" ? Sketch.green : Sketch.red }]}>
+            <Animated.View
+              style={[st.feedbackOverlay, { opacity: feedbackAnim }]}
+            >
+              <Text
+                style={[
+                  st.feedbackText,
+                  {
+                    color:
+                      feedbackType === "promoted" ? Sketch.green : Sketch.red,
+                  },
+                ]}
+              >
                 {feedbackType === "promoted" ? "PROMOTED ↑" : "LAPSED ↓"}
               </Text>
             </Animated.View>
@@ -263,14 +435,45 @@ export default function ReviewScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={st.toggleRow}>
+        <TouchableOpacity
+          onPress={() => setShowRoman((v) => !v)}
+          style={st.toggleBtn}
+        >
+          <Text style={st.toggleBtnText}>
+            {showRoman ? "Hide Romanization" : "Show Romanization"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {revealed && (
         <View style={st.ratingArea}>
-          {([
-            { grade: "again" as const, label: "AGAIN", color: Sketch.red, interval: intervalPreviews.again },
-            { grade: "hard" as const, label: "HARD", color: Sketch.orange, interval: intervalPreviews.hard },
-            { grade: "good" as const, label: "GOOD", color: Sketch.green, interval: intervalPreviews.good },
-            { grade: "easy" as const, label: "EASY", color: Sketch.blue, interval: intervalPreviews.easy },
-          ]).map((item) => (
+          {[
+            {
+              grade: "again" as const,
+              label: "AGAIN",
+              color: Sketch.red,
+              interval: formatInterval(card.intervalPreviews?.again ?? 0),
+            },
+            {
+              grade: "hard" as const,
+              label: "HARD",
+              color: Sketch.orange,
+              interval: formatInterval(card.intervalPreviews?.hard ?? 0),
+            },
+            {
+              grade: "good" as const,
+              label: "GOOD",
+              color: Sketch.green,
+              interval: formatInterval(card.intervalPreviews?.good ?? 0),
+            },
+            {
+              grade: "easy" as const,
+              label: "EASY",
+              color: Sketch.blue,
+              interval: formatInterval(card.intervalPreviews?.easy ?? 0),
+            },
+          ].map((item) => (
             <TouchableOpacity
               key={item.grade}
               style={[st.rateBtn, { backgroundColor: item.color }]}
@@ -288,23 +491,48 @@ export default function ReviewScreen() {
 
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-
-  progressWrap: { paddingHorizontal: 20, paddingTop: 10 },
-  progressTrack: {
-    height: 10,
-    backgroundColor: Sketch.inkFaint,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    overflow: "hidden",
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  progressFill: { height: "100%", backgroundColor: Sketch.orange },
-  progressStats: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
-  progressText: { fontSize: 12, fontWeight: "900", color: Sketch.inkMuted },
+
+  countsWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  countsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  countNum: {
+    fontSize: 16,
+    fontWeight: "900",
+    opacity: 0.5,
+  },
+  countActive: {
+    opacity: 1,
+    fontSize: 20,
+    textDecorationLine: "underline",
+  },
+  countPlus: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Sketch.inkFaint,
+  },
   streakText: { fontSize: 12, fontWeight: "900", color: Sketch.orange },
 
-  cardArea: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
+  cardArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
   flashcard: {
     backgroundColor: Sketch.cardBg,
     borderWidth: 2.5,
@@ -315,7 +543,21 @@ const st = StyleSheet.create({
     alignItems: "center",
     ...sketchShadow(6),
   },
-  thaiText: { fontSize: 48, fontWeight: "bold", textAlign: "center", marginBottom: 10, color: Sketch.ink },
+  thaiText: {
+    fontSize: 48,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 6,
+    color: Sketch.ink,
+  },
+  romanText: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    color: Sketch.inkMuted,
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
   speakerBtn: {
     width: 48,
     height: 48,
@@ -328,13 +570,49 @@ const st = StyleSheet.create({
     backgroundColor: Sketch.cardBg,
     ...sketchShadow(2),
   },
-  tapHint: { fontSize: 13, fontWeight: "900", color: Sketch.inkFaint, letterSpacing: 2, marginTop: 10 },
+  tapHint: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: Sketch.inkFaint,
+    letterSpacing: 2,
+    marginTop: 10,
+  },
   answerArea: { alignItems: "center", width: "100%" },
-  divider: { height: 2, backgroundColor: Sketch.inkFaint, width: "100%", marginVertical: 15 },
-  englishText: { fontSize: 26, fontWeight: "900", textAlign: "center", color: Sketch.ink },
+  divider: {
+    height: 2,
+    backgroundColor: Sketch.inkFaint,
+    width: "100%",
+    marginVertical: 15,
+  },
+  englishText: {
+    fontSize: 26,
+    fontWeight: "900",
+    textAlign: "center",
+    color: Sketch.ink,
+  },
 
   feedbackOverlay: { position: "absolute", top: 10, right: 15 },
   feedbackText: { fontSize: 14, fontWeight: "900", letterSpacing: 1 },
+
+  toggleRow: {
+    paddingHorizontal: 20,
+    marginBottom: 6,
+    alignItems: "flex-start",
+  },
+  toggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
+    borderRadius: 10,
+    backgroundColor: Sketch.cardBg,
+    ...sketchShadow(2),
+  },
+  toggleBtnText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: Sketch.ink,
+  },
 
   ratingArea: {
     flexDirection: "row",
@@ -353,7 +631,12 @@ const st = StyleSheet.create({
     ...sketchShadow(3),
   },
   rateBtnLabel: { fontSize: 12, fontWeight: "900", color: "white" },
-  rateBtnInterval: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.8)", marginTop: 2 },
+  rateBtnInterval: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 2,
+  },
 
   summaryCard: {
     backgroundColor: Sketch.cardBg,
@@ -366,7 +649,12 @@ const st = StyleSheet.create({
     ...sketchShadow(6),
   },
   summaryEmoji: { fontSize: 48, marginBottom: 10 },
-  summaryTitle: { fontSize: 20, fontWeight: "900", marginBottom: 20, color: Sketch.ink },
+  summaryTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    marginBottom: 20,
+    color: Sketch.ink,
+  },
   summaryGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -384,7 +672,13 @@ const st = StyleSheet.create({
     borderColor: Sketch.ink,
   },
   summaryNum: { fontSize: 22, fontWeight: "900", color: Sketch.ink },
-  summaryLabel: { fontSize: 10, fontWeight: "900", color: Sketch.inkMuted, letterSpacing: 1, marginTop: 2 },
+  summaryLabel: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
 
   homeBtn: {
     backgroundColor: Sketch.orange,
@@ -396,9 +690,20 @@ const st = StyleSheet.create({
     ...sketchShadow(4),
   },
   homeBtnText: { fontSize: 15, fontWeight: "900", color: Sketch.cardBg },
-  emptyText: { fontSize: 18, fontWeight: "700", color: Sketch.inkMuted, marginBottom: 20 },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    marginBottom: 20,
+  },
 
-  guestWrap: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30, gap: 12 },
+  guestWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 30,
+    gap: 12,
+  },
   guestIcon: {
     width: 80,
     height: 80,
@@ -411,7 +716,13 @@ const st = StyleSheet.create({
     marginBottom: 8,
   },
   guestTitle: { fontSize: 18, fontWeight: "900", color: Sketch.ink },
-  guestSub: { fontSize: 14, fontWeight: "500", color: Sketch.inkMuted, textAlign: "center", lineHeight: 20 },
+  guestSub: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+    textAlign: "center",
+    lineHeight: 20,
+  },
   guestBtn: {
     backgroundColor: Sketch.orange,
     borderWidth: 2.5,
