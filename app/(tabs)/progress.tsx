@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 
 import { Sketch } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
@@ -19,10 +20,44 @@ import {
 } from "../../src/data/grammarLevels";
 import { getAllProgress, GrammarProgressData } from "../../src/utils/grammarProgress";
 
+function ProgressRing({ percent, size = 72, strokeWidth = 6 }: { percent: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={Sketch.inkFaint}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={Sketch.orange}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          rotation="-90"
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <Text style={styles.ringPercent}>{percent}%</Text>
+    </View>
+  );
+}
+
 export default function GrammarScreen() {
   const router = useRouter();
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
-  const [expandedLevel, setExpandedLevel] = useState<CefrLevel | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -30,7 +65,6 @@ export default function GrammarScreen() {
     }, [])
   );
 
-  // Compute overall stats
   const totalPoints = grammarPoints.length;
   const totalPracticed = grammarPoints.filter((g) => progress[g.id]).length;
   const overallPercent = totalPoints > 0 ? Math.round((totalPracticed / totalPoints) * 100) : 0;
@@ -42,97 +76,51 @@ export default function GrammarScreen() {
 
         <View style={styles.spacing} />
 
-        {/* Overall progress summary */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryTop}>
-            <Text style={styles.summaryPercent}>{overallPercent}%</Text>
-            <Text style={styles.summaryLabel}>overall progress</Text>
-          </View>
-          <View style={styles.summaryBarContainer}>
-            <View style={styles.summaryBar}>
-              <View style={[styles.summaryBarFill, { width: `${overallPercent}%` }]} />
-            </View>
-            <Text style={styles.summaryCount}>{totalPracticed}/{totalPoints}</Text>
+        {/* Overall progress with ring */}
+        <View style={styles.summaryRow}>
+          <ProgressRing percent={overallPercent} />
+          <View style={styles.summaryText}>
+            <Text style={styles.summaryTitle}>Overall Progress</Text>
+            <Text style={styles.summarySubtitle}>
+              {totalPracticed} of {totalPoints} topics practiced
+            </Text>
           </View>
         </View>
 
-        <View style={styles.spacing} />
+        <View style={styles.spacingLg} />
 
-        {CEFR_LEVELS.map((level) => {
-          const meta = CEFR_LEVEL_META[level];
-          const points = grammarPoints.filter((g) => g.level === level);
-          const practiced = points.filter((g) => progress[g.id]).length;
-          const percentage = points.length > 0 ? Math.round((practiced / points.length) * 100) : 0;
-          const isExpanded = expandedLevel === level;
+        {/* 2x2 Grid */}
+        <View style={styles.grid}>
+          {CEFR_LEVELS.map((level) => {
+            const meta = CEFR_LEVEL_META[level];
+            const points = grammarPoints.filter((g) => g.level === level);
+            const practiced = points.filter((g) => progress[g.id]).length;
+            const percentage = points.length > 0 ? Math.round((practiced / points.length) * 100) : 0;
 
-          return (
-            <View key={level} style={styles.levelCard}>
+            return (
               <TouchableOpacity
-                style={styles.levelHeader}
-                onPress={() => setExpandedLevel(isExpanded ? null : level)}
+                key={level}
+                style={styles.gridTile}
+                onPress={() => router.push(`/practice/CSVGrammarIndex?level=${level}` as any)}
                 activeOpacity={0.7}
               >
-                <View style={styles.levelHeaderTop}>
-                  <View style={styles.levelBadgeRow}>
-                    <View style={styles.levelBadge}>
-                      <Text style={styles.levelBadgeText}>{level}</Text>
-                    </View>
-                    <View style={styles.levelTitleBlock}>
-                      <Text style={styles.levelTitle}>{meta.homeTitle}</Text>
-                      <Text style={styles.levelSubtitle}>
-                        {practiced}/{points.length} completed
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.levelRight}>
-                    <Text style={styles.levelPercent}>{percentage}%</Text>
-                    <Ionicons
-                      name={isExpanded ? "chevron-up" : "chevron-down"}
-                      size={16}
-                      color={Sketch.inkMuted}
-                    />
+                <Text style={styles.tileLevel}>{level}</Text>
+                <Text style={styles.tileTitle} numberOfLines={2}>{meta.homeTitle}</Text>
+
+                <View style={styles.tileProgressRow}>
+                  <View style={styles.tileProgressBar}>
+                    <View style={[styles.tileProgressFill, { width: `${percentage}%` }]} />
                   </View>
                 </View>
 
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${percentage}%` },
-                      ]}
-                    />
-                  </View>
+                <View style={styles.tileFooter}>
+                  <Text style={styles.tilePercent}>{percentage}%</Text>
+                  <Text style={styles.tileCount}>{practiced}/{points.length}</Text>
                 </View>
               </TouchableOpacity>
-
-              {isExpanded && (
-                <View style={styles.pointsList}>
-                  {points.map((point, idx) => {
-                    const p = progress[point.id];
-                    const isLast = idx === points.length - 1;
-                    return (
-                      <TouchableOpacity
-                        key={point.id}
-                        style={[styles.pointRow, isLast && styles.pointRowLast]}
-                        onPress={() => router.push(`/practice/${point.id}` as any)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.pointLeft}>
-                          <View style={[styles.pointDot, p && styles.pointDotDone]} />
-                          <Text style={[styles.pointText, p && styles.pointPracticed]}>
-                            {point.title}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -152,177 +140,109 @@ const styles = StyleSheet.create({
   spacing: {
     height: 20,
   },
+  spacingLg: {
+    height: 24,
+  },
   pageTitle: {
     fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
   },
-  // Summary Card
-  summaryCard: {
-    backgroundColor: Sketch.orangeDark,
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
-  },
-  summaryTop: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-  },
-  summaryPercent: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.7)",
-  },
-  summaryBarContainer: {
+  // Summary
+  summaryRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-  },
-  summaryBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  summaryBarFill: {
-    height: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 3,
-  },
-  summaryCount: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.7)",
-  },
-  // Level Cards
-  levelCard: {
-    backgroundColor: Sketch.cardBg,
+    gap: 18,
+    backgroundColor: Sketch.paperDark,
     borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    marginBottom: 12,
+  },
+  summaryText: {
+    flex: 1,
+    gap: 4,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  summarySubtitle: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+  },
+  ringPercent: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.orange,
+  },
+  // Grid
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  gridTile: {
+    width: "48%",
+    flexGrow: 1,
+    flexBasis: "45%",
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
-    overflow: "hidden",
-  },
-  levelHeader: {
-    padding: 16,
-    gap: 12,
-  },
-  levelHeaderTop: {
-    flexDirection: "row",
+    gap: 8,
     justifyContent: "space-between",
-    alignItems: "center",
+    minHeight: 130,
   },
-  levelBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  levelBadge: {
-    backgroundColor: Sketch.orange + "15",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  levelBadgeText: {
+  tileLevel: {
     fontSize: 12,
     fontWeight: "700",
     color: Sketch.orange,
     letterSpacing: 0.5,
   },
-  levelTitleBlock: {
-    flex: 1,
-    gap: 2,
-  },
-  levelTitle: {
-    fontSize: 15,
+  tileTitle: {
+    fontSize: 14,
     fontWeight: "600",
     color: Sketch.ink,
-  },
-  levelSubtitle: {
-    fontSize: 12,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-  },
-  levelRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  levelPercent: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Sketch.orange,
-  },
-  progressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  progressBar: {
+    lineHeight: 19,
     flex: 1,
+  },
+  tileProgressRow: {
+    marginTop: 4,
+  },
+  tileProgressBar: {
     height: 5,
     backgroundColor: Sketch.paperDark,
     borderRadius: 3,
     overflow: "hidden",
   },
-  progressFill: {
+  tileProgressFill: {
     height: "100%",
     borderRadius: 3,
     backgroundColor: Sketch.orange,
   },
-  // Expanded Points List
-  pointsList: {
-    borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paperDark,
-  },
-  pointRow: {
+  tileFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
   },
-  pointRowLast: {
-    borderBottomWidth: 0,
-  },
-  pointLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  pointDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Sketch.inkFaint,
-  },
-  pointDotDone: {
-    backgroundColor: Sketch.orange,
-  },
-  pointText: {
+  tilePercent: {
     fontSize: 14,
-    fontWeight: "400",
-    color: Sketch.ink,
+    fontWeight: "700",
+    color: Sketch.orange,
   },
-  pointPracticed: {
-    color: Sketch.inkLight,
+  tileCount: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
   },
 });
