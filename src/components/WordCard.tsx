@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 
 interface WordCardProps {
   thai: string;
@@ -9,6 +9,7 @@ interface WordCardProps {
   backgroundColor: string;
   rotation?: number;
   isGrammar?: boolean;
+  toneColor?: string;
   onPress?: () => void;
 }
 
@@ -19,6 +20,7 @@ export default function WordCard({
   backgroundColor,
   rotation = 0,
   isGrammar = false,
+  toneColor,
   onPress,
 }: WordCardProps) {
   return (
@@ -31,6 +33,9 @@ export default function WordCard({
       onPress={onPress}
       activeOpacity={0.8}
     >
+      {toneColor && (
+        <View style={[styles.toneDot, { backgroundColor: toneColor }]} />
+      )}
       {isGrammar && (
         <View style={styles.grammarBadge}>
           <Text style={styles.grammarBadgeIcon}>*</Text>
@@ -48,21 +53,20 @@ export default function WordCard({
 const styles = StyleSheet.create({
   card: {
     padding: 12,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     minWidth: 90,
     minHeight: 90,
     margin: 5,
-    ...sketchShadow(3),
   },
 
   grammarCard: {
     borderStyle: "dashed",
-    borderWidth: 2.5,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderWidth: 1.5,
+    borderColor: Sketch.inkFaint,
   },
 
   grammarBadge: {
@@ -74,13 +78,24 @@ const styles = StyleSheet.create({
   grammarBadgeIcon: {
     fontSize: 14,
     fontWeight: "900",
-    color: "white",
+    color: Sketch.ink,
+  },
+
+  toneDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.4)",
   },
 
   thaiText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "white",
+    color: Sketch.ink,
     marginBottom: 4,
     textAlign: "center",
   },
@@ -88,8 +103,8 @@ const styles = StyleSheet.create({
   romanText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#fff",
-    opacity: 0.85,
+    color: Sketch.inkMuted,
+    opacity: 0.9,
     marginBottom: 3,
     textAlign: "center",
     letterSpacing: 0.3,
@@ -97,8 +112,8 @@ const styles = StyleSheet.create({
 
   englishText: {
     fontSize: 11,
-    fontWeight: "900",
-    color: "white",
+    fontWeight: "700",
+    color: Sketch.inkLight,
     opacity: 0.9,
     textAlign: "center",
   },

@@ -439,7 +439,6 @@ export default function PracticeCSV() {
                         key={i}
                         style={[
                           st.studyTile,
-                          { backgroundColor: toneColor(w.tone) },
                           w.grammar && st.grammarTile,
                         ]}
                         onPress={() => autoplayTTS && speak(w.thai)}
@@ -450,17 +449,22 @@ export default function PracticeCSV() {
                             <Text style={st.grammarBadgeIcon}>*</Text>
                           </View>
                         )}
-                        <Text style={st.studyTileThai}>{w.thai}</Text>
+                        <View style={st.studyTileHeader}>
+                          <Text style={st.studyTileThai}>{w.thai}</Text>
+                          {w.tone && (
+                            <View
+                              style={[
+                                st.toneDot,
+                                { backgroundColor: toneColor(w.tone) },
+                              ]}
+                            />
+                          )}
+                        </View>
                         {showRoman && romanTokens[i] ? (
                           <Text style={st.studyTileRoman}>{romanTokens[i]}</Text>
                         ) : null}
                         {showEnglish && (
                           <Text style={st.studyTileEng}>{w.english.toUpperCase()}</Text>
-                        )}
-                        {w.tone && (
-                          <View style={st.tonePill}>
-                            <Text style={st.tonePillText}>{w.tone}</Text>
-                          </View>
                         )}
                       </TouchableOpacity>
                     ))}
@@ -476,7 +480,7 @@ export default function PracticeCSV() {
                   }}
                   activeOpacity={0.85}
                 >
-                  <Text style={st.primaryBtnText}>Got it — Next →</Text>
+                  <Text style={st.primaryBtnText}>Continue</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -537,9 +541,8 @@ export default function PracticeCSV() {
 
                 {result !== "" && (
                   <View style={[st.resultBanner, result === "correct" ? st.resultOk : st.resultBad]}>
-                    <Text style={st.resultEmoji}>{result === "correct" ? "🎉" : "😅"}</Text>
                     <Text style={[st.resultLabel, { color: result === "correct" ? Sketch.green : Sketch.red }]}>
-                      {result === "correct" ? "Correct!" : "Not quite — try again"}
+                      {result === "correct" ? "Correct" : "Incorrect"}
                     </Text>
                   </View>
                 )}
@@ -560,7 +563,8 @@ export default function PracticeCSV() {
                       thai={word.thai}
                       english={showEnglish ? word.english : ""}
                       romanization={showRoman ? word.roman : ""}
-                      backgroundColor={word.color}
+                      backgroundColor={Sketch.cardBg}
+                      toneColor={word.color}
                       rotation={word.rotation}
                       isGrammar={word.isGrammar}
                       onPress={() => {
@@ -632,17 +636,26 @@ export default function PracticeCSV() {
                               key={wi}
                               style={[
                                 st.optionTile,
-                                { backgroundColor: toneColor(w.tone) },
                                 w.grammar && st.grammarOptionTile,
                               ]}
                               onPress={() => autoplayTTS && speak(w.thai)}
                             >
-                              {w.grammar && (
-                                <View style={st.grammarBadgeSmall}>
-                                  <Text style={st.grammarBadgeSmallIcon}>*</Text>
-                                </View>
-                              )}
-                              <Text style={st.optionTileThai}>{w.thai}</Text>
+                              <View style={st.optionTileHeader}>
+                                <Text style={st.optionTileThai}>{w.thai}</Text>
+                                {w.tone && (
+                                  <View
+                                    style={[
+                                      st.toneDotSmall,
+                                      { backgroundColor: toneColor(w.tone) },
+                                    ]}
+                                  />
+                                )}
+                                {w.grammar && (
+                                  <View style={st.grammarBadgeSmall}>
+                                    <Text style={st.grammarBadgeSmallIcon}>*</Text>
+                                  </View>
+                                )}
+                              </View>
                               {showRoman && optRomanTokens[wi] ? (
                                 <Text style={st.optionTileRoman}>{optRomanTokens[wi]}</Text>
                               ) : null}
@@ -670,9 +683,8 @@ export default function PracticeCSV() {
 
                 {result !== "" && (
                   <View style={[st.resultBanner, result === "correct" ? st.resultOk : st.resultBad]}>
-                    <Text style={st.resultEmoji}>{result === "correct" ? "🎉" : "😅"}</Text>
                     <Text style={[st.resultLabel, { color: result === "correct" ? Sketch.green : Sketch.red }]}>
-                      {result === "correct" ? "Correct! Moving on..." : "Look carefully at each word"}
+                      {result === "correct" ? "Correct" : "Incorrect"}
                     </Text>
                   </View>
                 )}
@@ -722,8 +734,8 @@ const st = StyleSheet.create({
   loadingLabel: { fontSize: 14, color: Sketch.inkMuted, fontWeight: "600" },
 
   modeHeader: {
-    paddingHorizontal: 22,
-    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 18,
     paddingBottom: 4,
   },
   modeTagRow: {
@@ -733,89 +745,94 @@ const st = StyleSheet.create({
     marginBottom: 8,
   },
   modeTag: {
-    backgroundColor: Sketch.ink,
-    borderRadius: 6,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 999,
     paddingVertical: 4,
     paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   modeTagText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: Sketch.cardBg,
-    letterSpacing: 2,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 1.5,
   },
   modeTitle: {
-    fontSize: 22,
-    fontWeight: "900",
+    fontSize: 20,
+    fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -0.5,
+    letterSpacing: -0.2,
   },
 
   exerciseWrap: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 20,
     paddingTop: 18,
-    gap: 16,
+    gap: 18,
   },
 
   studyCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: 16,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    padding: 28,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 22,
     alignItems: "center",
-    ...sketchShadow(5),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   speakerBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Sketch.paperDark,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    ...sketchShadow(2),
+    marginBottom: 16,
   },
   speakerIcon: { fontSize: 18 },
   studySentence: {
-    fontSize: 28,
-    fontWeight: "900",
+    fontSize: 24,
+    fontWeight: "700",
     textAlign: "center",
     color: Sketch.ink,
-    lineHeight: 40,
+    lineHeight: 34,
     marginBottom: 6,
   },
   studyRoman: {
-    fontSize: 14,
+    fontSize: 13,
     color: Sketch.inkMuted,
     textAlign: "center",
     fontWeight: "500",
-    marginBottom: 18,
+    marginBottom: 16,
     letterSpacing: 0.3,
   },
   divider: {
-    width: 36,
+    width: 40,
     height: 2,
     backgroundColor: Sketch.inkFaint,
     borderRadius: 1,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   studyEnglish: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "500",
     color: Sketch.inkLight,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 22,
   },
 
   tileSection: { gap: 10 },
   tileSectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: "600",
     color: Sketch.inkMuted,
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   tileRow: {
     flexDirection: "row",
@@ -823,80 +840,95 @@ const st = StyleSheet.create({
     gap: 8,
   },
   studyTile: {
+    backgroundColor: Sketch.cardBg,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: "center",
+    paddingHorizontal: 14,
+    alignItems: "flex-start",
     minWidth: 64,
-    ...sketchShadow(2),
   },
-  studyTileThai: { fontSize: 20, fontWeight: "800", color: "#fff" },
+  studyTileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    width: "100%",
+  },
+  studyTileThai: { fontSize: 18, fontWeight: "700", color: Sketch.ink },
   studyTileRoman: {
     fontSize: 10,
-    fontWeight: "600",
-    color: "#fff",
-    opacity: 0.85,
-    marginTop: 2,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+    opacity: 0.9,
+    marginTop: 4,
     letterSpacing: 0.3,
   },
   studyTileEng: {
     fontSize: 9,
-    fontWeight: "700",
-    color: "#fff",
-    opacity: 0.8,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    opacity: 0.9,
     marginTop: 3,
-    letterSpacing: 0.5,
-  },
-  tonePill: {
-    marginTop: 5,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 4,
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-  },
-  tonePillText: {
-    fontSize: 8,
-    fontWeight: "700",
-    color: "#fff",
     letterSpacing: 0.5,
   },
 
   grammarTile: {
-    borderWidth: 2.5,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderWidth: 1.5,
+    borderColor: Sketch.inkFaint,
     borderStyle: "dashed",
   },
-  grammarBadge: { position: "absolute", top: 3, right: 3 },
-  grammarBadgeIcon: { fontSize: 12, fontWeight: "900", color: "white" },
+  grammarBadge: { position: "absolute", top: 4, right: 4 },
+  grammarBadgeIcon: { fontSize: 11, fontWeight: "800", color: Sketch.inkMuted },
 
   grammarOptionTile: {
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.8)",
+    borderColor: Sketch.inkFaint,
     borderStyle: "dashed",
   },
   grammarBadgeSmall: { position: "absolute", top: 1, right: 2 },
-  grammarBadgeSmallIcon: { fontSize: 10, fontWeight: "900", color: "white" },
+  grammarBadgeSmallIcon: { fontSize: 10, fontWeight: "900", color: Sketch.ink },
+
+  toneDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.2)",
+  },
+  toneDotSmall: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.2)",
+    marginLeft: 6,
+  },
 
   primaryBtn: {
     backgroundColor: Sketch.orange,
-    borderRadius: 12,
-    borderWidth: 2.5,
+    borderRadius: 14,
+    borderWidth: 2,
     borderColor: Sketch.ink,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: "center",
-    marginTop: 4,
-    ...sketchShadow(3),
+    marginTop: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   primaryBtnText: {
     fontSize: 15,
-    fontWeight: "900",
+    fontWeight: "700",
     color: Sketch.cardBg,
     letterSpacing: 0.3,
   },
   secondaryBtn: {
     backgroundColor: Sketch.cardBg,
+    borderColor: Sketch.inkFaint,
   },
   secondaryBtnText: {
     color: Sketch.inkLight,
@@ -905,24 +937,28 @@ const st = StyleSheet.create({
   promptCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: 14,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    ...sketchShadow(4),
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   promptLabel: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: "600",
     color: Sketch.inkMuted,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     marginBottom: 6,
   },
   promptText: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "600",
     color: Sketch.ink,
-    lineHeight: 26,
+    lineHeight: 24,
   },
 
   progressTrack: {
@@ -947,7 +983,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 18,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2.5,
+    borderWidth: 1,
     borderColor: Sketch.inkFaint,
     borderStyle: "dashed",
   },
@@ -1023,13 +1059,12 @@ const st = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    ...sketchShadow(2),
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   actionBtnText: {
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "600",
     color: Sketch.inkLight,
   },
 
@@ -1042,27 +1077,30 @@ const st = StyleSheet.create({
   resultBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "center",
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   resultOk: { backgroundColor: "#F0F9F2" },
   resultBad: { backgroundColor: "#FDF2F2" },
-  resultEmoji: { fontSize: 20 },
-  resultLabel: { fontSize: 14, fontWeight: "700" },
+  resultLabel: { fontSize: 13, fontWeight: "600" },
 
   optionsGrid: { gap: 10 },
   optionCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: 14,
-    borderWidth: 2.5,
+    borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 16,
     gap: 10,
-    ...sketchShadow(3),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   optionTiles: {
     flexDirection: "row",
@@ -1077,20 +1115,27 @@ const st = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: "center",
   },
-  optionTileThai: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  optionTileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+    width: "100%",
+  },
+  optionTileThai: { fontSize: 16, fontWeight: "800", color: Sketch.ink },
   optionTileRoman: {
     fontSize: 9,
     fontWeight: "600",
-    color: "#fff",
-    opacity: 0.85,
-    marginTop: 1,
+    color: Sketch.inkMuted,
+    opacity: 0.9,
+    marginTop: 2,
     letterSpacing: 0.3,
   },
   optionTileEng: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#fff",
-    opacity: 0.8,
+    color: Sketch.inkLight,
+    opacity: 0.9,
     marginTop: 1,
   },
 
