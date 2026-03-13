@@ -326,7 +326,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/review/" as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="sync-outline" size={22} color={Sketch.orange} />
+            <Ionicons name="albums-outline" size={22} color={Sketch.orange} />
             <Text style={styles.actionTileValue}>
               {reviewsDue > 0 ? reviewsDue : 0}
             </Text>
@@ -339,9 +339,9 @@ export default function HomeScreen() {
             onPress={() => router.push("/trainer" as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="construct-outline" size={22} color={Sketch.purple} />
-            <Text style={styles.actionTileTitle}>Trainer</Text>
-            <Text style={styles.actionTileLabel}>Build words</Text>
+            <Ionicons name="text-outline" size={22} color={Sketch.orange} />
+            <Text style={styles.actionTileTitle}>Alphabet Trainer</Text>
+            <Text style={styles.actionTileLabel}>Consonants & vowels</Text>
           </TouchableOpacity>
         </View>
 
