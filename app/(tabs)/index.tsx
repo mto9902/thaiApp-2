@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import KeystoneLogo from "../../src/components/KeystoneLogo";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVEL_META, CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
@@ -296,9 +297,13 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.appTitle}>Keystone</Text>
-          <Text style={styles.appSubtitle}>Your Thai learning ritual</Text>
+        {/* Branded Header */}
+        <View style={styles.brandHeader}>
+          <KeystoneLogo size={44} />
+          <View>
+            <Text style={styles.brandTitle}>Keystone</Text>
+            <Text style={styles.brandSubtitle}>Thai Grammar Blueprint</Text>
+          </View>
         </View>
 
         <View style={styles.spacing} />
@@ -402,6 +407,34 @@ export default function HomeScreen() {
 
         <View style={styles.spacing} />
 
+        {/* Alphabet Trainer */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="construct-outline" size={18} color={Sketch.ink} />
+            <Text style={styles.sectionTitle}>Alphabet Trainer</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.trainerCard}
+            onPress={() => router.push("/trainer" as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.trainerCardInner}>
+              <View style={styles.trainerIconWrap}>
+                <Ionicons name="construct-outline" size={24} color={Sketch.purple} />
+              </View>
+              <View style={styles.trainerCardText}>
+                <Text style={styles.trainerCardTitle}>Build practice words</Text>
+                <Text style={styles.trainerCardSub}>
+                  Combine consonants & vowels to generate real words
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Sketch.inkMuted} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.spacing} />
+
         {/* Quick Access */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -419,11 +452,6 @@ export default function HomeScreen() {
                 label: "Tones",
                 icon: "musical-notes-outline" as const,
                 route: "/tones/",
-              },
-              {
-                label: "Vowels",
-                icon: "ellipse-outline" as const,
-                route: "/vowels/",
               },
             ].map((item, i) => (
               <TouchableOpacity
@@ -458,23 +486,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
   },
-  header: {
+  spacing: {
+    height: 24,
+  },
+  // Branded Header
+  brandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     paddingVertical: 12,
   },
-  appTitle: {
-    fontSize: 32,
+  brandTitle: {
+    fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
   },
-  appSubtitle: {
-    fontSize: 14,
+  brandSubtitle: {
+    fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    marginTop: 4,
-  },
-  spacing: {
-    height: 24,
+    marginTop: 1,
   },
   // SRS Review Card
   reviewCard: {
@@ -618,6 +650,41 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
   startGrammarSub: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+  },
+  // Trainer Card
+  trainerCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+  },
+  trainerCardInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  trainerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Sketch.purple + "15",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  trainerCardText: {
+    flex: 1,
+    gap: 4,
+  },
+  trainerCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  trainerCardSub: {
     fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
