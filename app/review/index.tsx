@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -85,11 +85,9 @@ export default function ReviewScreen() {
   const [card, setCard] = useState<ReviewCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
-  const [feedback, setFeedback] = useState<AnswerResult | null>(null);
   const [feedbackType, setFeedbackType] = useState<
     "promoted" | "lapsed" | null
   >(null);
-  const [cardsReviewed, setCardsReviewed] = useState(0);
   const [streak, setStreak] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [waitingMs, setWaitingMs] = useState(0);
@@ -97,6 +95,7 @@ export default function ReviewScreen() {
   const revealAnim = useRef(new Animated.Value(0)).current;
   const feedbackAnim = useRef(new Animated.Value(0)).current;
   const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionAnsweredRef = useRef(false);
 
   const [showRoman, setShowRoman] = useState(true);
   const [showEnglish, setShowEnglish] = useState(true);
@@ -107,35 +106,27 @@ export default function ReviewScreen() {
     Speech.speak(text, { language: "th-TH", rate: TTS_RATE[ttsSpeed] || 0.7 });
   }
 
-  useEffect(() => {
-    init();
-    return () => {
-      if (waitTimerRef.current) clearTimeout(waitTimerRef.current);
-    };
-  }, []);
-
-  async function init() {
-    const guest = await isGuestUser();
-    setIsGuest(guest);
-    if (!guest) await loadCard();
-    setLoading(false);
-  }
-
   function handleSettingsChange(s: SettingsState) {
     setShowRoman(s.showRoman);
     setShowEnglish(s.showEnglish);
     setTtsSpeed(s.ttsSpeed);
   }
 
-  async function loadCard() {
+  const loadCard = useCallback(async () => {
     try {
+      if (waitTimerRef.current) {
+        clearTimeout(waitTimerRef.current);
+        waitTimerRef.current = null;
+      }
+
       const token = await AsyncStorage.getItem("token");
       const res = await fetch(`${API_BASE}/vocab/review`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.done) {
-        setSummary(data.summary);
+        setWaitingMs(0);
+        setSummary(sessionAnsweredRef.current ? data.summary : null);
         setCard(null);
         return;
       }
@@ -160,13 +151,26 @@ export default function ReviewScreen() {
 
       setCard(normalized);
       setRevealed(false);
-      setFeedback(null);
       setFeedbackType(null);
       revealAnim.setValue(0);
     } catch (err) {
       console.error("[Review] loadCard failed:", err);
     }
-  }
+  }, [revealAnim]);
+
+  const init = useCallback(async () => {
+    const guest = await isGuestUser();
+    setIsGuest(guest);
+    if (!guest) await loadCard();
+    setLoading(false);
+  }, [loadCard]);
+
+  useEffect(() => {
+    init();
+    return () => {
+      if (waitTimerRef.current) clearTimeout(waitTimerRef.current);
+    };
+  }, [init]);
 
   function handleReveal() {
     setRevealed(true);
@@ -181,12 +185,11 @@ export default function ReviewScreen() {
   async function handleRate(grade: "again" | "hard" | "good" | "easy") {
     if (!card) return;
     const correct = grade !== "again";
+    sessionAnsweredRef.current = true;
     const result: AnswerResult = await submitVocabAnswer(card.thai, grade);
-    setFeedback(result);
     setFeedbackType(
       result.promoted ? "promoted" : result.lapsed ? "lapsed" : null,
     );
-    setCardsReviewed((c) => c + 1);
     if (correct) {
       setStreak((s) => s + 1);
     } else {
@@ -411,7 +414,11 @@ export default function ReviewScreen() {
           ) : (
             <Animated.View style={[st.answerArea, { opacity: revealAnim }]}>
               <View style={st.divider} />
-              <Text style={st.englishText}>{card.correct}</Text>
+              {showEnglish ? (
+                <Text style={st.englishText}>{card.correct}</Text>
+              ) : (
+                <Text style={st.hiddenAnswerText}>ENGLISH HIDDEN</Text>
+              )}
             </Animated.View>
           )}
 
@@ -589,6 +596,12 @@ const st = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
     color: Sketch.ink,
+  },
+  hiddenAnswerText: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    color: Sketch.inkMuted,
   },
 
   feedbackOverlay: { position: "absolute", top: 10, right: 15 },

@@ -24,6 +24,7 @@ import LessonHeader from "../../../src/components/LessonHeader";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
+import { CEFR_LEVEL_META } from "../../../src/data/grammarLevels";
 import { isGuestUser } from "../../../src/utils/auth";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
@@ -36,7 +37,7 @@ const TONE_COLORS: Record<string, string> = {
 };
 
 function toneColor(tone?: string): string {
-  return TONE_COLORS[tone ?? ""] ?? "#5B9BD5";
+  return TONE_COLORS[tone ?? ""] ?? Sketch.inkMuted;
 }
 
 function speak(text: string) {
@@ -62,14 +63,7 @@ export default function GrammarDetail() {
     }, []),
   );
 
-  useEffect(() => {
-    if (id) {
-      isGuestUser().then(setIsGuest);
-      checkBookmark();
-    }
-  }, [id]);
-
-  async function checkBookmark() {
+  const checkBookmark = useCallback(async () => {
     try {
       const guest = await isGuestUser();
       if (guest) return;
@@ -83,7 +77,14 @@ export default function GrammarDetail() {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      isGuestUser().then(setIsGuest);
+      checkBookmark();
+    }
+  }, [checkBookmark, id]);
 
   async function toggleBookmark() {
     try {
@@ -121,11 +122,11 @@ export default function GrammarDetail() {
   const pattern = grammar.pattern || "PATTERN + HERE";
   const example = grammar.example || {
     thai: "ตัวอย่างประโยค",
-    roman: "tua-yàang bprà-yòohk",
+    roman: "tua-yang prayok",
     english: "Example sentence",
     breakdown: [
-      { thai: "ตัวอย่าง", english: "example" },
-      { thai: "ประโยค", english: "sentence" },
+      { thai: "ตัวอย่าง", english: "example", tone: "mid" },
+      { thai: "ประโยค", english: "sentence", tone: "mid" },
     ],
   };
 
@@ -137,7 +138,9 @@ export default function GrammarDetail() {
       <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleSection}>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>LEVEL {grammar.level}</Text>
+            <Text style={styles.levelText}>
+              {CEFR_LEVEL_META[grammar.level].label}
+            </Text>
           </View>
           <View style={styles.titleCard}>
             <Text style={styles.title}>{grammar.title.toUpperCase()}</Text>
@@ -414,3 +417,4 @@ const styles = StyleSheet.create({
   },
   ctaText: { fontSize: 20, fontWeight: "900", color: Sketch.cardBg },
 });
+

@@ -5,34 +5,40 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { grammarPoints } from "../../src/data/grammar";
+import {
+  CEFR_LEVEL_META,
+  CEFR_LEVELS,
+  CefrLevel,
+} from "../../src/data/grammarLevels";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
-const LEVEL_NAMES: Record<number, string> = {
-  1: "Beginner",
-  2: "Intermediate",
-  3: "Advanced",
+const LEVEL_COLORS: Record<CefrLevel, string> = {
+  A1: Sketch.green,
+  A2: Sketch.blue,
+  B1: Sketch.orange,
+  B2: Sketch.red,
+  C1: Sketch.purple,
+  C2: Sketch.pink,
 };
 
-const LEVEL_COLORS: Record<number, string> = {
-  1: Sketch.green,
-  2: Sketch.blue,
-  3: Sketch.red,
-};
-
-const LEVEL_ICONS: Record<number, keyof typeof Ionicons.glyphMap> = {
-  1: "leaf-outline",
-  2: "flame-outline",
-  3: "diamond-outline",
+const LEVEL_ICONS: Record<CefrLevel, keyof typeof Ionicons.glyphMap> = {
+  A1: "leaf-outline",
+  A2: "sparkles-outline",
+  B1: "trending-up-outline",
+  B2: "flash-outline",
+  C1: "library-outline",
+  C2: "diamond-outline",
 };
 
 function getLevels() {
-  const levelMap = new Map<number, number>();
+  const levelMap = new Map<CefrLevel, number>();
   for (const point of grammarPoints) {
     levelMap.set(point.level, (levelMap.get(point.level) || 0) + 1);
   }
-  return Array.from(levelMap.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([level, count]) => ({ level, count }));
+  return CEFR_LEVELS.filter((level) => levelMap.has(level)).map((level) => ({
+    level,
+    count: levelMap.get(level) || 0,
+  }));
 }
 
 export default function GrammarLevels() {
@@ -41,7 +47,7 @@ export default function GrammarLevels() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
-      <Header title="Grammar Levels" onBack={() => router.back()} />
+      <Header title="CEFR Grammar Levels" onBack={() => router.back()} />
 
       <FlatList
         data={levels}
@@ -57,11 +63,11 @@ export default function GrammarLevels() {
               router.push(`/practice/CSVGrammarIndex?level=${item.level}`)
             }
           >
-            <View style={styles.cardHeader}>
+              <View style={styles.cardHeader}>
               <View style={styles.textContainer}>
-                <Text style={styles.levelLabel}>LEVEL {item.level}</Text>
+                <Text style={styles.levelLabel}>CEFR {item.level}</Text>
                 <Text style={styles.grammarTitle}>
-                  {(LEVEL_NAMES[item.level] || `Level ${item.level}`).toUpperCase()}
+                  {CEFR_LEVEL_META[item.level].title.toUpperCase()}
                 </Text>
               </View>
 

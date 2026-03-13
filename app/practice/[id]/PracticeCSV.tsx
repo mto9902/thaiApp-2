@@ -34,7 +34,7 @@ const TONE_COLORS: Record<string, string> = {
 };
 
 function toneColor(tone?: string): string {
-  return TONE_COLORS[tone ?? ""] ?? "#5B9BD5";
+  return TONE_COLORS[tone ?? ""] ?? Sketch.inkMuted;
 }
 
 type Mode = "breakdown" | "wordScraps" | "matchThai";

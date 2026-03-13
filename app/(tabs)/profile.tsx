@@ -20,6 +20,7 @@ export default function Profile() {
   const [userId, setUserId] = useState<number | null>(null);
   const [progress, setProgress] = useState<any>(null);
   const [vocabStats, setVocabStats] = useState<any>(null);
+  const [reviewsDue, setReviewsDue] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
 
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function Profile() {
         loadUser();
         loadProgress();
         loadVocabStats();
+        loadReviewsDue();
       }
     });
   }, []);
@@ -52,6 +54,28 @@ export default function Profile() {
       setProgress(data);
     } catch (err) {
       console.error("Failed to load progress:", err);
+    }
+  }
+
+  async function loadReviewsDue() {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/vocab/review`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data?.done || data?.waiting) {
+        setReviewsDue(0);
+      } else {
+        const counts = data?.counts ?? {};
+        setReviewsDue(
+          (counts.newCount ?? 0) +
+          (counts.learningCount ?? 0) +
+          (counts.reviewCount ?? 0)
+        );
+      }
+    } catch {
+      setReviewsDue(0);
     }
   }
 
@@ -111,7 +135,7 @@ export default function Profile() {
         <Text style={styles.sectionTitle}>Today's Progress</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statNum}>{vocabStats?.reviews_due || 0}</Text>
+            <Text style={styles.statNum}>{reviewsDue}</Text>
             <Text style={styles.statLabel}>Reviews Due</Text>
           </View>
           <View style={styles.statCard}>

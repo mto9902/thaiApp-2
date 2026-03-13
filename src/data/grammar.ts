@@ -1,16 +1,21 @@
+import { CefrLevel } from "./grammarLevels";
+
+export type ToneName = "mid" | "low" | "falling" | "high" | "rising";
+
 export interface WordBreakdown {
   thai: string;
   english: string;
-  tone?: string;
+  tone: ToneName;
   grammar?: boolean;
 }
 
 export interface GrammarPoint {
   id: string;
   title: string;
-  level: number;
+  level: CefrLevel;
   explanation: string;
   pattern: string;
+  aiPrompt?: string;
   example: {
     thai: string;
     roman: string;
@@ -23,1313 +28,963 @@ export interface GrammarPoint {
   };
 }
 
-export const grammarPoints: GrammarPoint[] = [
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LEVEL 1 — BEGINNER (20 points)
-  // Core sentence building, basic tense, polarity, common patterns
-  // ═══════════════════════════════════════════════════════════════════════════
+function w(
+  thai: string,
+  english: string,
+  tone: ToneName,
+  grammar = false,
+): WordBreakdown {
+  return grammar ? { thai, english, tone, grammar: true } : { thai, english, tone };
+}
 
+// These CEFR assignments are app-level groupings inferred from CEFR descriptors
+// plus common Thai course sequencing used by learner programs. There is no single
+// official Thai CEFR grammar syllabus, so the upper-level groupings are curated.
+export const grammarPoints: GrammarPoint[] = [
+  // A1
   {
     id: "svo",
-    title: "Basic Sentence Order (SVO)",
-    level: 1,
+    title: "Basic Sentence Order",
+    level: "A1",
     explanation:
-      "Thai follows Subject-Verb-Object order, similar to English. This is the foundation of most Thai sentences.",
+      "Thai commonly follows a subject-verb-object pattern. This gives learners a reliable default shape for clear everyday statements.",
     pattern: "SUBJECT + VERB + OBJECT",
     example: {
-      thai: "ฉันซื้อเสื้อ",
-      roman: "chǎn sʉ́ʉ sʉ̂a",
-      english: "I buy a shirt.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "ซื้อ", english: "buy", tone: "high" },
-        { thai: "เสื้อ", english: "shirt", tone: "falling" },
-      ],
+      thai: "ฉันกินข้าว",
+      roman: "chan kin khao",
+      english: "I eat rice.",
+      breakdown: [w("ฉัน", "I", "rising"), w("กิน", "eat", "mid"), w("ข้าว", "rice", "falling")],
     },
     focus: {
-      particle: "SVO Order",
-      meaning: "The basic structure used in Thai sentences.",
+      particle: "SVO order",
+      meaning: "The basic building pattern for simple Thai statements.",
     },
   },
-
   {
     id: "negative-mai",
-    title: "Negation using ไม่",
-    level: 1,
+    title: "Negation with ไม่",
+    level: "A1",
     explanation:
-      "To make a sentence negative, place ไม่ (mâi) before the verb or adjective.",
-    pattern: "SUBJECT + ไม่ + VERB",
+      "Place ไม่ before a verb or adjective to make the meaning negative. It is one of the first high-frequency grammar markers learners need.",
+    pattern: "SUBJECT + ไม่ + VERB / ADJECTIVE",
     example: {
       thai: "ฉันไม่กินเผ็ด",
-      roman: "chǎn mâi gin phèt",
-      english: "I don't eat spicy food.",
+      roman: "chan mai kin phet",
+      english: "I do not eat spicy food.",
       breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "ไม่", english: "not", tone: "falling", grammar: true },
-        { thai: "กิน", english: "eat", tone: "mid" },
-        { thai: "เผ็ด", english: "spicy", tone: "low" },
+        w("ฉัน", "I", "rising"),
+        w("ไม่", "not", "low", true),
+        w("กิน", "eat", "mid"),
+        w("เผ็ด", "spicy", "low"),
       ],
     },
     focus: {
-      particle: "ไม่ (mâi)",
-      meaning: "Used before verbs or adjectives to negate them.",
+      particle: "ไม่",
+      meaning: "The core spoken negation marker used before verbs and adjectives.",
     },
   },
-
   {
     id: "question-mai",
-    title: "Yes/No Questions with ไหม",
-    level: 1,
+    title: "Yes or No Questions with ไหม",
+    level: "A1",
     explanation:
-      "To form a yes/no question, add ไหม (mǎi) at the end of a statement. Word order stays the same.",
+      "Add ไหม at the end of a statement to turn it into a yes or no question. Thai keeps the word order stable and changes the sentence with the final particle.",
     pattern: "STATEMENT + ไหม",
     example: {
-      thai: "คุณชอบอาหารไทยไหม",
-      roman: "khun chôrp aa-hǎan thai mǎi",
-      english: "Do you like Thai food?",
+      thai: "คุณว่างไหม",
+      roman: "khun wang mai",
+      english: "Are you free?",
       breakdown: [
-        { thai: "คุณ", english: "you", tone: "mid" },
-        { thai: "ชอบ", english: "like", tone: "falling" },
-        { thai: "อาหาร", english: "food", tone: "rising" },
-        { thai: "ไทย", english: "Thai", tone: "mid" },
-        { thai: "ไหม", english: "?", tone: "rising", grammar: true },
+        w("คุณ", "you", "mid"),
+        w("ว่าง", "free", "falling"),
+        w("ไหม", "question marker", "rising", true),
       ],
     },
     focus: {
-      particle: "ไหม (mǎi)",
-      meaning:
-        "Question particle added at the end of a sentence to form yes/no questions.",
+      particle: "ไหม",
+      meaning: "Sentence-final particle for yes or no questions.",
     },
   },
-
   {
     id: "polite-particles",
-    title: "Polite Particles ครับ / ค่ะ",
-    level: 1,
+    title: "Polite Particles ครับ / ค่ะ / คะ",
+    level: "A1",
     explanation:
-      "Thai adds polite particles at the end of sentences. Males use ครับ (khráp), females use ค่ะ (khâ) for statements or คะ (khá) for questions.",
-    pattern: "SENTENCE + ครับ / ค่ะ",
+      "Thai uses sentence-final politeness particles to manage tone and social warmth. These endings are central to natural beginner speech from the start.",
+    pattern: "SENTENCE + ครับ / ค่ะ / คะ",
     example: {
       thai: "ขอบคุณครับ",
-      roman: "khàwp khun khráp",
+      roman: "khop khun khrap",
       english: "Thank you. (male speaker)",
-      breakdown: [
-        { thai: "ขอบคุณ", english: "thank you", tone: "low" },
-        { thai: "ครับ", english: "(polite)", tone: "high", grammar: true },
-      ],
+      breakdown: [w("ขอบคุณ", "thank you", "low"), w("ครับ", "polite particle", "high", true)],
     },
     focus: {
-      particle: "ครับ / ค่ะ",
-      meaning:
-        "Polite sentence-ending particles. ครับ for males, ค่ะ for female statements, คะ for female questions.",
+      particle: "ครับ / ค่ะ / คะ",
+      meaning: "Sentence endings that add politeness and speaker stance.",
     },
   },
-
   {
     id: "adjectives",
-    title: "Adjectives (Stative Verbs)",
-    level: 1,
+    title: "Adjectives as Predicates",
+    level: "A1",
     explanation:
-      "In Thai, adjectives act as verbs — no 'to be' is needed. Place the adjective directly after the noun.",
+      "Thai adjectives can function like verbs, so no extra word for 'to be' is needed in simple descriptions. This helps learners form useful sentences very early.",
     pattern: "NOUN + ADJECTIVE",
     example: {
       thai: "อาหารอร่อย",
-      roman: "aa-hǎan a-ròi",
+      roman: "ahan aroi",
       english: "The food is delicious.",
-      breakdown: [
-        { thai: "อาหาร", english: "food", tone: "rising" },
-        { thai: "อร่อย", english: "delicious", tone: "low" },
-      ],
+      breakdown: [w("อาหาร", "food", "rising"), w("อร่อย", "delicious", "low")],
     },
     focus: {
-      particle: "No verb 'to be'",
-      meaning:
-        "Thai adjectives function as verbs. No copula is needed between noun and adjective.",
+      particle: "No copula",
+      meaning: "Thai often links a noun directly to an adjective without 'is'.",
     },
   },
-
   {
     id: "identity-pen",
-    title: "Identity — เป็น",
-    level: 1,
+    title: "Identity with เป็น",
+    level: "A1",
     explanation:
-      "เป็น (bpen) means 'to be' but only for identity, profession, or classification — not for adjectives. Use it to say what something or someone IS (a noun).",
+      "Use เป็น with nouns for identity, profession, role, or type. It is different from adjective sentences, which usually do not need a copula.",
     pattern: "SUBJECT + เป็น + NOUN",
     example: {
-      thai: "เขาเป็นหมอ",
-      roman: "khǎo bpen mǎw",
-      english: "He is a doctor.",
-      breakdown: [
-        { thai: "เขา", english: "he/she", tone: "rising" },
-        { thai: "เป็น", english: "is (identity)", tone: "mid", grammar: true },
-        { thai: "หมอ", english: "doctor", tone: "rising" },
-      ],
+      thai: "เขาเป็นครู",
+      roman: "khao pen khru",
+      english: "He is a teacher.",
+      breakdown: [w("เขา", "he / she", "rising"), w("เป็น", "to be", "mid", true), w("ครู", "teacher", "mid")],
     },
     focus: {
-      particle: "เป็น (bpen)",
-      meaning:
-        "Copula for identity/classification only. Not used with adjectives.",
+      particle: "เป็น",
+      meaning: "Identity marker for jobs, labels, and classifications.",
     },
   },
-
   {
     id: "location-yuu",
-    title: "Location — อยู่",
-    level: 1,
+    title: "Location with อยู่",
+    level: "A1",
     explanation:
-      "อยู่ (yùu) means 'to be at / to be located'. It tells where something or someone is. Place it before the location.",
+      "อยู่ places someone or something in a location. It is one of the earliest structures used for daily life descriptions and basic conversation.",
     pattern: "SUBJECT + อยู่ + PLACE",
     example: {
       thai: "แม่อยู่บ้าน",
-      roman: "mâe yùu bâan",
+      roman: "mae yu ban",
       english: "Mom is at home.",
-      breakdown: [
-        { thai: "แม่", english: "mom", tone: "falling" },
-        { thai: "อยู่", english: "is at", tone: "low", grammar: true },
-        { thai: "บ้าน", english: "home", tone: "falling" },
-      ],
+      breakdown: [w("แม่", "mom", "falling"), w("อยู่", "be located", "low", true), w("บ้าน", "home", "falling")],
     },
     focus: {
-      particle: "อยู่ (yùu)",
-      meaning:
-        "Indicates location or existence at a place. Different from เป็น.",
+      particle: "อยู่",
+      meaning: "Location verb used to say where somebody or something is.",
+    },
+  },
+  {
+    id: "have-mii",
+    title: "Have / There Is with มี",
+    level: "A1",
+    explanation:
+      "มี expresses both possession and existence. It is a must-have everyday verb for talking about what someone has and what exists somewhere.",
+    pattern: "SUBJECT + มี + NOUN",
+    example: {
+      thai: "บ้านนี้มีสวน",
+      roman: "ban ni mi suan",
+      english: "This house has a garden.",
+      breakdown: [w("บ้าน", "house", "falling"), w("นี้", "this", "high", true), w("มี", "have", "mid", true), w("สวน", "garden", "rising")],
+    },
+    focus: {
+      particle: "มี",
+      meaning: "Core verb for possession and existence.",
+    },
+  },
+  {
+    id: "this-that",
+    title: "Demonstratives นี้ / นั้น / โน้น",
+    level: "A1",
+    explanation:
+      "Thai demonstratives usually come after the noun. This pattern lets learners point out people and things clearly in real situations.",
+    pattern: "NOUN + นี้ / นั้น / โน้น",
+    example: {
+      thai: "หนังสือนี้ดี",
+      roman: "nangsue ni di",
+      english: "This book is good.",
+      breakdown: [w("หนังสือ", "book", "rising"), w("นี้", "this", "high", true), w("ดี", "good", "mid")],
+    },
+    focus: {
+      particle: "นี้ / นั้น / โน้น",
+      meaning: "Post-noun demonstratives meaning this, that, and over there.",
     },
   },
 
+  // A2
   {
     id: "want-yaak",
-    title: "Want to — อยาก",
-    level: 1,
+    title: "Want to with อยาก",
+    level: "A2",
     explanation:
-      "Place อยาก (yàak) before a verb to express wanting to do something. Negate with ไม่อยาก.",
+      "Place อยาก before a verb to express desire. It is a high-frequency pattern for preference, intention, and everyday conversation.",
     pattern: "SUBJECT + อยาก + VERB",
     example: {
-      thai: "ฉันอยากไปเที่ยวทะเล",
-      roman: "chǎn yàak bpai thîao tha-lee",
+      thai: "ฉันอยากไปทะเล",
+      roman: "chan yak pai thale",
       english: "I want to go to the beach.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "อยาก", english: "want to", tone: "low", grammar: true },
-        { thai: "ไป", english: "go", tone: "mid" },
-        { thai: "เที่ยว", english: "visit", tone: "falling" },
-        { thai: "ทะเล", english: "sea/beach", tone: "mid" },
-      ],
+      breakdown: [w("ฉัน", "I", "rising"), w("อยาก", "want to", "low", true), w("ไป", "go", "mid"), w("ทะเล", "sea / beach", "mid")],
     },
     focus: {
-      particle: "อยาก (yàak)",
-      meaning: "Placed before a verb to express desire or wanting.",
+      particle: "อยาก",
+      meaning: "Verb marker for wanting or feeling like doing something.",
     },
   },
-
   {
     id: "can-dai",
-    title: "Can / Could — ได้",
-    level: 1,
+    title: "Ability with ได้",
+    level: "A2",
     explanation:
-      "ได้ (dâai) after a verb means 'can' or 'able to'. It indicates ability or permission. Cannot = VERB + ไม่ได้.",
+      "Placed after a verb, ได้ can express ability or successful completion. This pattern is central for practical talk about what someone can do.",
     pattern: "SUBJECT + VERB + ได้",
     example: {
       thai: "เขาพูดไทยได้",
-      roman: "khǎo phûut thai dâai",
+      roman: "khao phut thai dai",
       english: "He can speak Thai.",
-      breakdown: [
-        { thai: "เขา", english: "he/she", tone: "rising" },
-        { thai: "พูด", english: "speak", tone: "falling" },
-        { thai: "ไทย", english: "Thai", tone: "mid" },
-        { thai: "ได้", english: "can", tone: "falling", grammar: true },
-      ],
+      breakdown: [w("เขา", "he / she", "rising"), w("พูด", "speak", "falling"), w("ไทย", "Thai", "mid"), w("ได้", "can", "falling", true)],
     },
     focus: {
-      particle: "ได้ (dâai)",
-      meaning: "After a verb = can/able to. ไม่ได้ = cannot.",
+      particle: "ได้",
+      meaning: "Common post-verb marker for can, manage to, or be able to.",
     },
   },
-
   {
     id: "past-laew",
-    title: "Completed Action — แล้ว",
-    level: 1,
+    title: "Completed Action with แล้ว",
+    level: "A2",
     explanation:
-      "Thai has no verb conjugation. Add แล้ว (láew) at the end to indicate a completed action. It means 'already' or signals the action is done.",
-    pattern: "SUBJECT + VERB + แล้ว",
+      "แล้ว marks completion, change, or 'already'. It gives learners a simple way to talk about finished actions without verb conjugation.",
+    pattern: "CLAUSE + แล้ว",
     example: {
       thai: "ฉันกินข้าวแล้ว",
-      roman: "chǎn gin khâao láew",
-      english: "I already ate.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "กิน", english: "eat", tone: "mid" },
-        { thai: "ข้าว", english: "rice/food", tone: "falling" },
-        { thai: "แล้ว", english: "already", tone: "high", grammar: true },
-      ],
+      roman: "chan kin khao laeo",
+      english: "I have already eaten.",
+      breakdown: [w("ฉัน", "I", "rising"), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling"), w("แล้ว", "already", "high", true)],
     },
     focus: {
-      particle: "แล้ว (láew)",
-      meaning: "Marks a completed action. Placed at the end of the sentence.",
+      particle: "แล้ว",
+      meaning: "Completion marker for actions or changes of state.",
     },
   },
-
   {
     id: "future-ja",
-    title: "Future — จะ",
-    level: 1,
+    title: "Future with จะ",
+    level: "A2",
     explanation:
-      "Place จะ (jà) before the verb to indicate future action or intention. Works like 'will' or 'going to'.",
+      "จะ marks future reference, plans, or intention. Thai courses usually introduce it early because it unlocks everyday planning language quickly.",
     pattern: "SUBJECT + จะ + VERB",
     example: {
-      thai: "พรุ่งนี้ฉันจะไปตลาด",
-      roman: "phrûng-níi chǎn jà bpai dta-làat",
-      english: "Tomorrow I will go to the market.",
+      thai: "พรุ่งนี้เราจะไปตลาด",
+      roman: "phrung ni rao cha pai talat",
+      english: "Tomorrow we will go to the market.",
       breakdown: [
-        { thai: "พรุ่งนี้", english: "tomorrow", tone: "falling" },
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "จะ", english: "will", tone: "low", grammar: true },
-        { thai: "ไป", english: "go", tone: "mid" },
-        { thai: "ตลาด", english: "market", tone: "low" },
+        w("พรุ่งนี้", "tomorrow", "falling"),
+        w("เรา", "we", "mid"),
+        w("จะ", "will", "low", true),
+        w("ไป", "go", "mid"),
+        w("ตลาด", "market", "low"),
       ],
     },
     focus: {
-      particle: "จะ (jà)",
-      meaning: "Before a verb = future action or intention.",
+      particle: "จะ",
+      meaning: "Common future or intention marker placed before the verb.",
     },
   },
-
   {
     id: "very-maak",
-    title: "Very / A lot — มาก",
-    level: 1,
+    title: "Degree with มาก",
+    level: "A2",
     explanation:
-      "Place มาก (mâak) after an adjective or verb to intensify it. Means 'very' or 'a lot'.",
-    pattern: "ADJECTIVE/VERB + มาก",
+      "มาก comes after adjectives and many verbs to intensify meaning. It is part of everyday speech for describing degree, preference, and feeling.",
+    pattern: "ADJECTIVE / VERB + มาก",
     example: {
       thai: "วันนี้ร้อนมาก",
-      roman: "wan-níi rórn mâak",
-      english: "Today is very hot.",
-      breakdown: [
-        { thai: "วันนี้", english: "today", tone: "high" },
-        { thai: "ร้อน", english: "hot", tone: "high" },
-        { thai: "มาก", english: "very", tone: "falling", grammar: true },
-      ],
+      roman: "wan ni ron mak",
+      english: "It is very hot today.",
+      breakdown: [w("วันนี้", "today", "high"), w("ร้อน", "hot", "high"), w("มาก", "very", "falling", true)],
     },
     focus: {
-      particle: "มาก (mâak)",
-      meaning: "After an adjective or verb = 'very' or 'a lot'.",
+      particle: "มาก",
+      meaning: "Degree marker meaning very or a lot.",
     },
   },
-
-  {
-    id: "this-that",
-    title: "This / That — นี้ / นั้น",
-    level: 1,
-    explanation:
-      "Demonstratives come after the noun. นี้ (níi) = this, นั้น (nán) = that, โน้น (nóon) = over there.",
-    pattern: "NOUN + นี้ / นั้น / โน้น",
-    example: {
-      thai: "บ้านนี้สวย",
-      roman: "bâan níi sǔai",
-      english: "This house is beautiful.",
-      breakdown: [
-        { thai: "บ้าน", english: "house", tone: "falling" },
-        { thai: "นี้", english: "this", tone: "high", grammar: true },
-        { thai: "สวย", english: "beautiful", tone: "rising" },
-      ],
-    },
-    focus: {
-      particle: "นี้ / นั้น (níi / nán)",
-      meaning:
-        "Demonstratives after a noun. นี้ = this, นั้น = that, โน้น = over there.",
-    },
-  },
-
   {
     id: "possession-khong",
-    title: "Possession — ของ",
-    level: 1,
+    title: "Possession with ของ",
+    level: "A2",
     explanation:
-      "ของ (khǎwng) means 'of' and goes between the item and the owner. Often dropped in casual speech.",
+      "ของ links something to its owner. Learners use it constantly for talking about personal items, relationships, and belonging.",
     pattern: "THING + ของ + OWNER",
     example: {
-      thai: "โทรศัพท์ของฉัน",
-      roman: "thoo-ra-sàp khǎwng chǎn",
-      english: "My phone.",
-      breakdown: [
-        { thai: "โทรศัพท์", english: "phone", tone: "low" },
-        { thai: "ของ", english: "of", tone: "rising", grammar: true },
-        { thai: "ฉัน", english: "I/me", tone: "rising" },
-      ],
+      thai: "กระเป๋าของฉัน",
+      roman: "krapao khong chan",
+      english: "My bag.",
+      breakdown: [w("กระเป๋า", "bag", "mid"), w("ของ", "of", "rising", true), w("ฉัน", "me / my", "rising")],
     },
     focus: {
-      particle: "ของ (khǎwng)",
-      meaning:
-        "Possession marker meaning 'of'. Between the thing and the owner.",
+      particle: "ของ",
+      meaning: "Possession marker roughly equivalent to of.",
     },
   },
-
-  {
-    id: "have-mii",
-    title: "Have / There is — มี",
-    level: 1,
-    explanation:
-      "มี (mii) means 'to have' or 'there is/are'. ไม่มี means 'don't have' or 'there isn't'. It is one of the most common verbs in Thai.",
-    pattern: "SUBJECT + มี + NOUN  /  มี + NOUN (there is...)",
-    example: {
-      thai: "ร้านนี้มีกาแฟอร่อย",
-      roman: "ráan níi mii gaa-fae a-ròi",
-      english: "This shop has good coffee.",
-      breakdown: [
-        { thai: "ร้าน", english: "shop", tone: "high" },
-        { thai: "นี้", english: "this", tone: "high", grammar: true },
-        { thai: "มี", english: "has", tone: "mid", grammar: true },
-        { thai: "กาแฟ", english: "coffee", tone: "mid" },
-        { thai: "อร่อย", english: "delicious", tone: "low" },
-      ],
-    },
-    focus: {
-      particle: "มี (mii)",
-      meaning:
-        "Means 'have' or 'there is/are'. ไม่มี = don't have / there isn't.",
-    },
-  },
-
-  {
-    id: "go-come-pai-maa",
-    title: "Go & Come — ไป / มา",
-    level: 1,
-    explanation:
-      "ไป (bpai) = go (away from speaker), มา (maa) = come (toward speaker). These also combine with other verbs as directional complements: กลับไป (go back), กลับมา (come back).",
-    pattern: "VERB + ไป (go) / มา (come)",
-    example: {
-      thai: "เขามาทำงานแล้ว",
-      roman: "khǎo maa tham-ngaan láew",
-      english: "He came to work already.",
-      breakdown: [
-        { thai: "เขา", english: "he", tone: "rising" },
-        { thai: "มา", english: "come", tone: "mid", grammar: true },
-        { thai: "ทำงาน", english: "work", tone: "mid" },
-        { thai: "แล้ว", english: "already", tone: "high", grammar: true },
-      ],
-    },
-    focus: {
-      particle: "ไป / มา (bpai / maa)",
-      meaning:
-        "Directional verbs. ไป = away from speaker, มา = toward speaker. Also used as verb complements.",
-    },
-  },
-
   {
     id: "like-chorp",
-    title: "Like / Enjoy — ชอบ",
-    level: 1,
+    title: "Preference with ชอบ",
+    level: "A2",
     explanation:
-      "ชอบ (chôrp) means 'to like' and goes before a verb or noun. It expresses preference or enjoyment. Negate with ไม่ชอบ.",
-    pattern: "SUBJECT + ชอบ + VERB/NOUN",
+      "ชอบ expresses liking or enjoying something. It is a practical structure for speaking about tastes, habits, and opinions.",
+    pattern: "SUBJECT + ชอบ + NOUN / VERB",
     example: {
-      thai: "น้องชอบเล่นเกม",
-      roman: "nórng chôrp lên geem",
-      english: "The younger sibling likes playing games.",
-      breakdown: [
-        { thai: "น้อง", english: "younger sibling", tone: "high" },
-        { thai: "ชอบ", english: "like", tone: "falling", grammar: true },
-        { thai: "เล่น", english: "play", tone: "falling" },
-        { thai: "เกม", english: "game", tone: "mid" },
-      ],
+      thai: "น้องชอบกาแฟ",
+      roman: "nong chop kafae",
+      english: "My younger sibling likes coffee.",
+      breakdown: [w("น้อง", "younger sibling", "high"), w("ชอบ", "like", "falling", true), w("กาแฟ", "coffee", "mid")],
     },
     focus: {
-      particle: "ชอบ (chôrp)",
-      meaning: "Before a verb or noun to express liking. ไม่ชอบ = dislike.",
+      particle: "ชอบ",
+      meaning: "Preference verb meaning like or enjoy.",
     },
   },
-
   {
     id: "request-khor",
-    title: "Requesting — ขอ",
-    level: 1,
+    title: "Requests with ขอ",
+    level: "A2",
     explanation:
-      "ขอ (khǎw) means 'to request' or 'may I have'. It is used to ask for things politely, especially when ordering food or making requests.",
-    pattern: "ขอ + NOUN + (หน่อย)",
+      "ขอ is a polite request word used for asking for things, permission, or help. It is essential for food orders and basic service interactions.",
+    pattern: "ขอ + NOUN / VERB + หน่อย",
     example: {
-      thai: "ขอน้ำเปล่าหนึ่งแก้ว",
-      roman: "khǎw nám-bplào nʉ̀ng gâew",
-      english: "Can I have one glass of water?",
-      breakdown: [
-        { thai: "ขอ", english: "request", tone: "rising", grammar: true },
-        { thai: "น้ำเปล่า", english: "plain water", tone: "high" },
-        { thai: "หนึ่ง", english: "one", tone: "low" },
-        { thai: "แก้ว", english: "glass (clf.)", tone: "falling" },
-      ],
+      thai: "ขอน้ำหน่อย",
+      roman: "kho nam noi",
+      english: "Could I have some water, please?",
+      breakdown: [w("ขอ", "request", "rising", true), w("น้ำ", "water", "high"), w("หน่อย", "a little / please", "low", true)],
     },
     focus: {
-      particle: "ขอ (khǎw)",
-      meaning:
-        "Polite request word. Used for ordering, asking permission, or requesting items.",
+      particle: "ขอ",
+      meaning: "Polite request marker used before the thing or action requested.",
+    },
+  },
+  {
+    id: "question-words",
+    title: "Question Words",
+    level: "A2",
+    explanation:
+      "Question words like อะไร, ที่ไหน, เมื่อไร, and ใคร let learners move beyond yes or no questions and ask for real information.",
+    pattern: "QUESTION WORD + CLAUSE / CLAUSE + QUESTION WORD",
+    example: {
+      thai: "คุณทำงานที่ไหน",
+      roman: "khun tham ngan thi nai",
+      english: "Where do you work?",
+      breakdown: [w("คุณ", "you", "mid"), w("ทำงาน", "work", "mid"), w("ที่ไหน", "where", "falling", true)],
+    },
+    focus: {
+      particle: "อะไร / ที่ไหน / ใคร / เมื่อไร",
+      meaning: "Core question words for asking who, what, where, and when.",
+    },
+  },
+  {
+    id: "classifiers",
+    title: "Counting with Classifiers",
+    level: "A2",
+    explanation:
+      "Thai uses classifiers after numbers, and this pattern appears constantly in shopping, ordering, and everyday measurement.",
+    pattern: "NOUN + NUMBER + CLASSIFIER",
+    example: {
+      thai: "ฉันมีหนังสือสองเล่ม",
+      roman: "chan mi nangsue song lem",
+      english: "I have two books.",
+      breakdown: [w("ฉัน", "I", "rising"), w("มี", "have", "mid", true), w("หนังสือ", "book", "rising"), w("สอง", "two", "rising"), w("เล่ม", "classifier", "falling", true)],
+    },
+    focus: {
+      particle: "classifier",
+      meaning: "A counted noun is followed by a number and its classifier.",
     },
   },
 
+  // B1
+  {
+    id: "go-come-pai-maa",
+    title: "Direction with ไป / มา",
+    level: "B1",
+    explanation:
+      "ไป and มา act both as full verbs and as directional complements. At B1 they become important for narrating movement and chained actions naturally.",
+    pattern: "VERB + ไป / มา",
+    example: {
+      thai: "เขากลับมาแล้ว",
+      roman: "khao klap ma laeo",
+      english: "He has come back already.",
+      breakdown: [w("เขา", "he / she", "rising"), w("กลับ", "return", "low"), w("มา", "come", "mid", true), w("แล้ว", "already", "high", true)],
+    },
+    focus: {
+      particle: "ไป / มา",
+      meaning: "Directional markers that show movement away from or toward a reference point.",
+    },
+  },
   {
     id: "also-kor",
-    title: "Also / Then — ก็",
-    level: 1,
+    title: "Linking Ideas with ก็",
+    level: "B1",
     explanation:
-      "ก็ (kôr) is an extremely common connector. It can mean 'also', 'then', 'so', or soften a statement. It links ideas and smooths sentence flow.",
-    pattern: "SUBJECT + ก็ + VERB",
+      "ก็ is a flexible connector meaning also, then, so, or in that case depending on context. Learners need it for more natural, connected speech.",
+    pattern: "SUBJECT / CLAUSE + ก็ + VERB / RESULT",
     example: {
       thai: "ฉันก็ชอบเหมือนกัน",
-      roman: "chǎn kôr chôrp mʉ̌an-gan",
-      english: "I also like it too.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "ก็", english: "also", tone: "falling", grammar: true },
-        { thai: "ชอบ", english: "like", tone: "falling" },
-        { thai: "เหมือนกัน", english: "as well", tone: "rising" },
-      ],
+      roman: "chan ko chop muean kan",
+      english: "I like it too.",
+      breakdown: [w("ฉัน", "I", "rising"), w("ก็", "also", "falling", true), w("ชอบ", "like", "falling"), w("เหมือนกัน", "as well", "rising")],
     },
     focus: {
-      particle: "ก็ (kôr)",
-      meaning:
-        "Versatile connector meaning 'also/then/so'. One of the most common words in Thai.",
+      particle: "ก็",
+      meaning: "A very common linker used for addition, consequence, and soft emphasis.",
     },
   },
-
   {
     id: "not-yet-yang",
-    title: "Not yet — ยัง...ไม่...เลย",
-    level: 1,
+    title: "Not Yet with ยัง...ไม่...",
+    level: "B1",
     explanation:
-      "To say 'not yet', use ยังไม่ (yang mâi) before the verb. To ask 'yet?', add หรือยัง (rʉ̌ʉ yang) at the end of a statement.",
-    pattern: "ยังไม่ + VERB  /  VERB + หรือยัง",
+      "ยัง plus negation expresses not yet, while related forms like หรือยัง ask whether something has happened yet. This is crucial for real-time conversation.",
+    pattern: "ยัง + ไม่ + VERB / VERB + หรือยัง",
     example: {
-      thai: "ฉันยังไม่ได้กินข้าว",
-      roman: "chǎn yang mâi dâai gin khâao",
-      english: "I haven't eaten yet.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "ยัง", english: "still/yet", tone: "mid", grammar: true },
-        { thai: "ไม่ได้", english: "haven't", tone: "falling", grammar: true },
-        { thai: "กิน", english: "eat", tone: "mid" },
-        { thai: "ข้าว", english: "rice/food", tone: "falling" },
-      ],
+      thai: "ฉันยังไม่พร้อม",
+      roman: "chan yang mai phrom",
+      english: "I am not ready yet.",
+      breakdown: [w("ฉัน", "I", "rising"), w("ยัง", "yet / still", "mid", true), w("ไม่", "not", "low", true), w("พร้อม", "ready", "high")],
     },
     focus: {
-      particle: "ยังไม่ / หรือยัง",
-      meaning:
-        "ยังไม่ + verb = haven't done yet. Statement + หรือยัง = have you... yet?",
+      particle: "ยัง...ไม่... / หรือยัง",
+      meaning: "Core pattern for not yet and yet-questions.",
     },
   },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LEVEL 2 — INTERMEDIATE (20 points)
-  // Complex structures, connectors, particles, nuance
-  // ═══════════════════════════════════════════════════════════════════════════
-
   {
     id: "must-tong",
-    title: "Must / Have to — ต้อง",
-    level: 2,
+    title: "Obligation with ต้อง",
+    level: "B1",
     explanation:
-      "ต้อง (dtông) before a verb expresses obligation or necessity. ไม่ต้อง = don't have to / no need.",
+      "ต้อง marks necessity, obligation, or something that has to happen. It is common in schedules, responsibilities, and strong recommendations.",
     pattern: "SUBJECT + ต้อง + VERB",
     example: {
-      thai: "เราต้องไปทำงาน",
-      roman: "rao dtông bpai tham-ngaan",
-      english: "We have to go to work.",
-      breakdown: [
-        { thai: "เรา", english: "we", tone: "mid" },
-        { thai: "ต้อง", english: "must", tone: "falling", grammar: true },
-        { thai: "ไป", english: "go", tone: "mid" },
-        { thai: "ทำงาน", english: "work", tone: "mid" },
-      ],
+      thai: "เราต้องตื่นเช้า",
+      roman: "rao tong tuen chao",
+      english: "We have to wake up early.",
+      breakdown: [w("เรา", "we", "mid"), w("ต้อง", "must", "falling", true), w("ตื่น", "wake up", "low"), w("เช้า", "early", "falling")],
     },
     focus: {
-      particle: "ต้อง (dtông)",
-      meaning: "Before a verb = obligation. ไม่ต้อง = don't have to.",
+      particle: "ต้อง",
+      meaning: "Obligation or necessity marker before the verb.",
     },
   },
-
   {
     id: "should-khuan",
-    title: "Should — ควร",
-    level: 2,
+    title: "Advice with ควร",
+    level: "B1",
     explanation:
-      "ควร (khuan) before a verb gives advice or suggestions. Softer than ต้อง. ไม่ควร = shouldn't.",
-    pattern: "SUBJECT + ควร(จะ) + VERB",
+      "ควร softens obligation into advice, recommendation, or what is appropriate. It is especially useful once learners begin expressing opinions and guidance.",
+    pattern: "SUBJECT + ควร + VERB",
     example: {
-      thai: "คุณควรพักผ่อน",
-      roman: "khun khuan phák-phòrn",
-      english: "You should rest.",
-      breakdown: [
-        { thai: "คุณ", english: "you", tone: "mid" },
-        { thai: "ควร", english: "should", tone: "mid", grammar: true },
-        { thai: "พักผ่อน", english: "rest", tone: "high" },
-      ],
+      thai: "คุณควรพักก่อน",
+      roman: "khun khuan phak kon",
+      english: "You should rest first.",
+      breakdown: [w("คุณ", "you", "mid"), w("ควร", "should", "mid", true), w("พัก", "rest", "high"), w("ก่อน", "first", "low")],
     },
     focus: {
-      particle: "ควร (khuan)",
-      meaning: "Before a verb = advice/suggestion. Softer than ต้อง.",
+      particle: "ควร",
+      meaning: "Advice marker meaning should or ought to.",
     },
   },
-
   {
     id: "progressive-kamlang",
-    title: "Currently doing — กำลัง...อยู่",
-    level: 2,
+    title: "Ongoing Action with กำลัง...อยู่",
+    level: "B1",
     explanation:
-      "กำลัง (kam-lang) before a verb and/or อยู่ (yùu) after it indicate an action in progress. You can use just one or both.",
+      "กำลัง frames an action as happening right now, and อยู่ can reinforce the ongoing sense. It becomes more important as learners narrate situations in progress.",
     pattern: "SUBJECT + กำลัง + VERB + อยู่",
     example: {
-      thai: "แม่กำลังทำอาหารอยู่",
-      roman: "mâe kam-lang tham aa-hǎan yùu",
-      english: "Mom is cooking right now.",
-      breakdown: [
-        { thai: "แม่", english: "mom", tone: "falling" },
-        { thai: "กำลัง", english: "currently", tone: "mid", grammar: true },
-        { thai: "ทำ", english: "make/cook", tone: "mid" },
-        { thai: "อาหาร", english: "food", tone: "rising" },
-        { thai: "อยู่", english: "(ongoing)", tone: "low", grammar: true },
-      ],
+      thai: "เขากำลังดูทีวีอยู่",
+      roman: "khao kamlang du thiwi yu",
+      english: "He is watching TV.",
+      breakdown: [w("เขา", "he / she", "rising"), w("กำลัง", "currently", "mid", true), w("ดู", "watch", "mid"), w("ทีวี", "TV", "mid"), w("อยู่", "ongoing marker", "low", true)],
     },
     focus: {
       particle: "กำลัง...อยู่",
-      meaning: "Wraps around a verb to indicate an ongoing action.",
+      meaning: "Progressive frame for actions in progress right now.",
     },
   },
-
   {
     id: "experience-koey",
-    title: "Ever / Never — เคย",
-    level: 2,
+    title: "Past Experience with เคย",
+    level: "B1",
     explanation:
-      "เคย (khoey) before a verb means 'have ever done'. ไม่เคย = 'have never done'. Refers to life experience, not a specific event.",
-    pattern: "SUBJECT + เคย / ไม่เคย + VERB",
+      "เคย marks life experience or something done before. It helps learners contrast having experienced something with doing it now or regularly.",
+    pattern: "SUBJECT + เคย + VERB",
     example: {
-      thai: "คุณเคยไปญี่ปุ่นไหม",
-      roman: "khun khoey bpai yîi-bpùn mǎi",
-      english: "Have you ever been to Japan?",
-      breakdown: [
-        { thai: "คุณ", english: "you", tone: "mid" },
-        { thai: "เคย", english: "ever", tone: "mid", grammar: true },
-        { thai: "ไป", english: "go", tone: "mid" },
-        { thai: "ญี่ปุ่น", english: "Japan", tone: "low" },
-        { thai: "ไหม", english: "?", tone: "rising", grammar: true },
-      ],
+      thai: "ฉันเคยไปเชียงใหม่",
+      roman: "chan koei pai Chiang Mai",
+      english: "I have been to Chiang Mai before.",
+      breakdown: [w("ฉัน", "I", "rising"), w("เคย", "have ever", "mid", true), w("ไป", "go", "mid"), w("เชียงใหม่", "Chiang Mai", "mid")],
     },
     focus: {
-      particle: "เคย (khoey)",
-      meaning: "Before a verb = life experience. ไม่เคย = never.",
+      particle: "เคย",
+      meaning: "Marker for prior experience at some point in the past.",
     },
   },
-
-  {
-    id: "question-words",
-    title: "Question Words — อะไร, ที่ไหน, ทำไม",
-    level: 2,
-    explanation:
-      "Thai question words stay in the position of the answer — word order doesn't change. อะไร (what), ที่ไหน (where), เมื่อไร (when), ทำไม (why), อย่างไร (how).",
-    pattern: "SENTENCE with question word in answer position",
-    example: {
-      thai: "คุณไปที่ไหน",
-      roman: "khun bpai thîi-nǎi",
-      english: "Where are you going?",
-      breakdown: [
-        { thai: "คุณ", english: "you", tone: "mid" },
-        { thai: "ไป", english: "go", tone: "mid" },
-        { thai: "ที่ไหน", english: "where", tone: "rising", grammar: true },
-      ],
-    },
-    focus: {
-      particle: "ที่ไหน, อะไร, ทำไม",
-      meaning:
-        "Question words replace the unknown element. No word order change needed.",
-    },
-  },
-
-  {
-    id: "classifiers",
-    title: "Classifiers — ตัว, คน, อัน",
-    level: 2,
-    explanation:
-      "When counting, a classifier must follow the number. Different nouns use different classifiers: คน (people), ตัว (animals), อัน (small objects), ใบ (flat/round items), คัน (vehicles).",
-    pattern: "NOUN + NUMBER + CLASSIFIER",
-    example: {
-      thai: "ฉันมีแมวสองตัว",
-      roman: "chǎn mii maew sǎwng dtua",
-      english: "I have two cats.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "มี", english: "have", tone: "mid" },
-        { thai: "แมว", english: "cat", tone: "mid" },
-        { thai: "สอง", english: "two", tone: "rising" },
-        { thai: "ตัว", english: "(animal clf.)", tone: "mid", grammar: true },
-      ],
-    },
-    focus: {
-      particle: "ตัว, คน, อัน (classifiers)",
-      meaning:
-        "Classifier words required after numbers. Each noun type has a specific classifier.",
-    },
-  },
-
-  {
-    id: "comparison-kwaa",
-    title: "Comparisons — กว่า",
-    level: 2,
-    explanation:
-      "Place กว่า (kwàa) after the adjective to compare. The thing compared to comes after กว่า. No adjective change needed.",
-    pattern: "A + ADJECTIVE + กว่า + B",
-    example: {
-      thai: "กรุงเทพร้อนกว่าเชียงใหม่",
-      roman: "grung-thêep rórn kwàa chiang-mài",
-      english: "Bangkok is hotter than Chiang Mai.",
-      breakdown: [
-        { thai: "กรุงเทพ", english: "Bangkok", tone: "mid" },
-        { thai: "ร้อน", english: "hot", tone: "high" },
-        { thai: "กว่า", english: "more than", tone: "low", grammar: true },
-        { thai: "เชียงใหม่", english: "Chiang Mai", tone: "low" },
-      ],
-    },
-    focus: {
-      particle: "กว่า (kwàa)",
-      meaning: "After an adjective = comparative. No adjective change needed.",
-    },
-  },
-
-  {
-    id: "superlative",
-    title: "Superlative — ที่สุด",
-    level: 2,
-    explanation:
-      "Place ที่สุด (thîi-sùt) after an adjective to express 'the most' or '-est'.",
-    pattern: "ADJECTIVE + ที่สุด",
-    example: {
-      thai: "อาหารไทยอร่อยที่สุด",
-      roman: "aa-hǎan thai a-ròi thîi-sùt",
-      english: "Thai food is the most delicious.",
-      breakdown: [
-        { thai: "อาหาร", english: "food", tone: "rising" },
-        { thai: "ไทย", english: "Thai", tone: "mid" },
-        { thai: "อร่อย", english: "delicious", tone: "low" },
-        { thai: "ที่สุด", english: "the most", tone: "low", grammar: true },
-      ],
-    },
-    focus: {
-      particle: "ที่สุด (thîi-sùt)",
-      meaning: "After an adjective = superlative (the most / -est).",
-    },
-  },
-
   {
     id: "conjunction-and-but",
-    title: "And / But / Or — แล้วก็ / แต่ / หรือ",
-    level: 2,
+    title: "Coordination with และ / แต่",
+    level: "B1",
     explanation:
-      "Thai conjunctions: แล้วก็ or และ = and, แต่ = but, หรือ = or.",
-    pattern: "CLAUSE + แล้วก็ / แต่ / หรือ + CLAUSE",
+      "Thai uses connectors like และ and แต่ to join thoughts. This is a major step from isolated beginner sentences to connected, flowing talk.",
+    pattern: "CLAUSE + และ / แต่ + CLAUSE",
     example: {
-      thai: "ฉันชอบกาแฟแต่ไม่ชอบชา",
-      roman: "chǎn chôrp gaa-fae dtàe mâi chôrp chaa",
-      english: "I like coffee but don't like tea.",
-      breakdown: [
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "ชอบ", english: "like", tone: "falling" },
-        { thai: "กาแฟ", english: "coffee", tone: "mid" },
-        { thai: "แต่", english: "but", tone: "low", grammar: true },
-        { thai: "ไม่", english: "not", tone: "falling", grammar: true },
-        { thai: "ชอบ", english: "like", tone: "falling" },
-        { thai: "ชา", english: "tea", tone: "mid" },
-      ],
+      thai: "ฉันอยากไปแต่ไม่มีเวลา",
+      roman: "chan yak pai tae mai mi wela",
+      english: "I want to go, but I do not have time.",
+      breakdown: [w("ฉัน", "I", "rising"), w("อยาก", "want to", "low"), w("ไป", "go", "mid"), w("แต่", "but", "low", true), w("ไม่มี", "do not have", "mid"), w("เวลา", "time", "mid")],
     },
     focus: {
-      particle: "แต่ / แล้วก็ / หรือ",
-      meaning: "แต่ = but, แล้วก็ / และ = and, หรือ = or.",
+      particle: "และ / แต่",
+      meaning: "Basic connectors for addition and contrast.",
     },
   },
-
   {
     id: "because-phraw",
-    title: "Because / So — เพราะ...ก็เลย",
-    level: 2,
+    title: "Reasons with เพราะ",
+    level: "B1",
     explanation:
-      "เพราะ (phráw) = 'because' (introduces reason). ก็เลย (kôr-loey) = 'so/therefore' (introduces result). Used separately or together.",
-    pattern: "เพราะ + REASON + ก็เลย + RESULT",
+      "เพราะ introduces cause and reason. It is one of the first connectors learners use to explain choices, actions, and opinions in complete discourse.",
+    pattern: "RESULT + เพราะ + REASON",
     example: {
-      thai: "เพราะฝนตกก็เลยไม่ไป",
-      roman: "phráw fǒn dtòk kôr-loey mâi bpai",
-      english: "Because it rained, (I) didn't go.",
-      breakdown: [
-        { thai: "เพราะ", english: "because", tone: "high", grammar: true },
-        { thai: "ฝน", english: "rain", tone: "rising" },
-        { thai: "ตก", english: "fall", tone: "low" },
-        { thai: "ก็เลย", english: "so", tone: "falling", grammar: true },
-        { thai: "ไม่", english: "not", tone: "falling", grammar: true },
-        { thai: "ไป", english: "go", tone: "mid" },
-      ],
+      thai: "ฉันไม่ไปเพราะฝนตก",
+      roman: "chan mai pai phro fon tok",
+      english: "I am not going because it is raining.",
+      breakdown: [w("ฉัน", "I", "rising"), w("ไม่", "not", "low", true), w("ไป", "go", "mid"), w("เพราะ", "because", "high", true), w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low")],
     },
     focus: {
-      particle: "เพราะ...ก็เลย",
-      meaning: "เพราะ = because (cause), ก็เลย = so (effect).",
+      particle: "เพราะ",
+      meaning: "Cause connector meaning because.",
     },
   },
 
+  // B2
+  {
+    id: "comparison-kwaa",
+    title: "Comparison with กว่า",
+    level: "B2",
+    explanation:
+      "กว่า is the core comparative marker in Thai. At B2, learners use it more flexibly to compare quality, quantity, preference, and speed.",
+    pattern: "X + ADJECTIVE + กว่า + Y",
+    example: {
+      thai: "ห้องนี้ใหญ่กว่าห้องนั้น",
+      roman: "hong ni yai kwa hong nan",
+      english: "This room is bigger than that room.",
+      breakdown: [w("ห้อง", "room", "falling"), w("นี้", "this", "high", true), w("ใหญ่", "big", "low"), w("กว่า", "more than", "low", true), w("ห้อง", "room", "falling"), w("นั้น", "that", "high", true)],
+    },
+    focus: {
+      particle: "กว่า",
+      meaning: "Core Thai marker for comparison between two things.",
+    },
+  },
+  {
+    id: "superlative",
+    title: "Superlatives with ที่สุด",
+    level: "B2",
+    explanation:
+      "ที่สุด marks the extreme point in a comparison. Learners use it to rank things and express stronger opinions with more precision.",
+    pattern: "ADJECTIVE + ที่สุด",
+    example: {
+      thai: "ร้านนี้ถูกที่สุด",
+      roman: "ran ni thuk thi sut",
+      english: "This shop is the cheapest.",
+      breakdown: [w("ร้าน", "shop", "high"), w("นี้", "this", "high", true), w("ถูก", "cheap", "low"), w("ที่สุด", "the most", "low", true)],
+    },
+    focus: {
+      particle: "ที่สุด",
+      meaning: "Superlative marker meaning the most or the -est.",
+    },
+  },
   {
     id: "give-hai",
-    title: "Giving & Causative — ให้",
-    level: 2,
+    title: "Benefactive ให้",
+    level: "B2",
     explanation:
-      "ให้ (hâi) is versatile: 'give', 'for someone', or 'let/make someone do something'. As a causative, it goes before the person who should act.",
-    pattern: "SUBJECT + VERB + ให้ + PERSON  /  ให้ + PERSON + VERB",
+      "ให้ can mark giving, doing something for someone, or causing a result for another person. It is central once learners start handling richer sentence relationships.",
+    pattern: "VERB + OBJECT + ให้ + PERSON",
     example: {
-      thai: "แม่ให้เงินฉัน",
-      roman: "mâe hâi ngoen chǎn",
-      english: "Mom gave me money.",
-      breakdown: [
-        { thai: "แม่", english: "mom", tone: "falling" },
-        { thai: "ให้", english: "give", tone: "falling", grammar: true },
-        { thai: "เงิน", english: "money", tone: "mid" },
-        { thai: "ฉัน", english: "me", tone: "rising" },
-      ],
+      thai: "แม่ทำข้าวให้ฉัน",
+      roman: "mae tham khao hai chan",
+      english: "Mom cooks rice for me.",
+      breakdown: [w("แม่", "mom", "falling"), w("ทำ", "make", "mid"), w("ข้าว", "rice / food", "falling"), w("ให้", "for / give", "falling", true), w("ฉัน", "me", "rising")],
     },
     focus: {
-      particle: "ให้ (hâi)",
-      meaning:
-        "Means 'give', 'for someone', or 'let/make someone do'. Very versatile.",
+      particle: "ให้",
+      meaning: "Marker for benefactive meaning, giving, or doing something for someone.",
     },
   },
-
   {
     id: "relative-thi",
-    title: "Relative Clauses — ที่",
-    level: 2,
+    title: "Relative Clauses with ที่",
+    level: "B2",
     explanation:
-      "ที่ (thîi) works like 'that/which/who' to connect a noun with a describing clause.",
+      "ที่ connects a noun to extra information about it. This is a major structure for building denser descriptions and more complex statements.",
     pattern: "NOUN + ที่ + CLAUSE",
     example: {
-      thai: "คนที่ยืนอยู่ตรงนั้นเป็นครู",
-      roman: "khon thîi yʉʉn yùu dtrong nán bpen khruu",
-      english: "The person standing there is a teacher.",
-      breakdown: [
-        { thai: "คน", english: "person", tone: "mid" },
-        { thai: "ที่", english: "who/that", tone: "falling", grammar: true },
-        { thai: "ยืน", english: "stand", tone: "mid" },
-        { thai: "อยู่", english: "(ongoing)", tone: "low", grammar: true },
-        { thai: "ตรงนั้น", english: "over there", tone: "mid" },
-        { thai: "เป็น", english: "is", tone: "mid" },
-        { thai: "ครู", english: "teacher", tone: "mid" },
-      ],
+      thai: "หนังสือที่ฉันซื้อแพง",
+      roman: "nangsue thi chan sue phaeng",
+      english: "The book that I bought is expensive.",
+      breakdown: [w("หนังสือ", "book", "rising"), w("ที่", "that / which", "falling", true), w("ฉัน", "I", "rising"), w("ซื้อ", "buy", "high"), w("แพง", "expensive", "mid")],
     },
     focus: {
-      particle: "ที่ (thîi)",
-      meaning: "Relative pronoun 'that/which/who'. Connects noun to clause.",
+      particle: "ที่",
+      meaning: "Flexible linker used for relative clauses in Thai.",
     },
   },
-
   {
     id: "serial-verbs",
     title: "Serial Verb Constructions",
-    level: 2,
+    level: "B2",
     explanation:
-      "Thai chains multiple verbs together without conjunctions. Each verb adds meaning to the action. Common patterns: ไปกิน (go eat), มานั่ง (come sit), ออกไป (go out).",
-    pattern: "VERB₁ + VERB₂ + (VERB₃)",
+      "Thai often places verbs in sequence without extra linking words. Mastering serial verbs makes speech sound much more natural and compact.",
+    pattern: "VERB 1 + VERB 2 + OBJECT",
     example: {
-      thai: "เราไปนั่งกินข้าวกัน",
-      roman: "rao bpai nâng gin khâao gan",
-      english: "Let's go sit and eat together.",
-      breakdown: [
-        { thai: "เรา", english: "we", tone: "mid" },
-        { thai: "ไป", english: "go", tone: "mid", grammar: true },
-        { thai: "นั่ง", english: "sit", tone: "falling", grammar: true },
-        { thai: "กิน", english: "eat", tone: "mid", grammar: true },
-        { thai: "ข้าว", english: "food", tone: "falling" },
-        { thai: "กัน", english: "together", tone: "mid" },
-      ],
+      thai: "เขาไปซื้อข้าว",
+      roman: "khao pai sue khao",
+      english: "He went to buy food.",
+      breakdown: [w("เขา", "he / she", "rising"), w("ไป", "go", "mid"), w("ซื้อ", "buy", "high"), w("ข้าว", "food", "falling")],
     },
     focus: {
-      particle: "Verb chains",
-      meaning:
-        "Multiple verbs in sequence without conjunctions. Each adds an action or direction.",
+      particle: "verb chain",
+      meaning: "Two or more verbs appear in sequence as one event frame.",
     },
   },
-
   {
     id: "particles-na-si-la",
-    title: "Sentence Particles — นะ / สิ / ล่ะ / หรอ",
-    level: 2,
+    title: "Sentence-Final Particles นะ / สิ / ล่ะ",
+    level: "B2",
     explanation:
-      "Thai has many sentence-final particles that add tone and nuance. นะ (ná) = softener/emphasis, สิ (sì) = urging/encouraging, ล่ะ (là) = casual emphasis, หรอ (rǎw) = mild surprise/seeking confirmation.",
-    pattern: "SENTENCE + นะ / สิ / ล่ะ / หรอ",
+      "These small particles shape attitude, urgency, softness, and interactional tone. They are crucial for sounding more natural in spoken Thai.",
+    pattern: "CLAUSE + นะ / สิ / ล่ะ",
     example: {
-      thai: "กินข้าวก่อนนะ",
-      roman: "gin khâao gòrn ná",
-      english: "Eat first, okay?",
-      breakdown: [
-        { thai: "กิน", english: "eat", tone: "mid" },
-        { thai: "ข้าว", english: "food", tone: "falling" },
-        { thai: "ก่อน", english: "first", tone: "low" },
-        { thai: "นะ", english: "(softener)", tone: "high", grammar: true },
-      ],
+      thai: "รอนี่นะ",
+      roman: "ro ni na",
+      english: "Wait here, okay?",
+      breakdown: [w("รอ", "wait", "mid"), w("นี่", "here", "high"), w("นะ", "softening particle", "high", true)],
     },
     focus: {
-      particle: "นะ / สิ / ล่ะ / หรอ",
-      meaning:
-        "Sentence-final particles for nuance. นะ = soft emphasis, สิ = urging, ล่ะ = casual, หรอ = surprise.",
+      particle: "นะ / สิ / ล่ะ",
+      meaning: "Spoken particles that change stance, softness, and interactional feel.",
     },
   },
-
   {
     id: "time-clauses",
-    title: "Time Clauses — ก่อน / หลัง / ตอนที่",
-    level: 2,
+    title: "Time Clauses with ก่อน / หลัง / ตอนที่",
+    level: "B2",
     explanation:
-      "ก่อน (gòrn) = before, หลัง (lǎng) = after, ตอนที่ (dton-thîi) = when/at the time that. These connect actions in time sequence.",
-    pattern: "ก่อน/หลัง/ตอนที่ + CLAUSE₁ + CLAUSE₂",
+      "Time connectors let learners sequence events clearly. They are important once narration and multi-step explanations become more common.",
+    pattern: "ก่อน / หลัง / ตอนที่ + CLAUSE",
     example: {
       thai: "ก่อนนอนฉันอ่านหนังสือ",
-      roman: "gòrn norn chǎn àan nǎng-sʉ̌ʉ",
+      roman: "kon non chan an nangsue",
       english: "Before sleeping, I read a book.",
-      breakdown: [
-        { thai: "ก่อน", english: "before", tone: "low", grammar: true },
-        { thai: "นอน", english: "sleep", tone: "mid" },
-        { thai: "ฉัน", english: "I", tone: "rising" },
-        { thai: "อ่าน", english: "read", tone: "low" },
-        { thai: "หนังสือ", english: "book", tone: "rising" },
-      ],
+      breakdown: [w("ก่อน", "before", "low", true), w("นอน", "sleep", "mid"), w("ฉัน", "I", "rising"), w("อ่าน", "read", "low"), w("หนังสือ", "book", "rising")],
     },
     focus: {
       particle: "ก่อน / หลัง / ตอนที่",
-      meaning:
-        "Time connectors. ก่อน = before, หลัง = after, ตอนที่ = when/at the time.",
+      meaning: "Time linkers meaning before, after, and when.",
     },
   },
-
-  {
-    id: "passive-tuuk",
-    title: "Passive Voice — ถูก / โดน",
-    level: 2,
-    explanation:
-      "ถูก (thùuk) and โดน (doon) mark passive voice. โดน is more colloquial and often implies something negative happened to the subject. ถูก is more neutral.",
-    pattern: "SUBJECT + ถูก/โดน + (AGENT) + VERB",
-    example: {
-      thai: "เขาโดนหมากัด",
-      roman: "khǎo doon mǎa gàt",
-      english: "He got bitten by a dog.",
-      breakdown: [
-        { thai: "เขา", english: "he", tone: "rising" },
-        { thai: "โดน", english: "(passive)", tone: "mid", grammar: true },
-        { thai: "หมา", english: "dog", tone: "rising" },
-        { thai: "กัด", english: "bite", tone: "low" },
-      ],
-    },
-    focus: {
-      particle: "ถูก / โดน",
-      meaning:
-        "Passive markers. โดน = colloquial, often negative. ถูก = more neutral/formal.",
-    },
-  },
-
-  {
-    id: "resultative-hai",
-    title: "Resultative — ทำให้",
-    level: 2,
-    explanation:
-      "ทำให้ (tham-hâi) means 'to cause / to make (something happen)'. It connects an action to its result or effect on someone.",
-    pattern: "CAUSE + ทำให้ + PERSON/THING + RESULT",
-    example: {
-      thai: "ฝนตกทำให้รถติด",
-      roman: "fǒn dtòk tham-hâi rót dtìt",
-      english: "The rain caused a traffic jam.",
-      breakdown: [
-        { thai: "ฝน", english: "rain", tone: "rising" },
-        { thai: "ตก", english: "fall", tone: "low" },
-        { thai: "ทำให้", english: "caused", tone: "mid", grammar: true },
-        { thai: "รถ", english: "car/traffic", tone: "high" },
-        { thai: "ติด", english: "stuck/jammed", tone: "low" },
-      ],
-    },
-    focus: {
-      particle: "ทำให้ (tham-hâi)",
-      meaning:
-        "Cause and effect connector. 'Makes/causes something to happen.'",
-    },
-  },
-
   {
     id: "about-to-kamlangja",
-    title: "About to — กำลังจะ",
-    level: 2,
+    title: "About to with กำลังจะ",
+    level: "B2",
     explanation:
-      "กำลังจะ (kam-lang jà) before a verb means 'about to' or 'on the verge of'. It combines the progressive กำลัง with the future จะ.",
+      "กำลังจะ combines present progression with near-future meaning. It is useful for describing imminent events and immediate expectations.",
     pattern: "SUBJECT + กำลังจะ + VERB",
     example: {
       thai: "ฝนกำลังจะตก",
-      roman: "fǒn kam-lang jà dtòk",
-      english: "It's about to rain.",
-      breakdown: [
-        { thai: "ฝน", english: "rain", tone: "rising" },
-        { thai: "กำลังจะ", english: "about to", tone: "mid", grammar: true },
-        { thai: "ตก", english: "fall", tone: "low" },
-      ],
+      roman: "fon kamlang cha tok",
+      english: "It is about to rain.",
+      breakdown: [w("ฝน", "rain", "rising"), w("กำลังจะ", "about to", "mid", true), w("ตก", "fall / rain", "low")],
     },
     focus: {
-      particle: "กำลังจะ (kam-lang jà)",
-      meaning: "Before a verb = 'about to'. Combines progressive + future.",
+      particle: "กำลังจะ",
+      meaning: "Near-future marker meaning be about to.",
     },
   },
-
   {
     id: "try-lawng",
-    title: "Try doing — ลอง",
-    level: 2,
+    title: "Trying Something with ลอง...ดู",
+    level: "B2",
     explanation:
-      "ลอง (lawng) before a verb means 'try doing' something to see what happens. Often paired with ดู (duu) at the end: ลอง...ดู.",
-    pattern: "ลอง + VERB + (ดู)",
+      "ลอง frames an action as an experiment or suggestion. It appears often in recommendations, problem solving, and polite encouragement.",
+    pattern: "ลอง + VERB + ดู",
     example: {
-      thai: "ลองกินดูสิ",
-      roman: "lawng gin duu sì",
-      english: "Try eating it!",
-      breakdown: [
-        { thai: "ลอง", english: "try", tone: "mid", grammar: true },
-        { thai: "กิน", english: "eat", tone: "mid" },
-        { thai: "ดู", english: "(see how)", tone: "mid", grammar: true },
-        { thai: "สิ", english: "(urging)", tone: "low", grammar: true },
-      ],
+      thai: "ลองชิมดูสิ",
+      roman: "long chim du si",
+      english: "Try tasting it.",
+      breakdown: [w("ลอง", "try", "mid", true), w("ชิม", "taste", "mid"), w("ดู", "see / try", "mid", true), w("สิ", "urging particle", "low", true)],
     },
     focus: {
-      particle: "ลอง...ดู (lawng...duu)",
-      meaning: "ลอง before verb = 'try doing'. Add ดู for 'try and see'.",
+      particle: "ลอง...ดู",
+      meaning: "Pattern for trying something out to see the result.",
     },
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LEVEL 3 — ADVANCED (12 points)
-  // Complex clauses, formal register, discourse, subtlety
-  // ═══════════════════════════════════════════════════════════════════════════
-
+  // C1
+  {
+    id: "passive-tuuk",
+    title: "Passive with ถูก / โดน",
+    level: "C1",
+    explanation:
+      "ถูก and โดน shift attention to the affected person and often carry an adverse or impacted nuance. They help advanced learners control perspective more precisely.",
+    pattern: "SUBJECT + ถูก / โดน + ACTION",
+    example: {
+      thai: "เขาถูกเรียกไปประชุม",
+      roman: "khao thuk riak pai prachum",
+      english: "He was called into a meeting.",
+      breakdown: [w("เขา", "he / she", "rising"), w("ถูก", "was subjected to", "low", true), w("เรียก", "call", "falling"), w("ไป", "to go", "mid"), w("ประชุม", "meeting", "mid")],
+    },
+    focus: {
+      particle: "ถูก / โดน",
+      meaning: "Passive markers that foreground the affected participant.",
+    },
+  },
+  {
+    id: "resultative-hai",
+    title: "Cause and Result with ทำให้",
+    level: "C1",
+    explanation:
+      "ทำให้ links a cause to its result and is common in explanation, commentary, and more academic-style reasoning.",
+    pattern: "CAUSE + ทำให้ + RESULT",
+    example: {
+      thai: "เสียงดังทำให้เด็กตื่น",
+      roman: "siang dang tham hai dek tuen",
+      english: "The loud noise made the child wake up.",
+      breakdown: [w("เสียงดัง", "loud noise", "rising"), w("ทำให้", "make / cause", "mid", true), w("เด็ก", "child", "low"), w("ตื่น", "wake up", "low")],
+    },
+    focus: {
+      particle: "ทำให้",
+      meaning: "Cause-result connector meaning make or cause.",
+    },
+  },
   {
     id: "conditionals",
-    title: "If...Then — ถ้า...ก็",
-    level: 3,
+    title: "Conditionals with ถ้า...ก็",
+    level: "C1",
     explanation:
-      "Thai conditionals use ถ้า (thâa) for the condition and ก็ (kôr) for the result. Formal variants: หาก, ถ้าหากว่า.",
+      "Conditional framing lets learners discuss possibility, planning, and consequence. Thai often pairs ถ้า with ก็ to make the result relation explicit.",
     pattern: "ถ้า + CONDITION + ก็ + RESULT",
     example: {
-      thai: "ถ้าฝนตกหนักเราก็จะไม่ไป",
-      roman: "thâa fǒn dtòk nàk rao kôr jà mâi bpai",
-      english: "If it rains hard, we won't go.",
-      breakdown: [
-        { thai: "ถ้า", english: "if", tone: "falling", grammar: true },
-        { thai: "ฝนตก", english: "rain falls", tone: "rising" },
-        { thai: "หนัก", english: "heavily", tone: "low" },
-        { thai: "เรา", english: "we", tone: "mid" },
-        { thai: "ก็", english: "then", tone: "falling", grammar: true },
-        { thai: "จะ", english: "will", tone: "low", grammar: true },
-        { thai: "ไม่ไป", english: "not go", tone: "falling" },
-      ],
+      thai: "ถ้ารถติดเราก็จะสาย",
+      roman: "tha rot tit rao ko cha sai",
+      english: "If traffic is bad, we will be late.",
+      breakdown: [w("ถ้า", "if", "falling", true), w("รถติด", "traffic is jammed", "high"), w("เรา", "we", "mid"), w("ก็", "then", "falling", true), w("จะ", "will", "low", true), w("สาย", "late", "rising")],
     },
     focus: {
-      particle: "ถ้า...ก็ (thâa...kôr)",
-      meaning: "If...then — conditional relationship between clauses.",
+      particle: "ถ้า...ก็",
+      meaning: "Standard spoken frame for if-then relationships.",
     },
   },
-
   {
     id: "concessive-mae",
-    title: "Even though — แม้ว่า...ก็",
-    level: 3,
+    title: "Concession with แม้ว่า...ก็",
+    level: "C1",
     explanation:
-      "แม้ว่า (máe-wâa) or แม้ (máe) introduces a concession ('even though'). The main clause follows with ก็ (kôr) or ก็ยัง (kôr yang).",
-    pattern: "แม้ว่า + CONCESSION + ก็(ยัง) + MAIN CLAUSE",
+      "แม้ว่า introduces a concession, while ก็ or ก็ยัง marks the main claim. This pattern helps learners express contrast without giving up the central point.",
+    pattern: "แม้ว่า + CONCESSION + ก็ + RESULT",
     example: {
-      thai: "แม้ว่าจะเหนื่อยก็ยังทำต่อ",
-      roman: "máe-wâa jà nʉ̀ai kôr yang tham dtòr",
-      english: "Even though (I'm) tired, (I) still keep going.",
-      breakdown: [
-        { thai: "แม้ว่า", english: "even though", tone: "high", grammar: true },
-        { thai: "จะ", english: "will/would", tone: "low", grammar: true },
-        { thai: "เหนื่อย", english: "tired", tone: "low" },
-        { thai: "ก็ยัง", english: "still", tone: "falling", grammar: true },
-        { thai: "ทำ", english: "do", tone: "mid" },
-        { thai: "ต่อ", english: "continue", tone: "low" },
-      ],
+      thai: "แม้ว่าเหนื่อยเขาก็ยังทำต่อ",
+      roman: "mae wa nueai khao ko yang tham to",
+      english: "Even though he is tired, he still keeps going.",
+      breakdown: [w("แม้ว่า", "even though", "high", true), w("เหนื่อย", "tired", "low"), w("เขา", "he / she", "rising"), w("ก็ยัง", "still", "falling", true), w("ทำ", "do", "mid"), w("ต่อ", "continue", "low")],
     },
     focus: {
-      particle: "แม้ว่า...ก็(ยัง)",
-      meaning:
-        "Even though / despite. แม้ว่า introduces concession, ก็ยัง = still.",
+      particle: "แม้ว่า...ก็",
+      meaning: "Concessive frame meaning even though ... still ...",
+    },
+  },
+  {
+    id: "reported-speech",
+    title: "Reported Speech with ว่า",
+    level: "C1",
+    explanation:
+      "ว่า introduces quoted or reported content after verbs like say, think, know, and hear. It is essential for advanced conversation and narration.",
+    pattern: "VERB + ว่า + CLAUSE",
+    example: {
+      thai: "เขาบอกว่าพรุ่งนี้จะมา",
+      roman: "khao bok wa phrung ni cha ma",
+      english: "He said that he would come tomorrow.",
+      breakdown: [w("เขา", "he / she", "rising"), w("บอก", "say / tell", "low"), w("ว่า", "that", "falling", true), w("พรุ่งนี้", "tomorrow", "falling"), w("จะ", "will", "low"), w("มา", "come", "mid")],
+    },
+    focus: {
+      particle: "ว่า",
+      meaning: "Clause introducer for reported speech and reported thought.",
+    },
+  },
+  {
+    id: "in-order-to-phuea",
+    title: "Purpose with เพื่อ(จะ)",
+    level: "C1",
+    explanation:
+      "เพื่อ and เพื่อจะ introduce aims and purposes. This structure is common in careful speech, explanation, and more formal Thai writing.",
+    pattern: "CLAUSE + เพื่อ(จะ) + PURPOSE",
+    example: {
+      thai: "เขาอ่านทุกวันเพื่อจะสอบผ่าน",
+      roman: "khao an thuk wan phuea cha sop phan",
+      english: "He reads every day in order to pass the exam.",
+      breakdown: [w("เขา", "he", "rising"), w("อ่าน", "read", "low"), w("ทุกวัน", "every day", "high"), w("เพื่อจะ", "in order to", "falling", true), w("สอบ", "exam / take a test", "low"), w("ผ่าน", "pass", "low")],
+    },
+    focus: {
+      particle: "เพื่อ / เพื่อจะ",
+      meaning: "Purpose marker used to explain goals and intended outcomes.",
+    },
+  },
+  {
+    id: "seems-like-duu",
+    title: "Inference with ดูเหมือน(ว่า)",
+    level: "C1",
+    explanation:
+      "ดูเหมือนว่า lets speakers hedge, infer, and present a reading of the situation rather than a flat fact. That makes it valuable for more nuanced communication.",
+    pattern: "ดูเหมือน(ว่า) + CLAUSE",
+    example: {
+      thai: "ดูเหมือนว่าเขาจะไม่มา",
+      roman: "du muean wa khao cha mai ma",
+      english: "It seems that he will not come.",
+      breakdown: [w("ดูเหมือน", "it seems", "mid", true), w("ว่า", "that", "falling", true), w("เขา", "he / she", "rising"), w("จะ", "will", "low"), w("ไม่", "not", "low"), w("มา", "come", "mid")],
+    },
+    focus: {
+      particle: "ดูเหมือน(ว่า)",
+      meaning: "Hedging and inference frame meaning it seems that.",
     },
   },
 
+  // C2
   {
     id: "no-matter-mai-waa",
-    title: "No matter — ไม่ว่า...ก็",
-    level: 3,
+    title: "No Matter with ไม่ว่า...ก็",
+    level: "C2",
     explanation:
-      "ไม่ว่า (mâi wâa) means 'no matter / regardless of'. The result clause uses ก็ (kôr). Often paired with question words: ไม่ว่าอะไร, ไม่ว่าใคร.",
+      "ไม่ว่า creates a wide-scope no matter meaning. It supports generalization, reassurance, and stronger abstract argument.",
     pattern: "ไม่ว่า + CONDITION + ก็ + RESULT",
     example: {
-      thai: "ไม่ว่าจะยากแค่ไหนก็ต้องทำ",
-      roman: "mâi-wâa jà yâak khâe-nǎi kôr dtông tham",
-      english: "No matter how hard it is, (I) must do it.",
-      breakdown: [
-        {
-          thai: "ไม่ว่า",
-          english: "no matter",
-          tone: "falling",
-          grammar: true,
-        },
-        { thai: "จะ", english: "would", tone: "low", grammar: true },
-        { thai: "ยาก", english: "difficult", tone: "falling" },
-        { thai: "แค่ไหน", english: "how much", tone: "low" },
-        { thai: "ก็", english: "still", tone: "falling", grammar: true },
-        { thai: "ต้อง", english: "must", tone: "falling", grammar: true },
-        { thai: "ทำ", english: "do", tone: "mid" },
-      ],
+      thai: "ไม่ว่าใครก็เข้าได้",
+      roman: "mai wa khrai ko khao dai",
+      english: "Anyone can come in.",
+      breakdown: [w("ไม่ว่า", "no matter", "falling", true), w("ใคร", "who", "mid"), w("ก็", "still / then", "falling", true), w("เข้า", "enter", "falling"), w("ได้", "can", "falling", true)],
     },
     focus: {
       particle: "ไม่ว่า...ก็",
-      meaning:
-        "No matter / regardless. Often with question words for emphasis.",
+      meaning: "High-level generalization frame meaning no matter ... still ...",
     },
   },
-
   {
     id: "even-if-tor-hai",
-    title: "Even if — ต่อให้...ก็",
-    level: 3,
+    title: "Even If with ต่อให้...ก็",
+    level: "C2",
     explanation:
-      "ต่อให้ (dtòr-hâi) means 'even if' and introduces a hypothetical or extreme condition. Stronger than ถ้า. The result clause uses ก็.",
-    pattern: "ต่อให้ + EXTREME CONDITION + ก็ + RESULT",
+      "ต่อให้ introduces a strong hypothetical or extreme concession. It is useful for persuasive speech, sharp contrast, and emphatic advanced argument.",
+    pattern: "ต่อให้ + CONDITION + ก็ + RESULT",
     example: {
-      thai: "ต่อให้มีเงินล้านก็ซื้อไม่ได้",
-      roman: "dtòr-hâi mii ngoen láan kôr sʉ́ʉ mâi dâai",
-      english: "Even if (I) had a million, (I) couldn't buy it.",
-      breakdown: [
-        { thai: "ต่อให้", english: "even if", tone: "low", grammar: true },
-        { thai: "มี", english: "have", tone: "mid" },
-        { thai: "เงินล้าน", english: "a million", tone: "mid" },
-        { thai: "ก็", english: "still", tone: "falling", grammar: true },
-        { thai: "ซื้อ", english: "buy", tone: "high" },
-        { thai: "ไม่ได้", english: "cannot", tone: "falling" },
-      ],
+      thai: "ต่อให้ฝนตกเราก็จะไป",
+      roman: "to hai fon tok rao ko cha pai",
+      english: "Even if it rains, we will go.",
+      breakdown: [w("ต่อให้", "even if", "low", true), w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low"), w("เรา", "we", "mid"), w("ก็", "still", "falling", true), w("จะ", "will", "low"), w("ไป", "go", "mid")],
     },
     focus: {
       particle: "ต่อให้...ก็",
-      meaning: "Even if (hypothetical extreme). Stronger than ถ้า.",
+      meaning: "Strong concessive pattern meaning even if.",
     },
   },
-
-  {
-    id: "reported-speech",
-    title: "Reported Speech — บอกว่า / คิดว่า",
-    level: 3,
-    explanation:
-      "ว่า (wâa) introduces reported speech or thoughts, similar to 'that' in English. Common verbs: บอกว่า (said that), คิดว่า (think that), รู้ว่า (know that).",
-    pattern: "SUBJECT + VERB + ว่า + CLAUSE",
-    example: {
-      thai: "เขาบอกว่าจะมาสาย",
-      roman: "khǎo bòrk wâa jà maa sǎai",
-      english: "He said that he would come late.",
-      breakdown: [
-        { thai: "เขา", english: "he", tone: "rising" },
-        { thai: "บอก", english: "tell/say", tone: "low" },
-        { thai: "ว่า", english: "that", tone: "falling", grammar: true },
-        { thai: "จะ", english: "will", tone: "low", grammar: true },
-        { thai: "มา", english: "come", tone: "mid" },
-        { thai: "สาย", english: "late", tone: "rising" },
-      ],
-    },
-    focus: {
-      particle: "ว่า (wâa)",
-      meaning:
-        "Introduces reported speech or thoughts. Like 'that' in 'he said that...'",
-    },
-  },
-
   {
     id: "passive-formal",
-    title: "Formal Passive — ได้รับ",
-    level: 3,
+    title: "Formal Passive with ได้รับ",
+    level: "C2",
     explanation:
-      "ได้รับ (dâai ráp) is a formal or positive passive construction meaning 'to receive / to be given'. Unlike ถูก/โดน, it carries no negative connotation.",
-    pattern: "SUBJECT + ได้รับ + NOUN/ACTION",
+      "ได้รับ is common in formal, professional, and written Thai. It creates a more neutral and institutional passive than colloquial ถูก or โดน.",
+    pattern: "SUBJECT + ได้รับ + NOUN / ACTION",
     example: {
       thai: "บริษัทได้รับรางวัล",
-      roman: "bor-ri-sàt dâai ráp raang-wan",
+      roman: "borisat dai rap rangwan",
       english: "The company received an award.",
-      breakdown: [
-        { thai: "บริษัท", english: "company", tone: "low" },
-        { thai: "ได้รับ", english: "received", tone: "falling", grammar: true },
-        { thai: "รางวัล", english: "award/prize", tone: "mid" },
-      ],
+      breakdown: [w("บริษัท", "company", "low"), w("ได้รับ", "received / was awarded", "falling", true), w("รางวัล", "award", "mid")],
     },
     focus: {
-      particle: "ได้รับ (dâai ráp)",
-      meaning:
-        "Formal passive meaning 'received/was given'. Neutral or positive tone.",
+      particle: "ได้รับ",
+      meaning: "Formal passive or reception verb used in official contexts.",
     },
   },
-
-  {
-    id: "in-order-to-phuea",
-    title: "In order to — เพื่อ(ที่จะ)",
-    level: 3,
-    explanation:
-      "เพื่อ (phʉ̂a) or เพื่อที่จะ (phʉ̂a thîi jà) means 'in order to / for the purpose of'. It introduces the goal or purpose of an action.",
-    pattern: "VERB + เพื่อ(ที่จะ) + PURPOSE",
-    example: {
-      thai: "เขาเรียนหนักเพื่อที่จะสอบผ่าน",
-      roman: "khǎo rian nàk phʉ̂a thîi jà sòrp phàan",
-      english: "He studies hard in order to pass the exam.",
-      breakdown: [
-        { thai: "เขา", english: "he", tone: "rising" },
-        { thai: "เรียน", english: "study", tone: "mid" },
-        { thai: "หนัก", english: "hard/heavily", tone: "low" },
-        {
-          thai: "เพื่อที่จะ",
-          english: "in order to",
-          tone: "falling",
-          grammar: true,
-        },
-        { thai: "สอบ", english: "exam/test", tone: "low" },
-        { thai: "ผ่าน", english: "pass", tone: "low" },
-      ],
-    },
-    focus: {
-      particle: "เพื่อ(ที่จะ)",
-      meaning: "In order to / for the purpose of. Introduces a goal clause.",
-    },
-  },
-
   {
     id: "the-more-ying",
-    title: "The more...the more — ยิ่ง...ยิ่ง",
-    level: 3,
+    title: "The More...The More with ยิ่ง...ยิ่ง",
+    level: "C2",
     explanation:
-      "ยิ่ง (yîng) is used in pairs to express 'the more X, the more Y'. It creates a proportional relationship between two increasing qualities or actions.",
-    pattern: "ยิ่ง + CLAUSE₁ + ยิ่ง + CLAUSE₂",
+      "This paired structure expresses proportional change between two clauses. It is valuable for abstract reasoning and polished explanatory language.",
+    pattern: "ยิ่ง + CLAUSE 1 + ยิ่ง + CLAUSE 2",
     example: {
-      thai: "ยิ่งเรียนยิ่งสนุก",
-      roman: "yîng rian yîng sa-nùk",
-      english: "The more (I) study, the more fun it is.",
-      breakdown: [
-        { thai: "ยิ่ง", english: "the more", tone: "falling", grammar: true },
-        { thai: "เรียน", english: "study", tone: "mid" },
-        { thai: "ยิ่ง", english: "the more", tone: "falling", grammar: true },
-        { thai: "สนุก", english: "fun", tone: "low" },
-      ],
+      thai: "ยิ่งฝึกยิ่งคล่อง",
+      roman: "ying fuk ying khlong",
+      english: "The more you practice, the more fluent you become.",
+      breakdown: [w("ยิ่ง", "the more", "falling", true), w("ฝึก", "practice", "low"), w("ยิ่ง", "the more", "falling", true), w("คล่อง", "fluent", "low")],
     },
     focus: {
-      particle: "ยิ่ง...ยิ่ง (yîng...yîng)",
-      meaning: "The more...the more. Proportional increase between two things.",
+      particle: "ยิ่ง...ยิ่ง",
+      meaning: "Paired frame for proportional increase or correlation.",
     },
   },
-
-  {
-    id: "seems-like-duu",
-    title: "Seems like — ดูเหมือน(ว่า)",
-    level: 3,
-    explanation:
-      "ดูเหมือน (duu mʉ̌an) means 'it seems like / it looks as if'. Often followed by ว่า before a clause. Can also use น่าจะ (nâa-jà) for 'probably/likely'.",
-    pattern: "ดูเหมือน(ว่า) + CLAUSE  /  น่าจะ + VERB",
-    example: {
-      thai: "ดูเหมือนว่าเขาจะไม่มา",
-      roman: "duu mʉ̌an wâa khǎo jà mâi maa",
-      english: "It seems like he won't come.",
-      breakdown: [
-        { thai: "ดูเหมือน", english: "seems like", tone: "mid", grammar: true },
-        { thai: "ว่า", english: "that", tone: "falling", grammar: true },
-        { thai: "เขา", english: "he", tone: "rising" },
-        { thai: "จะ", english: "will", tone: "low" },
-        { thai: "ไม่มา", english: "not come", tone: "falling" },
-      ],
-    },
-    focus: {
-      particle: "ดูเหมือน(ว่า) / น่าจะ",
-      meaning: "ดูเหมือน = seems like/appears. น่าจะ = probably/likely.",
-    },
-  },
-
   {
     id: "once-phor",
-    title: "As soon as / Once — พอ...ก็",
-    level: 3,
+    title: "Immediate Sequence with พอ...ก็",
+    level: "C2",
     explanation:
-      "พอ (phaw) at the start of a clause means 'as soon as / once'. The result follows with ก็ (kôr). It implies immediacy — the second action follows right away.",
+      "พอ...ก็ expresses a quick trigger-result relationship, often meaning as soon as. It helps advanced learners manage tighter temporal sequencing in narrative.",
     pattern: "พอ + EVENT + ก็ + RESULT",
     example: {
-      thai: "พอฝนหยุดก็ออกไปเลย",
-      roman: "phaw fǒn yùt kôr àwk bpai loey",
-      english: "As soon as the rain stopped, (I) went out.",
-      breakdown: [
-        { thai: "พอ", english: "as soon as", tone: "mid", grammar: true },
-        { thai: "ฝน", english: "rain", tone: "rising" },
-        { thai: "หยุด", english: "stop", tone: "low" },
-        { thai: "ก็", english: "then", tone: "falling", grammar: true },
-        { thai: "ออกไป", english: "go out", tone: "low" },
-        { thai: "เลย", english: "right away", tone: "mid" },
-      ],
+      thai: "พอฝนหยุดก็ออกไป",
+      roman: "pho fon yut ko ok pai",
+      english: "As soon as the rain stopped, we went out.",
+      breakdown: [w("พอ", "as soon as", "mid", true), w("ฝน", "rain", "rising"), w("หยุด", "stop", "low"), w("ก็", "then", "falling", true), w("ออกไป", "go out", "low")],
     },
     focus: {
-      particle: "พอ...ก็ (phaw...kôr)",
-      meaning:
-        "As soon as / once. Implies the second action follows immediately.",
+      particle: "พอ...ก็",
+      meaning: "Frame for immediate sequence between two events.",
     },
   },
-
   {
     id: "keep-doing-ruai",
-    title: "Keep doing — VERB + เรื่อยๆ / ไปเรื่อยๆ",
-    level: 3,
+    title: "Ongoing Continuation with เรื่อยๆ",
+    level: "C2",
     explanation:
-      "เรื่อยๆ (rʉ̂ai-rʉ̂ai) after a verb means 'keep doing / continuously / gradually'. It implies an ongoing, unhurried action. ไปเรื่อยๆ = keep going along.",
+      "เรื่อยๆ adds a sense of continuation, gradual repetition, or unbroken progress. It is useful in advice, narration, and more idiomatic spoken Thai.",
     pattern: "VERB + เรื่อยๆ / ไปเรื่อยๆ",
     example: {
-      thai: "เดินไปเรื่อยๆแล้วจะเจอ",
-      roman: "dooen bpai rʉ̂ai-rʉ̂ai láew jà jooe",
-      english: "Just keep walking and you'll find it.",
-      breakdown: [
-        { thai: "เดิน", english: "walk", tone: "mid" },
-        { thai: "ไป", english: "go", tone: "mid" },
-        {
-          thai: "เรื่อยๆ",
-          english: "continuously",
-          tone: "falling",
-          grammar: true,
-        },
-        { thai: "แล้ว", english: "then", tone: "high" },
-        { thai: "จะ", english: "will", tone: "low" },
-        { thai: "เจอ", english: "find/meet", tone: "mid" },
-      ],
+      thai: "พูดไปเรื่อยๆเดี๋ยวก็คล่อง",
+      roman: "phut pai rueai rueai diao ko khlong",
+      english: "Keep speaking and you will get fluent.",
+      breakdown: [w("พูด", "speak", "falling"), w("ไป", "keep going", "mid"), w("เรื่อยๆ", "continuously", "falling", true), w("เดี๋ยว", "soon", "falling"), w("ก็", "then", "falling", true), w("คล่อง", "fluent", "low")],
     },
     focus: {
-      particle: "เรื่อยๆ (rʉ̂ai-rʉ̂ai)",
-      meaning: "After a verb = keep doing / continuously / gradually.",
+      particle: "เรื่อยๆ",
+      meaning: "Continuation marker for doing something steadily or continuously.",
     },
   },
-
   {
     id: "supposed-to-khuan-ja",
-    title: "Supposed to / Expected — ควรจะ / น่าจะ",
-    level: 3,
+    title: "Expectation with ควรจะ / น่าจะ",
+    level: "C2",
     explanation:
-      "ควรจะ (khuan-jà) = 'should / supposed to' (expectation). น่าจะ (nâa-jà) = 'probably / ought to' (likelihood). Both go before the verb and express different shades of expectation.",
-    pattern: "SUBJECT + ควรจะ/น่าจะ + VERB",
+      "ควรจะ and น่าจะ let speakers express expectation, probability, or what would reasonably be the case. This supports more precise stance and inference.",
+    pattern: "SUBJECT + ควรจะ / น่าจะ + VERB",
     example: {
       thai: "เขาน่าจะถึงแล้ว",
-      roman: "khǎo nâa-jà thʉ̌ng láew",
+      roman: "khao na cha thueng laeo",
       english: "He should have arrived already.",
-      breakdown: [
-        { thai: "เขา", english: "he", tone: "rising" },
-        {
-          thai: "น่าจะ",
-          english: "should/probably",
-          tone: "falling",
-          grammar: true,
-        },
-        { thai: "ถึง", english: "arrive", tone: "rising" },
-        { thai: "แล้ว", english: "already", tone: "high", grammar: true },
-      ],
+      breakdown: [w("เขา", "he / she", "rising"), w("น่าจะ", "should / probably", "falling", true), w("ถึง", "arrive", "rising"), w("แล้ว", "already", "high", true)],
     },
     focus: {
       particle: "ควรจะ / น่าจะ",
-      meaning: "ควรจะ = should (duty). น่าจะ = probably/ought to (likelihood).",
+      meaning: "Expectation and probability markers for advanced stance-taking.",
     },
   },
 ];
+
+

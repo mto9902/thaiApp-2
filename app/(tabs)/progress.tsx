@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ScrollView,
@@ -9,22 +9,23 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
 
 import { Sketch } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
+import {
+  CEFR_LEVEL_META,
+  CEFR_LEVELS,
+  CefrLevel,
+} from "../../src/data/grammarLevels";
 import { getAllProgress, GrammarProgressData } from "../../src/utils/grammarProgress";
 
-const LEVEL_NAMES: Record<number, string> = {
-  1: "Beginner",
-  2: "Intermediate",
-  3: "Advanced",
-};
-
-const LEVEL_COLORS: Record<number, string> = {
-  1: Sketch.green,
-  2: Sketch.blue,
-  3: Sketch.red,
+const LEVEL_COLORS: Record<CefrLevel, string> = {
+  A1: Sketch.green,
+  A2: Sketch.blue,
+  B1: Sketch.orange,
+  B2: Sketch.red,
+  C1: Sketch.purple,
+  C2: Sketch.pink,
 };
 
 export default function GrammarScreen() {
@@ -37,7 +38,7 @@ export default function GrammarScreen() {
     }, [])
   );
 
-  const levels = [1, 2, 3];
+  const levels = CEFR_LEVELS;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
@@ -57,7 +58,7 @@ export default function GrammarScreen() {
               <View style={styles.levelHeader}>
                 <View style={styles.levelHeaderLeft}>
                   <View style={[styles.levelDot, { backgroundColor: LEVEL_COLORS[level] }]} />
-                  <Text style={styles.levelTitle}>{LEVEL_NAMES[level]}</Text>
+                  <Text style={styles.levelTitle}>{CEFR_LEVEL_META[level].title}</Text>
                 </View>
                 <Text style={styles.levelProgress}>{percentage}%</Text>
               </View>

@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
+import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
 import { isGuestUser } from "../../src/utils/auth";
 import {
   GrammarProgressData,
@@ -22,15 +23,13 @@ import {
 } from "../../src/utils/grammarProgress";
 import { Sketch } from "@/constants/theme";
 
-const LEVEL_COLORS: Record<number, string> = {
-  1: Sketch.green,
-  2: Sketch.blue,
-  3: Sketch.red,
-};
-const LEVEL_NAMES: Record<number, string> = {
-  1: "Beginner",
-  2: "Intermediate",
-  3: "Advanced",
+const LEVEL_COLORS: Record<CefrLevel, string> = {
+  A1: Sketch.green,
+  A2: Sketch.blue,
+  B1: Sketch.orange,
+  B2: Sketch.red,
+  C1: Sketch.purple,
+  C2: Sketch.pink,
 };
 
 function timeAgo(iso: string): string {
@@ -148,7 +147,7 @@ export default function DecksScreen() {
         <View style={styles.cardTop}>
           <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
             <Text style={styles.levelBadgeText}>
-              {LEVEL_NAMES[item.level] || `Level ${item.level}`}
+              {CEFR_LEVEL_META[item.level].label}
             </Text>
           </View>
           <Ionicons name="bookmark" size={16} color={Sketch.orange} />

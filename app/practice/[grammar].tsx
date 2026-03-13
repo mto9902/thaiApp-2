@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -17,6 +17,7 @@ import LessonHeader from "../../src/components/LessonHeader";
 import ToneGuide, { ToneGuideButton } from "../../src/components/ToneGuide";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
+import { CEFR_LEVEL_META } from "../../src/data/grammarLevels";
 import { isGuestUser } from "../../src/utils/auth";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
@@ -32,14 +33,7 @@ export default function GrammarDetail() {
 
   const grammarPoint = grammarPoints.find((p) => p.id === grammar);
 
-  useEffect(() => {
-    if (grammar) {
-      isGuestUser().then(setIsGuest);
-      checkBookmark();
-    }
-  }, [grammar]);
-
-  async function checkBookmark() {
+  const checkBookmark = useCallback(async () => {
     try {
       const guest = await isGuestUser();
       if (guest) return;
@@ -52,7 +46,14 @@ export default function GrammarDetail() {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [grammar]);
+
+  useEffect(() => {
+    if (grammar) {
+      isGuestUser().then(setIsGuest);
+      checkBookmark();
+    }
+  }, [checkBookmark, grammar]);
 
   async function toggleBookmark() {
     try {
@@ -90,11 +91,11 @@ export default function GrammarDetail() {
   const pattern = grammarPoint.pattern || "PATTERN + HERE";
   const example = grammarPoint.example || {
     thai: "ตัวอย่างประโยค",
-    roman: "tua-yàang bprà-yòohk",
+    roman: "tua-yang prayok",
     english: "Example sentence",
     breakdown: [
-      { thai: "ตัวอย่าง", english: "example" },
-      { thai: "ประโยค", english: "sentence" },
+      { thai: "ตัวอย่าง", english: "example", tone: "mid" },
+      { thai: "ประโยค", english: "sentence", tone: "mid" },
     ],
   };
   const focus = grammarPoint.focus || {
@@ -114,7 +115,9 @@ export default function GrammarDetail() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleSection}>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>LEVEL {grammarPoint.level}</Text>
+            <Text style={styles.levelText}>
+              {CEFR_LEVEL_META[grammarPoint.level].label}
+            </Text>
           </View>
           <View style={styles.titleCard}>
             <Text style={styles.title}>{grammarPoint.title.toUpperCase()}</Text>
@@ -165,7 +168,7 @@ export default function GrammarDetail() {
             </TouchableOpacity>
 
             <View style={styles.divider} />
-            <Text style={styles.romanText}>"{example.roman}"</Text>
+            <Text style={styles.romanText}>{example.roman}</Text>
 
             <View style={styles.englishContainer}>
               <Text style={styles.englishText}>{example.english}</Text>
@@ -399,3 +402,4 @@ const styles = StyleSheet.create({
   },
   ctaText: { fontSize: 20, fontWeight: "900", color: Sketch.cardBg },
 });
+

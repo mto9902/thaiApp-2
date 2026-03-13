@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
 import { grammarPoints } from "../../src/data/grammar";
+import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
 const COLORS = [
@@ -23,23 +24,18 @@ const COLORS = [
   Sketch.pink,
 ];
 
-const LEVEL_NAMES: Record<number, string> = {
-  1: "Beginner",
-  2: "Intermediate",
-  3: "Advanced",
-};
-
 export default function CSVGrammarIndex() {
   const router = useRouter();
   const { level } = useLocalSearchParams<{ level?: string }>();
+  const selectedLevel = level as CefrLevel | undefined;
 
   const filtered = useMemo(() => {
-    if (!level) return grammarPoints;
-    return grammarPoints.filter((p) => p.level === Number(level));
-  }, [level]);
+    if (!selectedLevel) return grammarPoints;
+    return grammarPoints.filter((p) => p.level === selectedLevel);
+  }, [selectedLevel]);
 
-  const title = level
-    ? `${LEVEL_NAMES[Number(level)] || `Level ${level}`} Grammar`
+  const title = selectedLevel
+    ? `${CEFR_LEVEL_META[selectedLevel].title} Grammar`
     : "Grammar";
 
   function openPractice(id: string) {
@@ -64,7 +60,7 @@ export default function CSVGrammarIndex() {
           >
             <View style={styles.cardHeader}>
               <View style={styles.textContainer}>
-                <Text style={styles.levelLabel}>LEVEL {item.level}</Text>
+                <Text style={styles.levelLabel}>CEFR {item.level}</Text>
                 <Text style={styles.grammarTitle}>
                   {item.title.toUpperCase()}
                 </Text>

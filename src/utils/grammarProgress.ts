@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE } from "../config";
 
 const PREFIX = "grammar_progress_";
 
@@ -30,6 +31,18 @@ export async function saveRound(
     lastPracticed: new Date().toISOString(),
   };
   await AsyncStorage.setItem(PREFIX + grammarId, JSON.stringify(updated));
+
+  // Log grammar activity to server for heatmap (fire-and-forget)
+  try {
+    const token = await AsyncStorage.getItem("token");
+    if (token) {
+      fetch(`${API_BASE}/activity/log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ source: "grammar", count: 1 }),
+      }).catch(() => {}); // silent fail
+    }
+  } catch {}
 }
 
 /** Load progress for every grammar point that has been practiced. */
