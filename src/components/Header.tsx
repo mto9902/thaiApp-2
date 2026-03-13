@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Sketch, sketchShadow, sketchCard } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
@@ -82,29 +82,25 @@ export default function Header({
   }
 
   const speedOptions: { label: string; value: SettingsState["ttsSpeed"] }[] = [
-    { label: "SLOW", value: "slow" },
-    { label: "NORMAL", value: "normal" },
-    { label: "FAST", value: "fast" },
+    { label: "Slow", value: "slow" },
+    { label: "Normal", value: "normal" },
+    { label: "Fast", value: "fast" },
   ];
 
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.iconButton} onPress={onBack}>
-        <Ionicons name={showClose ? "close-outline" : "arrow-back"} size={22} color={Sketch.ink} />
+        <Ionicons name={showClose ? "close" : "arrow-back"} size={22} color={Sketch.ink} />
       </TouchableOpacity>
 
-      <View style={styles.titleContainer}>
-        <Text style={styles.titleText}>{title || "LESSON"}</Text>
-      </View>
+      <Text style={styles.titleText}>{title || "Lesson"}</Text>
 
       {showSettings ? (
         <TouchableOpacity style={styles.iconButton} onPress={() => setModalVisible(true)}>
-          <Ionicons name="settings-outline" size={22} color={Sketch.ink} />
+          <Ionicons name="settings-outline" size={22} color={Sketch.inkLight} />
         </TouchableOpacity>
       ) : (
-        <View style={styles.iconButton}>
-          <Ionicons name="settings-outline" size={22} color="transparent" />
-        </View>
+        <View style={{ width: 38 }} />
       )}
 
       <Modal
@@ -133,7 +129,7 @@ export default function Header({
               <Switch
                 value={settings.showRoman}
                 onValueChange={(v) => updateSetting("showRoman", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.green }}
+                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
                 thumbColor="white"
               />
             </View>
@@ -146,7 +142,7 @@ export default function Header({
               <Switch
                 value={settings.showEnglish}
                 onValueChange={(v) => updateSetting("showEnglish", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.green }}
+                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
                 thumbColor="white"
               />
             </View>
@@ -159,7 +155,7 @@ export default function Header({
               <Switch
                 value={settings.autoplayTTS}
                 onValueChange={(v) => updateSetting("autoplayTTS", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.green }}
+                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
                 thumbColor="white"
               />
             </View>
@@ -204,53 +200,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginTop: 10,
+    paddingVertical: 12,
   },
 
   iconButton: {
     padding: 8,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 10,
-    backgroundColor: Sketch.cardBg,
-    ...sketchShadow(2),
-  },
-
-  titleContainer: {
-    backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    ...sketchShadow(3),
   },
 
   titleText: {
-    fontWeight: "900",
-    fontSize: 15,
-    color: Sketch.cardBg,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontWeight: "600",
+    fontSize: 17,
+    color: Sketch.ink,
   },
 
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalCard: {
     backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 24,
     width: "100%",
     maxWidth: 360,
-    ...sketchShadow(6),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalHeader: {
     flexDirection: "row",
@@ -260,9 +240,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "900",
+    fontWeight: "600",
     color: Sketch.ink,
-    letterSpacing: 1,
   },
 
   settingRow: {
@@ -270,29 +249,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
-    borderBottomWidth: 1.5,
+    borderBottomWidth: 1,
     borderBottomColor: Sketch.inkFaint,
   },
   settingInfo: { flex: 1, marginRight: 12 },
-  settingLabel: { fontSize: 15, fontWeight: "800", color: Sketch.ink },
-  settingDesc: { fontSize: 12, fontWeight: "500", color: Sketch.inkMuted, marginTop: 2 },
+  settingLabel: { fontSize: 15, fontWeight: "500", color: Sketch.ink },
+  settingDesc: { fontSize: 12, fontWeight: "400", color: Sketch.inkMuted, marginTop: 2 },
 
   speedRow: { flexDirection: "row", gap: 4 },
   speedPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: Sketch.paperDark,
   },
   speedPillActive: {
     backgroundColor: Sketch.ink,
-    borderColor: Sketch.ink,
   },
   speedPillText: {
-    fontSize: 10,
-    fontWeight: "900",
+    fontSize: 12,
+    fontWeight: "500",
     color: Sketch.inkMuted,
   },
   speedPillTextActive: {

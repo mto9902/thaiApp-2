@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import Header from "../../src/components/Header";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
 import { isGuestUser } from "../../src/utils/auth";
@@ -21,7 +20,7 @@ import {
   GrammarProgressData,
   getAllProgress,
 } from "../../src/utils/grammarProgress";
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 
 const LEVEL_COLORS: Record<number, string> = {
   1: Sketch.green,
@@ -51,7 +50,7 @@ function accuracyLabel(p: GrammarProgressData): string {
   return `${Math.round((p.correct / p.total) * 100)}%`;
 }
 
-export default function MyGrammarScreen() {
+export default function DecksScreen() {
   const router = useRouter();
 
   const [bookmarked, setBookmarked] = useState<GrammarPoint[]>([]);
@@ -86,7 +85,7 @@ export default function MyGrammarScreen() {
       setBookmarked(matched);
       setProgress(allProgress);
     } catch (err) {
-      console.error("[MyGrammar] loadData failed:", err);
+      console.error("[Decks] loadData failed:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -116,21 +115,20 @@ export default function MyGrammarScreen() {
 
   function renderEmpty() {
     return (
-      <View style={st.emptyWrap}>
-        <View style={st.emptyIcon}>
-          <Ionicons name="bookmark-outline" size={44} color={Sketch.inkFaint} />
+      <View style={styles.emptyWrap}>
+        <View style={styles.emptyIcon}>
+          <Ionicons name="bookmark-outline" size={36} color={Sketch.inkMuted} />
         </View>
-        <Text style={st.emptyTitle}>NO BOOKMARKS YET</Text>
-        <Text style={st.emptySubtitle}>
+        <Text style={styles.emptyTitle}>No Bookmarks Yet</Text>
+        <Text style={styles.emptySubtitle}>
           Browse grammar lessons and tap the bookmark button to save them here
           for quick practice.
         </Text>
         <TouchableOpacity
-          style={st.browseCta}
+          style={styles.primaryBtn}
           onPress={() => router.push("/practice/levels")}
         >
-          <Text style={st.browseCtaText}>BROWSE GRAMMAR</Text>
-          <Ionicons name="arrow-forward" size={14} color={Sketch.cardBg} />
+          <Text style={styles.primaryBtnText}>Browse Grammar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -143,82 +141,77 @@ export default function MyGrammarScreen() {
     return (
       <TouchableOpacity
         key={item.id}
-        style={st.card}
+        style={styles.card}
         onPress={() => router.push(`/practice/${item.id}`)}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
-        <View style={st.cardTop}>
-          <View style={[st.levelBadge, { backgroundColor: levelColor }]}>
-            <Text style={st.levelBadgeText}>
-              {LEVEL_NAMES[item.level]?.toUpperCase() || `LEVEL ${item.level}`}
+        <View style={styles.cardTop}>
+          <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
+            <Text style={styles.levelBadgeText}>
+              {LEVEL_NAMES[item.level] || `Level ${item.level}`}
             </Text>
           </View>
-          <Ionicons name="bookmark" size={18} color={Sketch.yellow} />
+          <Ionicons name="bookmark" size={16} color={Sketch.orange} />
         </View>
 
-        <Text style={st.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardTitle}>{item.title}</Text>
 
         {p ? (
-          <View style={st.statsRow}>
-            <View style={st.statChip}>
-              <Ionicons name="flash-outline" size={12} color={Sketch.inkLight} />
-              <Text style={st.statText}>{p.rounds} rounds</Text>
-            </View>
-            <View style={st.statChip}>
-              <Ionicons name="checkmark-circle-outline" size={12} color={Sketch.inkLight} />
-              <Text style={st.statText}>{accuracyLabel(p)}</Text>
-            </View>
-            <View style={st.statChip}>
-              <Ionicons name="time-outline" size={12} color={Sketch.inkLight} />
-              <Text style={st.statText}>{timeAgo(p.lastPracticed)}</Text>
-            </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statText}>{p.rounds} rounds</Text>
+            <Text style={styles.statDot}>·</Text>
+            <Text style={styles.statText}>{accuracyLabel(p)} accuracy</Text>
+            <Text style={styles.statDot}>·</Text>
+            <Text style={styles.statText}>{timeAgo(p.lastPracticed)}</Text>
           </View>
         ) : (
-          <Text style={st.noPractice}>Not practiced yet</Text>
+          <Text style={styles.noPractice}>Not practiced yet</Text>
         )}
 
         <TouchableOpacity
-          style={st.practiceBtn}
+          style={styles.practiceBtn}
           onPress={() => router.push(`/practice/${item.id}/PracticeCSV`)}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
-          <Ionicons name="flash" size={16} color={Sketch.cardBg} />
-          <Text style={st.practiceBtnText}>PRACTICE</Text>
+          <Text style={styles.practiceBtnText}>Practice</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-      <Header title="My Grammar" onBack={() => router.back()} />
-
+    <SafeAreaView edges={["top"]} style={styles.safe}>
       {loading ? (
-        <View style={st.loadingWrap}>
-          <ActivityIndicator size="large" color={Sketch.ink} />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={Sketch.inkMuted} />
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={st.scroll}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
         >
+          <Text style={styles.pageTitle}>Decks</Text>
+          <Text style={styles.pageSubtitle}>Your bookmarked lessons</Text>
+
+          <View style={styles.divider} />
+
           {isGuest ? (
-            <View style={st.emptyWrap}>
-              <View style={st.emptyIcon}>
-                <Ionicons name="person-outline" size={44} color={Sketch.inkFaint} />
+            <View style={styles.emptyWrap}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="person-outline" size={36} color={Sketch.inkMuted} />
               </View>
-              <Text style={st.emptyTitle}>GUEST MODE</Text>
-              <Text style={st.emptySubtitle}>
+              <Text style={styles.emptyTitle}>Guest Mode</Text>
+              <Text style={styles.emptySubtitle}>
                 Log in to save bookmarks and track your grammar practice progress.
               </Text>
               <TouchableOpacity
-                style={st.browseCta}
+                style={styles.primaryBtn}
                 onPress={() => router.push("/login")}
               >
-                <Text style={st.browseCtaText}>LOG IN</Text>
-                <Ionicons name="arrow-forward" size={14} color={Sketch.cardBg} />
+                <Text style={styles.primaryBtnText}>Log In</Text>
               </TouchableOpacity>
             </View>
           ) : bookmarked.length === 0 ? (
@@ -226,64 +219,69 @@ export default function MyGrammarScreen() {
           ) : (
             <>
               <TouchableOpacity
-                style={st.quickMix}
+                style={styles.quickMix}
                 onPress={handleQuickMix}
-                activeOpacity={0.85}
+                activeOpacity={0.8}
               >
-                <Ionicons name="shuffle" size={20} color={Sketch.cardBg} />
-                <Text style={st.quickMixText}>QUICK MIX</Text>
-                <Text style={st.quickMixSub}>
-                  Random practice from your {bookmarked.length} bookmarks
+                <Ionicons name="shuffle" size={18} color="#FFFFFF" />
+                <Text style={styles.quickMixText}>Quick Mix</Text>
+                <Text style={styles.quickMixSub}>
+                  Random practice from {bookmarked.length} bookmarks
                 </Text>
               </TouchableOpacity>
-
-              <Text style={st.sectionLabel}>YOUR BOOKMARKS</Text>
 
               {bookmarked.map((item) => renderCard(item))}
             </>
           )}
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       )}
     </SafeAreaView>
   );
 }
 
-const st = StyleSheet.create({
+const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  scroll: { padding: 20, paddingTop: 10, paddingBottom: 40 },
+  scroll: { paddingHorizontal: 20, paddingTop: 16 },
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  pageTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.5,
+  },
+  pageSubtitle: {
+    fontSize: 15,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    marginTop: 2,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: Sketch.inkFaint,
+    marginVertical: 20,
+  },
 
   quickMix: {
     backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     alignItems: "center",
     gap: 4,
-    ...sketchShadow(5),
   },
-  quickMixText: { fontSize: 18, fontWeight: "900", color: Sketch.cardBg },
-  quickMixSub: { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.7)" },
-
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
+  quickMixText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  quickMixSub: { fontSize: 12, fontWeight: "400", color: "rgba(255,255,255,0.7)" },
 
   card: {
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    padding: 20,
-    marginBottom: 16,
-    gap: 10,
-    ...sketchShadow(4),
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 12,
+    padding: 18,
+    marginBottom: 12,
+    gap: 8,
   },
   cardTop: {
     flexDirection: "row",
@@ -292,87 +290,64 @@ const st = StyleSheet.create({
   },
   levelBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 6,
   },
   levelBadgeText: {
-    fontSize: 10,
-    fontWeight: "900",
+    fontSize: 11,
+    fontWeight: "600",
     color: "white",
-    letterSpacing: 1,
   },
-  cardTitle: { fontSize: 18, fontWeight: "900", color: Sketch.ink },
+  cardTitle: { fontSize: 16, fontWeight: "600", color: Sketch.ink },
 
-  statsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  statChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Sketch.paperDark,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  statText: { fontSize: 12, fontWeight: "700", color: Sketch.inkLight },
+  statsRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 },
+  statText: { fontSize: 12, fontWeight: "400", color: Sketch.inkMuted },
+  statDot: { fontSize: 12, color: Sketch.inkMuted },
   noPractice: {
     fontSize: 13,
-    fontWeight: "600",
-    color: Sketch.inkFaint,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
     fontStyle: "italic",
   },
 
   practiceBtn: {
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
     backgroundColor: Sketch.orange,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 8,
+    paddingVertical: 10,
     marginTop: 4,
-    ...sketchShadow(2),
   },
-  practiceBtnText: { fontSize: 13, fontWeight: "900", color: Sketch.cardBg },
+  practiceBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
 
   emptyWrap: {
     alignItems: "center",
-    paddingTop: 80,
+    paddingTop: 60,
     paddingHorizontal: 30,
     gap: 12,
   },
   emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Sketch.paperDark,
-    borderWidth: 2,
-    borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
-  emptyTitle: { fontSize: 18, fontWeight: "900", color: Sketch.ink },
+  emptyTitle: { fontSize: 18, fontWeight: "600", color: Sketch.ink },
   emptySubtitle: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "400",
     color: Sketch.inkMuted,
     textAlign: "center",
     lineHeight: 20,
   },
-  browseCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  primaryBtn: {
     backgroundColor: Sketch.orange,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
     borderRadius: 10,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginTop: 12,
-    ...sketchShadow(3),
+    paddingHorizontal: 24,
+    marginTop: 8,
   },
-  browseCtaText: { fontSize: 13, fontWeight: "900", color: Sketch.cardBg },
+  primaryBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
 });

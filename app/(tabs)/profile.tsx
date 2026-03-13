@@ -10,9 +10,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
-import Header from "../../src/components/Header";
+import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
 
@@ -76,21 +76,16 @@ export default function Profile() {
   if (isGuest) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-        <Header
-          title="Profile"
-          onBack={() => router.back()}
-          showSettings={false}
-        />
         <View style={styles.centerWrap}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>?</Text>
+            <Ionicons name="person-outline" size={28} color={Sketch.inkMuted} />
           </View>
           <Text style={styles.guestTitle}>Guest Mode</Text>
           <Text style={styles.guestSub}>
             Log in to save your progress, bookmarks, and vocabulary
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={logout}>
-            <Text style={styles.primaryBtnText}>LOG IN</Text>
+            <Text style={styles.primaryBtnText}>Log In</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -99,65 +94,64 @@ export default function Profile() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-      <Header
-        title="Profile"
-        onBack={() => router.back()}
-        showSettings={false}
-      />
-
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.profileCard}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>
-              {userId ? `#${userId}` : "..."}
+              {userId ? `${userId}` : "..."}
             </Text>
           </View>
-          <Text style={styles.profileLabel}>USER ID</Text>
-          <Text style={styles.profileValue}>{userId || "..."}</Text>
+          <Text style={styles.profileName}>User #{userId || "..."}</Text>
         </View>
 
-        {/* Daily Progress */}
-        <Text style={styles.sectionLabel}>{"TODAY'S PROGRESS"}</Text>
+        <View style={styles.divider} />
+
+        {/* Today's Progress */}
+        <Text style={styles.sectionTitle}>Today's Progress</Text>
         <View style={styles.statsGrid}>
-          <View
-            style={[styles.statCard, { backgroundColor: Sketch.yellowLight }]}
-          >
+          <View style={styles.statCard}>
             <Text style={styles.statNum}>{vocabStats?.reviews_due || 0}</Text>
             <Text style={styles.statLabel}>Reviews Due</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: "#D4EDDA" }]}>
+          <View style={styles.statCard}>
             <Text style={styles.statNum}>
               {progress?.words_learned_today || 0}
             </Text>
             <Text style={styles.statLabel}>Learned</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: "#E8D5F5" }]}>
+          <View style={styles.statCard}>
             <Text style={styles.statNum}>{progress?.mastered_words || 0}</Text>
             <Text style={styles.statLabel}>Mastered</Text>
           </View>
         </View>
 
+        <View style={styles.divider} />
+
         {/* Debug Section */}
-        <Text style={styles.sectionLabel}>DEBUG</Text>
-        <View style={styles.debugCard}>
+        <Text style={styles.sectionTitle}>Debug</Text>
+        <View style={styles.menuCard}>
           {[
-            { label: "Vocab Stats", route: "/debug/VocabStats" },
-            { label: "Vocab Review", route: "/debug/review" },
-            { label: "Mastery Stats", route: "/debug/MasteryStats" },
-          ].map((item, i) => (
+            { label: "Vocab Stats", route: "/debug/VocabStats", icon: "bar-chart-outline" },
+            { label: "Vocab Review", route: "/debug/review", icon: "flash-outline" },
+            { label: "Mastery Stats", route: "/debug/MasteryStats", icon: "trophy-outline" },
+          ].map((item, i, arr) => (
             <TouchableOpacity
               key={i}
-              style={styles.debugRow}
+              style={[styles.menuRow, i < arr.length - 1 && styles.menuRowBorder]}
               onPress={() => router.push(item.route as any)}
             >
-              <Text style={styles.debugRowText}>{item.label}</Text>
-              <Text style={styles.debugArrow}>→</Text>
+              <View style={styles.menuRowLeft}>
+                <Ionicons name={item.icon as any} size={18} color={Sketch.inkLight} />
+                <Text style={styles.menuRowText}>{item.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
             </TouchableOpacity>
           ))}
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutBtnText}>LOG OUT</Text>
+          <Text style={styles.logoutBtnText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -175,148 +169,128 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  avatarCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    justifyContent: "center",
+  profileHeader: {
     alignItems: "center",
-    ...sketchShadow(3),
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: Sketch.cardBg,
+    paddingVertical: 20,
+    gap: 10,
   },
 
-  guestTitle: { fontSize: 22, fontWeight: "900", color: Sketch.ink },
+  avatarCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Sketch.paperDark,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+
+  profileName: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+
+  guestTitle: { fontSize: 22, fontWeight: "600", color: Sketch.ink },
   guestSub: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "400",
     color: Sketch.inkMuted,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 20,
   },
 
-  profileCard: {
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 24,
-    ...sketchShadow(4),
-  },
-  profileLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: Sketch.inkMuted,
-    letterSpacing: 1.5,
-    marginTop: 12,
-  },
-  profileValue: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: Sketch.ink,
-    marginTop: 2,
+  divider: {
+    height: 1,
+    backgroundColor: Sketch.inkFaint,
+    marginVertical: 20,
   },
 
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
-    letterSpacing: 2,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Sketch.ink,
     marginBottom: 12,
   },
 
   statsGrid: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 24,
   },
   statCard: {
     flex: 1,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 10,
     padding: 14,
     alignItems: "center",
-    ...sketchShadow(3),
   },
   statNum: {
     fontSize: 24,
-    fontWeight: "900",
+    fontWeight: "700",
     color: Sketch.ink,
   },
   statLabel: {
     fontSize: 11,
-    fontWeight: "800",
-    color: Sketch.inkLight,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
     marginTop: 4,
   },
 
-  debugCard: {
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+  menuCard: {
+    backgroundColor: Sketch.paperDark,
     borderRadius: 12,
     overflow: "hidden",
     marginBottom: 24,
-    ...sketchShadow(3),
   },
-  debugRow: {
+  menuRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderBottomWidth: 1.5,
+  },
+  menuRowBorder: {
+    borderBottomWidth: 1,
     borderBottomColor: Sketch.inkFaint,
   },
-  debugRowText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Sketch.ink,
+  menuRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  debugArrow: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
+  menuRowText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: Sketch.ink,
   },
 
   primaryBtn: {
     backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
+    borderRadius: 10,
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 32,
     marginTop: 8,
-    ...sketchShadow(3),
   },
   primaryBtnText: {
     fontSize: 15,
-    fontWeight: "900",
-    color: Sketch.cardBg,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 
   logoutBtn: {
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
-    ...sketchShadow(3),
   },
   logoutBtnText: {
     fontSize: 15,
-    fontWeight: "900",
+    fontWeight: "500",
     color: Sketch.red,
   },
 });

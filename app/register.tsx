@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "../src/config";
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 
 export default function Register() {
   const router = useRouter();
@@ -39,41 +39,42 @@ export default function Register() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <View style={styles.titleCard}>
-          <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Join Keystone</Text>
+
+        <View style={styles.form}>
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor={Sketch.inkMuted}
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            autoComplete="off"
+            textContentType="none"
+            inputMode="email"
+            nativeID="register-email"
+          />
+
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor={Sketch.inkMuted}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            nativeID="register-password"
+          />
+
+          <TouchableOpacity style={styles.button} onPress={handleRegister}>
+            <Text style={styles.buttonText}>Create Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.linkText}>Back to Login</Text>
+          </TouchableOpacity>
         </View>
-
-        <TextInput
-          placeholder="Email"
-          placeholderTextColor={Sketch.inkMuted}
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          autoComplete="off"
-          textContentType="none"
-          inputMode="email"
-          nativeID="register-email"
-        />
-
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={Sketch.inkMuted}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          autoComplete="new-password"
-          textContentType="newPassword"
-          nativeID="register-password"
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>CREATE ACCOUNT</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>Back to Login</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -91,57 +92,55 @@ const styles = StyleSheet.create({
     padding: 30,
   },
 
-  titleCard: {
-    backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignSelf: "flex-start",
-    marginBottom: 30,
-    ...sketchShadow(4),
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.5,
   },
 
-  title: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: Sketch.cardBg,
+  subtitle: {
+    fontSize: 15,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    marginTop: 2,
+    marginBottom: 40,
+  },
+
+  form: {
+    gap: 0,
   },
 
   input: {
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     borderRadius: 10,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 12,
     fontSize: 16,
-    fontWeight: "600",
-    backgroundColor: Sketch.cardBg,
+    fontWeight: "400",
+    backgroundColor: Sketch.paper,
     color: Sketch.ink,
   },
 
   button: {
-    backgroundColor: Sketch.ink,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
+    backgroundColor: Sketch.orange,
+    borderRadius: 10,
     padding: 16,
     alignItems: "center",
-    ...sketchShadow(4),
+    marginTop: 4,
   },
 
   buttonText: {
-    color: Sketch.cardBg,
-    fontWeight: "900",
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 16,
-    letterSpacing: 1,
   },
 
   linkText: {
     marginTop: 20,
     textAlign: "center",
-    fontWeight: "700",
+    fontWeight: "500",
     color: Sketch.orange,
     fontSize: 15,
   },
