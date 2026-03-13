@@ -310,11 +310,10 @@ export default function HomeScreen() {
 
         {/* Activity */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="calendar-outline" size={18} color={Sketch.ink} />
-            <Text style={styles.sectionTitle}>Activity</Text>
+          <Text style={styles.sectionTitle}>Activity</Text>
+          <View style={styles.heatmapCard}>
+            {renderHeatmap()}
           </View>
-          {renderHeatmap()}
         </View>
 
         <View style={styles.spacing} />
@@ -349,11 +348,7 @@ export default function HomeScreen() {
 
         {/* Grammar Modules */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="layers-outline" size={18} color={Sketch.ink} />
-            <Text style={styles.sectionTitle}>Grammar Foundations</Text>
-          </View>
-          <Text style={styles.sectionSubtitle}>The Keystone</Text>
+          <Text style={styles.sectionTitle}>Your Progress</Text>
 
           {moduleProgress.some((p) => p > 0) ? (
             <View style={styles.modulesGrid}>
@@ -411,10 +406,7 @@ export default function HomeScreen() {
 
         {/* Quick Access */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="star-outline" size={18} color={Sketch.ink} />
-            <Text style={styles.sectionTitle}>Explore</Text>
-          </View>
+          <Text style={styles.sectionTitle}>Explore</Text>
           <View style={styles.quickLinks}>
             {[
               {
@@ -523,24 +515,20 @@ const styles = StyleSheet.create({
   section: {
     gap: 16,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: Sketch.ink,
   },
-  sectionSubtitle: {
-    fontSize: 13,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-    marginLeft: 28,
+  heatmapCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   heatmapContainer: {
-    marginTop: 4,
+    marginTop: 0,
   },
   heatmapGrid: {
     flexDirection: "column",
