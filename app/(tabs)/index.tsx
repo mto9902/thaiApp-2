@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import KeystoneLogo from "../../src/components/KeystoneLogo";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVEL_META, CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
@@ -66,29 +67,6 @@ const MODULES: ModuleInfo[] = [
     grammarIds: grammarPoints.filter((g) => g.level === level).map((g) => g.id),
   })),
 ];
-
-function computeStreak(map: Record<string, number>): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let streak = 0;
-  const d = new Date(today);
-  // If no activity today, start checking from yesterday
-  if (!map[localDateKey(d)]) {
-    d.setDate(d.getDate() - 1);
-  }
-  while (map[localDateKey(d)] > 0) {
-    streak++;
-    d.setDate(d.getDate() - 1);
-  }
-  return streak;
-}
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -319,41 +297,14 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero: Today's Summary */}
-        {(() => {
-          const streak = computeStreak(activityMap);
-          const todayCount = activityMap[localDateKey(new Date())] || 0;
-          const greeting = getGreeting();
-          const nudge = streak > 0
-            ? `Keep building — day ${streak}`
-            : "Start a new streak today";
-
-          return (
-            <View style={styles.heroCard}>
-              <Text style={styles.heroGreeting}>{greeting}</Text>
-              <View style={styles.heroStats}>
-                <View style={styles.heroStat}>
-                  <Ionicons name="flame-outline" size={20} color={Sketch.orange} />
-                  <Text style={styles.heroStatValue}>{streak}</Text>
-                  <Text style={styles.heroStatLabel}>day streak</Text>
-                </View>
-                <View style={styles.heroStatDivider} />
-                <View style={styles.heroStat}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color={Sketch.green} />
-                  <Text style={styles.heroStatValue}>{todayCount}</Text>
-                  <Text style={styles.heroStatLabel}>today</Text>
-                </View>
-                <View style={styles.heroStatDivider} />
-                <View style={styles.heroStat}>
-                  <Ionicons name="sync-outline" size={20} color={Sketch.blue} />
-                  <Text style={styles.heroStatValue}>{reviewsDue}</Text>
-                  <Text style={styles.heroStatLabel}>to review</Text>
-                </View>
-              </View>
-              <Text style={styles.heroNudge}>{nudge}</Text>
-            </View>
-          );
-        })()}
+        {/* Branded Header */}
+        <View style={styles.brandHeader}>
+          <KeystoneLogo size={44} />
+          <View>
+            <Text style={styles.brandTitle}>Keystone</Text>
+            <Text style={styles.brandSubtitle}>Thai Grammar Blueprint</Text>
+          </View>
+        </View>
 
         <View style={styles.spacing} />
 
@@ -512,67 +463,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
   },
-  header: {
+  spacing: {
+    height: 24,
+  },
+  // Branded Header
+  brandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     paddingVertical: 12,
   },
-  appTitle: {
-    fontSize: 32,
+  brandTitle: {
+    fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
   },
-  appSubtitle: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-    marginTop: 4,
-  },
-  spacing: {
-    height: 24,
-  },
-  // Hero Card
-  heroCard: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    gap: 16,
-  },
-  heroGreeting: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: Sketch.ink,
-  },
-  heroStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-  },
-  heroStat: {
-    alignItems: "center",
-    gap: 4,
-  },
-  heroStatValue: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  heroStatLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: Sketch.inkMuted,
-  },
-  heroStatDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: Sketch.inkFaint,
-  },
-  heroNudge: {
+  brandSubtitle: {
     fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    textAlign: "center",
+    marginTop: 1,
   },
   // SRS Review Card
   reviewCard: {
