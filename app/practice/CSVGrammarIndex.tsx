@@ -105,7 +105,7 @@ export default function CSVGrammarIndex() {
                 <View style={styles.focusPill}>
                   <Text style={styles.focusParticle}>{item.focus.particle}</Text>
                 </View>
-                <Text style={styles.focusMeaning} numberOfLines={1}>
+                <Text style={styles.focusMeaning}>
                   {item.focus.meaning}
                 </Text>
               </View>
