@@ -22,16 +22,18 @@ import { isGuestUser } from "../../src/utils/auth";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
 
+type ReviewCounts = {
+  newCount: number;
+  learningCount: number;
+  reviewCount: number;
+};
+
 type ReviewCard = {
   thai: string;
   correct: string;
   choices: string[];
   state: string;
-  counts: {
-    newCount: number;
-    learningCount: number;
-    reviewCount: number;
-  };
+  counts: ReviewCounts;
   romanization?: string;
   intervalPreviews?: {
     again: number;
@@ -50,13 +52,29 @@ type SessionSummary = {
 };
 
 type AnswerResult = {
+  success?: boolean;
   promoted?: boolean;
   lapsed?: boolean;
-  mastery: number;
+  mastery?: number;
+  state?: string;
   nextReviewDays: number;
   easeFactor: number;
   lapseCount?: number;
+  next?: ReviewPayload;
 };
+
+type ReviewPayload =
+  | ReviewCard
+  | {
+      done: true;
+      summary?: SessionSummary;
+      counts?: ReviewCounts;
+    }
+  | {
+      waiting: true;
+      nextDueAt: string;
+      counts?: ReviewCounts;
+    };
 
 function formatInterval(days: number): string {
   if (days <= 0) return "< 1m";
@@ -130,12 +148,14 @@ export default function ReviewScreen() {
   const revealAnim = useRef(new Animated.Value(0)).current;
   const feedbackAnim = useRef(new Animated.Value(0)).current;
   const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadCardRef = useRef<(() => Promise<void>) | null>(null);
   const sessionAnsweredRef = useRef(false);
 
   const [showRoman, setShowRoman] = useState(true);
   const [showEnglish, setShowEnglish] = useState(true);
   const [autoplayTTS, setAutoplayTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function speak(text: string) {
     Speech.stop();
@@ -149,52 +169,86 @@ export default function ReviewScreen() {
     setTtsSpeed(s.ttsSpeed);
   }
 
+  const clearWaitTimer = useCallback(() => {
+    if (waitTimerRef.current) {
+      clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
+  }, []);
+
+  const applyReviewPayload = useCallback(
+    (
+      data: ReviewPayload,
+      options?: {
+        preserveFeedback?: boolean;
+      },
+    ) => {
+      const preserveFeedback = options?.preserveFeedback ?? false;
+
+      clearWaitTimer();
+
+      if (!preserveFeedback) {
+        setFeedbackType(null);
+        feedbackAnim.setValue(0);
+      }
+
+      if ("done" in data && data.done) {
+        setWaitingMs(0);
+        setSummary(sessionAnsweredRef.current ? data.summary ?? null : null);
+        setCard(null);
+        setRevealed(false);
+        return;
+      }
+
+      if ("waiting" in data && data.waiting) {
+        const nextDue = new Date(data.nextDueAt).getTime();
+        const waitMs = Math.max(nextDue - Date.now(), 1000);
+
+        setSummary(null);
+        setCard(null);
+        setRevealed(false);
+        setWaitingMs(waitMs);
+
+        waitTimerRef.current = setTimeout(() => {
+          setWaitingMs(0);
+          void loadCardRef.current?.();
+        }, Math.min(waitMs, 60000));
+        return;
+      }
+
+      const normalized: ReviewCard = {
+        ...data,
+        romanization: data.romanization ?? "",
+      };
+
+      setSummary(null);
+      setWaitingMs(0);
+      setCard(normalized);
+      setRevealed(false);
+      revealAnim.setValue(0);
+    },
+    [clearWaitTimer, feedbackAnim, revealAnim],
+  );
+
   const loadCard = useCallback(async () => {
     try {
-      if (waitTimerRef.current) {
-        clearTimeout(waitTimerRef.current);
-        waitTimerRef.current = null;
-      }
+      clearWaitTimer();
 
       const token = await AsyncStorage.getItem("token");
       const res = await fetch(`${API_BASE}/vocab/review`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data: ReviewPayload = await res.json();
 
-      if (data.done) {
-        setWaitingMs(0);
-        setSummary(sessionAnsweredRef.current ? data.summary : null);
-        setCard(null);
-        return;
-      }
-
-      if (data.waiting) {
-        const nextDue = new Date(data.nextDueAt).getTime();
-        const waitMs = Math.max(nextDue - Date.now(), 1000);
-        setCard(null);
-        setWaitingMs(waitMs);
-        waitTimerRef.current = setTimeout(() => {
-          setWaitingMs(0);
-          loadCard();
-        }, Math.min(waitMs, 60000));
-        return;
-      }
-
-      setWaitingMs(0);
-      const normalized: ReviewCard = {
-        ...data,
-        romanization: data.romanization ?? data.roman ?? "",
-      };
-
-      setCard(normalized);
-      setRevealed(false);
-      setFeedbackType(null);
-      revealAnim.setValue(0);
+      applyReviewPayload(data);
     } catch (err) {
       console.error("[Review] loadCard failed:", err);
     }
-  }, [revealAnim]);
+  }, [applyReviewPayload, clearWaitTimer]);
+
+  useEffect(() => {
+    loadCardRef.current = loadCard;
+  }, [loadCard]);
 
   const init = useCallback(async () => {
     const guest = await isGuestUser();
@@ -206,9 +260,9 @@ export default function ReviewScreen() {
   useEffect(() => {
     init();
     return () => {
-      if (waitTimerRef.current) clearTimeout(waitTimerRef.current);
+      clearWaitTimer();
     };
-  }, [init]);
+  }, [clearWaitTimer, init]);
 
   async function toggleRomanization() {
     const next = !showRoman;
@@ -229,29 +283,52 @@ export default function ReviewScreen() {
   }
 
   async function handleRate(grade: "again" | "hard" | "good" | "easy") {
-    if (!card) return;
+    if (!card || isSubmitting) return;
 
     const correct = grade !== "again";
     sessionAnsweredRef.current = true;
+    setIsSubmitting(true);
 
-    const result: AnswerResult = await submitVocabAnswer(card.thai, grade);
-    setFeedbackType(
-      result.promoted ? "promoted" : result.lapsed ? "lapsed" : null,
-    );
+    try {
+      const result: AnswerResult = await submitVocabAnswer(card.thai, grade);
+      const nextFeedback = result.promoted
+        ? "promoted"
+        : result.lapsed
+          ? "lapsed"
+          : null;
 
-    if (correct) {
-      setStreak((value) => value + 1);
-    } else {
-      setStreak(0);
+      setFeedbackType(nextFeedback);
+
+      if (correct) {
+        setStreak((value) => value + 1);
+      } else {
+        setStreak(0);
+      }
+
+      if (nextFeedback) {
+        feedbackAnim.setValue(1);
+        Animated.timing(feedbackAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }).start(() => setFeedbackType(null));
+      } else {
+        feedbackAnim.setValue(0);
+      }
+
+      if (result.next) {
+        applyReviewPayload(result.next, {
+          preserveFeedback: !!nextFeedback,
+        });
+      } else {
+        await loadCard();
+      }
+    } catch (err) {
+      console.error("[Review] submit failed:", err);
+      await loadCard();
+    } finally {
+      setIsSubmitting(false);
     }
-
-    feedbackAnim.setValue(1);
-    Animated.timing(feedbackAnim, {
-      toValue: 0,
-      duration: 600,
-      delay: 400,
-      useNativeDriver: true,
-    }).start(() => loadCard());
   }
 
   if (isGuest) {
@@ -560,6 +637,7 @@ export default function ReviewScreen() {
                 style={[styles.rateBtn, { backgroundColor: item.color }]}
                 onPress={() => handleRate(item.grade)}
                 activeOpacity={0.85}
+                disabled={isSubmitting}
               >
                 <Text style={styles.rateBtnLabel}>{item.label}</Text>
                 <Text style={styles.rateBtnInterval}>{item.interval}</Text>

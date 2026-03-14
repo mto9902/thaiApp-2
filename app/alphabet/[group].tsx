@@ -10,9 +10,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Sketch, sketchShadow } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
-import { Sketch, sketchShadow } from "@/constants/theme";
 
 type AlphabetLetter = {
   letter: string;
@@ -23,150 +23,375 @@ type AlphabetLetter = {
   group: number;
 };
 
-const GROUP_NAMES: { [key: number]: { title: string; subtitle: string; color: string } } = {
-  1: { title: "Mid Class", subtitle: "กลาง", color: Sketch.yellow },
-  2: { title: "High Class", subtitle: "สูง", color: Sketch.blue },
-  3: { title: "Low Class I", subtitle: "ต่ำ ๑", color: Sketch.red },
-  4: { title: "Low Class II", subtitle: "ต่ำ ๒", color: Sketch.green },
+const GROUP_META: Record<
+  number,
+  {
+    badge: string;
+    title: string;
+    description: string;
+    accent: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }
+> = {
+  1: {
+    badge: "Group 1",
+    title: "Mid Class",
+    description:
+      "Core consonants with balanced tone behavior. Learn the shape, name, and base sound together.",
+    accent: Sketch.yellow,
+    icon: "sparkles-outline",
+  },
+  2: {
+    badge: "Group 2",
+    title: "High Class",
+    description:
+      "Sharp, high-class consonants that show up often in tone patterns and spelling rules.",
+    accent: Sketch.blue,
+    icon: "flash-outline",
+  },
+  3: {
+    badge: "Group 3",
+    title: "Low Class I",
+    description:
+      "The first low-class set. Focus on recognition first, then use practice mode to lock in the sounds.",
+    accent: Sketch.red,
+    icon: "layers-outline",
+  },
+  4: {
+    badge: "Group 4",
+    title: "Low Class II",
+    description:
+      "The second low-class set. This group is bigger, so the card grid is tuned for quick scanning on mobile.",
+    accent: Sketch.green,
+    icon: "grid-outline",
+  },
 };
+
+function StatPill({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <View style={styles.statPill}>
+      <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
 
 export default function AlphabetLesson() {
   const { group } = useLocalSearchParams<{ group: string }>();
   const router = useRouter();
 
   const groupNum = Number(group);
-  const groupInfo = GROUP_NAMES[groupNum];
-  const letters: AlphabetLetter[] = alphabet.filter((l) => l.group === groupNum);
+  const groupInfo = GROUP_META[groupNum] ?? GROUP_META[1];
+  const letters: AlphabetLetter[] = (alphabet as AlphabetLetter[]).filter(
+    (item) => item.group === groupNum,
+  );
 
   function playSound(text: string) {
-    Speech.speak(text, { language: "th-TH", rate: 0.8 });
+    Speech.stop();
+    Speech.speak(text, { language: "th-TH", rate: 0.82 });
   }
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Header title={groupInfo.title} onBack={() => router.back()} />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.titleSection}>
-          <Text style={styles.subtitle}>{groupInfo.subtitle}</Text>
-          <Text style={styles.title}>{groupInfo.title.toUpperCase()}</Text>
-          <Text style={styles.count}>{letters.length} CONSONANTS</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View
+              style={[
+                styles.heroBadge,
+                { backgroundColor: `${groupInfo.accent}14` },
+              ]}
+            >
+              <Text style={[styles.heroBadgeText, { color: groupInfo.accent }]}>
+                {groupInfo.badge}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.heroIcon,
+                { backgroundColor: `${groupInfo.accent}14` },
+              ]}
+            >
+              <Ionicons
+                name={groupInfo.icon}
+                size={22}
+                color={groupInfo.accent}
+              />
+            </View>
+          </View>
+
+          <Text style={styles.heroTitle}>{groupInfo.title}</Text>
+          <Text style={styles.heroSubtitle}>{groupInfo.description}</Text>
+
+          <View style={styles.statsRow}>
+            <StatPill
+              label="Letters"
+              value={String(letters.length)}
+              accent={groupInfo.accent}
+            />
+            <StatPill label="Practice" value="3 modes" accent={Sketch.orange} />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              { backgroundColor: groupInfo.accent, borderColor: groupInfo.accent },
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/alphabet/practice/[group]",
+                params: { group },
+              } as any)
+            }
+            activeOpacity={0.85}
+          >
+            <Ionicons name="play" size={16} color="#fff" />
+            <Text style={styles.primaryButtonText}>Start practice</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Tap any card to hear the letter name.</Text>
+          <Text style={styles.sectionSubtitle}>
+            Each card keeps the sound and a quick example visible so it is easier
+            to scan on a phone.
+          </Text>
         </View>
 
         <View style={styles.grid}>
           {letters.map((letter) => (
             <TouchableOpacity
               key={letter.letter}
-              style={[styles.tile, { borderColor: groupInfo.color }]}
+              style={styles.letterCard}
               onPress={() => playSound(letter.name)}
-              activeOpacity={0.7}
+              activeOpacity={0.85}
             >
-              <Text style={styles.letter}>{letter.letter}</Text>
-              <Text style={styles.name}>{letter.name}</Text>
-              <Text style={styles.sound}>{letter.sound}</Text>
-              <View style={styles.soundIcon}>
-                <Ionicons name="volume-high" size={14} color={groupInfo.color} />
+              <View style={styles.letterCardTop}>
+                <View
+                  style={[
+                    styles.soundBadge,
+                    { backgroundColor: `${groupInfo.accent}12` },
+                  ]}
+                >
+                  <Text
+                    style={[styles.soundBadgeText, { color: groupInfo.accent }]}
+                  >
+                    {letter.sound.toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.speakerButton}>
+                  <Ionicons
+                    name="volume-medium-outline"
+                    size={16}
+                    color={Sketch.ink}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.letterGlyph}>{letter.letter}</Text>
+              <Text style={styles.letterName}>{letter.name}</Text>
+              <Text style={styles.letterRoman}>{letter.romanization}</Text>
+
+              <View style={styles.exampleCard}>
+                <Text style={styles.exampleThai}>{letter.example.thai}</Text>
+                <Text style={styles.exampleEnglish}>{letter.example.english}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
-
-        <TouchableOpacity
-          style={[styles.practiceButton, { backgroundColor: groupInfo.color }]}
-          onPress={() =>
-            router.push({
-              pathname: "/alphabet/practice/[group]",
-              params: { group },
-            } as any)
-          }
-          activeOpacity={0.8}
-        >
-          <Ionicons name="play" size={20} color={Sketch.ink} />
-          <Text style={styles.practiceText}>Start Practice</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Sketch.paper },
-  scroll: { padding: 20, paddingTop: 16 },
-
-  titleSection: { marginBottom: 28, alignItems: "center" },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
-    letterSpacing: 1,
-    marginBottom: 8,
+  safe: {
+    flex: 1,
+    backgroundColor: Sketch.paper,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: Sketch.ink,
-    marginBottom: 8,
-    textAlign: "center",
-    lineHeight: 34,
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 28,
+    gap: 16,
   },
-  count: {
-    fontSize: 12,
+  heroCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 20,
+    gap: 14,
+  },
+  heroTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  heroBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  heroBadgeText: {
+    fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkLight,
-    letterSpacing: 0.5,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
   },
-
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.6,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Sketch.inkLight,
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  statPill: {
+    flex: 1,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
+  },
+  primaryButton: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  sectionHeader: {
+    gap: 6,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 32,
     gap: 12,
   },
-
-  tile: {
-    width: "31%",
+  letterCard: {
+    width: "48%",
     backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 140,
-    ...sketchShadow(3),
-  },
-
-  letter: { fontSize: 42, fontWeight: "900", color: Sketch.ink, marginBottom: 6 },
-  name: { fontSize: 13, fontWeight: "700", color: Sketch.ink, marginBottom: 4, textAlign: "center" },
-  sound: { fontSize: 12, fontWeight: "500", color: Sketch.inkMuted, marginBottom: 8 },
-  soundIcon: {
-    width: 28,
-    height: 28,
-    backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 18,
+    borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  practiceButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    padding: 16,
     gap: 10,
     ...sketchShadow(4),
   },
-  practiceText: {
+  letterCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  soundBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  soundBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+  },
+  speakerButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  letterGlyph: {
+    fontSize: 42,
+    fontWeight: "700",
     color: Sketch.ink,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+  },
+  letterName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Sketch.ink,
+    minHeight: 38,
+  },
+  letterRoman: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
+  },
+  exampleCard: {
+    marginTop: 2,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  exampleThai: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  exampleEnglish: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
   },
 });

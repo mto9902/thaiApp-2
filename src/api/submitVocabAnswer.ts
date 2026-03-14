@@ -16,5 +16,11 @@ export async function submitVocabAnswer(
     body: JSON.stringify({ thai, grade }),
   });
 
-  return res.json();
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.error || "Failed to submit vocab answer");
+  }
+
+  return data;
 }

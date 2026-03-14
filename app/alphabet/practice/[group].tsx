@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Sketch, sketchShadow } from "@/constants/theme";
 import Header from "../../../src/components/Header";
 import { alphabet } from "../../../src/data/alphabet";
 
@@ -27,32 +28,63 @@ type AlphabetLetter = {
   group: number;
 };
 
-// ── Mode infrastructure ──────────────────────────────────────────────────────
 type Mode = "study" | "match" | "recall";
+
 const ALL_MODES: Mode[] = ["study", "match", "recall"];
 
-function randomMode(): Mode {
-  return ALL_MODES[Math.floor(Math.random() * ALL_MODES.length)];
-}
-
-const MODE_META: Record<Mode, { tag: string; title: string }> = {
-  study: { tag: "STUDY", title: "Flash card" },
-  match: { tag: "MATCH", title: "Sound to letter" },
-  recall: { tag: "RECALL", title: "Letter to sound" },
+const GROUP_META: Record<
+  number,
+  { title: string; accent: string; badge: string }
+> = {
+  1: { title: "Mid Class", accent: Sketch.yellow, badge: "Group 1" },
+  2: { title: "High Class", accent: Sketch.blue, badge: "Group 2" },
+  3: { title: "Low Class I", accent: Sketch.red, badge: "Group 3" },
+  4: { title: "Low Class II", accent: Sketch.green, badge: "Group 4" },
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function shuffle<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+const MODE_META: Record<
+  Mode,
+  {
+    label: string;
+    title: string;
+    subtitle: string;
   }
-  return arr;
+> = {
+  study: {
+    label: "Study",
+    title: "See the letter and hear the full Thai name.",
+    subtitle: "Best for visual recognition and first-pass memorization.",
+  },
+  match: {
+    label: "Match",
+    title: "Pick the letter that matches the sound.",
+    subtitle: "You hear or see the sound first, then choose the consonant.",
+  },
+  recall: {
+    label: "Recall",
+    title: "Look at the letter and choose its sound.",
+    subtitle: "A faster recognition check once the shapes feel familiar.",
+  },
+};
+
+function shuffle<T>(items: T[]): T[] {
+  const clone = [...items];
+  for (let index = clone.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [clone[index], clone[swapIndex]] = [clone[swapIndex], clone[index]];
+  }
+  return clone;
 }
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function pickRandom<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function pickNextMode(currentMode?: Mode): Mode {
+  const pool = currentMode
+    ? ALL_MODES.filter((mode) => mode !== currentMode)
+    : ALL_MODES;
+  return pickRandom(pool);
 }
 
 function generateOptions(
@@ -60,485 +92,653 @@ function generateOptions(
   pool: AlphabetLetter[],
   allLetters: AlphabetLetter[],
 ): AlphabetLetter[] {
-  // distractors must have different sounds to avoid ambiguity
   let candidates = pool.filter(
-    (l) => l.letter !== correct.letter && l.sound !== correct.sound,
+    (item) => item.letter !== correct.letter && item.sound !== correct.sound,
   );
-  // if not enough in group, pull from full alphabet
+
   if (candidates.length < 3) {
     candidates = allLetters.filter(
-      (l) => l.letter !== correct.letter && l.sound !== correct.sound,
+      (item) => item.letter !== correct.letter && item.sound !== correct.sound,
     );
   }
-  const distractors = shuffle(candidates).slice(0, 3);
-  return shuffle([correct, ...distractors]);
+
+  return shuffle([correct, ...shuffle(candidates).slice(0, 3)]);
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+function ResultBanner({
+  result,
+  text,
+}: {
+  result: "correct" | "wrong";
+  text: string;
+}) {
+  return (
+    <View
+      style={[
+        styles.resultBanner,
+        result === "correct" ? styles.resultBannerOk : styles.resultBannerBad,
+      ]}
+    >
+      <Ionicons
+        name={result === "correct" ? "checkmark-circle" : "close-circle"}
+        size={18}
+        color={result === "correct" ? Sketch.green : Sketch.red}
+      />
+      <Text style={styles.resultBannerText}>{text}</Text>
+    </View>
+  );
+}
+
 export default function AlphabetPractice() {
   const { group } = useLocalSearchParams<{ group: string }>();
   const router = useRouter();
 
-  const letters: AlphabetLetter[] = alphabet.filter(
-    (l) => l.group === Number(group),
+  const letters = (alphabet as AlphabetLetter[]).filter(
+    (item) => item.group === Number(group),
   );
-  const allLetters: AlphabetLetter[] = alphabet as AlphabetLetter[];
+  const allLetters = alphabet as AlphabetLetter[];
+  const groupInfo = GROUP_META[Number(group)] ?? GROUP_META[1];
 
-  const [mode, setMode] = useState<Mode>(randomMode);
-  const [currentItem, setCurrentItem] = useState<AlphabetLetter>(
-    () => pickRandom(letters),
+  const initialMode = pickNextMode();
+  const initialItem = pickRandom(letters);
+
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [currentItem, setCurrentItem] = useState<AlphabetLetter>(initialItem);
+  const [options, setOptions] = useState<AlphabetLetter[]>(
+    initialMode === "study"
+      ? []
+      : generateOptions(initialItem, letters, allLetters),
   );
-  const [options, setOptions] = useState<AlphabetLetter[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [result, setResult] = useState<"" | "correct" | "wrong">("");
 
   function playSound(text: string) {
     Speech.stop();
-    Speech.speak(text, { language: "th-TH", rate: 0.8 });
+    Speech.speak(text, { language: "th-TH", rate: 0.82 });
   }
 
   function setupRound(nextMode: Mode) {
-    const item = pickRandom(letters);
-    setCurrentItem(item);
+    const nextItem = pickRandom(letters);
     setMode(nextMode);
+    setCurrentItem(nextItem);
     setSelectedOption(null);
     setRevealed(false);
     setResult("");
-
-    if (nextMode === "match" || nextMode === "recall") {
-      setOptions(generateOptions(item, letters, allLetters));
-    }
+    setOptions(
+      nextMode === "study"
+        ? []
+        : generateOptions(nextItem, letters, allLetters),
+    );
   }
 
-  useEffect(() => {
-    setupRound(mode);
-  }, []);
+  function handleModePress(nextMode: Mode) {
+    setupRound(nextMode);
+  }
 
-  // ── MATCH: user taps a letter option ───────────────────────────────────────
   function handleMatchSelect(index: number) {
     if (revealed) return;
-    setSelectedOption(index);
-    setRevealed(true);
 
     const picked = options[index];
-    playSound(picked.name);
+    const isCorrect = picked.letter === currentItem.letter;
 
-    if (picked.letter === currentItem.letter) {
-      setResult("correct");
-    } else {
-      setResult("wrong");
-    }
-  }
-
-  // ── RECALL: user taps a sound option ───────────────────────────────────────
-  function handleRecallSelect(index: number) {
-    if (revealed) return;
     setSelectedOption(index);
     setRevealed(true);
+    setResult(isCorrect ? "correct" : "wrong");
+    playSound(picked.name);
+  }
 
-    if (options[index].sound === currentItem.sound) {
-      setResult("correct");
-    } else {
-      setResult("wrong");
-    }
+  function handleRecallSelect(index: number) {
+    if (revealed) return;
+
+    const isCorrect = options[index].sound === currentItem.sound;
+    setSelectedOption(index);
+    setRevealed(true);
+    setResult(isCorrect ? "correct" : "wrong");
   }
 
   function handleContinue() {
-    setupRound(randomMode());
+    setupRound(pickNextMode(mode));
   }
 
-  const meta = MODE_META[mode];
+  const modeInfo = MODE_META[mode];
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
-      <Header
-        title="Alphabet Practice"
-        onBack={() => router.back()}
-        showClose
-      />
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Header title="Alphabet Practice" onBack={() => router.back()} showClose />
 
-      <ScrollView contentContainerStyle={st.scroll}>
-        {/* ── Mode header ─────────────────────────────────────────── */}
-        <View style={st.modeHeader}>
-          <View style={st.modeTagRow}>
-            <View style={st.modeTag}>
-              <Text style={st.modeTagText}>{meta.tag}</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View
+              style={[
+                styles.heroBadge,
+                { backgroundColor: `${groupInfo.accent}14` },
+              ]}
+            >
+              <Text style={[styles.heroBadgeText, { color: groupInfo.accent }]}>
+                {groupInfo.badge}
+              </Text>
             </View>
+            <TouchableOpacity
+              style={styles.heroSoundButton}
+              onPress={() => playSound(currentItem.name)}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name="volume-medium-outline"
+                size={18}
+                color={Sketch.ink}
+              />
+            </TouchableOpacity>
           </View>
-          <Text style={st.modeTitle}>{meta.title}</Text>
+
+          <Text style={styles.heroTitle}>{groupInfo.title} practice</Text>
+          <Text style={styles.heroSubtitle}>
+            Switch modes any time, or keep tapping continue to shuffle through
+            all three exercise styles.
+          </Text>
+
+          <View style={styles.modeRow}>
+            {ALL_MODES.map((item) => {
+              const active = item === mode;
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={[
+                    styles.modeChip,
+                    active && {
+                      backgroundColor: `${groupInfo.accent}14`,
+                      borderColor: groupInfo.accent,
+                    },
+                  ]}
+                  onPress={() => handleModePress(item)}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.modeChipText,
+                      active && { color: groupInfo.accent },
+                    ]}
+                  >
+                    {MODE_META[item].label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        <View style={st.exerciseWrap}>
-          {/* ── STUDY mode ──────────────────────────────────────── */}
-          {mode === "study" && (
-            <>
-              <View style={st.studyCard}>
-                <TouchableOpacity
-                  style={st.speakerBtn}
-                  onPress={() => playSound(currentItem.name)}
+        <View style={styles.promptCard}>
+          <Text style={styles.promptEyebrow}>{MODE_META[mode].label}</Text>
+          <Text style={styles.promptTitle}>{modeInfo.title}</Text>
+          <Text style={styles.promptSubtitle}>{modeInfo.subtitle}</Text>
+        </View>
+
+        {mode === "study" ? (
+          <>
+            <View style={styles.studyCard}>
+              <View style={styles.studyCardTop}>
+                <View
+                  style={[
+                    styles.soundBadge,
+                    { backgroundColor: `${groupInfo.accent}12` },
+                  ]}
                 >
-                  <Text style={st.speakerIcon}>🔊</Text>
-                </TouchableOpacity>
-
-                <Text style={st.charLarge}>{currentItem.letter}</Text>
-                <Text style={st.studyName}>{currentItem.name}</Text>
-                <Text style={st.studyRoman}>{currentItem.romanization}</Text>
-
-                <View style={st.divider} />
-
-                <Text style={st.studySound}>
-                  Sound: "{currentItem.sound}"
-                </Text>
-
-                <View style={st.exampleSection}>
-                  <Text style={st.exampleThai}>
-                    {currentItem.example.thai}
-                  </Text>
-                  <Text style={st.exampleDetail}>
-                    {currentItem.example.romanization} —{" "}
-                    {currentItem.example.english}
+                  <Text
+                    style={[styles.soundBadgeText, { color: groupInfo.accent }]}
+                  >
+                    {currentItem.sound.toUpperCase()}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.speakerButton}
+                  onPress={() => playSound(currentItem.name)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons
+                    name="volume-medium-outline"
+                    size={18}
+                    color={Sketch.ink}
+                  />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={st.primaryBtn}
-                onPress={handleContinue}
-              >
-                <Text style={st.primaryBtnText}>Got it — Next</Text>
-              </TouchableOpacity>
-            </>
-          )}
+              <Text style={styles.studyGlyph}>{currentItem.letter}</Text>
+              <Text style={styles.studyName}>{currentItem.name}</Text>
+              <Text style={styles.studyRoman}>{currentItem.romanization}</Text>
 
-          {/* ── MATCH mode (sound → letter) ─────────────────────── */}
-          {mode === "match" && (
-            <>
-              <View style={st.promptCard}>
-                <Text style={st.promptLabel}>WHICH LETTER MAKES THIS SOUND?</Text>
-                <Text style={st.promptText}>"{currentItem.sound}"</Text>
+              <View style={styles.exampleCard}>
+                <Text style={styles.exampleLabel}>Example</Text>
+                <Text style={styles.exampleThai}>{currentItem.example.thai}</Text>
+                <Text style={styles.exampleDetail}>
+                  {currentItem.example.romanization} · {currentItem.example.english}
+                </Text>
               </View>
+            </View>
 
-              <View style={st.optionsGrid}>
-                {options.map((opt, i) => {
-                  const isSelected = selectedOption === i;
-                  const isCorrect = opt.letter === currentItem.letter;
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: groupInfo.accent, borderColor: groupInfo.accent },
+              ]}
+              onPress={handleContinue}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
 
-                  let borderColor = "#E8E8E4";
-                  if (revealed && isCorrect) borderColor = "#5EBA7D";
-                  else if (revealed && isSelected && !isCorrect)
-                    borderColor = "#E8607A";
-                  else if (isSelected) borderColor = "#42A5F5";
+        {mode === "match" ? (
+          <>
+            <View style={styles.exerciseCard}>
+              <Text style={styles.questionLabel}>Target sound</Text>
+              <Text style={styles.questionText}>{currentItem.sound}</Text>
+            </View>
 
-                  return (
-                    <TouchableOpacity
-                      key={opt.letter}
-                      style={[st.optionCard, { borderColor }]}
-                      onPress={() => handleMatchSelect(i)}
-                      disabled={revealed}
-                    >
-                      <Text style={st.optionCharText}>{opt.letter}</Text>
-                      {revealed && (
-                        <Text style={st.optionSubText}>{opt.name}</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            <View style={styles.optionGrid}>
+              {options.map((option, index) => {
+                const isSelected = selectedOption === index;
+                const isCorrect = option.letter === currentItem.letter;
+                const borderColor = revealed
+                  ? isCorrect
+                    ? Sketch.green
+                    : isSelected
+                      ? Sketch.red
+                      : Sketch.inkFaint
+                  : isSelected
+                    ? groupInfo.accent
+                    : Sketch.inkFaint;
 
-              {revealed && (
-                <>
-                  <View
-                    style={[
-                      st.resultBanner,
-                      result === "correct" ? st.resultOk : st.resultBad,
-                    ]}
-                  >
-                    <Text style={st.resultEmoji}>
-                      {result === "correct" ? "✅" : "❌"}
-                    </Text>
-                    <Text style={st.resultLabel}>
-                      {result === "correct"
-                        ? "Correct!"
-                        : `The answer was "${currentItem.letter}"`}
-                    </Text>
-                  </View>
-
+                return (
                   <TouchableOpacity
-                    style={st.primaryBtn}
-                    onPress={handleContinue}
+                    key={option.letter}
+                    style={[styles.optionCard, { borderColor }]}
+                    onPress={() => handleMatchSelect(index)}
+                    activeOpacity={0.85}
+                    disabled={revealed}
                   >
-                    <Text style={st.primaryBtnText}>Continue</Text>
+                    <Text style={styles.optionGlyph}>{option.letter}</Text>
+                    <Text style={styles.optionLabel}>{option.name}</Text>
                   </TouchableOpacity>
-                </>
-              )}
-            </>
-          )}
+                );
+              })}
+            </View>
 
-          {/* ── RECALL mode (letter → sound) ────────────────────── */}
-          {mode === "recall" && (
-            <>
-              <View style={st.promptCard}>
-                <Text style={st.promptLabel}>WHAT SOUND DOES THIS LETTER MAKE?</Text>
-                <Text style={st.promptCharLarge}>{currentItem.letter}</Text>
-              </View>
+            {revealed && result ? (
+              <>
+                <ResultBanner
+                  result={result}
+                  text={
+                    result === "correct"
+                      ? "Correct. That sound maps to this consonant."
+                      : `Correct answer: ${currentItem.letter}`
+                  }
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.primaryButton,
+                    {
+                      backgroundColor: groupInfo.accent,
+                      borderColor: groupInfo.accent,
+                    },
+                  ]}
+                  onPress={handleContinue}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryButtonText}>Continue</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </>
+        ) : null}
 
-              <View style={st.optionsGrid}>
-                {options.map((opt, i) => {
-                  const isSelected = selectedOption === i;
-                  const isCorrect = opt.sound === currentItem.sound;
+        {mode === "recall" ? (
+          <>
+            <View style={styles.exerciseCard}>
+              <Text style={styles.questionLabel}>Target letter</Text>
+              <Text style={styles.questionGlyph}>{currentItem.letter}</Text>
+            </View>
 
-                  let borderColor = "#E8E8E4";
-                  if (revealed && isCorrect) borderColor = "#5EBA7D";
-                  else if (revealed && isSelected && !isCorrect)
-                    borderColor = "#E8607A";
-                  else if (isSelected) borderColor = "#42A5F5";
+            <View style={styles.optionGrid}>
+              {options.map((option, index) => {
+                const isSelected = selectedOption === index;
+                const isCorrect = option.sound === currentItem.sound;
+                const borderColor = revealed
+                  ? isCorrect
+                    ? Sketch.green
+                    : isSelected
+                      ? Sketch.red
+                      : Sketch.inkFaint
+                  : isSelected
+                    ? groupInfo.accent
+                    : Sketch.inkFaint;
 
-                  return (
-                    <TouchableOpacity
-                      key={`${opt.letter}-${i}`}
-                      style={[st.optionCard, { borderColor }]}
-                      onPress={() => handleRecallSelect(i)}
-                      disabled={revealed}
-                    >
-                      <Text style={st.optionSoundText}>"{opt.sound}"</Text>
-                      <Text style={st.optionSubText}>{opt.romanization}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {revealed && (
-                <>
-                  <View
-                    style={[
-                      st.resultBanner,
-                      result === "correct" ? st.resultOk : st.resultBad,
-                    ]}
-                  >
-                    <Text style={st.resultEmoji}>
-                      {result === "correct" ? "✅" : "❌"}
-                    </Text>
-                    <Text style={st.resultLabel}>
-                      {result === "correct"
-                        ? "Correct!"
-                        : `The answer was "${currentItem.sound}"`}
-                    </Text>
-                  </View>
-
+                return (
                   <TouchableOpacity
-                    style={st.primaryBtn}
-                    onPress={handleContinue}
+                    key={`${option.letter}-${index}`}
+                    style={[styles.optionCard, { borderColor }]}
+                    onPress={() => handleRecallSelect(index)}
+                    activeOpacity={0.85}
+                    disabled={revealed}
                   >
-                    <Text style={st.primaryBtnText}>Continue</Text>
+                    <Text style={styles.optionSound}>{option.sound}</Text>
+                    <Text style={styles.optionLabel}>{option.romanization}</Text>
                   </TouchableOpacity>
-                </>
-              )}
-            </>
-          )}
-        </View>
+                );
+              })}
+            </View>
+
+            {revealed && result ? (
+              <>
+                <ResultBanner
+                  result={result}
+                  text={
+                    result === "correct"
+                      ? "Correct. You recognized the sound quickly."
+                      : `Correct answer: ${currentItem.sound}`
+                  }
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.primaryButton,
+                    {
+                      backgroundColor: groupInfo.accent,
+                      borderColor: groupInfo.accent,
+                    },
+                  ]}
+                  onPress={handleContinue}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryButtonText}>Continue</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
-const R = 14;
-const SHADOW = {
-  shadowColor: "#1A1A1A",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.05,
-  shadowRadius: 16,
-  elevation: 3,
-} as const;
-
-const st = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F7F6F3" },
-  scroll: { paddingBottom: 64 },
-
-  modeHeader: {
-    paddingHorizontal: 22,
-    paddingTop: 20,
-    paddingBottom: 4,
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: Sketch.paper,
   },
-  modeTagRow: {
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 28,
+    gap: 14,
+  },
+  heroCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 20,
+    gap: 14,
+  },
+  heroTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
   },
-  modeTag: {
-    backgroundColor: "#1A1A1A",
-    borderRadius: 6,
-    paddingVertical: 4,
+  heroBadge: {
     paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
-  modeTagText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 2,
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
   },
-  modeTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#1A1A1A",
-    letterSpacing: -0.5,
-  },
-
-  exerciseWrap: {
-    paddingHorizontal: 22,
-    paddingTop: 18,
-    gap: 16,
-  },
-
-  // ── Study mode ───────────────────────────────────────────────
-  studyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: R + 4,
-    padding: 28,
+  heroSoundButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
-    ...SHADOW,
-  },
-  speakerBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F4F4F0",
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
   },
-  speakerIcon: { fontSize: 18 },
-  charLarge: {
-    fontSize: 64,
-    fontWeight: "900",
-    color: "#1A1A1A",
-    marginBottom: 8,
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.6,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Sketch.inkLight,
+  },
+  modeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  modeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+  },
+  modeChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+  },
+  promptCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 18,
+    gap: 6,
+    ...sketchShadow(4),
+  },
+  promptEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.orange,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  promptTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Sketch.ink,
+    lineHeight: 27,
+  },
+  promptSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
+  },
+  studyCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 22,
+    gap: 10,
+    ...sketchShadow(4),
+  },
+  studyCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  soundBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  soundBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+  },
+  speakerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paperDark,
+  },
+  studyGlyph: {
+    fontSize: 72,
+    fontWeight: "700",
+    color: Sketch.ink,
+    textAlign: "center",
   },
   studyName: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#1A1A1A",
-    marginBottom: 4,
+    color: Sketch.ink,
+    textAlign: "center",
   },
   studyRoman: {
-    fontSize: 14,
-    color: "#A0A09A",
-    fontWeight: "500",
-    marginBottom: 18,
-    letterSpacing: 0.3,
+    fontSize: 15,
+    color: Sketch.inkMuted,
+    textAlign: "center",
   },
-  divider: {
-    width: 36,
-    height: 2,
-    backgroundColor: "#EEEEE8",
-    borderRadius: 1,
-    marginBottom: 18,
-  },
-  studySound: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#555",
-    marginBottom: 18,
-  },
-  exampleSection: {
-    alignItems: "center",
+  exampleCard: {
+    marginTop: 6,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
     gap: 4,
+  },
+  exampleLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.orange,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   exampleThai: {
     fontSize: 28,
-    fontWeight: "800",
-    color: "#1A1A1A",
+    fontWeight: "700",
+    color: Sketch.ink,
   },
   exampleDetail: {
-    fontSize: 14,
-    color: "#A0A09A",
-    fontWeight: "500",
-  },
-
-  // ── Prompt card ──────────────────────────────────────────────
-  promptCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: R,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    ...SHADOW,
-  },
-  promptLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#C5C5BE",
-    letterSpacing: 1.5,
-    marginBottom: 6,
-  },
-  promptText: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#1A1A1A",
-  },
-  promptCharLarge: {
-    fontSize: 56,
-    fontWeight: "900",
-    color: "#1A1A1A",
-    marginTop: 4,
-  },
-
-  // ── Option cards ─────────────────────────────────────────────
-  optionsGrid: { gap: 10 },
-  optionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: R,
-    borderWidth: 2,
-    borderColor: "#E8E8E4",
-    padding: 18,
-    alignItems: "center",
-    ...SHADOW,
-  },
-  optionCharText: {
-    fontSize: 40,
-    fontWeight: "900",
-    color: "#1A1A1A",
-  },
-  optionSoundText: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#1A1A1A",
-  },
-  optionSubText: {
     fontSize: 13,
-    fontWeight: "600",
-    color: "#A0A09A",
-    marginTop: 4,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
   },
-
-  // ── Result banner ────────────────────────────────────────────
+  exerciseCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    gap: 8,
+    ...sketchShadow(4),
+  },
+  questionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.orange,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  questionText: {
+    fontSize: 36,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  questionGlyph: {
+    fontSize: 70,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  optionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  optionCard: {
+    width: "48%",
+    minHeight: 126,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    ...sketchShadow(3),
+  },
+  optionGlyph: {
+    fontSize: 44,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  optionSound: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  optionLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Sketch.inkMuted,
+    textAlign: "center",
+  },
   resultBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    gap: 8,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
-  resultOk: { backgroundColor: "#F0FAF2" },
-  resultBad: { backgroundColor: "#FEF5EC" },
-  resultEmoji: { fontSize: 20 },
-  resultLabel: { fontSize: 14, fontWeight: "700" },
-
-  // ── Buttons ──────────────────────────────────────────────────
-  primaryBtn: {
-    backgroundColor: "#1A1A1A",
-    borderRadius: 12,
-    paddingVertical: 16,
+  resultBannerOk: {
+    borderColor: `${Sketch.green}55`,
+  },
+  resultBannerBad: {
+    borderColor: `${Sketch.red}55`,
+  },
+  resultBannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.ink,
+  },
+  primaryButton: {
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: "center",
-    marginTop: 4,
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  primaryBtnText: {
+  primaryButtonText: {
     fontSize: 15,
     fontWeight: "700",
     color: "#fff",
-    letterSpacing: 0.3,
   },
 });
