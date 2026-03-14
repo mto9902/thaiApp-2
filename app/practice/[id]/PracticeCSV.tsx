@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useEffect, useRef, useState } from "react";
 import { isGuestUser } from "../../../src/utils/auth";
@@ -23,22 +23,24 @@ import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
 import { saveRound } from "../../../src/utils/grammarProgress";
+import {
+  DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
+  getGrammarExerciseSettings,
+  GrammarExerciseMode,
+  GrammarExerciseSettings,
+} from "../../../src/utils/grammarExerciseSettings";
 import { getPracticeWordTrackingEnabled } from "../../../src/utils/practiceWordPreference";
+import {
+  getToneAccent,
+  MUTED_FEEDBACK_ACCENTS,
+} from "../../../src/utils/toneAccent";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const TONE_COLORS: Record<string, string> = {
-  mid: "#5B9BD5",
-  low: "#9B72CF",
-  falling: "#E8607A",
-  high: "#F0983E",
-  rising: "#5EBA7D",
-};
-
 function toneColor(tone?: string): string {
-  return TONE_COLORS[tone ?? ""] ?? Sketch.inkMuted;
+  return tone ? getToneAccent(tone) : Sketch.inkMuted;
 }
 
-type Mode = "breakdown" | "wordScraps" | "matchThai";
+type Mode = GrammarExerciseMode;
 const ALL_MODES: Mode[] = ["breakdown", "wordScraps", "matchThai"];
 
 function randomMode(enabledModes?: Record<Mode, boolean>): Mode {
@@ -52,19 +54,7 @@ function randomMode(enabledModes?: Record<Mode, boolean>): Mode {
 const MODE_META: Record<Mode, { tag: string; title: string }> = {
   breakdown: { tag: "STUDY", title: "Read & listen" },
   wordScraps: { tag: "BUILD", title: "Arrange the words" },
-  matchThai: { tag: "MATCH", title: "Find the correct Thai" },
-};
-
-const MODE_TOGGLE_LABEL: Record<Mode, string> = {
-  breakdown: "Study",
-  wordScraps: "Build",
-  matchThai: "Match",
-};
-
-const DEFAULT_ENABLED_MODES: Record<Mode, boolean> = {
-  breakdown: true,
-  wordScraps: true,
-  matchThai: true,
+  matchThai: { tag: "MATCH", title: "Choose the correct sentence" },
 };
 
 const PREF_ROMANIZATION = "pref_show_romanization";
@@ -89,6 +79,17 @@ interface MatchOption {
   breakdown: SentenceData["breakdown"];
   isCorrect: boolean;
 }
+
+type BuilderWord = {
+  id: number;
+  breakdownIndex: number;
+  thai: string;
+  english: string;
+  roman: string;
+  color: string;
+  rotation: number;
+  isGrammar: boolean;
+};
 
 function buildMatchOptions(
   correct: SentenceData,
@@ -147,7 +148,9 @@ export default function PracticeCSV() {
   const mixIdsRef = useRef<string[]>([]);
   const mixIndexRef = useRef(0);
   const currentGrammarIdRef = useRef<string | null>(null);
-  const enabledModesRef = useRef<Record<Mode, boolean>>(DEFAULT_ENABLED_MODES);
+  const enabledModesRef = useRef<GrammarExerciseSettings>(
+    DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
+  );
 
   const [sentence, setSentence] = useState("");
   const [romanization, setRomanization] = useState("");
@@ -156,18 +159,19 @@ export default function PracticeCSV() {
   const [breakdown, setBreakdown] = useState<SentenceData["breakdown"]>([]);
   const [romanTokens, setRomanTokens] = useState<string[]>([]);
 
-  const [words, setWords] = useState<any[]>([]);
-  const [builtSentence, setBuiltSentence] = useState<string[]>([]);
+  const [words, setWords] = useState<BuilderWord[]>([]);
+  const [builtSentence, setBuiltSentence] = useState<BuilderWord[]>([]);
   const [prefilled, setPrefilled] = useState<(string | null)[]>([]);
 
   const [matchOptions, setMatchOptions] = useState<MatchOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [matchRevealed, setMatchRevealed] = useState(false);
+  const [expandedMatchOption, setExpandedMatchOption] = useState<number | null>(
+    null,
+  );
 
   const [mode, setMode] = useState<Mode>("breakdown");
-  const [enabledModes, setEnabledModes] = useState<Record<Mode, boolean>>(
-    DEFAULT_ENABLED_MODES,
-  );
+  const [settingsReady, setSettingsReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<"" | "correct" | "wrong">("");
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
@@ -190,16 +194,20 @@ export default function PracticeCSV() {
 
   useEffect(() => {
     (async () => {
-      const [roman, english, tts, practiceVocab] = await Promise.all([
+      const [roman, english, tts, practiceVocab, grammarExerciseModes] =
+        await Promise.all([
         AsyncStorage.getItem(PREF_ROMANIZATION),
         AsyncStorage.getItem(PREF_ENGLISH),
         AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
         getPracticeWordTrackingEnabled(),
+        getGrammarExerciseSettings(),
       ]);
       if (roman !== null) setShowRoman(roman === "true");
       if (english !== null) setShowEnglish(english === "true");
       if (tts !== null) setAutoplayTTS(tts === "true");
       setAutoAddPracticeVocab(practiceVocab);
+      enabledModesRef.current = grammarExerciseModes;
+      setSettingsReady(true);
     })();
   }, []);
 
@@ -209,9 +217,14 @@ export default function PracticeCSV() {
     setAutoplayTTS(s.autoplayTTS);
     setTtsSpeed(s.ttsSpeed);
     setAutoAddPracticeVocab(s.autoAddPracticeVocab);
+    enabledModesRef.current = s.grammarExerciseModes;
+    if (!s.grammarExerciseModes[mode]) {
+      void fetchRound(randomMode(s.grammarExerciseModes));
+    }
   }
 
   useEffect(() => {
+    if (!settingsReady) return;
     if (mix) {
       mixIdsRef.current = mix.split(",");
       mixIndexRef.current = 0;
@@ -220,7 +233,7 @@ export default function PracticeCSV() {
       mixIndexRef.current = 0;
     }
     fetchRound(randomMode(enabledModesRef.current));
-  }, [id, mix]);
+  }, [id, mix, settingsReady]);
 
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
@@ -286,24 +299,6 @@ export default function PracticeCSV() {
     void saveRound(grammarId, wasCorrect);
   }
 
-  function toggleExerciseMode(targetMode: Mode) {
-    const enabledCount = ALL_MODES.filter((item) => enabledModes[item]).length;
-    if (enabledModes[targetMode] && enabledCount === 1) {
-      return;
-    }
-
-    const nextModes = {
-      ...enabledModes,
-      [targetMode]: !enabledModes[targetMode],
-    };
-    enabledModesRef.current = nextModes;
-    setEnabledModes(nextModes);
-
-    if (enabledModes[targetMode] && mode === targetMode) {
-      fetchRound(randomMode(nextModes));
-    }
-  }
-
   function shuffleNotSame(items: any[], correct: any[]) {
     let s;
     do {
@@ -323,6 +318,7 @@ export default function PracticeCSV() {
       setResult("");
       setSelectedOption(null);
       setMatchRevealed(false);
+      setExpandedMatchOption(null);
 
       const gobj = grammarObject();
       const main = await fetchSentence(gobj.id);
@@ -348,9 +344,11 @@ export default function PracticeCSV() {
         if (s === null) freeIndices.push(i);
       });
 
-      const formatted = freeIndices.map((i) => {
+      const formatted: BuilderWord[] = freeIndices.map((i, wordIndex) => {
         const w = main.breakdown[i];
         return {
+          id: wordIndex,
+          breakdownIndex: i,
           thai: w.thai,
           english: w.english.toUpperCase(),
           roman: perWordRoman[i] ?? "",
@@ -385,24 +383,39 @@ export default function PracticeCSV() {
     }
   };
 
-  function handleWordTap(word: string) {
-    setBuiltSentence((p) => [...p, word]);
+  function handleWordTap(word: BuilderWord) {
+    setResult("");
+    setBuiltSentence((previous) => {
+      if (previous.some((item) => item.id === word.id)) {
+        return previous;
+      }
+      return [...previous, word];
+    });
   }
   function undoLastWord() {
+    setResult("");
     setBuiltSentence((p) => p.slice(0, -1));
   }
   function resetSentence() {
+    setResult("");
     setBuiltSentence([]);
+  }
+  function removeBuiltWord(wordId: number) {
+    setResult("");
+    setBuiltSentence((previous) =>
+      previous.filter((item) => item.id !== wordId),
+    );
   }
 
   function checkWordScraps() {
+    if (result === "correct") return;
     const fullSentence: string[] = [];
     let userIdx = 0;
     for (let i = 0; i < prefilled.length; i++) {
       if (prefilled[i] !== null) {
         fullSentence.push(prefilled[i]!);
       } else if (userIdx < builtSentence.length) {
-        fullSentence.push(builtSentence[userIdx]);
+        fullSentence.push(builtSentence[userIdx].thai);
         userIdx++;
       }
     }
@@ -430,6 +443,10 @@ export default function PracticeCSV() {
     }
   }
 
+  function toggleMatchOptionExpanded(idx: number) {
+    setExpandedMatchOption((current) => (current === idx ? null : idx));
+  }
+
   const TTS_RATE: Record<string, number> = {
     slow: 0.7,
     normal: 1.0,
@@ -440,13 +457,13 @@ export default function PracticeCSV() {
     Speech.speak(t, { language: "th-TH", rate: TTS_RATE[ttsSpeed] || 0.7 });
   };
 
-  const freeTileCount = prefilled.filter((s) => s === null).length;
-  const wordProgress =
-    freeTileCount > 0 ? builtSentence.length / freeTileCount : 0;
   const meta = MODE_META[mode];
-
+  const availableWords = words.filter(
+    (word) => !builtSentence.some((selected) => selected.id === word.id),
+  );
   return (
     <SafeAreaView style={st.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         contentContainerStyle={st.scroll}
         showsVerticalScrollIndicator={false}
@@ -478,37 +495,6 @@ export default function PracticeCSV() {
                 <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
               </View>
               <Text style={st.modeTitle}>{meta.title}</Text>
-              <View style={st.modePicker}>
-                <Text style={st.modePickerLabel}>Exercise types</Text>
-                <View style={st.modePickerRow}>
-                  {ALL_MODES.map((item) => {
-                    const active = enabledModes[item];
-                    return (
-                      <TouchableOpacity
-                        key={item}
-                        style={[
-                          st.modePickerChip,
-                          active && st.modePickerChipActive,
-                        ]}
-                        onPress={() => toggleExerciseMode(item)}
-                        activeOpacity={0.85}
-                      >
-                        <Text
-                          style={[
-                            st.modePickerChipText,
-                            active && st.modePickerChipTextActive,
-                          ]}
-                        >
-                          {MODE_TOGGLE_LABEL[item]}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <Text style={st.modePickerHint}>
-                  Choose one or more exercise types
-                </Text>
-              </View>
             </View>
 
             {/* ── BREAKDOWN (Study) ── */}
@@ -604,15 +590,6 @@ export default function PracticeCSV() {
                   <Text style={st.promptText}>{translation}</Text>
                 </View>
 
-                <View style={st.progressTrack}>
-                  <View
-                    style={[
-                      st.progressFill,
-                      { width: `${Math.round(wordProgress * 100)}%` as any },
-                    ]}
-                  />
-                </View>
-
                 <View
                   style={[
                     st.builderZone,
@@ -643,12 +620,18 @@ export default function PracticeCSV() {
                               </View>,
                             );
                           } else if (userIdx < builtSentence.length) {
+                            const builtWord = builtSentence[userIdx];
                             chips.push(
-                              <View key={`usr-${i}`} style={st.builderChip}>
+                              <TouchableOpacity
+                                key={`usr-${i}`}
+                                style={st.builderChip}
+                                onPress={() => removeBuiltWord(builtWord.id)}
+                                activeOpacity={0.8}
+                              >
                                 <Text style={st.builderChipText}>
-                                  {builtSentence[userIdx]}
+                                  {builtWord.thai}
                                 </Text>
-                              </View>,
+                              </TouchableOpacity>,
                             );
                             userIdx++;
                           } else {
@@ -680,7 +663,9 @@ export default function PracticeCSV() {
                         st.resultLabel,
                         {
                           color:
-                            result === "correct" ? Sketch.green : Sketch.red,
+                            result === "correct"
+                              ? MUTED_FEEDBACK_ACCENTS.success
+                              : MUTED_FEEDBACK_ACCENTS.error,
                         },
                       ]}
                     >
@@ -708,13 +693,13 @@ export default function PracticeCSV() {
 
                 {/* wordScraps tiles — same style as breakdown word tiles */}
                 <View style={st.tileRow}>
-                  {words.map((word, idx) => (
+                  {availableWords.map((word) => (
                     <TouchableOpacity
-                      key={idx}
+                      key={word.id}
                       style={[st.wordTile, word.isGrammar && st.grammarTile]}
                       onPress={() => {
                         if (autoplayTTS) speak(word.thai);
-                        handleWordTap(word.thai);
+                        handleWordTap(word);
                       }}
                       activeOpacity={0.8}
                     >
@@ -740,9 +725,13 @@ export default function PracticeCSV() {
                 </View>
 
                 <TouchableOpacity
-                  style={st.primaryBtn}
+                  style={[
+                    st.primaryBtn,
+                    result === "correct" && st.primaryBtnDisabled,
+                  ]}
                   onPress={checkWordScraps}
-                  activeOpacity={0.85}
+                  activeOpacity={result === "correct" ? 1 : 0.85}
+                  disabled={result === "correct"}
                 >
                   <Text style={st.primaryBtnText}>Check Answer</Text>
                 </TouchableOpacity>
@@ -765,7 +754,7 @@ export default function PracticeCSV() {
             {mode === "matchThai" && (
               <View style={st.exerciseWrap}>
                 <View style={st.promptCard}>
-                  <Text style={st.promptLabel}>FIND THE THAI FOR</Text>
+                  <Text style={st.promptLabel}>CHOOSE THE SENTENCE FOR</Text>
                   <Text style={st.promptText}>{translation}</Text>
                 </View>
 
@@ -773,6 +762,7 @@ export default function PracticeCSV() {
                   {matchOptions.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
                     const isCorrect = opt.isCorrect;
+                    const isExpanded = expandedMatchOption === idx;
                     const optRomanTokens = splitRomanization(
                       opt.romanization,
                       opt.breakdown.length,
@@ -783,72 +773,148 @@ export default function PracticeCSV() {
 
                     if (matchRevealed) {
                       if (isCorrect) {
-                        borderColor = Sketch.green;
-                        bgColor = "#F0F9F2";
+                        borderColor = MUTED_FEEDBACK_ACCENTS.successBorder;
+                        bgColor = MUTED_FEEDBACK_ACCENTS.successTint;
                       } else if (isSelected && !isCorrect) {
-                        borderColor = Sketch.red;
-                        bgColor = "#FDF2F2";
+                        borderColor = MUTED_FEEDBACK_ACCENTS.errorBorder;
+                        bgColor = MUTED_FEEDBACK_ACCENTS.errorTint;
                       } else {
                         bgColor = Sketch.paperDark;
                       }
                     } else if (isSelected) {
-                      borderColor = Sketch.blue;
-                      bgColor = "#F0F6FC";
+                      borderColor = MUTED_FEEDBACK_ACCENTS.selectedBorder;
+                      bgColor = MUTED_FEEDBACK_ACCENTS.selectedTint;
                     }
 
+                    const sentenceBorderColor = isCorrect && matchRevealed
+                      ? MUTED_FEEDBACK_ACCENTS.successBorder
+                      : isSelected && matchRevealed && !isCorrect
+                        ? MUTED_FEEDBACK_ACCENTS.errorBorder
+                        : isSelected
+                          ? MUTED_FEEDBACK_ACCENTS.selectedBorder
+                          : Sketch.inkFaint;
+                    const sentenceBgColor = isCorrect && matchRevealed
+                      ? MUTED_FEEDBACK_ACCENTS.successTint
+                      : isSelected && matchRevealed && !isCorrect
+                        ? MUTED_FEEDBACK_ACCENTS.errorTint
+                        : isSelected
+                          ? MUTED_FEEDBACK_ACCENTS.selectedTint
+                          : Sketch.paperDark;
+                    const sentenceTextColor = isCorrect && matchRevealed
+                      ? MUTED_FEEDBACK_ACCENTS.success
+                      : isSelected && matchRevealed && !isCorrect
+                        ? MUTED_FEEDBACK_ACCENTS.error
+                        : Sketch.ink;
+
                     return (
-                      <TouchableOpacity
+                      <View
                         key={idx}
                         style={[
                           st.optionCard,
                           { borderColor, backgroundColor: bgColor },
                         ]}
-                        onPress={() => selectOption(idx)}
-                        activeOpacity={matchRevealed ? 1 : 0.75}
                       >
-                        {/* matchThai tiles — same style as breakdown word tiles */}
-                        <View style={st.tileRow}>
-                          {opt.breakdown.map((w, wi) => (
-                            <TouchableOpacity
-                              key={wi}
-                              style={[st.wordTile, w.grammar && st.grammarTile]}
-                              onPress={() => speak(w.thai)}
-                              activeOpacity={0.8}
+                        <View
+                          style={[
+                            st.matchSentenceButton,
+                            {
+                              borderColor: sentenceBorderColor,
+                              backgroundColor: sentenceBgColor,
+                            },
+                          ]}
+                        >
+                          <TouchableOpacity
+                            style={st.matchSentenceTapArea}
+                            onPress={() => selectOption(idx)}
+                            activeOpacity={matchRevealed ? 1 : 0.85}
+                            disabled={matchRevealed}
+                          >
+                            <Text
+                              style={[
+                                st.matchSentenceText,
+                                { color: sentenceTextColor },
+                              ]}
                             >
-                              {w.grammar && (
-                                <View style={st.grammarBadge}>
-                                  <Text style={st.grammarBadgeIcon}>*</Text>
-                                </View>
-                              )}
-                              <View style={st.wordTileHeader}>
-                                <Text style={st.wordTileThai}>{w.thai}</Text>
-                                {w.tone && (
-                                  <View
-                                    style={[
-                                      st.toneDot,
-                                      { backgroundColor: toneColor(w.tone) },
-                                    ]}
-                                  />
-                                )}
-                              </View>
-                              {showRoman && optRomanTokens[wi] ? (
-                                <Text style={st.wordTileRoman}>
-                                  {optRomanTokens[wi]}
-                                </Text>
-                              ) : null}
-                              {showEnglish && (
-                                <Text style={st.wordTileEng}>
-                                  {w.english.toUpperCase()}
-                                </Text>
-                              )}
-                            </TouchableOpacity>
-                          ))}
+                              {opt.thai}
+                            </Text>
+                            {showRoman && opt.romanization ? (
+                              <Text style={st.matchSentenceRoman}>
+                                {opt.romanization}
+                              </Text>
+                            ) : null}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              st.matchExpandButton,
+                              isExpanded && st.matchExpandButtonActive,
+                            ]}
+                            onPress={() => toggleMatchOptionExpanded(idx)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons
+                              name={isExpanded ? "chevron-up" : "chevron-down"}
+                              size={18}
+                              color={
+                                isExpanded
+                                  ? MUTED_FEEDBACK_ACCENTS.selected
+                                  : Sketch.inkLight
+                              }
+                            />
+                          </TouchableOpacity>
                         </View>
+
+                        {isExpanded && (
+                          <View style={st.matchDetailsPanel}>
+                            <View style={st.matchTileRow}>
+                              {opt.breakdown.map((w, wi) => (
+                                <TouchableOpacity
+                                  key={wi}
+                                  style={[
+                                    st.matchWordTile,
+                                    w.grammar && st.grammarTile,
+                                  ]}
+                                  onPress={() => speak(w.thai)}
+                                  activeOpacity={0.8}
+                                >
+                                  {w.grammar && (
+                                    <View style={st.grammarBadge}>
+                                      <Text style={st.grammarBadgeIcon}>*</Text>
+                                    </View>
+                                  )}
+                                  <View style={st.matchWordTileHeader}>
+                                    <Text style={st.matchWordTileThai}>{w.thai}</Text>
+                                    {w.tone && (
+                                      <View
+                                        style={[
+                                          st.toneDot,
+                                          { backgroundColor: toneColor(w.tone) },
+                                        ]}
+                                      />
+                                    )}
+                                  </View>
+                                  {showRoman && optRomanTokens[wi] ? (
+                                    <Text style={st.wordTileRoman}>
+                                      {optRomanTokens[wi]}
+                                    </Text>
+                                  ) : null}
+                                  {showEnglish && (
+                                    <Text style={st.wordTileEng}>
+                                      {w.english.toUpperCase()}
+                                    </Text>
+                                  )}
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        )}
 
                         {matchRevealed && isCorrect && (
                           <View style={st.badge}>
                             <Text
-                              style={[st.badgeText, { color: Sketch.green }]}
+                              style={[
+                                st.badgeText,
+                                { color: MUTED_FEEDBACK_ACCENTS.success },
+                              ]}
                             >
                               ✓ Correct
                             </Text>
@@ -856,12 +922,17 @@ export default function PracticeCSV() {
                         )}
                         {matchRevealed && isSelected && !isCorrect && (
                           <View style={[st.badge, st.badgeWrong]}>
-                            <Text style={[st.badgeText, { color: Sketch.red }]}>
+                            <Text
+                              style={[
+                                st.badgeText,
+                                { color: MUTED_FEEDBACK_ACCENTS.error },
+                              ]}
+                            >
                               ✗ Wrong
                             </Text>
                           </View>
                         )}
-                      </TouchableOpacity>
+                      </View>
                     );
                   })}
                 </View>
@@ -878,7 +949,9 @@ export default function PracticeCSV() {
                         st.resultLabel,
                         {
                           color:
-                            result === "correct" ? Sketch.green : Sketch.red,
+                            result === "correct"
+                              ? MUTED_FEEDBACK_ACCENTS.success
+                              : MUTED_FEEDBACK_ACCENTS.error,
                         },
                       ]}
                     >
@@ -969,49 +1042,6 @@ const st = StyleSheet.create({
     color: Sketch.ink,
     letterSpacing: -0.2,
   },
-  modePicker: {
-    marginTop: 14,
-    gap: 8,
-  },
-  modePickerLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Sketch.inkMuted,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  modePickerRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  modePickerChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: Sketch.paperDark,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-  },
-  modePickerChipActive: {
-    backgroundColor: Sketch.orange + "12",
-    borderColor: Sketch.orange,
-  },
-  modePickerChipText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: Sketch.inkLight,
-  },
-  modePickerChipTextActive: {
-    color: Sketch.orange,
-    fontWeight: "600",
-  },
-  modePickerHint: {
-    fontSize: 12,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-  },
-
   exerciseWrap: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -1089,6 +1119,13 @@ const st = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    alignSelf: "flex-start",
+  },
+  matchTileRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    alignSelf: "flex-start",
   },
   wordTile: {
     backgroundColor: Sketch.cardBg,
@@ -1098,16 +1135,46 @@ const st = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignItems: "flex-start",
+    alignSelf: "flex-start",
     minWidth: 64,
+    maxWidth: "100%",
   },
   wordTileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: 8,
-    width: "100%",
+    alignSelf: "flex-start",
   },
-  wordTileThai: { fontSize: 18, fontWeight: "700", color: Sketch.ink },
+  wordTileThai: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Sketch.ink,
+    flexShrink: 1,
+  },
+  matchWordTile: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: "flex-start",
+    alignSelf: "flex-start",
+    minWidth: 64,
+    maxWidth: "100%",
+  },
+  matchWordTileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+  },
+  matchWordTileThai: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Sketch.ink,
+    flexShrink: 1,
+  },
   wordTileRoman: {
     fontSize: 10,
     fontWeight: "500",
@@ -1154,6 +1221,9 @@ const st = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 3,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.55,
   },
   primaryBtnText: {
     fontSize: 15,
@@ -1225,14 +1295,14 @@ const st = StyleSheet.create({
     borderStyle: "dashed",
   },
   builderCorrect: {
-    borderColor: Sketch.green,
+    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
     borderStyle: "solid",
-    backgroundColor: "#F0F9F2",
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
   },
   builderWrong: {
-    borderColor: Sketch.red,
+    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
     borderStyle: "solid",
-    backgroundColor: "#FDF2F2",
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
   },
   builderPlaceholder: {
     fontSize: 14,
@@ -1315,8 +1385,14 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
   },
-  resultOk: { backgroundColor: "#F0F9F2" },
-  resultBad: { backgroundColor: "#FDF2F2" },
+  resultOk: {
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
+  },
+  resultBad: {
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
+  },
   resultLabel: { fontSize: 13, fontWeight: "600" },
 
   optionsGrid: { gap: 10 },
@@ -1325,24 +1401,67 @@ const st = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 16,
-    gap: 10,
+    padding: 12,
+    gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
+  matchSentenceButton: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  matchSentenceTapArea: {
+    flex: 1,
+    gap: 4,
+  },
+  matchSentenceText: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: Sketch.ink,
+  },
+  matchSentenceRoman: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  matchExpandButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  matchExpandButtonActive: {
+    borderColor: MUTED_FEEDBACK_ACCENTS.selectedBorder,
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.selectedTint,
+  },
+  matchDetailsPanel: {
+    paddingTop: 2,
+  },
 
   badge: {
     alignSelf: "flex-start",
-    backgroundColor: "#F0F9F2",
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderWidth: 1.5,
-    borderColor: Sketch.green,
+    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
   },
-  badgeWrong: { backgroundColor: "#FDF2F2", borderColor: Sketch.red },
+  badgeWrong: {
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
+  },
   badgeText: { fontSize: 12, fontWeight: "800" },
 });

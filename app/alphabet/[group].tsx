@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import {
   ScrollView,
@@ -23,14 +23,14 @@ type AlphabetLetter = {
   group: number;
 };
 
+const ACCENT = Sketch.orange;
+
 const GROUP_META: Record<
   number,
   {
     badge: string;
     title: string;
     description: string;
-    accent: string;
-    icon: keyof typeof Ionicons.glyphMap;
   }
 > = {
   1: {
@@ -38,51 +38,26 @@ const GROUP_META: Record<
     title: "Mid Class",
     description:
       "Core consonants with balanced tone behavior. Learn the shape, name, and base sound together.",
-    accent: Sketch.yellow,
-    icon: "sparkles-outline",
   },
   2: {
     badge: "Group 2",
     title: "High Class",
     description:
       "Sharp, high-class consonants that show up often in tone patterns and spelling rules.",
-    accent: Sketch.blue,
-    icon: "flash-outline",
   },
   3: {
     badge: "Group 3",
     title: "Low Class I",
     description:
       "The first low-class set. Focus on recognition first, then use practice mode to lock in the sounds.",
-    accent: Sketch.red,
-    icon: "layers-outline",
   },
   4: {
     badge: "Group 4",
     title: "Low Class II",
     description:
-      "The second low-class set. This group is bigger, so the card grid is tuned for quick scanning on mobile.",
-    accent: Sketch.green,
-    icon: "grid-outline",
+      "The second low-class set. This group is bigger, so the grid stays compact for quick scanning on mobile.",
   },
 };
-
-function StatPill({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-}) {
-  return (
-    <View style={styles.statPill}>
-      <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
 
 export default function AlphabetLesson() {
   const { group } = useLocalSearchParams<{ group: string }>();
@@ -101,55 +76,29 @@ export default function AlphabetLesson() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header title={groupInfo.title} onBack={() => router.back()} />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View
-              style={[
-                styles.heroBadge,
-                { backgroundColor: `${groupInfo.accent}14` },
-              ]}
-            >
-              <Text style={[styles.heroBadgeText, { color: groupInfo.accent }]}>
-                {groupInfo.badge}
-              </Text>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTop}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{groupInfo.badge}</Text>
             </View>
-            <View
-              style={[
-                styles.heroIcon,
-                { backgroundColor: `${groupInfo.accent}14` },
-              ]}
-            >
-              <Ionicons
-                name={groupInfo.icon}
-                size={22}
-                color={groupInfo.accent}
-              />
+            <View style={styles.countPill}>
+              <Text style={styles.countValue}>{letters.length}</Text>
+              <Text style={styles.countLabel}>letters</Text>
             </View>
           </View>
 
-          <Text style={styles.heroTitle}>{groupInfo.title}</Text>
-          <Text style={styles.heroSubtitle}>{groupInfo.description}</Text>
-
-          <View style={styles.statsRow}>
-            <StatPill
-              label="Letters"
-              value={String(letters.length)}
-              accent={groupInfo.accent}
-            />
-            <StatPill label="Practice" value="3 modes" accent={Sketch.orange} />
-          </View>
+          <Text style={styles.summaryTitle}>{groupInfo.title}</Text>
+          <Text style={styles.summarySubtitle}>{groupInfo.description}</Text>
 
           <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              { backgroundColor: groupInfo.accent, borderColor: groupInfo.accent },
-            ]}
+            style={styles.primaryButton}
             onPress={() =>
               router.push({
                 pathname: "/alphabet/practice/[group]",
@@ -158,7 +107,6 @@ export default function AlphabetLesson() {
             }
             activeOpacity={0.85}
           >
-            <Ionicons name="play" size={16} color="#fff" />
             <Text style={styles.primaryButtonText}>Start practice</Text>
           </TouchableOpacity>
         </View>
@@ -166,7 +114,7 @@ export default function AlphabetLesson() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Tap any card to hear the letter name.</Text>
           <Text style={styles.sectionSubtitle}>
-            Each card keeps the sound and a quick example visible so it is easier
+            Each card keeps the sound and a quick example visible so it is easy
             to scan on a phone.
           </Text>
         </View>
@@ -180,15 +128,8 @@ export default function AlphabetLesson() {
               activeOpacity={0.85}
             >
               <View style={styles.letterCardTop}>
-                <View
-                  style={[
-                    styles.soundBadge,
-                    { backgroundColor: `${groupInfo.accent}12` },
-                  ]}
-                >
-                  <Text
-                    style={[styles.soundBadgeText, { color: groupInfo.accent }]}
-                  >
+                <View style={styles.soundBadge}>
+                  <Text style={styles.soundBadgeText}>
                     {letter.sound.toUpperCase()}
                   </Text>
                 </View>
@@ -226,80 +167,71 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 28,
-    gap: 16,
   },
-  heroCard: {
+  summaryCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 20,
-    gap: 14,
+    padding: 18,
+    marginBottom: 16,
   },
-  heroTop: {
+  summaryTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 14,
   },
-  heroBadge: {
+  badge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
+    backgroundColor: ACCENT + "12",
   },
-  heroBadgeText: {
+  badgeText: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.7,
     textTransform: "uppercase",
+    color: ACCENT,
   },
-  heroIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
+  countPill: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
   },
-  heroTitle: {
-    fontSize: 28,
+  countValue: {
+    fontSize: 22,
     fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -0.6,
   },
-  heroSubtitle: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: Sketch.inkLight,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  statPill: {
-    flex: 1,
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  statLabel: {
+  countLabel: {
     fontSize: 12,
     color: Sketch.inkMuted,
   },
+  summaryTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.5,
+  },
+  summarySubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Sketch.inkLight,
+    marginTop: 8,
+  },
   primaryButton: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
+    marginTop: 16,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: ACCENT,
+    borderWidth: 1,
+    borderColor: ACCENT,
+    ...sketchShadow(4),
   },
   primaryButtonText: {
     fontSize: 15,
@@ -308,6 +240,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     gap: 6,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontSize: 16,
@@ -323,7 +256,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
   },
   letterCard: {
     width: "48%",
@@ -333,6 +265,7 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 16,
     gap: 10,
+    marginBottom: 12,
     ...sketchShadow(4),
   },
   letterCardTop: {
@@ -344,11 +277,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
+    backgroundColor: ACCENT + "12",
   },
   soundBadgeText: {
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.7,
+    color: ACCENT,
   },
   speakerButton: {
     width: 34,

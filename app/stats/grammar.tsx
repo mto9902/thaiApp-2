@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
@@ -21,6 +21,7 @@ import {
   GrammarProgressData,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
 
 type LevelSummary = {
   level: string;
@@ -47,6 +48,15 @@ function percent(correct: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((correct / total) * 100);
 }
+
+const LEVEL_ACCENTS = [
+  MUTED_APP_ACCENTS.clay,
+  MUTED_APP_ACCENTS.slate,
+  MUTED_APP_ACCENTS.sage,
+  MUTED_APP_ACCENTS.rose,
+  MUTED_APP_ACCENTS.stone,
+  MUTED_APP_ACCENTS.clay,
+];
 
 export default function GrammarStatsScreen() {
   const router = useRouter();
@@ -116,6 +126,7 @@ export default function GrammarStatsScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header
         title="Grammar Stats"
         onBack={() => router.back()}
@@ -141,13 +152,13 @@ export default function GrammarStatsScreen() {
 
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: Sketch.orange }]}>
+              <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.clay }]}>
                 {totalRounds}
               </Text>
               <Text style={styles.statLabel}>Rounds</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: Sketch.green }]}>
+              <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.sage }]}>
                 {percent(totalCorrect, totalAttempts)}%
               </Text>
               <Text style={styles.statLabel}>Accuracy</Text>
@@ -162,7 +173,8 @@ export default function GrammarStatsScreen() {
 
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>By level</Text>
-            {levelSummaries.map((item) => {
+            {levelSummaries.map((item, index) => {
+              const accent = LEVEL_ACCENTS[index % LEVEL_ACCENTS.length];
               const percentage =
                 item.total > 0
                   ? Math.round((item.practiced / item.total) * 100)
@@ -171,8 +183,12 @@ export default function GrammarStatsScreen() {
               return (
                 <View key={item.level} style={styles.levelCard}>
                   <View style={styles.levelHeader}>
-                    <Text style={styles.levelTag}>{item.level}</Text>
-                    <Text style={styles.levelRounds}>{item.rounds} rounds</Text>
+                    <Text style={[styles.levelTag, { color: accent }]}>
+                      {item.level}
+                    </Text>
+                    <Text style={[styles.levelRounds, { color: accent }]}>
+                      {item.rounds} rounds
+                    </Text>
                   </View>
                   <Text style={styles.levelTitle}>{item.title}</Text>
                   <View style={styles.progressRow}>
@@ -180,11 +196,16 @@ export default function GrammarStatsScreen() {
                       <View
                         style={[
                           styles.progressFill,
-                          { width: `${percentage}%` },
+                          {
+                            width: `${percentage}%`,
+                            backgroundColor: accent,
+                          },
                         ]}
                       />
                     </View>
-                    <Text style={styles.progressPercent}>{percentage}%</Text>
+                    <Text style={[styles.progressPercent, { color: accent }]}>
+                      {percentage}%
+                    </Text>
                   </View>
                   <Text style={styles.levelMeta}>
                     {item.practiced}/{item.total} topics practiced •{" "}
@@ -215,7 +236,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   heroCard: {
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: withAlpha(MUTED_APP_ACCENTS.stone, "0B"),
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
@@ -310,13 +331,11 @@ const styles = StyleSheet.create({
   levelTag: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.orange,
     letterSpacing: 1,
   },
   levelRounds: {
     fontSize: 12,
     fontWeight: "500",
-    color: Sketch.inkMuted,
   },
   levelTitle: {
     fontSize: 15,
@@ -338,14 +357,14 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     borderRadius: 999,
-    backgroundColor: Sketch.orange,
+    backgroundColor: MUTED_APP_ACCENTS.clay,
   },
   progressPercent: {
     minWidth: 32,
     textAlign: "right",
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: MUTED_APP_ACCENTS.clay,
   },
   levelMeta: {
     fontSize: 12,

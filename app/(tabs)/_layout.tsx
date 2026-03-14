@@ -1,26 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { canAccessApp } from "../../src/utils/auth";
-import { StyleSheet, View } from "react-native";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Sketch } from "@/constants/theme";
 import "react-native-get-random-values";
 
 export default function TabLayout() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   const [checkedAuth, setCheckedAuth] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  async function checkAuth() {
+  const checkAuth = useCallback(async () => {
     const allowed = await canAccessApp();
 
     if (!allowed) {
@@ -29,9 +25,19 @@ export default function TabLayout() {
     }
 
     setCheckedAuth(true);
-  }
+  }, [router]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   if (!checkedAuth) return null;
+
+  const tabBarBottomPadding =
+    Platform.OS === "android"
+      ? Math.max(insets.bottom, 18)
+      : Math.max(insets.bottom, 12);
+  const tabBarHeight = 50 + tabBarBottomPadding + 10;
 
   return (
     <Tabs
@@ -41,8 +47,8 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          height: 84,
-          paddingBottom: 24,
+          height: tabBarHeight,
+          paddingBottom: tabBarBottomPadding,
           paddingTop: 10,
           backgroundColor: Sketch.paper,
           borderTopWidth: 1,
@@ -56,8 +62,6 @@ export default function TabLayout() {
           marginTop: 4,
           color: Sketch.inkMuted,
         },
-        tabBarActiveTintColor: Sketch.ink,
-        tabBarInactiveTintColor: Sketch.inkMuted,
       }}
     >
       <Tabs.Screen
@@ -75,20 +79,6 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: "Decks",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              size={22}
-              name={focused ? "layers" : "layers-outline"}
-              color={focused ? Sketch.ink : Sketch.inkMuted}
-            />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="progress"
         options={{
           title: "Grammar",
@@ -96,6 +86,20 @@ export default function TabLayout() {
             <Ionicons
               size={22}
               name={focused ? "book" : "book-outline"}
+              color={focused ? Sketch.ink : Sketch.inkMuted}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: "Bookmarks",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={22}
+              name={focused ? "bookmark" : "bookmark-outline"}
               color={focused ? Sketch.ink : Sketch.inkMuted}
             />
           ),

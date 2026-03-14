@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useState } from "react";
 import {
@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Sketch, sketchShadow } from "@/constants/theme";
 import Header from "../../../src/components/Header";
 import { alphabet } from "../../../src/data/alphabet";
+import { MUTED_FEEDBACK_ACCENTS } from "../../../src/utils/toneAccent";
 
 type AlphabetLetter = {
   letter: string;
@@ -31,6 +32,7 @@ type AlphabetLetter = {
 type Mode = "study" | "match" | "recall";
 
 const ALL_MODES: Mode[] = ["study", "match", "recall"];
+const ACCENT = Sketch.orange;
 
 const GROUP_META: Record<
   number,
@@ -119,12 +121,19 @@ function ResultBanner({
         result === "correct" ? styles.resultBannerOk : styles.resultBannerBad,
       ]}
     >
-      <Ionicons
-        name={result === "correct" ? "checkmark-circle" : "close-circle"}
-        size={18}
-        color={result === "correct" ? Sketch.green : Sketch.red}
-      />
-      <Text style={styles.resultBannerText}>{text}</Text>
+      <Text
+        style={[
+          styles.resultBannerText,
+          {
+            color:
+              result === "correct"
+                ? MUTED_FEEDBACK_ACCENTS.success
+                : MUTED_FEEDBACK_ACCENTS.error,
+          },
+        ]}
+      >
+        {text}
+      </Text>
     </View>
   );
 }
@@ -198,50 +207,24 @@ export default function AlphabetPractice() {
   }
 
   function handleContinue() {
-    setupRound(pickNextMode(mode));
+    setupRound(mode);
   }
 
   const modeInfo = MODE_META[mode];
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header title="Alphabet Practice" onBack={() => router.back()} showClose />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View
-              style={[
-                styles.heroBadge,
-                { backgroundColor: `${groupInfo.accent}14` },
-              ]}
-            >
-              <Text style={[styles.heroBadgeText, { color: groupInfo.accent }]}>
-                {groupInfo.badge}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.heroSoundButton}
-              onPress={() => playSound(currentItem.name)}
-              activeOpacity={0.85}
-            >
-              <Ionicons
-                name="volume-medium-outline"
-                size={18}
-                color={Sketch.ink}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.heroTitle}>{groupInfo.title} practice</Text>
-          <Text style={styles.heroSubtitle}>
-            Switch modes any time, or keep tapping continue to shuffle through
-            all three exercise styles.
+        <View style={styles.practiceHeader}>
+          <Text style={styles.practiceMeta}>
+            {groupInfo.badge} • {groupInfo.title}
           </Text>
-
           <View style={styles.modeRow}>
             {ALL_MODES.map((item) => {
               const active = item === mode;
@@ -251,8 +234,8 @@ export default function AlphabetPractice() {
                   style={[
                     styles.modeChip,
                     active && {
-                      backgroundColor: `${groupInfo.accent}14`,
-                      borderColor: groupInfo.accent,
+                      backgroundColor: `${ACCENT}14`,
+                      borderColor: ACCENT,
                     },
                   ]}
                   onPress={() => handleModePress(item)}
@@ -261,7 +244,7 @@ export default function AlphabetPractice() {
                   <Text
                     style={[
                       styles.modeChipText,
-                      active && { color: groupInfo.accent },
+                      active && { color: ACCENT },
                     ]}
                   >
                     {MODE_META[item].label}
@@ -285,11 +268,11 @@ export default function AlphabetPractice() {
                 <View
                   style={[
                     styles.soundBadge,
-                    { backgroundColor: `${groupInfo.accent}12` },
+                    { backgroundColor: `${ACCENT}12` },
                   ]}
                 >
                   <Text
-                    style={[styles.soundBadgeText, { color: groupInfo.accent }]}
+                    style={[styles.soundBadgeText, { color: ACCENT }]}
                   >
                     {currentItem.sound.toUpperCase()}
                   </Text>
@@ -323,7 +306,7 @@ export default function AlphabetPractice() {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: groupInfo.accent, borderColor: groupInfo.accent },
+                { backgroundColor: ACCENT, borderColor: ACCENT },
               ]}
               onPress={handleContinue}
               activeOpacity={0.85}
@@ -346,18 +329,27 @@ export default function AlphabetPractice() {
                 const isCorrect = option.letter === currentItem.letter;
                 const borderColor = revealed
                   ? isCorrect
-                    ? Sketch.green
+                    ? MUTED_FEEDBACK_ACCENTS.successBorder
                     : isSelected
-                      ? Sketch.red
+                      ? MUTED_FEEDBACK_ACCENTS.errorBorder
                       : Sketch.inkFaint
                   : isSelected
-                    ? groupInfo.accent
+                    ? MUTED_FEEDBACK_ACCENTS.selectedBorder
                     : Sketch.inkFaint;
+                const backgroundColor = revealed
+                  ? isCorrect
+                    ? MUTED_FEEDBACK_ACCENTS.successTint
+                    : isSelected
+                      ? MUTED_FEEDBACK_ACCENTS.errorTint
+                      : Sketch.cardBg
+                  : isSelected
+                    ? MUTED_FEEDBACK_ACCENTS.selectedTint
+                    : Sketch.cardBg;
 
                 return (
                   <TouchableOpacity
                     key={option.letter}
-                    style={[styles.optionCard, { borderColor }]}
+                    style={[styles.optionCard, { borderColor, backgroundColor }]}
                     onPress={() => handleMatchSelect(index)}
                     activeOpacity={0.85}
                     disabled={revealed}
@@ -383,8 +375,8 @@ export default function AlphabetPractice() {
                   style={[
                     styles.primaryButton,
                     {
-                      backgroundColor: groupInfo.accent,
-                      borderColor: groupInfo.accent,
+                      backgroundColor: ACCENT,
+                      borderColor: ACCENT,
                     },
                   ]}
                   onPress={handleContinue}
@@ -410,18 +402,27 @@ export default function AlphabetPractice() {
                 const isCorrect = option.sound === currentItem.sound;
                 const borderColor = revealed
                   ? isCorrect
-                    ? Sketch.green
+                    ? MUTED_FEEDBACK_ACCENTS.successBorder
                     : isSelected
-                      ? Sketch.red
+                      ? MUTED_FEEDBACK_ACCENTS.errorBorder
                       : Sketch.inkFaint
                   : isSelected
-                    ? groupInfo.accent
+                    ? MUTED_FEEDBACK_ACCENTS.selectedBorder
                     : Sketch.inkFaint;
+                const backgroundColor = revealed
+                  ? isCorrect
+                    ? MUTED_FEEDBACK_ACCENTS.successTint
+                    : isSelected
+                      ? MUTED_FEEDBACK_ACCENTS.errorTint
+                      : Sketch.cardBg
+                  : isSelected
+                    ? MUTED_FEEDBACK_ACCENTS.selectedTint
+                    : Sketch.cardBg;
 
                 return (
                   <TouchableOpacity
                     key={`${option.letter}-${index}`}
-                    style={[styles.optionCard, { borderColor }]}
+                    style={[styles.optionCard, { borderColor, backgroundColor }]}
                     onPress={() => handleRecallSelect(index)}
                     activeOpacity={0.85}
                     disabled={revealed}
@@ -447,8 +448,8 @@ export default function AlphabetPractice() {
                   style={[
                     styles.primaryButton,
                     {
-                      backgroundColor: groupInfo.accent,
-                      borderColor: groupInfo.accent,
+                      backgroundColor: ACCENT,
+                      borderColor: ACCENT,
                     },
                   ]}
                   onPress={handleContinue}
@@ -476,50 +477,16 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 14,
   },
-  heroCard: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    padding: 20,
-    gap: 14,
+  practiceHeader: {
+    gap: 10,
+    marginBottom: 2,
   },
-  heroTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  heroBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  heroBadgeText: {
-    fontSize: 11,
+  practiceMeta: {
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 0.7,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
-  },
-  heroSoundButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.6,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: Sketch.inkLight,
+    color: ACCENT,
   },
   modeRow: {
     flexDirection: "row",
@@ -706,9 +673,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   resultBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
     backgroundColor: Sketch.paperDark,
     borderRadius: 14,
     borderWidth: 1,
@@ -717,16 +681,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   resultBannerOk: {
-    borderColor: `${Sketch.green}55`,
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
   },
   resultBannerBad: {
-    borderColor: `${Sketch.red}55`,
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
   },
   resultBannerText: {
-    flex: 1,
     fontSize: 13,
     lineHeight: 19,
-    color: Sketch.ink,
+    fontWeight: "600",
+    textAlign: "center",
   },
   primaryButton: {
     borderRadius: 14,
@@ -735,6 +701,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
+    ...sketchShadow(4),
   },
   primaryButtonText: {
     fontSize: 15,

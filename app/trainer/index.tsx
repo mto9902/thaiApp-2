@@ -1,6 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Stack, useRouter } from "expo-router";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
@@ -14,6 +21,7 @@ import {
 import { alphabet } from "../../src/data/alphabet";
 import { vowels } from "../../src/data/vowels";
 import { useState } from "react";
+import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
 
 function DifficultyPicker({
   value,
@@ -29,22 +37,19 @@ function DifficultyPicker({
         const active = value === level;
 
         return (
-          <TouchableOpacity
+          <Pressable
             key={level}
-            style={[
+            style={({ pressed }) => [
               styles.difficultyCard,
-              active && {
-                borderColor: meta.color,
-                backgroundColor: `${meta.color}14`,
-              },
+              active && styles.selectionCardActive,
+              pressed && styles.selectionCardPressed,
             ]}
             onPress={() => onChange(level)}
-            activeOpacity={0.85}
           >
             <Text
               style={[
                 styles.difficultyTitle,
-                active && { color: meta.color },
+                active && styles.selectionTitleActive,
               ]}
             >
               {meta.label}
@@ -56,7 +61,7 @@ function DifficultyPicker({
                   ? "A little more variety"
                   : "Longer or trickier words"}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>
@@ -66,31 +71,30 @@ function DifficultyPicker({
 function ConsonantCard({
   id,
   title,
-  color,
   isSelected,
   onPress,
 }: {
   id: number;
   title: string;
-  color: string;
   isSelected: boolean;
   onPress: () => void;
 }) {
   const letters = alphabet.filter((item) => item.group === id).slice(0, 4);
 
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ pressed }) => [
         styles.selectionCard,
-        isSelected && {
-          borderColor: color,
-          backgroundColor: `${color}14`,
-        },
+        isSelected && styles.selectionCardActive,
+        pressed && styles.selectionCardPressed,
       ]}
       onPress={onPress}
-      activeOpacity={0.85}
     >
-      <Text style={[styles.selectionTitle, isSelected && { color }]}>{title}</Text>
+      <Text
+        style={[styles.selectionTitle, isSelected && styles.selectionTitleActive]}
+      >
+        {title}
+      </Text>
       <View style={styles.previewRow}>
         {letters.map((item) => (
           <Text key={item.letter} style={styles.previewGlyph}>
@@ -98,7 +102,7 @@ function ConsonantCard({
           </Text>
         ))}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -106,32 +110,31 @@ function VowelCard({
   id,
   title,
   description,
-  color,
   isSelected,
   onPress,
 }: {
   id: number;
   title: string;
   description: string;
-  color: string;
   isSelected: boolean;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ pressed }) => [
         styles.selectionCard,
-        isSelected && {
-          borderColor: color,
-          backgroundColor: `${color}14`,
-        },
+        isSelected && styles.selectionCardActive,
+        pressed && styles.selectionCardPressed,
       ]}
       onPress={onPress}
-      activeOpacity={0.85}
     >
-      <Text style={[styles.selectionTitle, isSelected && { color }]}>{title}</Text>
+      <Text
+        style={[styles.selectionTitle, isSelected && styles.selectionTitleActive]}
+      >
+        {title}
+      </Text>
       <Text style={styles.selectionDescription}>{description}</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -177,6 +180,7 @@ export default function TrainerScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header
         title="Alphabet Trainer"
         onBack={() => router.back()}
@@ -197,15 +201,19 @@ export default function TrainerScreen() {
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryPill}>
-            <Text style={styles.summaryValue}>{consonantCount}</Text>
+            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
+              {consonantCount}
+            </Text>
             <Text style={styles.summaryLabel}>letters</Text>
           </View>
           <View style={styles.summaryPill}>
-            <Text style={styles.summaryValue}>{vowelCount}</Text>
+            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
+              {vowelCount}
+            </Text>
             <Text style={styles.summaryLabel}>vowels</Text>
           </View>
           <View style={styles.summaryPill}>
-            <Text style={styles.summaryValue}>
+            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.sage }]}>
               {DIFFICULTY_META[difficulty].label}
             </Text>
             <Text style={styles.summaryLabel}>difficulty</Text>
@@ -226,7 +234,8 @@ export default function TrainerScreen() {
             {CONSONANT_INFO.map((item) => (
               <ConsonantCard
                 key={item.id}
-                {...item}
+                id={item.id}
+                title={item.title}
                 isSelected={consonantGroupsSelected.includes(item.id)}
                 onPress={() =>
                   toggleSelection(
@@ -249,7 +258,9 @@ export default function TrainerScreen() {
             {VOWEL_INFO.map((item) => (
               <VowelCard
                 key={item.id}
-                {...item}
+                id={item.id}
+                title={item.title}
+                description={item.description}
                 isSelected={vowelGroupsSelected.includes(item.id)}
                 onPress={() =>
                   toggleSelection(
@@ -268,7 +279,7 @@ export default function TrainerScreen() {
             <Ionicons
               name="alert-circle-outline"
               size={16}
-              color={Sketch.red}
+              color={Sketch.orange}
             />
             <Text style={styles.validationText}>
               Select at least one consonant class and one vowel group.
@@ -361,10 +372,12 @@ const styles = StyleSheet.create({
   },
   difficultyRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   difficultyCard: {
-    flex: 1,
+    flexBasis: "31%",
+    flexGrow: 1,
     minHeight: 80,
     backgroundColor: Sketch.cardBg,
     borderRadius: 18,
@@ -372,6 +385,7 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 12,
     justifyContent: "space-between",
+    overflow: "hidden",
     ...sketchShadow(3),
   },
   difficultyTitle: {
@@ -387,10 +401,12 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 10,
   },
   selectionCard: {
-    width: "48%",
+    flexBasis: "48%",
+    maxWidth: "48%",
     minHeight: 92,
     backgroundColor: Sketch.cardBg,
     borderRadius: 18,
@@ -398,12 +414,24 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 12,
     justifyContent: "space-between",
+    overflow: "hidden",
     ...sketchShadow(3),
+  },
+  selectionCardActive: {
+    borderColor: Sketch.orange,
+    backgroundColor: withAlpha(Sketch.orange, "10"),
+  },
+  selectionCardPressed: {
+    borderColor: Sketch.orange,
+    backgroundColor: withAlpha(Sketch.orange, "14"),
   },
   selectionTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: Sketch.ink,
+  },
+  selectionTitleActive: {
+    color: Sketch.orange,
   },
   selectionDescription: {
     fontSize: 18,
@@ -425,10 +453,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: `${Sketch.red}12`,
+    backgroundColor: withAlpha(Sketch.orange, "10"),
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: `${Sketch.red}33`,
+    borderColor: withAlpha(Sketch.orange, "30"),
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
@@ -436,7 +464,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 19,
-    color: Sketch.red,
+    color: Sketch.orangeDark,
   },
   primaryButton: {
     backgroundColor: Sketch.orange,

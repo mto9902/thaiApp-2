@@ -70,6 +70,11 @@ export default function Login() {
             value={password}
             onChangeText={setPassword}
             style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            textContentType="password"
+            autoComplete="password"
           />
 
           <TouchableOpacity style={styles.button} onPress={handleLogin}>

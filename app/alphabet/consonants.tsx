@@ -1,5 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   ScrollView,
   StyleSheet,
@@ -14,45 +13,33 @@ import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
 
 const GROUPS = [
-  { group: 1, title: "Mid Class", subtitle: "กลาง", accent: Sketch.orange },
-  { group: 2, title: "High Class", subtitle: "สูง", accent: Sketch.blue },
-  { group: 3, title: "Low Class I", subtitle: "ต่ำ ๑", accent: Sketch.green },
-  { group: 4, title: "Low Class II", subtitle: "ต่ำ ๒", accent: Sketch.red },
+  { group: 1, title: "Mid Class", subtitle: "กลาง" },
+  { group: 2, title: "High Class", subtitle: "สูง" },
+  { group: 3, title: "Low Class I", subtitle: "ต่ำ ๑" },
+  { group: 4, title: "Low Class II", subtitle: "ต่ำ ๒" },
 ];
 
 function ConsonantCard({
   group,
   title,
   subtitle,
-  accent,
   onPress,
 }: {
   group: number;
   title: string;
   subtitle: string;
-  accent: string;
   onPress: () => void;
 }) {
   const letters = alphabet.filter((item) => item.group === group);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.cardTop}>
-        <View>
-          <View
-            style={[styles.badge, { backgroundColor: `${accent}12` }]}
-          >
-            <Text style={[styles.badgeText, { color: accent }]}>
-              Group {group}
-            </Text>
-          </View>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.cardSubtitle}>{subtitle}</Text>
-        </View>
-        <View style={[styles.iconWrap, { backgroundColor: `${accent}14` }]}>
-          <Ionicons name="book-outline" size={20} color={accent} />
-        </View>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.82}>
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>Group {group}</Text>
       </View>
+
+      <Text style={styles.cardTitle}>{title}</Text>
+      <Text style={styles.cardSubtitle}>{subtitle}</Text>
 
       <View style={styles.letterRow}>
         {letters.slice(0, 6).map((item) => (
@@ -61,7 +48,7 @@ function ConsonantCard({
           </View>
         ))}
         {letters.length > 6 ? (
-          <View style={styles.moreChip}>
+          <View style={[styles.letterChip, styles.moreChip]}>
             <Text style={styles.moreChipText}>+{letters.length - 6}</Text>
           </View>
         ) : null}
@@ -69,7 +56,7 @@ function ConsonantCard({
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>{letters.length} letters</Text>
-        <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
+        <Text style={styles.footerAction}>Open group</Text>
       </View>
     </TouchableOpacity>
   );
@@ -80,6 +67,7 @@ export default function ConsonantsScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header title="Consonants" onBack={() => router.back()} />
 
       <ScrollView
@@ -101,7 +89,6 @@ export default function ConsonantsScreen() {
             group={item.group}
             title={item.title}
             subtitle={item.subtitle}
-            accent={item.accent}
             onPress={() => router.push(`/alphabet/${item.group}` as any)}
           />
         ))}
@@ -118,8 +105,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 24,
-    gap: 14,
+    paddingBottom: 28,
   },
   introCard: {
     backgroundColor: Sketch.paperDark,
@@ -127,11 +113,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
+    marginBottom: 14,
   },
   introEyebrow: {
     fontSize: 12,
-    fontWeight: "600",
-    color: Sketch.inkMuted,
+    fontWeight: "700",
+    color: Sketch.orange,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
@@ -154,25 +141,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
-    gap: 14,
-  },
-  cardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 16,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   badge: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    marginBottom: 10,
+    backgroundColor: Sketch.orange + "12",
+    marginBottom: 12,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.6,
+    color: Sketch.orange,
   },
   cardTitle: {
     fontSize: 22,
@@ -185,17 +174,11 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     marginTop: 4,
   },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   letterRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    alignSelf: "flex-start",
+    marginTop: 14,
   },
   letterChip: {
     minWidth: 42,
@@ -206,6 +189,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     alignItems: "center",
+    alignSelf: "flex-start",
+    marginRight: 8,
+    marginBottom: 8,
   },
   letterChipText: {
     fontSize: 20,
@@ -213,13 +199,7 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
   moreChip: {
-    minWidth: 42,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: Sketch.paperDark,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: Sketch.cardBg,
   },
   moreChipText: {
     fontSize: 14,
@@ -231,6 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 12,
+    marginTop: 6,
     borderTopWidth: 1,
     borderTopColor: Sketch.inkFaint,
   },
@@ -238,5 +219,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: Sketch.inkLight,
+  },
+  footerAction: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.ink,
   },
 });

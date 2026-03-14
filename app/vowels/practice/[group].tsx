@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useState } from "react";
 import {
@@ -27,6 +27,7 @@ type Vowel = {
 type Mode = "study" | "match" | "recall";
 
 const ALL_MODES: Mode[] = ["study", "match", "recall"];
+const ACCENT = Sketch.orange;
 
 const GROUP_META: Record<
   number,
@@ -155,6 +156,7 @@ export default function VowelPractice() {
   if (!fallbackItem || groupVowels.length === 0) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
         <Header title="Vowel Practice" onBack={() => router.back()} showClose />
         <View style={styles.emptyWrap}>
           <View style={styles.emptyCard}>
@@ -213,50 +215,24 @@ export default function VowelPractice() {
   }
 
   function handleContinue() {
-    setupRound(pickNextMode(mode));
+    setupRound(mode);
   }
 
   const modeInfo = MODE_META[mode];
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header title="Vowel Practice" onBack={() => router.back()} showClose />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View
-              style={[
-                styles.heroBadge,
-                { backgroundColor: `${groupInfo.accent}14` },
-              ]}
-            >
-              <Text style={[styles.heroBadgeText, { color: groupInfo.accent }]}>
-                {groupInfo.badge}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.heroSoundButton}
-              onPress={() => speak(currentItem.example)}
-              activeOpacity={0.85}
-            >
-              <Ionicons
-                name="volume-medium-outline"
-                size={18}
-                color={Sketch.ink}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.heroTitle}>{groupInfo.title} practice</Text>
-          <Text style={styles.heroSubtitle}>
-            Train vowel placement with the same three exercise modes used across
-            the rest of the practice flow.
+        <View style={styles.practiceHeader}>
+          <Text style={styles.practiceMeta}>
+            {groupInfo.badge} • {groupInfo.title}
           </Text>
-
           <View style={styles.modeRow}>
             {ALL_MODES.map((item) => {
               const active = item === mode;
@@ -266,8 +242,8 @@ export default function VowelPractice() {
                   style={[
                     styles.modeChip,
                     active && {
-                      backgroundColor: `${groupInfo.accent}14`,
-                      borderColor: groupInfo.accent,
+                      backgroundColor: `${ACCENT}14`,
+                      borderColor: ACCENT,
                     },
                   ]}
                   onPress={() => handleModePress(item)}
@@ -276,7 +252,7 @@ export default function VowelPractice() {
                   <Text
                     style={[
                       styles.modeChipText,
-                      active && { color: groupInfo.accent },
+                      active && { color: ACCENT },
                     ]}
                   >
                     {MODE_META[item].label}
@@ -300,11 +276,11 @@ export default function VowelPractice() {
                 <View
                   style={[
                     styles.soundBadge,
-                    { backgroundColor: `${groupInfo.accent}12` },
+                    { backgroundColor: `${ACCENT}12` },
                   ]}
                 >
                   <Text
-                    style={[styles.soundBadgeText, { color: groupInfo.accent }]}
+                    style={[styles.soundBadgeText, { color: ACCENT }]}
                   >
                     {currentItem.sound.toUpperCase()}
                   </Text>
@@ -325,7 +301,7 @@ export default function VowelPractice() {
               <VowelText
                 example={currentItem.example}
                 style={styles.studyGlyph}
-                vowelColor={groupInfo.accent}
+                vowelColor={ACCENT}
                 consonantColor={Sketch.inkLight}
               />
               <Text style={styles.studyName}>{currentItem.name}</Text>
@@ -335,7 +311,7 @@ export default function VowelPractice() {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: groupInfo.accent, borderColor: groupInfo.accent },
+                { backgroundColor: ACCENT, borderColor: ACCENT },
               ]}
               onPress={handleContinue}
               activeOpacity={0.85}
@@ -363,7 +339,7 @@ export default function VowelPractice() {
                       ? Sketch.red
                       : Sketch.inkFaint
                   : isSelected
-                    ? groupInfo.accent
+                    ? ACCENT
                     : Sketch.inkFaint;
 
                 return (
@@ -377,7 +353,7 @@ export default function VowelPractice() {
                     <VowelText
                       example={option.example}
                       style={styles.optionGlyph}
-                      vowelColor={groupInfo.accent}
+                      vowelColor={ACCENT}
                       consonantColor={Sketch.inkLight}
                     />
                     <Text style={styles.optionLabel}>{option.name}</Text>
@@ -400,8 +376,8 @@ export default function VowelPractice() {
                   style={[
                     styles.primaryButton,
                     {
-                      backgroundColor: groupInfo.accent,
-                      borderColor: groupInfo.accent,
+                      backgroundColor: ACCENT,
+                      borderColor: ACCENT,
                     },
                   ]}
                   onPress={handleContinue}
@@ -421,7 +397,7 @@ export default function VowelPractice() {
               <VowelText
                 example={currentItem.example}
                 style={styles.questionGlyph}
-                vowelColor={groupInfo.accent}
+                vowelColor={ACCENT}
                 consonantColor={Sketch.inkLight}
               />
             </View>
@@ -437,7 +413,7 @@ export default function VowelPractice() {
                       ? Sketch.red
                       : Sketch.inkFaint
                   : isSelected
-                    ? groupInfo.accent
+                    ? ACCENT
                     : Sketch.inkFaint;
 
                 return (
@@ -469,8 +445,8 @@ export default function VowelPractice() {
                   style={[
                     styles.primaryButton,
                     {
-                      backgroundColor: groupInfo.accent,
-                      borderColor: groupInfo.accent,
+                      backgroundColor: ACCENT,
+                      borderColor: ACCENT,
                     },
                   ]}
                   onPress={handleContinue}
@@ -521,50 +497,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: Sketch.inkMuted,
   },
-  heroCard: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    padding: 20,
-    gap: 14,
+  practiceHeader: {
+    gap: 10,
+    marginBottom: 2,
   },
-  heroTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  heroBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  heroBadgeText: {
-    fontSize: 11,
+  practiceMeta: {
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 0.7,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
-  },
-  heroSoundButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.6,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: Sketch.inkLight,
+    color: ACCENT,
   },
   modeRow: {
     flexDirection: "row",
@@ -757,6 +699,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
+    ...sketchShadow(4),
   },
   primaryButtonText: {
     fontSize: 15,

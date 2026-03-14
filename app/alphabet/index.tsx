@@ -1,6 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
@@ -10,40 +9,31 @@ function EntryCard({
   eyebrow,
   title,
   subtitle,
-  accent,
-  icon,
+  footer,
   onPress,
 }: {
   eyebrow: string;
   title: string;
   subtitle: string;
-  accent: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  footer: string;
   onPress: () => void;
 }) {
   return (
     <TouchableOpacity
       style={styles.entryCard}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.82}
     >
-      <View style={styles.entryTop}>
-        <View style={[styles.entryIcon, { backgroundColor: `${accent}14` }]}>
-          <Ionicons name={icon} size={24} color={accent} />
-        </View>
-        <View style={[styles.entryBadge, { backgroundColor: `${accent}12` }]}>
-          <Text style={[styles.entryBadgeText, { color: accent }]}>
-            {eyebrow}
-          </Text>
-        </View>
+      <View style={styles.entryAccent} />
+      <View style={styles.entryBadge}>
+        <Text style={styles.entryBadgeText}>{eyebrow}</Text>
       </View>
-
       <Text style={styles.entryTitle}>{title}</Text>
       <Text style={styles.entrySubtitle}>{subtitle}</Text>
 
       <View style={styles.entryFooter}>
-        <Text style={styles.entryFooterText}>Open lesson</Text>
-        <Ionicons name="arrow-forward" size={16} color={Sketch.inkMuted} />
+        <Text style={styles.entryFooterText}>{footer}</Text>
+        <Text style={styles.entryFooterAction}>Open lesson</Text>
       </View>
     </TouchableOpacity>
   );
@@ -54,9 +44,13 @@ export default function AlphabetScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header title="Alphabet" onBack={() => router.back()} />
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.introCard}>
           <Text style={styles.introEyebrow}>Foundations</Text>
           <Text style={styles.introTitle}>Build your Thai sound system.</Text>
@@ -70,8 +64,7 @@ export default function AlphabetScreen() {
           eyebrow="44 letters"
           title="Consonants"
           subtitle="Learn the four consonant classes and recognize their core sounds."
-          accent={Sketch.orange}
-          icon="language-outline"
+          footer="Four groups"
           onPress={() => router.push("/alphabet/consonants" as any)}
         />
 
@@ -79,11 +72,10 @@ export default function AlphabetScreen() {
           eyebrow="Groups 1-6"
           title="Vowels"
           subtitle="Study vowel placement around the consonant and how each pattern sounds."
-          accent={Sketch.blue}
-          icon="chatbubble-ellipses-outline"
+          footer="Six groups"
           onPress={() => router.push("/vowels/" as any)}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -94,11 +86,9 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 24,
-    gap: 14,
+    paddingBottom: 28,
   },
   introCard: {
     backgroundColor: Sketch.paperDark,
@@ -106,11 +96,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 20,
+    marginBottom: 14,
   },
   introEyebrow: {
     fontSize: 12,
-    fontWeight: "600",
-    color: Sketch.inkMuted,
+    fontWeight: "700",
+    color: Sketch.orange,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
@@ -129,43 +120,44 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   entryCard: {
-    flex: 1,
-    minHeight: 180,
     backgroundColor: Sketch.cardBg,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 20,
-    justifyContent: "space-between",
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  entryTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  entryIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
+  entryAccent: {
+    width: 40,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: Sketch.orange,
+    marginBottom: 14,
   },
   entryBadge: {
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
+    backgroundColor: Sketch.orange + "12",
+    marginBottom: 12,
   },
   entryBadgeText: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.6,
     textTransform: "uppercase",
+    color: Sketch.orange,
   },
   entryTitle: {
     fontSize: 28,
     fontWeight: "700",
     color: Sketch.ink,
-    marginTop: 18,
   },
   entrySubtitle: {
     fontSize: 14,
@@ -178,14 +170,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 20,
+    marginTop: 18,
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: Sketch.inkFaint,
   },
   entryFooterText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  entryFooterAction: {
+    fontSize: 13,
+    fontWeight: "700",
     color: Sketch.ink,
   },
 });

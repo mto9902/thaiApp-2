@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -11,6 +12,14 @@ import {
   View,
 } from "react-native";
 import { Sketch } from "@/constants/theme";
+import {
+  DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
+  getGrammarExerciseSettings,
+  GRAMMAR_EXERCISE_LABELS,
+  GrammarExerciseMode,
+  GrammarExerciseSettings,
+  setGrammarExerciseSettings,
+} from "../utils/grammarExerciseSettings";
 import {
   getPracticeWordTrackingEnabled,
   setPracticeWordTrackingEnabled,
@@ -27,6 +36,7 @@ export type SettingsState = {
   autoplayTTS: boolean;
   ttsSpeed: "slow" | "normal" | "fast";
   autoAddPracticeVocab: boolean;
+  grammarExerciseModes: GrammarExerciseSettings;
 };
 
 type HeaderProps = {
@@ -51,23 +61,27 @@ export default function Header({
     autoplayTTS: false,
     ttsSpeed: "slow",
     autoAddPracticeVocab: true,
+    grammarExerciseModes: DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   });
 
   const loadSettings = useCallback(async () => {
     try {
-      const [roman, english, tts, speed] = await Promise.all([
+      const [roman, english, tts, speed, autoAddPracticeVocab, grammarExerciseModes] =
+        await Promise.all([
         AsyncStorage.getItem(PREF_ROMANIZATION),
         AsyncStorage.getItem(PREF_ENGLISH),
         AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
         AsyncStorage.getItem(PREF_TTS_SPEED),
+        getPracticeWordTrackingEnabled(),
+        getGrammarExerciseSettings(),
       ]);
-      const autoAddPracticeVocab = await getPracticeWordTrackingEnabled();
       const s: SettingsState = {
         showRoman: roman !== null ? roman === "true" : true,
         showEnglish: english !== null ? english === "true" : true,
         autoplayTTS: tts !== null ? tts === "true" : false,
         ttsSpeed: (speed as SettingsState["ttsSpeed"]) || "slow",
         autoAddPracticeVocab,
+        grammarExerciseModes,
       };
       setSettings(s);
       onSettingsChange?.(s);
@@ -79,6 +93,12 @@ export default function Header({
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    if (modalVisible) {
+      void loadSettings();
+    }
+  }, [loadSettings, modalVisible]);
 
   async function updateSetting<K extends keyof SettingsState>(
     key: K,
@@ -112,6 +132,29 @@ export default function Header({
       ttsSpeed: PREF_TTS_SPEED,
     };
     await AsyncStorage.setItem(storageMap[key], String(value));
+  }
+
+  async function updateGrammarExerciseMode(targetMode: GrammarExerciseMode) {
+    const enabledCount = Object.values(settings.grammarExerciseModes).filter(
+      Boolean,
+    ).length;
+    if (settings.grammarExerciseModes[targetMode] && enabledCount === 1) {
+      return;
+    }
+
+    const nextModes = {
+      ...settings.grammarExerciseModes,
+      [targetMode]: !settings.grammarExerciseModes[targetMode],
+    };
+
+    try {
+      const savedModes = await setGrammarExerciseSettings(nextModes);
+      const next = { ...settings, grammarExerciseModes: savedModes };
+      setSettings(next);
+      onSettingsChange?.(next);
+    } catch (err) {
+      console.error("Failed to update grammar exercise settings:", err);
+    }
   }
 
   const speedOptions: { label: string; value: SettingsState["ttsSpeed"] }[] = [
@@ -153,88 +196,131 @@ export default function Header({
                 <Ionicons name="close" size={24} color={Sketch.ink} />
               </TouchableOpacity>
             </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Romanization</Text>
-                <Text style={styles.settingDesc}>Show phonetic transcription</Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalBody}
+            >
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Romanization</Text>
+                  <Text style={styles.settingDesc}>Show phonetic transcription</Text>
+                </View>
+                <Switch
+                  value={settings.showRoman}
+                  onValueChange={(v) => updateSetting("showRoman", v)}
+                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                  thumbColor="white"
+                />
               </View>
-              <Switch
-                value={settings.showRoman}
-                onValueChange={(v) => updateSetting("showRoman", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                thumbColor="white"
-              />
-            </View>
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>English Translation</Text>
-                <Text style={styles.settingDesc}>Show English meaning</Text>
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>English Translation</Text>
+                  <Text style={styles.settingDesc}>Show English meaning</Text>
+                </View>
+                <Switch
+                  value={settings.showEnglish}
+                  onValueChange={(v) => updateSetting("showEnglish", v)}
+                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                  thumbColor="white"
+                />
               </View>
-              <Switch
-                value={settings.showEnglish}
-                onValueChange={(v) => updateSetting("showEnglish", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                thumbColor="white"
-              />
-            </View>
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Autoplay Audio</Text>
-                <Text style={styles.settingDesc}>Auto-speak Thai sentences</Text>
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Autoplay Audio</Text>
+                  <Text style={styles.settingDesc}>Auto-speak Thai sentences</Text>
+                </View>
+                <Switch
+                  value={settings.autoplayTTS}
+                  onValueChange={(v) => updateSetting("autoplayTTS", v)}
+                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                  thumbColor="white"
+                />
               </View>
-              <Switch
-                value={settings.autoplayTTS}
-                onValueChange={(v) => updateSetting("autoplayTTS", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                thumbColor="white"
-              />
-            </View>
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Add Practice Words</Text>
-                <Text style={styles.settingDesc}>
-                  Save new words from grammar practice to your review deck
-                </Text>
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Add Vocabulary</Text>
+                  <Text style={styles.settingDesc}>
+                    Add words from grammar practice to your review deck
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.autoAddPracticeVocab}
+                  onValueChange={(v) => void updateSetting("autoAddPracticeVocab", v)}
+                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                  thumbColor="white"
+                />
               </View>
-              <Switch
-                value={settings.autoAddPracticeVocab}
-                onValueChange={(v) => void updateSetting("autoAddPracticeVocab", v)}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                thumbColor="white"
-              />
-            </View>
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Speech Speed</Text>
-                <Text style={styles.settingDesc}>Text-to-speech pace</Text>
-              </View>
-              <View style={styles.speedRow}>
-                {speedOptions.map((opt) => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[
-                      styles.speedPill,
-                      settings.ttsSpeed === opt.value && styles.speedPillActive,
-                    ]}
-                    onPress={() => void updateSetting("ttsSpeed", opt.value)}
-                  >
-                    <Text
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Speech Speed</Text>
+                  <Text style={styles.settingDesc}>Text-to-speech pace</Text>
+                </View>
+                <View style={styles.speedRow}>
+                  {speedOptions.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
                       style={[
-                        styles.speedPillText,
-                        settings.ttsSpeed === opt.value && styles.speedPillTextActive,
+                        styles.speedPill,
+                        settings.ttsSpeed === opt.value && styles.speedPillActive,
                       ]}
+                      onPress={() => void updateSetting("ttsSpeed", opt.value)}
                     >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.speedPillText,
+                          settings.ttsSpeed === opt.value && styles.speedPillTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+
+              <View style={styles.extraSettingsSection}>
+                <Text style={styles.extraSettingsTitle}>Grammar Exercises</Text>
+                <Text style={styles.extraSettingsDesc}>
+                  Choose which grammar practice modes stay in rotation.
+                </Text>
+                <View style={styles.extraSettingsBody}>
+                  <View style={styles.exerciseChipRow}>
+                    {(
+                      Object.keys(settings.grammarExerciseModes) as GrammarExerciseMode[]
+                    ).map((mode) => {
+                      const active = settings.grammarExerciseModes[mode];
+                      return (
+                        <TouchableOpacity
+                          key={mode}
+                          style={[
+                            styles.exerciseChip,
+                            active && styles.exerciseChipActive,
+                          ]}
+                          onPress={() => void updateGrammarExerciseMode(mode)}
+                          activeOpacity={0.85}
+                        >
+                          <Text
+                            style={[
+                              styles.exerciseChipText,
+                              active && styles.exerciseChipTextActive,
+                            ]}
+                          >
+                            {GRAMMAR_EXERCISE_LABELS[mode]}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.exerciseHint}>
+                    Keep at least one exercise on
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -274,6 +360,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: "100%",
     maxWidth: 360,
+    maxHeight: "85%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
@@ -290,6 +377,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: Sketch.ink,
+  },
+  modalBody: {
+    paddingBottom: 4,
   },
 
   settingRow: {
@@ -321,5 +411,52 @@ const styles = StyleSheet.create({
   },
   speedPillTextActive: {
     color: "white",
+  },
+  extraSettingsSection: {
+    marginTop: 16,
+    gap: 10,
+  },
+  extraSettingsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  extraSettingsDesc: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
+    lineHeight: 18,
+  },
+  extraSettingsBody: {
+    gap: 10,
+  },
+  exerciseChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  exerciseChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+  },
+  exerciseChipActive: {
+    backgroundColor: Sketch.orange + "12",
+    borderColor: Sketch.orange,
+  },
+  exerciseChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  exerciseChipTextActive: {
+    color: Sketch.orange,
+    fontWeight: "600",
+  },
+  exerciseHint: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
   },
 });

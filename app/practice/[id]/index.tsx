@@ -21,28 +21,26 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
-import LessonHeader from "../../../src/components/LessonHeader";
+import Header from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
 import { CEFR_LEVEL_META } from "../../../src/data/grammarLevels";
 import { isGuestUser } from "../../../src/utils/auth";
-
-const TONE_COLORS: Record<string, string> = {
-  mid: "#5B9BD5",
-  low: "#9B72CF",
-  falling: "#E8607A",
-  high: "#F0983E",
-  rising: "#5EBA7D",
-};
+import { getToneAccent } from "../../../src/utils/toneAccent";
 
 function toneColor(tone?: string): string {
-  return TONE_COLORS[tone ?? ""] ?? Sketch.inkMuted;
+  return tone ? getToneAccent(tone) : Sketch.inkMuted;
 }
 
 function speak(text: string) {
   Speech.stop();
   Speech.speak(text, { language: "th-TH", rate: 0.9 });
+}
+
+function splitRomanization(romanization: string, breakdownLength: number) {
+  const tokens = romanization.split(/\s+/);
+  return Array.from({ length: breakdownLength }, (_, index) => tokens[index] ?? "");
 }
 
 export default function GrammarDetail() {
@@ -135,11 +133,19 @@ export default function GrammarDetail() {
       { thai: "ประโยค", english: "sentence", tone: "mid" },
     ],
   };
+  const exampleRomanTokens = splitRomanization(
+    example.roman || "",
+    example.breakdown.length,
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <LessonHeader title={grammar.title} />
+      <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+      <Header
+        title={grammar.title}
+        onBack={() => router.back()}
+        showSettings={false}
+      />
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent}>
         {/* Level + Title */}
@@ -259,7 +265,9 @@ export default function GrammarDetail() {
                       />
                     )}
                   </View>
-                  <Text style={styles.wordTileRoman}>{item.roman}</Text>
+                  <Text style={styles.wordTileRoman}>
+                    {item.romanization || item.roman || exampleRomanTokens[index]}
+                  </Text>
                   <Text style={styles.wordTileEng}>
                     {item.english.toUpperCase()}
                   </Text>
@@ -276,7 +284,6 @@ export default function GrammarDetail() {
           activeOpacity={0.85}
         >
           <Text style={styles.ctaText}>Start Practice</Text>
-          <Ionicons name="flash-outline" size={18} color="#fff" />
         </TouchableOpacity>
       </ScrollView>
 
@@ -319,13 +326,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  // Sections
-  section: { marginBottom: 24, gap: 10 },
-  sectionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "600",
@@ -484,9 +484,10 @@ const styles = StyleSheet.create({
   breakdownContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 8,
     width: "100%",
+    alignSelf: "flex-start",
   },
   wordTile: {
     backgroundColor: Sketch.paperDark,
@@ -496,16 +497,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignItems: "flex-start",
+    alignSelf: "flex-start",
     minWidth: 64,
+    maxWidth: "100%",
   },
   wordTileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: 8,
-    width: "100%",
+    alignSelf: "flex-start",
   },
-  wordTileThai: { fontSize: 18, fontWeight: "700", color: Sketch.ink },
+  wordTileThai: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Sketch.ink,
+    flexShrink: 1,
+  },
   wordTileRoman: {
     fontSize: 10,
     fontWeight: "500",

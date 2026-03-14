@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -24,6 +24,7 @@ import {
 } from "../../src/data/trainerOptions";
 import { vowels } from "../../src/data/vowels";
 import { generateTrainerBatch } from "../../src/utils/trainerBatch";
+import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
 
 function parseIdList(value?: string | string[]) {
   const source = Array.isArray(value) ? value[0] : value;
@@ -152,6 +153,7 @@ export default function TrainerWordsScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header
         title="Practice Words"
         onBack={() => router.back()}
@@ -165,8 +167,23 @@ export default function TrainerWordsScreen() {
         <View style={styles.pageIntro}>
           <View style={styles.pageIntroTop}>
             <Text style={styles.pageTitle}>Practice These Words</Text>
-            <View style={styles.difficultyBadge}>
-              <Text style={styles.difficultyBadgeText}>
+            <View
+              style={[
+                styles.difficultyBadge,
+                {
+                  backgroundColor: withAlpha(
+                    DIFFICULTY_META[difficulty].color,
+                    "14",
+                  ),
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.difficultyBadgeText,
+                  { color: DIFFICULTY_META[difficulty].color },
+                ]}
+              >
                 {DIFFICULTY_META[difficulty].label}
               </Text>
             </View>
@@ -179,11 +196,15 @@ export default function TrainerWordsScreen() {
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryPill}>
-            <Text style={styles.summaryValue}>{selectedConsonantCount}</Text>
+            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
+              {selectedConsonantCount}
+            </Text>
             <Text style={styles.summaryLabel}>letters</Text>
           </View>
           <View style={styles.summaryPill}>
-            <Text style={styles.summaryValue}>{selectedVowelCount}</Text>
+            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
+              {selectedVowelCount}
+            </Text>
             <Text style={styles.summaryLabel}>vowels</Text>
           </View>
         </View>
@@ -289,14 +310,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: `${Sketch.orange}14`,
   },
   difficultyBadgeText: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.7,
     textTransform: "uppercase",
-    color: Sketch.orange,
   },
   pageSubtitle: {
     fontSize: 13,
@@ -336,7 +355,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: withAlpha(MUTED_APP_ACCENTS.stone, "0D"),
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
   },
@@ -441,11 +460,17 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderRadius: 16,
     backgroundColor: Sketch.orange,
+    borderWidth: 1,
+    borderColor: Sketch.orangeDark,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
     ...sketchShadow(4),
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
   },
   moreWordsText: {
     fontSize: 15,

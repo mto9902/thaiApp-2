@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -14,11 +14,17 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, sketchShadow } from "@/constants/theme";
 import { submitVocabAnswer } from "../../src/api/submitVocabAnswer";
 import Header, { SettingsState } from "../../src/components/Header";
+import VocabSrsInfoSheet from "../../src/components/VocabSrsInfoSheet";
 import { API_BASE } from "../../src/config";
 import { isGuestUser } from "../../src/utils/auth";
+import {
+  MUTED_APP_ACCENTS,
+  MUTED_FEEDBACK_ACCENTS,
+  withAlpha,
+} from "../../src/utils/toneAccent";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
 
@@ -45,9 +51,9 @@ type ReviewCard = {
 
 type SessionSummary = {
   cardsReviewed: number;
+  totalSeen: number;
   accuracy: number;
   cardsPromoted: number;
-  cardsMissed: number;
   avgResponseMs: number;
 };
 
@@ -122,7 +128,11 @@ function QueuePill({
       style={[
         styles.queuePill,
         active && styles.queuePillActive,
-        { borderColor: active ? color : Sketch.inkFaint },
+        active && {
+          backgroundColor: withAlpha(color, "10"),
+          borderColor: withAlpha(color, "30"),
+        },
+        { borderColor: active ? withAlpha(color, "30") : Sketch.inkFaint },
       ]}
     >
       <Text style={[styles.queueCount, { color }]}>{count}</Text>
@@ -156,6 +166,7 @@ export default function ReviewScreen() {
   const [autoplayTTS, setAutoplayTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSrsInfo, setShowSrsInfo] = useState(false);
 
   function speak(text: string) {
     Speech.stop();
@@ -334,6 +345,7 @@ export default function ReviewScreen() {
   if (isGuest) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
         <Header
           title="Review"
           onBack={() => router.back()}
@@ -350,8 +362,8 @@ export default function ReviewScreen() {
             </View>
             <Text style={styles.stateTitle}>Log in to review</Text>
             <Text style={styles.stateSubtitle}>
-              Vocabulary review uses spaced repetition, so it needs an account
-              to remember your deck state.
+              Vocabulary review uses a spaced repetition system, so it needs
+              an account to remember your deck state.
             </Text>
             <TouchableOpacity
               style={styles.primaryCta}
@@ -368,6 +380,7 @@ export default function ReviewScreen() {
   if (loading) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
         <Header
           title="Review"
           onBack={() => router.back()}
@@ -381,8 +394,14 @@ export default function ReviewScreen() {
   }
 
   if (summary) {
+    const extraTries = Math.max(
+      (summary.totalSeen || summary.cardsReviewed) - summary.cardsReviewed,
+      0
+    );
+
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
         <Header
           title="Review"
           onBack={() => router.back()}
@@ -394,26 +413,54 @@ export default function ReviewScreen() {
             <Text style={styles.summaryTitle}>You cleared today&apos;s queue.</Text>
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryNum}>{summary.cardsReviewed}</Text>
+                <Text
+                  style={[
+                    styles.summaryNum,
+                    { color: MUTED_APP_ACCENTS.clay },
+                  ]}
+                >
+                  {summary.cardsReviewed}
+                </Text>
                 <Text style={styles.summaryLabel}>Cards</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryNum}>{summary.accuracy}%</Text>
+                <Text
+                  style={[
+                    styles.summaryNum,
+                    { color: MUTED_APP_ACCENTS.slate },
+                  ]}
+                >
+                  {summary.accuracy}%
+                </Text>
                 <Text style={styles.summaryLabel}>Accuracy</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={[styles.summaryNum, { color: Sketch.green }]}>
+                <Text
+                  style={[
+                    styles.summaryNum,
+                    { color: MUTED_FEEDBACK_ACCENTS.success },
+                  ]}
+                >
                   {summary.cardsPromoted}
                 </Text>
                 <Text style={styles.summaryLabel}>Promoted</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={[styles.summaryNum, { color: Sketch.red }]}>
-                  {summary.cardsMissed}
+                <Text
+                  style={[
+                    styles.summaryNum,
+                    { color: MUTED_FEEDBACK_ACCENTS.error },
+                  ]}
+                >
+                  {extraTries}
                 </Text>
-                <Text style={styles.summaryLabel}>Missed</Text>
+                <Text style={styles.summaryLabel}>Extra Tries</Text>
               </View>
             </View>
+            <Text style={styles.summaryNote}>
+              Extra Tries counts repeat answers after a card&apos;s first
+              appearance.
+            </Text>
             <TouchableOpacity
               style={styles.primaryCta}
               onPress={() => router.back()}
@@ -433,6 +480,7 @@ export default function ReviewScreen() {
 
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
         <Header
           title="Review"
           onBack={() => router.back()}
@@ -458,6 +506,7 @@ export default function ReviewScreen() {
   if (!card) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
         <Header
           title="Review"
           onBack={() => router.back()}
@@ -483,9 +532,16 @@ export default function ReviewScreen() {
 
   const { newCount = 0, learningCount = 0, reviewCount = 0 } = card.counts ?? {};
   const currentState = card.state ?? "new";
+  const currentStateAccent =
+    currentState === "review"
+      ? MUTED_APP_ACCENTS.sage
+      : currentState === "learning" || currentState === "relearning"
+        ? MUTED_APP_ACCENTS.clay
+        : MUTED_APP_ACCENTS.slate;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header
         title="Review"
         onBack={() => router.back()}
@@ -502,7 +558,7 @@ export default function ReviewScreen() {
             label="New"
             count={newCount}
             active={currentState === "new"}
-            color={Sketch.blue}
+            color={MUTED_APP_ACCENTS.slate}
           />
           <QueuePill
             label="Learning"
@@ -510,13 +566,13 @@ export default function ReviewScreen() {
             active={
               currentState === "learning" || currentState === "relearning"
             }
-            color={Sketch.orange}
+            color={MUTED_APP_ACCENTS.clay}
           />
           <QueuePill
             label="Review"
             count={reviewCount}
             active={currentState === "review"}
-            color={Sketch.green}
+            color={MUTED_APP_ACCENTS.sage}
           />
         </View>
 
@@ -533,11 +589,19 @@ export default function ReviewScreen() {
           </TouchableOpacity>
           {streak > 2 ? (
             <View style={[styles.controlPill, styles.streakPill]}>
-              <Ionicons name="flame-outline" size={16} color={Sketch.orange} />
               <Text style={styles.controlPillText}>{streak} streak</Text>
             </View>
           ) : null}
         </View>
+
+        <TouchableOpacity
+          style={styles.infoPill}
+          onPress={() => setShowSrsInfo(true)}
+          activeOpacity={0.82}
+        >
+          <Text style={styles.infoMark}>?</Text>
+          <Text style={styles.infoPillText}>How SRS works</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.flashcard}
@@ -545,8 +609,18 @@ export default function ReviewScreen() {
           activeOpacity={revealed ? 1 : 0.9}
         >
           <View style={styles.flashcardTop}>
-            <View style={styles.stateBadge}>
-              <Text style={styles.stateBadgeText}>
+            <View
+              style={[
+                styles.stateBadge,
+                {
+                  backgroundColor: withAlpha(currentStateAccent, "10"),
+                  borderColor: withAlpha(currentStateAccent, "30"),
+                },
+              ]}
+            >
+              <Text
+                style={[styles.stateBadgeText, { color: currentStateAccent }]}
+              >
                 {formatStateLabel(currentState)}
               </Text>
             </View>
@@ -587,14 +661,22 @@ export default function ReviewScreen() {
 
           {feedbackType ? (
             <Animated.View
-              style={[styles.feedbackOverlay, { opacity: feedbackAnim }]}
+              style={[
+                styles.feedbackOverlay,
+                feedbackType === "promoted"
+                  ? styles.feedbackOverlayPromoted
+                  : styles.feedbackOverlayLapsed,
+                { opacity: feedbackAnim },
+              ]}
             >
               <Text
                 style={[
                   styles.feedbackText,
                   {
                     color:
-                      feedbackType === "promoted" ? Sketch.green : Sketch.red,
+                      feedbackType === "promoted"
+                        ? MUTED_FEEDBACK_ACCENTS.success
+                        : MUTED_FEEDBACK_ACCENTS.error,
                   },
                 ]}
               >
@@ -610,25 +692,25 @@ export default function ReviewScreen() {
               {
                 grade: "again" as const,
                 label: "Again",
-                color: Sketch.red,
+                color: MUTED_FEEDBACK_ACCENTS.error,
                 interval: formatInterval(card.intervalPreviews?.again ?? 0),
               },
               {
                 grade: "hard" as const,
                 label: "Hard",
-                color: Sketch.orange,
+                color: MUTED_APP_ACCENTS.clay,
                 interval: formatInterval(card.intervalPreviews?.hard ?? 0),
               },
               {
                 grade: "good" as const,
                 label: "Good",
-                color: Sketch.green,
+                color: MUTED_FEEDBACK_ACCENTS.success,
                 interval: formatInterval(card.intervalPreviews?.good ?? 0),
               },
               {
                 grade: "easy" as const,
                 label: "Easy",
-                color: Sketch.blue,
+                color: MUTED_APP_ACCENTS.slate,
                 interval: formatInterval(card.intervalPreviews?.easy ?? 0),
               },
             ].map((item) => (
@@ -646,6 +728,11 @@ export default function ReviewScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      <VocabSrsInfoSheet
+        visible={showSrsInfo}
+        onClose={() => setShowSrsInfo(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -704,6 +791,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    ...sketchShadow(4),
   },
   primaryCtaText: {
     fontSize: 14,
@@ -757,6 +847,14 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     marginTop: 4,
   },
+  summaryNote: {
+    marginTop: 14,
+    marginBottom: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    color: Sketch.inkMuted,
+    textAlign: "center",
+  },
   queueRow: {
     flexDirection: "row",
     gap: 10,
@@ -800,12 +898,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   streakPill: {
-    backgroundColor: Sketch.orange + "12",
-    borderColor: Sketch.orange + "33",
+    backgroundColor: withAlpha(MUTED_APP_ACCENTS.clay, "12"),
+    borderColor: withAlpha(MUTED_APP_ACCENTS.clay, "30"),
   },
   controlPillText: {
     fontSize: 12,
     fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  infoPill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  infoMark: {
+    width: 18,
+    height: 18,
+    textAlign: "center",
+    lineHeight: 18,
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.orangeDark,
+    backgroundColor: withAlpha(MUTED_APP_ACCENTS.clay, "16"),
+    borderRadius: 9,
+  },
+  infoPillText: {
+    fontSize: 12,
+    fontWeight: "600",
     color: Sketch.inkLight,
   },
   flashcard: {
@@ -906,6 +1032,14 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     paddingVertical: 6,
     paddingHorizontal: 10,
+  },
+  feedbackOverlayPromoted: {
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
+  },
+  feedbackOverlayLapsed: {
+    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
+    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
   },
   feedbackText: {
     fontSize: 12,

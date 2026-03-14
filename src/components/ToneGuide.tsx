@@ -1,3 +1,4 @@
+import * as Speech from "expo-speech";
 import {
   Modal,
   Pressable,
@@ -8,68 +9,81 @@ import {
   View,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, sketchShadow } from "@/constants/theme";
 import { TONES as TONE_DATA, toLegacyTone } from "../data/tones";
+import { getToneAccent, withAlpha } from "../utils/toneAccent";
 
 const TONES = TONE_DATA.map(toLegacyTone);
 
+function speak(text: string) {
+  Speech.stop();
+  Speech.speak(text, { language: "th-TH", rate: 0.75 });
+}
+
 function PitchCurve({ points, color }: { points: number[]; color: string }) {
-  const W = 80;
-  const H = 40;
-  const pad = 6;
+  const height = 22;
 
   return (
-    <View
-      style={{
-        width: W,
-        height: H,
-        flexDirection: "row",
-        alignItems: "flex-end",
-        gap: 2,
-      }}
-    >
-      {points.map((p, i) => (
+    <View style={styles.pitchCurve}>
+      {points.map((point, index) => (
         <View
-          key={i}
-          style={{
-            flex: 1,
-            height: Math.max(4, p * (H - pad)),
-            backgroundColor: color,
-            borderRadius: 3,
-            opacity: 0.85 + i * 0.03,
-          }}
+          key={index}
+          style={[
+            styles.pitchBar,
+            {
+              backgroundColor: color,
+              height: Math.max(4, point * height),
+              opacity: 0.78 + index * 0.04,
+            },
+          ]}
         />
       ))}
     </View>
   );
 }
 
-function ToneCard({ tone }: { tone: (typeof TONES)[0] }) {
+function ToneRow({ tone }: { tone: (typeof TONES)[0] }) {
+  const accent = getToneAccent(tone.name);
+
   return (
-    <View style={[styles.card, { borderLeftColor: tone.color }]}>
-      <View style={styles.cardHeader}>
-        <View style={[styles.colorDot, { backgroundColor: tone.color }]}>
-          <Text style={styles.symbolText}>{tone.symbol}</Text>
+    <TouchableOpacity
+      activeOpacity={0.78}
+      onPress={() => speak(tone.example.thai)}
+      style={styles.toneRow}
+    >
+      <View style={styles.toneRowTop}>
+        <View style={styles.toneIdentity}>
+          <View style={[styles.toneDot, { backgroundColor: accent }]} />
+          <View style={styles.toneText}>
+            <Text style={styles.toneName}>{tone.name} tone</Text>
+            <Text style={[styles.toneThai, { color: accent }]}>{tone.thai}</Text>
+          </View>
         </View>
-        <View style={styles.cardTitles}>
-          <Text style={styles.toneName}>{tone.name} Tone</Text>
-          <Text style={styles.toneThai}>{tone.thai}</Text>
-        </View>
-        <PitchCurve points={tone.pitchPoints} color={tone.color} />
+        <PitchCurve color={accent} points={tone.pitchPoints} />
       </View>
 
-      <Text style={styles.cardDesc}>{tone.description}</Text>
+      <Text style={styles.toneDescription}>{tone.description}</Text>
 
       <View
-        style={[styles.examplePill, { backgroundColor: tone.color + "18" }]}
+        style={[
+          styles.exampleBand,
+          {
+            backgroundColor: withAlpha(accent, "10"),
+            borderColor: withAlpha(accent, "22"),
+          },
+        ]}
       >
-        <Text style={[styles.exampleThai, { color: tone.color }]}>
-          {tone.example.thai}
-        </Text>
-        <Text style={styles.exampleRom}>{tone.example.rom}</Text>
-        <Text style={styles.exampleEng}>"{tone.example.english}"</Text>
+        <View>
+          <Text style={[styles.exampleThai, { color: accent }]}>
+            {tone.example.thai}
+          </Text>
+          <Text style={styles.exampleMeta}>
+            {tone.example.rom} - {tone.example.english}
+          </Text>
+        </View>
+        <Text style={[styles.listenHint, { color: accent }]}>Tap to hear</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -81,51 +95,70 @@ type Props = {
 export default function ToneGuide({ visible, onClose }: Props) {
   return (
     <Modal
-      visible={visible}
       animationType="slide"
-      transparent
       onRequestClose={onClose}
+      transparent
+      visible={visible}
     >
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View style={styles.modalRoot}>
+        <Pressable onPress={onClose} style={styles.backdrop} />
 
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
 
-        <View style={styles.titleRow}>
-          <View>
-            <Text style={styles.title}>Thai Tones</Text>
-            <Text style={styles.subtitle}>5 tones · colour coded</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.closeBtn}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.closeBtnText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.legendStrip}>
-          {TONES.map((t) => (
-            <View key={t.name} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: t.color }]} />
-              <Text style={styles.legendLabel}>{t.name}</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.headerCopy}>
+              <Text style={styles.eyebrow}>Reference</Text>
+              <Text style={styles.title}>Thai tones</Text>
+              <Text style={styles.subtitle}>
+                A quick ear-training sheet. Tap any row to hear the example.
+              </Text>
             </View>
-          ))}
-        </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {TONES.map((tone) => (
-            <ToneCard key={tone.name} tone={tone} />
-          ))}
-          <Text style={styles.footer}>
-            Tap any coloured tile in a lesson to hear it spoken.
-          </Text>
-        </ScrollView>
+            <TouchableOpacity
+              activeOpacity={0.72}
+              onPress={onClose}
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.legendWrap}>
+            {TONES.map((tone) => (
+              <View key={tone.name} style={styles.legendChip}>
+                <View
+                  style={[
+                    styles.legendDot,
+                    { backgroundColor: getToneAccent(tone.name) },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.legendLabel,
+                    { color: getToneAccent(tone.name) },
+                  ]}
+                >
+                  {tone.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            style={styles.scroll}
+          >
+            {TONES.map((tone) => (
+              <ToneRow key={tone.name} tone={tone} />
+            ))}
+
+            <Text style={styles.footer}>
+              Tone marks help, but what your ear needs most is the pitch shape.
+            </Text>
+          </ScrollView>
+        </View>
       </View>
     </Modal>
   );
@@ -134,9 +167,9 @@ export default function ToneGuide({ visible, onClose }: Props) {
 export function ToneGuideButton({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity
-      style={styles.triggerBtn}
+      activeOpacity={0.72}
       onPress={onPress}
-      activeOpacity={0.7}
+      style={styles.triggerButton}
     >
       <Text style={styles.triggerLabel}>Tone guide</Text>
     </TouchableOpacity>
@@ -144,195 +177,218 @@ export function ToneGuideButton({ onPress }: { onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalRoot: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 13, 11, 0.32)",
   },
   sheet: {
     backgroundColor: Sketch.paper,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: Sketch.inkFaint,
+    minHeight: "60%",
     maxHeight: "88%",
-    paddingTop: 12,
     paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingTop: 12,
+    ...sketchShadow(10),
   },
   handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Sketch.inkFaint,
     alignSelf: "center",
-    marginBottom: 16,
+    backgroundColor: Sketch.inkFaint,
+    borderRadius: 999,
+    height: 4,
+    marginBottom: 18,
+    width: 38,
   },
-
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  headerRow: {
     alignItems: "flex-start",
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: Sketch.inkMuted,
-    fontWeight: "400",
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: Sketch.paperDark,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  closeBtnText: {
-    fontSize: 13,
-    color: Sketch.inkLight,
-    fontWeight: "500",
-  },
-
-  legendStrip: {
     flexDirection: "row",
+    gap: 12,
     justifyContent: "space-between",
-    backgroundColor: Sketch.paperDark,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
     marginBottom: 16,
   },
-  legendItem: {
-    alignItems: "center",
+  headerCopy: {
+    flex: 1,
     gap: 4,
   },
+  eyebrow: {
+    color: Sketch.orange,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.9,
+    textTransform: "uppercase",
+  },
+  title: {
+    color: Sketch.ink,
+    fontSize: 23,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+  },
+  subtitle: {
+    color: Sketch.inkLight,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  closeButton: {
+    alignItems: "center",
+    backgroundColor: Sketch.paperDark,
+    borderColor: Sketch.inkFaint,
+    borderRadius: 999,
+    borderWidth: 1,
+    minWidth: 70,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  closeButtonText: {
+    color: Sketch.inkLight,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  legendWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 14,
+  },
+  legendChip: {
+    alignItems: "center",
+    backgroundColor: Sketch.paperDark,
+    borderColor: Sketch.inkFaint,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    borderRadius: 999,
+    height: 8,
+    width: 8,
   },
   legendLabel: {
-    fontSize: 10,
-    fontWeight: "500",
     color: Sketch.inkMuted,
+    fontSize: 11,
+    fontWeight: "600",
   },
-
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 40, gap: 12 },
-
-  card: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    padding: 16,
-    borderLeftWidth: 4,
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingBottom: 30,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  colorDot: {
-    width: 36,
-    height: 36,
+  toneRow: {
+    backgroundColor: Sketch.cardBg,
+    borderColor: Sketch.inkFaint,
     borderRadius: 18,
-    justifyContent: "center",
+    borderWidth: 1,
+    gap: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    ...sketchShadow(4),
+  },
+  toneRowTop: {
     alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
   },
-  symbolText: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "700",
+  toneIdentity: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: 10,
   },
-  cardTitles: {
+  toneDot: {
+    borderRadius: 999,
+    height: 10,
+    width: 10,
+  },
+  toneText: {
     flex: 1,
   },
   toneName: {
-    fontSize: 15,
-    fontWeight: "600",
     color: Sketch.ink,
-  },
-  toneThai: {
-    fontSize: 12,
-    color: Sketch.inkMuted,
-    fontWeight: "400",
-    marginTop: 1,
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: Sketch.inkLight,
-    lineHeight: 19,
-    fontWeight: "400",
-  },
-  examplePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-  },
-  exampleThai: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "700",
   },
-  exampleRom: {
+  toneThai: {
+    color: Sketch.inkMuted,
     fontSize: 12,
+    marginTop: 1,
+  },
+  pitchCurve: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: 3,
+    height: 22,
+    width: 70,
+  },
+  pitchBar: {
+    borderRadius: 999,
+    flex: 1,
+  },
+  toneDescription: {
     color: Sketch.inkLight,
-    fontWeight: "500",
+    fontSize: 13,
+    lineHeight: 19,
   },
-  exampleEng: {
-    fontSize: 12,
-    color: Sketch.inkMuted,
-    fontWeight: "400",
-  },
-
-  footer: {
-    textAlign: "center",
-    fontSize: 12,
-    color: Sketch.inkMuted,
-    marginTop: 8,
-    fontWeight: "400",
-  },
-
-  triggerBtn: {
+  exampleBand: {
+    alignItems: "flex-end",
     backgroundColor: Sketch.paperDark,
+    borderColor: Sketch.inkFaint,
+    borderRadius: 14,
     borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  exampleThai: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  exampleMeta: {
+    color: Sketch.inkLight,
+    fontSize: 12,
+  },
+  listenHint: {
+    color: Sketch.orange,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  footer: {
+    color: Sketch.inkMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+    paddingHorizontal: 4,
+    textAlign: "center",
+  },
+  triggerButton: {
+    backgroundColor: Sketch.paperDark,
     borderColor: Sketch.inkFaint,
     borderRadius: 8,
-    paddingVertical: 5,
+    borderWidth: 1,
     paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   triggerLabel: {
+    color: Sketch.inkLight,
     fontSize: 11,
     fontWeight: "500",
-    color: Sketch.inkLight,
     letterSpacing: 0.2,
   },
 });

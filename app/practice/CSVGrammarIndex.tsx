@@ -1,5 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
@@ -44,6 +49,7 @@ export default function CSVGrammarIndex() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>

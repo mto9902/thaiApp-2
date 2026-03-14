@@ -113,16 +113,9 @@ export default function DecksScreen() {
         </View>
         <Text style={styles.emptyTitle}>No bookmarks yet</Text>
         <Text style={styles.emptySubtitle}>
-          Browse grammar lessons and tap the bookmark button to save them here
+          Save grammar lessons from the Grammar tab and they will show up here
           for quick practice.
         </Text>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => router.push("/practice/levels")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.primaryBtnText}>Browse Grammar</Text>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -184,8 +177,8 @@ export default function DecksScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
         >
-          <Text style={styles.pageTitle}>Decks</Text>
-          <Text style={styles.pageSubtitle}>Your bookmarked lessons</Text>
+          <Text style={styles.pageTitle}>Bookmarks</Text>
+          <Text style={styles.pageSubtitle}>Your saved grammar lessons</Text>
 
           <View style={styles.divider} />
 

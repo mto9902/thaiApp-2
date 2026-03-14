@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -7,17 +7,20 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
+import VocabSrsInfoSheet from "../../src/components/VocabSrsInfoSheet";
 import { API_BASE } from "../../src/config";
 import {
   getPracticeWordTrackingEnabled,
   setPracticeWordTrackingEnabled,
 } from "../../src/utils/practiceWordPreference";
+import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
 
 type VocabStatsData = {
   total_words: number;
@@ -62,6 +65,7 @@ export default function VocabStatsScreen() {
   const [progress, setProgress] = useState<VocabProgressData | null>(null);
   const [trackPracticeVocab, setTrackPracticeVocab] = useState(true);
   const [savingPreference, setSavingPreference] = useState(false);
+  const [showSrsInfo, setShowSrsInfo] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -112,6 +116,7 @@ export default function VocabStatsScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header
         title="Vocab Stats"
         onBack={() => router.back()}
@@ -137,21 +142,30 @@ export default function VocabStatsScreen() {
             <Text style={styles.heroSubtitle}>tracked words in your deck</Text>
           </View>
 
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => setShowSrsInfo(true)}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.infoButtonMark}>?</Text>
+            <Text style={styles.infoButtonText}>What is SRS?</Text>
+          </TouchableOpacity>
+
           <View style={styles.statsGrid}>
             <StatCard
               label="Reviews Due"
               value={stats.reviews_due || 0}
-              accent={Sketch.orange}
+              accent={MUTED_APP_ACCENTS.clay}
             />
             <StatCard
               label="Mastered"
               value={stats.mastered_words || 0}
-              accent={Sketch.green}
+              accent={MUTED_APP_ACCENTS.sage}
             />
             <StatCard
               label="Learned Today"
               value={progress?.words_learned_today || 0}
-              accent={Sketch.blue}
+              accent={MUTED_APP_ACCENTS.slate}
             />
             <StatCard
               label="Reviews Today"
@@ -161,10 +175,14 @@ export default function VocabStatsScreen() {
 
           <View style={styles.preferenceCard}>
             <View style={styles.preferenceCopy}>
-              <Text style={styles.sectionTitle}>Vocabulary SRS Import</Text>
+              <Text style={styles.sectionTitle}>Adding Vocab</Text>
               <Text style={styles.preferenceText}>
-                Add new words from your grammar sessions to your deck when you
-                answer them correctly.
+                If `Add Vocabulary` is on, words from grammar practice are
+                added to your deck when you answer them correctly.
+              </Text>
+              <Text style={styles.preferenceText}>
+                Those grammar words are added to SRS for later review
+                automatically.
               </Text>
               <Text style={styles.preferenceStatus}>
                 {trackPracticeVocab ? "Currently on" : "Currently off"}
@@ -172,13 +190,19 @@ export default function VocabStatsScreen() {
             </View>
             <View style={styles.preferenceControl}>
               {savingPreference ? (
-                <ActivityIndicator size="small" color={Sketch.orange} />
+                <ActivityIndicator
+                  size="small"
+                  color={MUTED_APP_ACCENTS.clay}
+                />
               ) : null}
               <Switch
                 value={trackPracticeVocab}
                 onValueChange={togglePracticeWordTracking}
                 disabled={savingPreference}
-                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                trackColor={{
+                  false: Sketch.inkFaint,
+                  true: MUTED_APP_ACCENTS.clay,
+                }}
                 thumbColor="white"
               />
             </View>
@@ -209,6 +233,11 @@ export default function VocabStatsScreen() {
           </View>
         </ScrollView>
       )}
+
+      <VocabSrsInfoSheet
+        visible={showSrsInfo}
+        onClose={() => setShowSrsInfo(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -258,6 +287,34 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     marginTop: 4,
   },
+  infoButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  infoButtonMark: {
+    width: 18,
+    height: 18,
+    textAlign: "center",
+    lineHeight: 18,
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.orangeDark,
+    backgroundColor: withAlpha(MUTED_APP_ACCENTS.clay, "16"),
+    borderRadius: 9,
+  },
+  infoButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+  },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -305,7 +362,7 @@ const styles = StyleSheet.create({
   preferenceStatus: {
     fontSize: 12,
     fontWeight: "600",
-    color: Sketch.orange,
+    color: MUTED_APP_ACCENTS.clay,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },

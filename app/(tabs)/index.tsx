@@ -419,7 +419,7 @@ export default function HomeScreen() {
           ) : (
             <TouchableOpacity
               style={styles.startGrammarCard}
-              onPress={() => router.push("/practice/levels" as any)}
+              onPress={() => router.push("/practice/CSVGrammarIndex" as any)}
               activeOpacity={0.7}
             >
               <Ionicons name="book-outline" size={28} color={Sketch.orange} />

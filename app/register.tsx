@@ -63,6 +63,9 @@ export default function Register() {
             value={password}
             onChangeText={setPassword}
             style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
             autoComplete="new-password"
             textContentType="newPassword"
             nativeID="register-password"
