@@ -1,15 +1,15 @@
 import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+import { Sketch } from "@/constants/theme";
 import { TONES as TONE_DATA, toLegacyTone } from "../data/tones";
-import { Sketch, sketchShadow } from "@/constants/theme";
 
 const TONES = TONE_DATA.map(toLegacyTone);
 
@@ -96,7 +96,11 @@ export default function ToneGuide({ visible, onClose }: Props) {
             <Text style={styles.title}>Thai Tones</Text>
             <Text style={styles.subtitle}>5 tones · colour coded</Text>
           </View>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
         </View>
@@ -129,8 +133,12 @@ export default function ToneGuide({ visible, onClose }: Props) {
 
 export function ToneGuideButton({ onPress }: { onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.triggerBtn} onPress={onPress}>
-      <Text style={styles.triggerLabel}>TONE GUIDE</Text>
+    <TouchableOpacity
+      style={styles.triggerBtn}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.triggerLabel}>Tone guide</Text>
     </TouchableOpacity>
   );
 }
@@ -144,16 +152,21 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    borderTopWidth: 2.5,
-    borderLeftWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderColor: Sketch.ink,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: Sketch.inkFaint,
     maxHeight: "88%",
     paddingTop: 12,
     paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
   },
   handle: {
-    width: 40,
+    width: 36,
     height: 4,
     borderRadius: 2,
     backgroundColor: Sketch.inkFaint,
@@ -168,60 +181,57 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "900",
+    fontSize: 22,
+    fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
     color: Sketch.inkMuted,
-    fontWeight: "500",
+    fontWeight: "400",
     marginTop: 2,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: Sketch.paperDark,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
   },
   closeBtnText: {
-    fontSize: 14,
-    color: Sketch.ink,
-    fontWeight: "700",
+    fontSize: 13,
+    color: Sketch.inkLight,
+    fontWeight: "500",
   },
 
   legendStrip: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: Sketch.paperDark,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 16,
-    ...sketchShadow(2),
   },
   legendItem: {
     alignItems: "center",
     gap: 4,
   },
   legendDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    borderColor: Sketch.ink,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   legendLabel: {
     fontSize: 10,
-    fontWeight: "700",
-    color: Sketch.inkLight,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
   },
 
   scroll: { flex: 1 },
@@ -230,12 +240,16 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Sketch.cardBg,
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     padding: 16,
-    borderLeftWidth: 6,
+    borderLeftWidth: 4,
     gap: 10,
-    ...sketchShadow(3),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: "row",
@@ -243,38 +257,36 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   colorDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
   symbolText: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#fff",
-    fontWeight: "900",
+    fontWeight: "700",
   },
   cardTitles: {
     flex: 1,
   },
   toneName: {
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "600",
     color: Sketch.ink,
   },
   toneThai: {
     fontSize: 12,
     color: Sketch.inkMuted,
-    fontWeight: "600",
+    fontWeight: "400",
     marginTop: 1,
   },
   cardDesc: {
     fontSize: 13,
     color: Sketch.inkLight,
     lineHeight: 19,
-    fontWeight: "500",
+    fontWeight: "400",
   },
   examplePill: {
     flexDirection: "row",
@@ -283,22 +295,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Sketch.inkFaint,
   },
   exampleThai: {
-    fontSize: 20,
-    fontWeight: "900",
+    fontSize: 18,
+    fontWeight: "700",
   },
   exampleRom: {
-    fontSize: 13,
+    fontSize: 12,
     color: Sketch.inkLight,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   exampleEng: {
-    fontSize: 13,
+    fontSize: 12,
     color: Sketch.inkMuted,
-    fontWeight: "500",
+    fontWeight: "400",
   },
 
   footer: {
@@ -306,26 +318,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Sketch.inkMuted,
     marginTop: 8,
-    fontWeight: "500",
+    fontWeight: "400",
   },
 
   triggerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignSelf: "flex-end",
-    ...sketchShadow(2),
+    paddingVertical: 5,
+    paddingHorizontal: 10,
   },
   triggerLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: Sketch.ink,
-    letterSpacing: 0.8,
+    fontSize: 11,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+    letterSpacing: 0.2,
   },
 });

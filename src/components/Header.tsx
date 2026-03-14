@@ -43,30 +43,28 @@ export default function Header({
   const [settings, setSettings] = useState<SettingsState>({
     showRoman: true,
     showEnglish: true,
-    autoplayTTS: true,
+    autoplayTTS: false,
     ttsSpeed: "slow",
   });
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
-    const [roman, english, tts, speed] = await Promise.all([
-      AsyncStorage.getItem(PREF_ROMANIZATION),
-      AsyncStorage.getItem(PREF_ENGLISH),
-      AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
-      AsyncStorage.getItem(PREF_TTS_SPEED),
-    ]);
-    const s: SettingsState = {
-      showRoman: roman !== null ? roman === "true" : true,
-      showEnglish: english !== null ? english === "true" : true,
-      autoplayTTS: tts !== null ? tts === "true" : true,
-      ttsSpeed: (speed as SettingsState["ttsSpeed"]) || "slow",
-    };
-    setSettings(s);
-    onSettingsChange?.(s);
-  }
+    (async () => {
+      const [roman, english, tts, speed] = await Promise.all([
+        AsyncStorage.getItem(PREF_ROMANIZATION),
+        AsyncStorage.getItem(PREF_ENGLISH),
+        AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
+        AsyncStorage.getItem(PREF_TTS_SPEED),
+      ]);
+      const s: SettingsState = {
+        showRoman: roman !== null ? roman === "true" : true,
+        showEnglish: english !== null ? english === "true" : true,
+        autoplayTTS: tts !== null ? tts === "true" : false,
+        ttsSpeed: (speed as SettingsState["ttsSpeed"]) || "slow",
+      };
+      setSettings(s);
+      onSettingsChange?.(s);
+    })();
+  }, [onSettingsChange]);
 
   function updateSetting<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
     const next = { ...settings, [key]: value };

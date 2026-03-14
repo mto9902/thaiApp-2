@@ -13,7 +13,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Sketch } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
-import { getAllProgress, GrammarProgressData } from "../../src/utils/grammarProgress";
+import {
+  getAllProgress,
+  GrammarProgressData,
+  isGrammarPracticed,
+} from "../../src/utils/grammarProgress";
 
 export default function CSVGrammarIndex() {
   const router = useRouter();
@@ -33,7 +37,9 @@ export default function CSVGrammarIndex() {
   }, [selectedLevel]);
 
   const meta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
-  const practiced = filtered.filter((g) => progress[g.id]).length;
+  const practiced = filtered.filter((g) =>
+    isGrammarPracticed(progress[g.id]),
+  ).length;
   const percentage = filtered.length > 0 ? Math.round((practiced / filtered.length) * 100) : 0;
 
   return (
@@ -71,7 +77,7 @@ export default function CSVGrammarIndex() {
           ) : null
         }
         renderItem={({ item, index }) => {
-          const done = !!progress[item.id];
+          const done = isGrammarPracticed(progress[item.id]);
           return (
             <TouchableOpacity
               style={styles.card}

@@ -13,24 +13,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
-import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
 import { isGuestUser } from "../../src/utils/auth";
 import {
   GrammarProgressData,
   getAllProgress,
+  isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
-import { Sketch } from "@/constants/theme";
-
-const LEVEL_COLORS: Record<CefrLevel, string> = {
-  A1: Sketch.green,
-  A2: Sketch.blue,
-  B1: Sketch.orange,
-  B2: Sketch.red,
-  C1: Sketch.purple,
-  C2: Sketch.pink,
-};
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -53,7 +44,9 @@ export default function DecksScreen() {
   const router = useRouter();
 
   const [bookmarked, setBookmarked] = useState<GrammarPoint[]>([]);
-  const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
+  const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
@@ -116,9 +109,9 @@ export default function DecksScreen() {
     return (
       <View style={styles.emptyWrap}>
         <View style={styles.emptyIcon}>
-          <Ionicons name="bookmark-outline" size={36} color={Sketch.inkMuted} />
+          <Ionicons name="bookmark-outline" size={32} color={Sketch.inkMuted} />
         </View>
-        <Text style={styles.emptyTitle}>No Bookmarks Yet</Text>
+        <Text style={styles.emptyTitle}>No bookmarks yet</Text>
         <Text style={styles.emptySubtitle}>
           Browse grammar lessons and tap the bookmark button to save them here
           for quick practice.
@@ -126,6 +119,7 @@ export default function DecksScreen() {
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => router.push("/practice/levels")}
+          activeOpacity={0.8}
         >
           <Text style={styles.primaryBtnText}>Browse Grammar</Text>
         </TouchableOpacity>
@@ -135,7 +129,7 @@ export default function DecksScreen() {
 
   function renderCard(item: GrammarPoint) {
     const p = progress[item.id];
-    const levelColor = LEVEL_COLORS[item.level] || Sketch.green;
+    const practiced = isGrammarPracticed(p);
 
     return (
       <TouchableOpacity
@@ -145,17 +139,15 @@ export default function DecksScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.cardTop}>
-          <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-            <Text style={styles.levelBadgeText}>
-              {CEFR_LEVEL_META[item.level].label}
-            </Text>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelBadgeText}>{item.level}</Text>
           </View>
-          <Ionicons name="bookmark" size={16} color={Sketch.orange} />
+          <Ionicons name="bookmark" size={15} color={Sketch.orange} />
         </View>
 
         <Text style={styles.cardTitle}>{item.title}</Text>
 
-        {p ? (
+        {practiced && p ? (
           <View style={styles.statsRow}>
             <Text style={styles.statText}>{p.rounds} rounds</Text>
             <Text style={styles.statDot}>·</Text>
@@ -200,34 +192,52 @@ export default function DecksScreen() {
           {isGuest ? (
             <View style={styles.emptyWrap}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="person-outline" size={36} color={Sketch.inkMuted} />
+                <Ionicons
+                  name="person-outline"
+                  size={32}
+                  color={Sketch.inkMuted}
+                />
               </View>
-              <Text style={styles.emptyTitle}>Guest Mode</Text>
+              <Text style={styles.emptyTitle}>Guest mode</Text>
               <Text style={styles.emptySubtitle}>
-                Log in to save bookmarks and track your grammar practice progress.
+                Log in to save bookmarks and track your grammar practice
+                progress.
               </Text>
               <TouchableOpacity
                 style={styles.primaryBtn}
                 onPress={() => router.push("/login")}
+                activeOpacity={0.8}
               >
-                <Text style={styles.primaryBtnText}>Log In</Text>
+                <Text style={styles.primaryBtnText}>Log in</Text>
               </TouchableOpacity>
             </View>
           ) : bookmarked.length === 0 ? (
             renderEmpty()
           ) : (
             <>
+              {/* Quick Mix — compact action tile */}
               <TouchableOpacity
                 style={styles.quickMix}
                 onPress={handleQuickMix}
-                activeOpacity={0.8}
+                activeOpacity={0.7}
               >
-                <Ionicons name="shuffle" size={18} color="#FFFFFF" />
-                <Text style={styles.quickMixText}>Quick Mix</Text>
-                <Text style={styles.quickMixSub}>
-                  Random practice from {bookmarked.length} bookmarks
-                </Text>
+                <View style={styles.quickMixLeft}>
+                  <Ionicons name="shuffle" size={20} color={Sketch.orange} />
+                  <View>
+                    <Text style={styles.quickMixTitle}>Quick Mix</Text>
+                    <Text style={styles.quickMixSub}>
+                      {bookmarked.length} bookmarks · random order
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={Sketch.inkMuted}
+                />
               </TouchableOpacity>
+
+              <View style={styles.spacing} />
 
               {bookmarked.map((item) => renderCard(item))}
             </>
@@ -246,13 +256,13 @@ const styles = StyleSheet.create({
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   pageTitle: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
   },
   pageSubtitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
     marginTop: 2,
@@ -264,23 +274,56 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
 
-  quickMix: {
-    backgroundColor: Sketch.orange,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    alignItems: "center",
-    gap: 4,
-  },
-  quickMixText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
-  quickMixSub: { fontSize: 12, fontWeight: "400", color: "rgba(255,255,255,0.7)" },
+  spacing: { height: 16 },
 
-  card: {
+  // Quick Mix — horizontal row tile matching actionTile style
+  quickMix: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: Sketch.paperDark,
-    borderRadius: 12,
-    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  quickMixLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  quickMixTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  quickMixSub: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    marginTop: 1,
+  },
+
+  // Cards matching moduleCard style
+  card: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
     marginBottom: 12,
     gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardTop: {
     flexDirection: "row",
@@ -288,35 +331,81 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   levelBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   levelBadgeText: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "white",
+    fontWeight: "700",
+    color: Sketch.inkLight,
+    letterSpacing: 0.5,
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: Sketch.ink },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
 
-  statsRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 },
+  statsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 4,
+  },
   statText: { fontSize: 12, fontWeight: "400", color: Sketch.inkMuted },
-  statDot: { fontSize: 12, color: Sketch.inkMuted },
+  statDot: { fontSize: 12, color: Sketch.inkFaint },
   noPractice: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "400",
     color: Sketch.inkMuted,
     fontStyle: "italic",
   },
 
+  // Primary button matching index primaryBtn
   practiceBtn: {
     alignItems: "center",
     backgroundColor: Sketch.orange,
-    borderRadius: 8,
-    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 11,
     marginTop: 4,
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  practiceBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
+  practiceBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
+
+  // Shared primary btn (empty/guest states)
+  primaryBtn: {
+    backgroundColor: Sketch.orange,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    marginTop: 8,
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  primaryBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
 
   emptyWrap: {
     alignItems: "center",
@@ -325,28 +414,26 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  emptyTitle: { fontSize: 18, fontWeight: "600", color: Sketch.ink },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
     textAlign: "center",
     lineHeight: 20,
   },
-  primaryBtn: {
-    backgroundColor: Sketch.orange,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginTop: 8,
-  },
-  primaryBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
 });

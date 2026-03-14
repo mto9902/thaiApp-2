@@ -16,79 +16,95 @@ import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
 
+type UserProfile = {
+  id: number;
+  email: string;
+};
+
+type VocabProgress = {
+  words_learned_today: number;
+  mastered_words: number;
+};
+
+type VocabStats = {
+  total_words: number;
+  mastered_words: number;
+};
+
+type JwtPayload = {
+  userId?: number;
+};
+
 export default function Profile() {
-  const [userId, setUserId] = useState<number | null>(null);
-  const [progress, setProgress] = useState<any>(null);
-  const [vocabStats, setVocabStats] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [progress, setProgress] = useState<VocabProgress | null>(null);
+  const [vocabStats, setVocabStats] = useState<VocabStats | null>(null);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
 
   const router = useRouter();
 
   useEffect(() => {
-    isGuestUser().then((g) => {
-      setIsGuest(g);
-      if (!g) {
-        loadUser();
-        loadProgress();
-        loadVocabStats();
-        loadReviewsDue();
+    isGuestUser().then((guest) => {
+      setIsGuest(guest);
+      if (!guest) {
+        loadData();
       }
     });
   }, []);
 
-  async function loadUser() {
-    const token = await AsyncStorage.getItem("token");
-    if (!token) return;
-    const decoded: any = jwtDecode(token);
-    setUserId(decoded.userId);
-  }
-
-  async function loadProgress() {
+  async function loadData() {
     try {
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/vocab/progress`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setProgress(data);
-    } catch (err) {
-      console.error("Failed to load progress:", err);
-    }
-  }
+      if (!token) return;
 
-  async function loadReviewsDue() {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/vocab/review`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const decoded = jwtDecode<JwtPayload>(token);
+      const fallbackProfile = {
+        id: decoded.userId || 0,
+        email: "",
+      };
+
+      const [meRes, progressRes, statsRes, reviewRes] = await Promise.all([
+        fetch(`${API_BASE}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE}/vocab/progress`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE}/vocab/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE}/vocab/review`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const [meData, progressData, statsData, reviewData] = await Promise.all([
+        meRes.ok ? meRes.json() : Promise.resolve(fallbackProfile),
+        progressRes.json(),
+        statsRes.json(),
+        reviewRes.json(),
+      ]);
+
+      setProfile({
+        id: meData.id ?? fallbackProfile.id,
+        email: meData.email ?? "",
       });
-      const data = await res.json();
-      if (data?.done || data?.waiting) {
+      setProgress(progressData);
+      setVocabStats(statsData);
+
+      if (reviewData?.done || reviewData?.waiting) {
         setReviewsDue(0);
       } else {
-        const counts = data?.counts ?? {};
+        const counts = reviewData?.counts ?? {};
         setReviewsDue(
           (counts.newCount ?? 0) +
-          (counts.learningCount ?? 0) +
-          (counts.reviewCount ?? 0)
+            (counts.learningCount ?? 0) +
+            (counts.reviewCount ?? 0),
         );
       }
-    } catch {
-      setReviewsDue(0);
-    }
-  }
-
-  async function loadVocabStats() {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/vocab/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setVocabStats(data);
     } catch (err) {
-      console.error("Failed to load vocab stats:", err);
+      console.error("Failed to load profile:", err);
     }
   }
 
@@ -104,72 +120,114 @@ export default function Profile() {
           <View style={styles.avatarCircle}>
             <Ionicons name="person-outline" size={28} color={Sketch.inkMuted} />
           </View>
-          <Text style={styles.guestTitle}>Guest Mode</Text>
+          <Text style={styles.guestTitle}>Guest mode</Text>
           <Text style={styles.guestSub}>
-            Log in to save your progress, bookmarks, and vocabulary
+            Log in to save your progress, bookmarks, vocabulary, and grammar
+            history.
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={logout}>
-            <Text style={styles.primaryBtnText}>Log In</Text>
+            <Text style={styles.primaryBtnText}>Log in</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  const avatarLabel =
+    profile?.email?.trim()?.[0]?.toUpperCase() ||
+    (profile?.id ? String(profile.id) : "…");
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.profileHeader}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>
-              {userId ? `${userId}` : "..."}
-            </Text>
+            <Text style={styles.avatarText}>{avatarLabel}</Text>
           </View>
-          <Text style={styles.profileName}>User #{userId || "..."}</Text>
+          <Text style={styles.profileName}>User #{profile?.id || "..."}</Text>
+          <Text style={styles.profileEmail}>
+            {profile?.email || "Loading email..."}
+          </Text>
         </View>
 
         <View style={styles.divider} />
 
-        {/* Today's Progress */}
-        <Text style={styles.sectionTitle}>Today's Progress</Text>
+        <Text style={styles.sectionTitle}>Today</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statNum}>{reviewsDue}</Text>
+            <Text style={[styles.statNum, { color: Sketch.orange }]}>
+              {reviewsDue}
+            </Text>
             <Text style={styles.statLabel}>Reviews Due</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNum}>
+            <Text style={[styles.statNum, { color: Sketch.blue }]}>
               {progress?.words_learned_today || 0}
             </Text>
             <Text style={styles.statLabel}>Learned</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNum}>{progress?.mastered_words || 0}</Text>
+            <Text style={[styles.statNum, { color: Sketch.green }]}>
+              {progress?.mastered_words || 0}
+            </Text>
             <Text style={styles.statLabel}>Mastered</Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Deck Snapshot</Text>
+          <View style={styles.snapshotRow}>
+            <Text style={styles.snapshotLabel}>Tracked words</Text>
+            <Text style={styles.snapshotValue}>
+              {vocabStats?.total_words || 0}
+            </Text>
+          </View>
+          <View style={[styles.snapshotRow, styles.snapshotRowLast]}>
+            <Text style={styles.snapshotLabel}>Mastered words</Text>
+            <Text style={styles.snapshotValue}>
+              {vocabStats?.mastered_words || 0}
+            </Text>
+          </View>
+        </View>
 
-        {/* Debug Section */}
-        <Text style={styles.sectionTitle}>Debug</Text>
+        <Text style={styles.sectionTitle}>Insights</Text>
         <View style={styles.menuCard}>
           {[
-            { label: "Vocab Stats", route: "/debug/VocabStats", icon: "bar-chart-outline" },
-            { label: "Vocab Review", route: "/debug/review", icon: "flash-outline" },
-            { label: "Mastery Stats", route: "/debug/MasteryStats", icon: "trophy-outline" },
-          ].map((item, i, arr) => (
+            {
+              label: "Vocab Stats",
+              route: "/stats/vocab",
+              icon: "bar-chart-outline",
+            },
+            {
+              label: "Grammar Stats",
+              route: "/stats/grammar",
+              icon: "analytics-outline",
+            },
+          ].map((item, index, arr) => (
             <TouchableOpacity
-              key={i}
-              style={[styles.menuRow, i < arr.length - 1 && styles.menuRowBorder]}
+              key={item.route}
+              style={[
+                styles.menuRow,
+                index < arr.length - 1 && styles.menuRowBorder,
+              ]}
               onPress={() => router.push(item.route as any)}
             >
               <View style={styles.menuRowLeft}>
-                <Ionicons name={item.icon as any} size={18} color={Sketch.inkLight} />
+                <Ionicons
+                  name={item.icon as any}
+                  size={18}
+                  color={Sketch.inkLight}
+                />
                 <Text style={styles.menuRowText}>{item.label}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={Sketch.inkMuted}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -184,7 +242,7 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20, paddingBottom: 40, gap: 16 },
   centerWrap: {
     flex: 1,
     justifyContent: "center",
@@ -192,33 +250,36 @@ const styles = StyleSheet.create({
     padding: 30,
     gap: 12,
   },
-
   profileHeader: {
     alignItems: "center",
-    paddingVertical: 20,
-    gap: 10,
+    paddingTop: 16,
+    gap: 8,
   },
-
   avatarCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
   },
   avatarText: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 22,
+    fontWeight: "700",
     color: Sketch.ink,
   },
-
   profileName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "600",
     color: Sketch.ink,
   },
-
+  profileEmail: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+  },
   guestTitle: { fontSize: 22, fontWeight: "600", color: Sketch.ink },
   guestSub: {
     fontSize: 14,
@@ -228,20 +289,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 20,
   },
-
   divider: {
     height: 1,
     backgroundColor: Sketch.inkFaint,
-    marginVertical: 20,
   },
-
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: Sketch.ink,
-    marginBottom: 12,
   },
-
   statsGrid: {
     flexDirection: "row",
     gap: 10,
@@ -249,12 +305,14 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     padding: 14,
     alignItems: "center",
   },
   statNum: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
   },
@@ -263,13 +321,45 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.inkMuted,
     marginTop: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
-
+  sectionCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
+    gap: 6,
+  },
+  snapshotRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Sketch.inkFaint,
+  },
+  snapshotRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 2,
+  },
+  snapshotLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  snapshotValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
   menuCard: {
     backgroundColor: Sketch.paperDark,
     borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   menuRow: {
     flexDirection: "row",
@@ -292,7 +382,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.ink,
   },
-
   primaryBtn: {
     backgroundColor: Sketch.orange,
     borderRadius: 10,
@@ -305,12 +394,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
-
   logoutBtn: {
     backgroundColor: Sketch.paperDark,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   logoutBtnText: {
     fontSize: 15,

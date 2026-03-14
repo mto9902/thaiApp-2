@@ -9,57 +9,67 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
-import { Sketch, sketchShadow } from "@/constants/theme";
-
-const COLORS = [Sketch.yellow, Sketch.blue, Sketch.red, Sketch.green];
 
 const GROUPS = [
-  { group: 1, title: "Mid Class", subtitle: "กลาง" },
-  { group: 2, title: "High Class", subtitle: "สูง" },
-  { group: 3, title: "Low Class I", subtitle: "ต่ำ ๑" },
-  { group: 4, title: "Low Class II", subtitle: "ต่ำ ๒" },
+  { group: 1, title: "Mid Class", subtitle: "กลาง", accent: Sketch.orange },
+  { group: 2, title: "High Class", subtitle: "สูง", accent: Sketch.blue },
+  { group: 3, title: "Low Class I", subtitle: "ต่ำ ๑", accent: Sketch.green },
+  { group: 4, title: "Low Class II", subtitle: "ต่ำ ๒", accent: Sketch.red },
 ];
 
-function ConsonantCard({ lesson, color, onPress }: any) {
-  const letters = alphabet.filter((l) => l.group === lesson.group);
+function ConsonantCard({
+  group,
+  title,
+  subtitle,
+  accent,
+  onPress,
+}: {
+  group: number;
+  title: string;
+  subtitle: string;
+  accent: string;
+  onPress: () => void;
+}) {
+  const letters = alphabet.filter((item) => item.group === group);
 
   return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: color }]}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.textContainer}>
-          <Text style={styles.levelLabel}>{lesson.subtitle}</Text>
-          <Text style={styles.cardTitle}>{lesson.title.toUpperCase()}</Text>
-        </View>
-        <View style={styles.iconContainer}>
-          <Ionicons name="book-outline" size={22} color={Sketch.ink} />
-        </View>
-      </View>
-
-      <View style={styles.letterPreviewSection}>
-        <View style={styles.letterGrid}>
-          {letters.slice(0, 6).map((l) => (
-            <View key={l.letter} style={styles.letterTile}>
-              <Text style={styles.letterPreview}>{l.letter}</Text>
-            </View>
-          ))}
-        </View>
-        {letters.length > 6 && (
-          <View style={styles.moreLettersContainer}>
-            <Text style={styles.letterMore}>+{letters.length - 6}</Text>
-            <Text style={styles.moreText}>more</Text>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.cardTop}>
+        <View>
+          <View
+            style={[styles.badge, { backgroundColor: `${accent}12` }]}
+          >
+            <Text style={[styles.badgeText, { color: accent }]}>
+              Group {group}
+            </Text>
           </View>
-        )}
+          <Text style={styles.cardTitle}>{title}</Text>
+          <Text style={styles.cardSubtitle}>{subtitle}</Text>
+        </View>
+        <View style={[styles.iconWrap, { backgroundColor: `${accent}14` }]}>
+          <Ionicons name="book-outline" size={20} color={accent} />
+        </View>
       </View>
 
-      <View style={styles.cardFooter}>
-        <Text style={styles.footerText}>VIEW LESSON</Text>
-        <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
+      <View style={styles.letterRow}>
+        {letters.slice(0, 6).map((item) => (
+          <View key={item.letter} style={styles.letterChip}>
+            <Text style={styles.letterChipText}>{item.letter}</Text>
+          </View>
+        ))}
+        {letters.length > 6 ? (
+          <View style={styles.moreChip}>
+            <Text style={styles.moreChipText}>+{letters.length - 6}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>{letters.length} letters</Text>
+        <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
       </View>
     </TouchableOpacity>
   );
@@ -72,36 +82,27 @@ export default function ConsonantsScreen() {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Header title="Consonants" onBack={() => router.back()} />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <TouchableOpacity
-          style={styles.trainerCard}
-          onPress={() => router.push("/trainer")}
-          activeOpacity={0.85}
-        >
-          <View style={styles.cardHeader}>
-            <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>ADVANCED</Text>
-              <Text style={styles.cardTitle}>ALPHABET TRAINER</Text>
-            </View>
-            <View style={styles.iconContainer}>
-              <Ionicons name="construct-outline" size={22} color={Sketch.ink} />
-            </View>
-          </View>
-          <Text style={styles.cardDesc}>
-            Combine consonants & vowels to generate real words
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.introCard}>
+          <Text style={styles.introEyebrow}>Consonant Classes</Text>
+          <Text style={styles.introTitle}>Learn the four tone classes.</Text>
+          <Text style={styles.introSubtitle}>
+            Each group shapes tone rules and pronunciation patterns across the
+            alphabet.
           </Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerText}>OPEN TRAINER</Text>
-            <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
-          </View>
-        </TouchableOpacity>
+        </View>
 
-        {GROUPS.map((lesson, i) => (
+        {GROUPS.map((item) => (
           <ConsonantCard
-            key={lesson.group}
-            lesson={lesson}
-            color={COLORS[i]}
-            onPress={() => router.push(`/alphabet/${lesson.group}` as any)}
+            key={item.group}
+            group={item.group}
+            title={item.title}
+            subtitle={item.subtitle}
+            accent={item.accent}
+            onPress={() => router.push(`/alphabet/${item.group}` as any)}
           />
         ))}
       </ScrollView>
@@ -114,142 +115,128 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Sketch.paper,
   },
-
   scroll: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 24,
+    gap: 14,
   },
-
-  trainerCard: {
-    backgroundColor: Sketch.purple,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    marginBottom: 18,
-    padding: 20,
-    ...sketchShadow(5),
+  introCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 18,
   },
-
+  introEyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  introTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: Sketch.ink,
+    marginTop: 8,
+  },
+  introSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    lineHeight: 20,
+    marginTop: 6,
+  },
   card: {
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 20,
-    ...sketchShadow(5),
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 18,
+    gap: 14,
   },
-
-  cardHeader: {
+  cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
+    gap: 16,
   },
-
-  textContainer: {
-    flex: 1,
+  badge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginBottom: 10,
   },
-
-  levelLabel: {
+  badgeText: {
     fontSize: 11,
-    fontWeight: "800",
-    color: "rgba(0,0,0,0.5)",
-    marginBottom: 3,
-    letterSpacing: 1,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
-
   cardTitle: {
-    fontSize: 20,
-    fontWeight: "900",
+    fontSize: 22,
+    fontWeight: "700",
     color: Sketch.ink,
-    lineHeight: 24,
   },
-
-  cardDesc: {
+  cardSubtitle: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "rgba(0,0,0,0.6)",
-    marginBottom: 14,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    marginTop: 4,
   },
-
-  iconContainer: {
-    width: 42,
-    height: 42,
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 21,
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    ...sketchShadow(2),
   },
-
-  letterPreviewSection: {
-    marginBottom: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  letterGrid: {
-    flex: 1,
+  letterRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-
-  letterTile: {
-    width: "22%",
-    aspectRatio: 1,
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    ...sketchShadow(2),
-  },
-
-  letterPreview: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: Sketch.ink,
-  },
-
-  moreLettersContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  letterMore: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: Sketch.ink,
-  },
-
-  moreText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "rgba(0,0,0,0.5)",
-    marginTop: 2,
-  },
-
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.35)",
+  letterChip: {
+    minWidth: 42,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.15)",
+    borderRadius: 10,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    alignItems: "center",
   },
-
-  footerText: {
-    fontSize: 11,
-    fontWeight: "900",
+  letterChipText: {
+    fontSize: 20,
+    fontWeight: "700",
     color: Sketch.ink,
+  },
+  moreChip: {
+    minWidth: 42,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: Sketch.paperDark,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moreChipText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+  },
+  footerText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkLight,
   },
 });

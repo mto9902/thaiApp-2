@@ -18,8 +18,15 @@ import { Sketch } from "@/constants/theme";
 import KeystoneLogo from "../../src/components/KeystoneLogo";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
-import { CEFR_LEVEL_META, CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
-import { getAllProgress } from "../../src/utils/grammarProgress";
+import {
+  CEFR_LEVEL_META,
+  CEFR_LEVELS,
+  CefrLevel,
+} from "../../src/data/grammarLevels";
+import {
+  getAllProgress,
+  isGrammarPracticed,
+} from "../../src/utils/grammarProgress";
 
 // Thresholds: 0 = nothing, 1-14 = light, 15-39 = medium, 40-79 = dark, 80+ = darkest
 function activityToLevel(count: number): number {
@@ -71,8 +78,8 @@ const MODULES: ModuleInfo[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
-  const [moduleProgress, setModuleProgress] = useState<number[]>(
-    () => MODULES.map(() => 0),
+  const [moduleProgress, setModuleProgress] = useState<number[]>(() =>
+    MODULES.map(() => 0),
   );
   const [reviewsDue, setReviewsDue] = useState(0);
   const [reviewStatusText, setReviewStatusText] = useState("You're caught up");
@@ -101,7 +108,9 @@ export default function HomeScreen() {
       const allProgress = await getAllProgress();
       const newModuleProgress = MODULES.map((mod) => {
         if (mod.grammarIds.length === 0) return 0;
-        const practiced = mod.grammarIds.filter((id) => allProgress[id]).length;
+        const practiced = mod.grammarIds.filter((id) =>
+          isGrammarPracticed(allProgress[id]),
+        ).length;
         return Math.round((practiced / mod.grammarIds.length) * 100);
       });
       setModuleProgress(newModuleProgress);
@@ -177,8 +186,20 @@ export default function HomeScreen() {
     const DAY_LABEL_W = 28;
     const MONTH_LABEL_H = 16;
     const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
-    const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const MONTH_NAMES = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     // Fixed 26-week grid (like GitHub contributions).
     // Start = Sunday of the week containing earliest activity, or 26 weeks back.
     // Grid always extends forward to fill 26 columns total.
@@ -220,13 +241,16 @@ export default function HomeScreen() {
 
     return (
       <View style={styles.heatmapContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View>
             {/* Month labels */}
-            <View style={{ flexDirection: "row", height: MONTH_LABEL_H, marginLeft: DAY_LABEL_W }}>
+            <View
+              style={{
+                flexDirection: "row",
+                height: MONTH_LABEL_H,
+                marginLeft: DAY_LABEL_W,
+              }}
+            >
               {monthLabels.map((ml, i) => (
                 <Text
                   key={i}
@@ -247,8 +271,17 @@ export default function HomeScreen() {
               {/* Day-of-week labels */}
               <View style={{ width: DAY_LABEL_W }}>
                 {DAY_LABELS.map((label, i) => (
-                  <View key={i} style={{ height: CELL, justifyContent: "center" }}>
-                    <Text style={{ fontSize: 9, color: Sketch.inkMuted, fontWeight: "500" }}>
+                  <View
+                    key={i}
+                    style={{ height: CELL, justifyContent: "center" }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 9,
+                        color: Sketch.inkMuted,
+                        fontWeight: "500",
+                      }}
+                    >
                       {label}
                     </Text>
                   </View>
@@ -311,9 +344,7 @@ export default function HomeScreen() {
         {/* Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Activity</Text>
-          <View style={styles.heatmapCard}>
-            {renderHeatmap()}
-          </View>
+          <View style={styles.heatmapCard}>{renderHeatmap()}</View>
         </View>
 
         <View style={styles.spacing} />
@@ -358,7 +389,9 @@ export default function HomeScreen() {
                     key={mod.level}
                     style={styles.moduleCard}
                     onPress={() =>
-                      router.push(`/practice/CSVGrammarIndex?level=${mod.level}` as any)
+                      router.push(
+                        `/practice/CSVGrammarIndex?level=${mod.level}` as any,
+                      )
                     }
                     activeOpacity={0.7}
                   >
@@ -391,12 +424,18 @@ export default function HomeScreen() {
             >
               <Ionicons name="book-outline" size={28} color={Sketch.orange} />
               <View style={styles.startGrammarText}>
-                <Text style={styles.startGrammarTitle}>Begin your grammar journey</Text>
+                <Text style={styles.startGrammarTitle}>
+                  Begin your grammar journey
+                </Text>
                 <Text style={styles.startGrammarSub}>
                   Explore Thai grammar from A1 to C1
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Sketch.inkMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={Sketch.inkMuted}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -425,11 +464,7 @@ export default function HomeScreen() {
                 onPress={() => router.push(item.route as any)}
                 activeOpacity={0.7}
               >
-                <Ionicons
-                  name={item.icon}
-                  size={24}
-                  color={Sketch.orange}
-                />
+                <Ionicons name={item.icon} size={24} color={Sketch.orange} />
                 <Text style={styles.quickLinkText}>{item.label}</Text>
               </TouchableOpacity>
             ))}

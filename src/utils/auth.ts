@@ -2,6 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /** Returns true if the user is in guest mode (no JWT token). */
 export async function isGuestUser(): Promise<boolean> {
+  const token = await AsyncStorage.getItem("token");
+  if (token) return false;
+
   const flag = await AsyncStorage.getItem("isGuest");
   return flag === "true";
 }

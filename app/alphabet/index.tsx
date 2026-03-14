@@ -3,8 +3,51 @@ import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
-import { Sketch, sketchShadow } from "@/constants/theme";
+
+function EntryCard({
+  eyebrow,
+  title,
+  subtitle,
+  accent,
+  icon,
+  onPress,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  accent: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.entryCard}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.entryTop}>
+        <View style={[styles.entryIcon, { backgroundColor: `${accent}14` }]}>
+          <Ionicons name={icon} size={24} color={accent} />
+        </View>
+        <View style={[styles.entryBadge, { backgroundColor: `${accent}12` }]}>
+          <Text style={[styles.entryBadgeText, { color: accent }]}>
+            {eyebrow}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.entryTitle}>{title}</Text>
+      <Text style={styles.entrySubtitle}>{subtitle}</Text>
+
+      <View style={styles.entryFooter}>
+        <Text style={styles.entryFooterText}>Open lesson</Text>
+        <Ionicons name="arrow-forward" size={16} color={Sketch.inkMuted} />
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function AlphabetScreen() {
   const router = useRouter();
@@ -14,43 +57,32 @@ export default function AlphabetScreen() {
       <Header title="Alphabet" onBack={() => router.back()} />
 
       <View style={styles.content}>
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: Sketch.yellow }]}
-          onPress={() => router.push("/alphabet/consonants" as any)}
-        >
-          <View style={styles.cardHeader}>
-            <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>44 LETTERS</Text>
-              <Text style={styles.cardTitle}>CONSONANTS</Text>
-            </View>
-            <View style={styles.iconContainer}>
-              <Ionicons name="language-outline" size={22} color={Sketch.ink} />
-            </View>
-          </View>
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerText}>START LEARNING</Text>
-            <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.introCard}>
+          <Text style={styles.introEyebrow}>Foundations</Text>
+          <Text style={styles.introTitle}>Build your Thai sound system.</Text>
+          <Text style={styles.introSubtitle}>
+            Start with consonant classes, then layer in vowel groups and sound
+            patterns.
+          </Text>
+        </View>
 
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: Sketch.green }]}
-          onPress={() => router.push("/vowels/")}
-        >
-          <View style={styles.cardHeader}>
-            <View style={styles.textContainer}>
-              <Text style={styles.levelLabel}>GROUPS 1-6</Text>
-              <Text style={styles.cardTitle}>VOWELS</Text>
-            </View>
-            <View style={styles.iconContainer}>
-              <Ionicons name="chatbubble-outline" size={22} color={Sketch.ink} />
-            </View>
-          </View>
-          <View style={styles.cardFooter}>
-            <Text style={styles.footerText}>START LEARNING</Text>
-            <Ionicons name="arrow-forward" size={14} color={Sketch.ink} />
-          </View>
-        </TouchableOpacity>
+        <EntryCard
+          eyebrow="44 letters"
+          title="Consonants"
+          subtitle="Learn the four consonant classes and recognize their core sounds."
+          accent={Sketch.orange}
+          icon="language-outline"
+          onPress={() => router.push("/alphabet/consonants" as any)}
+        />
+
+        <EntryCard
+          eyebrow="Groups 1-6"
+          title="Vowels"
+          subtitle="Study vowel placement around the consonant and how each pattern sounds."
+          accent={Sketch.blue}
+          icon="chatbubble-ellipses-outline"
+          onPress={() => router.push("/vowels/" as any)}
+        />
       </View>
     </SafeAreaView>
   );
@@ -61,75 +93,99 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Sketch.paper,
   },
-
   content: {
-    padding: 20,
+    flex: 1,
+    paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 24,
+    gap: 14,
   },
-
-  card: {
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    marginBottom: 18,
+  introCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     padding: 20,
-    ...sketchShadow(5),
   },
-
-  cardHeader: {
+  introEyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  introTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: Sketch.ink,
+    marginTop: 8,
+    lineHeight: 32,
+  },
+  introSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  entryCard: {
+    flex: 1,
+    minHeight: 180,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 20,
+    justifyContent: "space-between",
+  },
+  entryTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
-  },
-
-  textContainer: {
-    flex: 1,
-  },
-
-  levelLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "rgba(0,0,0,0.5)",
-    marginBottom: 4,
-    letterSpacing: 1,
-  },
-
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: Sketch.ink,
-    lineHeight: 26,
-  },
-
-  iconContainer: {
-    width: 42,
-    height: 42,
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 21,
-    justifyContent: "center",
     alignItems: "center",
-    ...sketchShadow(2),
   },
-
-  cardFooter: {
+  entryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  entryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  entryBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  entryTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Sketch.ink,
+    marginTop: 18,
+  },
+  entrySubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: Sketch.inkLight,
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  entryFooter: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.35)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.15)",
+    justifyContent: "space-between",
+    marginTop: 20,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
   },
-
-  footerText: {
-    fontSize: 11,
-    fontWeight: "900",
+  entryFooterText: {
+    fontSize: 14,
+    fontWeight: "600",
     color: Sketch.ink,
   },
 });

@@ -1,3 +1,4 @@
+import { Sketch } from "@/constants/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -10,7 +11,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "../src/config";
-import { Sketch } from "@/constants/theme";
 
 export default function Login() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   async function handleGuest() {
+    await AsyncStorage.removeItem("token");
     await AsyncStorage.setItem("isGuest", "true");
     router.replace("/(tabs)");
   }
@@ -40,6 +41,7 @@ export default function Login() {
       return;
     }
 
+    await AsyncStorage.multiRemove(["isGuest"]);
     await AsyncStorage.setItem("token", data.token);
     router.replace("/(tabs)");
   }

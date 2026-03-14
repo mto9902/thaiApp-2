@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -16,9 +15,12 @@ import { grammarPoints } from "../../src/data/grammar";
 import {
   CEFR_LEVEL_META,
   CEFR_LEVELS,
-  CefrLevel,
 } from "../../src/data/grammarLevels";
-import { getAllProgress, GrammarProgressData } from "../../src/utils/grammarProgress";
+import {
+  getAllProgress,
+  GrammarProgressData,
+  isGrammarPracticed,
+} from "../../src/utils/grammarProgress";
 
 function ProgressRing({ percent, size = 72, strokeWidth = 6 }: { percent: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2;
@@ -65,7 +67,9 @@ export default function GrammarScreen() {
   );
 
   const totalPoints = grammarPoints.length;
-  const totalPracticed = grammarPoints.filter((g) => progress[g.id]).length;
+  const totalPracticed = grammarPoints.filter((g) =>
+    isGrammarPracticed(progress[g.id]),
+  ).length;
   const overallPercent = totalPoints > 0 ? Math.round((totalPracticed / totalPoints) * 100) : 0;
 
   return (
@@ -93,7 +97,9 @@ export default function GrammarScreen() {
           {CEFR_LEVELS.map((level) => {
             const meta = CEFR_LEVEL_META[level];
             const points = grammarPoints.filter((g) => g.level === level);
-            const practiced = points.filter((g) => progress[g.id]).length;
+            const practiced = points.filter((g) =>
+              isGrammarPracticed(progress[g.id]),
+            ).length;
             const percentage = points.length > 0 ? Math.round((practiced / points.length) * 100) : 0;
 
             return (

@@ -12,16 +12,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import { generateTrainer } from "../../src/api/generateTrainer";
 import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
 import { vowels } from "../../src/data/vowels";
 
-const DIFFICULTY_COLORS = {
-  easy: Sketch.green,
-  medium: Sketch.yellow,
-  hard: Sketch.red,
+const DIFFICULTY_META = {
+  easy: { label: "Easy", color: Sketch.green },
+  medium: { label: "Medium", color: Sketch.yellow },
+  hard: { label: "Hard", color: Sketch.red },
 };
 
 const CONSONANT_INFO = [
@@ -40,36 +40,48 @@ const VOWEL_INFO = [
   { id: 6, title: "Around 2", description: "เ◌อ เ◌าะ", color: Sketch.green },
 ];
 
-function DifficultyButton({
-  level,
-  isSelected,
-  onPress,
+// ── Difficulty picker ──────────────────────────────────────────────────────────
+function DifficultyPicker({
+  value,
+  onChange,
 }: {
-  level: "easy" | "medium" | "hard";
-  isSelected: boolean;
-  onPress: () => void;
+  value: "easy" | "medium" | "hard";
+  onChange: (v: "easy" | "medium" | "hard") => void;
 }) {
-  const bgColor = isSelected ? DIFFICULTY_COLORS[level] : Sketch.cardBg;
-  const label = level.charAt(0).toUpperCase() + level.slice(1);
-
   return (
-    <TouchableOpacity
-      style={[styles.diffButton, { backgroundColor: bgColor }]}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
-      <Text
-        style={[
-          styles.diffButtonText,
-          isSelected && styles.diffButtonTextActive,
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.diffRow}>
+      {(["easy", "medium", "hard"] as const).map((level) => {
+        const meta = DIFFICULTY_META[level];
+        const active = value === level;
+        return (
+          <TouchableOpacity
+            key={level}
+            style={[
+              styles.diffBtn,
+              active && {
+                backgroundColor: meta.color + "22",
+                borderColor: meta.color,
+              },
+            ]}
+            onPress={() => onChange(level)}
+            activeOpacity={0.75}
+          >
+            <Text
+              style={[
+                styles.diffBtnText,
+                active && { color: meta.color, fontWeight: "700" },
+              ]}
+            >
+              {meta.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
   );
 }
 
+// ── Consonant card ─────────────────────────────────────────────────────────────
 function ConsonantCard({
   info,
   isSelected,
@@ -84,48 +96,35 @@ function ConsonantCard({
   return (
     <TouchableOpacity
       style={[
-        styles.consonantCard,
-        { backgroundColor: isSelected ? info.color : Sketch.cardBg },
+        styles.selCard,
+        isSelected && {
+          borderColor: info.color,
+          backgroundColor: info.color + "12",
+        },
       ]}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.75}
     >
-      <View style={styles.consonantCardContent}>
-        <View style={styles.consonantTextSection}>
-          <Text
-            style={[
-              styles.consonantTitle,
-              isSelected && styles.consonantTitleActive,
-            ]}
-          >
-            {info.title}
-          </Text>
-          <Text
-            style={[
-              styles.consonantSubtitle,
-              isSelected && styles.consonantSubtitleActive,
-            ]}
-          >
-            {letters.length} letters
-          </Text>
-        </View>
-        <View style={styles.letterPreview}>
-          {letters.map((l) => (
-            <Text key={l.letter} style={styles.previewLetter}>
-              {l.letter}
-            </Text>
-          ))}
-        </View>
+      <View style={styles.selText}>
+        <Text style={[styles.selTitle, isSelected && { color: info.color }]}>
+          {info.title}
+        </Text>
       </View>
-      {isSelected && (
-        <View style={styles.selectedBadge}>
-          <Ionicons name="checkmark" size={16} color={Sketch.ink} />
-        </View>
-      )}
+      <View style={styles.letterPreview}>
+        {letters.map((l) => (
+          <Text
+            key={l.letter}
+            style={[styles.previewLetter, isSelected && { color: Sketch.ink }]}
+          >
+            {l.letter}
+          </Text>
+        ))}
+      </View>
     </TouchableOpacity>
   );
 }
 
+// ── Vowel card ─────────────────────────────────────────────────────────────────
 function VowelCard({
   info,
   isSelected,
@@ -138,59 +137,54 @@ function VowelCard({
   return (
     <TouchableOpacity
       style={[
-        styles.vowelCard,
-        { backgroundColor: isSelected ? info.color : Sketch.cardBg },
+        styles.selCard,
+        isSelected && {
+          borderColor: info.color,
+          backgroundColor: info.color + "12",
+        },
       ]}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.75}
     >
-      <View style={styles.vowelCardContent}>
-        <View style={styles.vowelTextSection}>
-          <Text
-            style={[styles.vowelTitle, isSelected && styles.vowelTitleActive]}
-          >
-            {info.title}
-          </Text>
-          <Text
-            style={[
-              styles.vowelSubtitle,
-              isSelected && styles.vowelSubtitleActive,
-            ]}
-          >
-            Vowels
-          </Text>
-        </View>
-        <Text style={styles.vowelPreview}>{info.description}</Text>
+      <View style={styles.selText}>
+        <Text style={[styles.selTitle, isSelected && { color: info.color }]}>
+          {info.title}
+        </Text>
       </View>
-      {isSelected && (
-        <View style={styles.vowelSelectedBadge}>
-          <Ionicons name="checkmark" size={16} color={Sketch.ink} />
-        </View>
-      )}
+      <Text style={[styles.vowelPreview, isSelected && { color: Sketch.ink }]}>
+        {info.description}
+      </Text>
     </TouchableOpacity>
   );
 }
 
-function TrainerWordCard({ word, onPlaySound }: any) {
+// ── Word result card ───────────────────────────────────────────────────────────
+function WordResultCard({ word, onPlaySound }: any) {
   return (
     <View style={styles.wordCard}>
-      <View style={styles.wordHeader}>
+      <View style={styles.wordCardLeft}>
         <Text style={styles.wordThai}>{word.thai}</Text>
-        <TouchableOpacity
-          style={styles.soundButton}
-          onPress={() => onPlaySound(word.thai)}
-        >
-          <Ionicons name="volume-high" size={20} color={Sketch.ink} />
-        </TouchableOpacity>
+        {word.romanization && (
+          <Text style={styles.wordRoman}>{word.romanization}</Text>
+        )}
+        <Text style={styles.wordEnglish}>{word.english}</Text>
       </View>
-      {word.romanization && (
-        <Text style={styles.wordRoman}>{word.romanization}</Text>
-      )}
-      <Text style={styles.wordEnglish}>{word.english}</Text>
+      <TouchableOpacity
+        style={styles.soundBtn}
+        onPress={() => onPlaySound(word.thai)}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name="volume-medium-outline"
+          size={18}
+          color={Sketch.inkLight}
+        />
+      </TouchableOpacity>
     </View>
   );
 }
 
+// ── Main screen ────────────────────────────────────────────────────────────────
 export default function Trainer() {
   const router = useRouter();
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
@@ -223,17 +217,14 @@ export default function Trainer() {
     list: number[],
     setList: (v: number[]) => void,
   ) {
-    if (list.includes(value)) {
-      setList(list.filter((v) => v !== value));
-    } else {
-      setList([...list, value]);
-    }
+    setList(
+      list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
+    );
   }
 
   async function generateWords() {
     setNoResults(false);
     setWords([]);
-
     const TARGET_WORDS = 10;
 
     const consonants = [
@@ -243,15 +234,13 @@ export default function Trainer() {
           .map((c) => c.letter),
       ),
     ];
-
     const allowedConsonants = new Set(consonants);
     const consonantSet = new Set(alphabet.map((a) => a.letter));
 
     function wordUsesOnlyAllowedConsonants(word: string) {
       for (const char of word) {
-        if (consonantSet.has(char) && !allowedConsonants.has(char)) {
+        if (consonantSet.has(char) && !allowedConsonants.has(char))
           return false;
-        }
       }
       return true;
     }
@@ -266,32 +255,22 @@ export default function Trainer() {
 
     try {
       setLoading(true);
-
       let collected: any[] = [];
       let attempts = 0;
-
       while (collected.length < TARGET_WORDS && attempts < 5) {
         attempts++;
-
         const result = await generateTrainer(
           consonants,
           selectedVowels,
           difficulty,
         );
-
         const filtered = (result.words || []).filter((w: any) =>
           wordUsesOnlyAllowedConsonants(w.thai),
         );
-
         collected = [...collected, ...filtered];
       }
-
-      // decide what to show
-      if (collected.length === 0) {
-        setNoResults(true);
-      } else {
-        setWords(collected.slice(0, TARGET_WORDS));
-      }
+      if (collected.length === 0) setNoResults(true);
+      else setWords(collected.slice(0, TARGET_WORDS));
     } catch (err) {
       console.error("Trainer error:", err);
     } finally {
@@ -316,35 +295,33 @@ export default function Trainer() {
         onSettingsChange={(s) => setTtsSpeed(s.ttsSpeed)}
       />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.headerSection}>
-          <Text style={styles.headerTitle}>Build Your Practice Set</Text>
-          <Text style={styles.headerSubtitle}>
-            Choose difficulty, consonant classes, and vowel groups to create
-            words
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Page title */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Build your practice set</Text>
+          <Text style={styles.pageSubtitle}>
+            Pick a difficulty, consonant classes, and vowel groups
           </Text>
         </View>
 
+        {/* 1. Difficulty */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>1. DIFFICULTY</Text>
-          <View style={styles.difficultyRow}>
-            {(["easy", "medium", "hard"] as const).map((d) => (
-              <DifficultyButton
-                key={d}
-                level={d}
-                isSelected={difficulty === d}
-                onPress={() => setDifficulty(d)}
-              />
-            ))}
-          </View>
+          <Text style={styles.sectionLabel}>DIFFICULTY</Text>
+          <DifficultyPicker value={difficulty} onChange={setDifficulty} />
         </View>
 
+        {/* 2. Consonants */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>2. CONSONANT CLASSES</Text>
-            <Text style={styles.sectionCount}>{consonantCount} selected</Text>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>CONSONANT CLASSES</Text>
+            <View style={styles.countPill}>
+              <Text style={styles.countPillText}>{consonantCount} letters</Text>
+            </View>
           </View>
-          <View style={styles.consonantGrid}>
+          <View style={styles.cardList}>
             {CONSONANT_INFO.map((info) => (
               <ConsonantCard
                 key={info.id}
@@ -362,12 +339,15 @@ export default function Trainer() {
           </View>
         </View>
 
+        {/* 3. Vowels */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>3. VOWEL GROUPS</Text>
-            <Text style={styles.sectionCount}>{vowelCount} selected</Text>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>VOWEL GROUPS</Text>
+            <View style={styles.countPill}>
+              <Text style={styles.countPillText}>{vowelCount} vowels</Text>
+            </View>
           </View>
-          <View style={styles.vowelGrid}>
+          <View style={styles.cardList}>
             {VOWEL_INFO.map((info) => (
               <VowelCard
                 key={info.id}
@@ -385,48 +365,52 @@ export default function Trainer() {
           </View>
         </View>
 
+        {/* Validation */}
         {!isValid && (
-          <View style={styles.validationWarning}>
-            <Ionicons name="alert-circle" size={16} color={Sketch.red} />
+          <View style={styles.validationBanner}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={15}
+              color={Sketch.red}
+            />
             <Text style={styles.validationText}>
-              Select at least one consonant class and vowel group to continue
+              Select at least one consonant class and vowel group
             </Text>
           </View>
         )}
 
+        {/* Generate */}
         <TouchableOpacity
-          style={[
-            styles.generateButton,
-            !isValid && styles.generateButtonDisabled,
-          ]}
+          style={[styles.generateBtn, !isValid && styles.generateBtnDisabled]}
           onPress={generateWords}
           disabled={!isValid}
           activeOpacity={isValid ? 0.85 : 1}
         >
           {loading ? (
             <>
-              <ActivityIndicator size="small" color={Sketch.cardBg} />
-              <Text style={styles.generateText}>Creating...</Text>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={styles.generateBtnText}>Creating words...</Text>
             </>
           ) : (
-            <Text style={styles.generateText}>Create Words</Text>
+            <Text style={styles.generateBtnText}>Create Words</Text>
           )}
         </TouchableOpacity>
 
+        {/* Results */}
         {!loading && words.length > 0 && (
-          <View style={styles.resultsSection}>
+          <View style={styles.results}>
             <View style={styles.resultsHeader}>
-              <View>
-                <Text style={styles.resultsTitle}>Created Words</Text>
-                <Text style={styles.resultsSummary}>
-                  {difficulty} · {consonantGroupsSelected.length} class(es) ·{" "}
-                  {vowelGroupsSelected.length} group(s)
-                </Text>
-              </View>
+              <Text style={styles.resultsTitle}>Practice Words</Text>
+              <Text style={styles.resultsMeta}>
+                {DIFFICULTY_META[difficulty].label} ·{" "}
+                {consonantGroupsSelected.length} class
+                {consonantGroupsSelected.length !== 1 ? "es" : ""} ·{" "}
+                {vowelGroupsSelected.length} group
+                {vowelGroupsSelected.length !== 1 ? "s" : ""}
+              </Text>
             </View>
-
             {words.map((w, i) => (
-              <TrainerWordCard
+              <WordResultCard
                 key={`${w.thai}-${i}`}
                 word={w}
                 onPlaySound={speakThai}
@@ -435,18 +419,14 @@ export default function Trainer() {
           </View>
         )}
 
+        {/* Empty state */}
         {!loading && noResults && (
           <View style={styles.emptyState}>
-            <Ionicons
-              name="alert-circle-outline"
-              size={28}
-              color={Sketch.orange}
-            />
-            <Text style={styles.emptyTitle}>No Words Found</Text>
+            <Ionicons name="search-outline" size={26} color={Sketch.inkMuted} />
+            <Text style={styles.emptyTitle}>No words found</Text>
             <Text style={styles.emptyText}>
-              This combination of consonant classes, vowels, and difficulty may
-              not exist in the dictionary. Try selecting more consonants or
-              easier difficulty.
+              Try selecting more consonant classes, vowel groups, or an easier
+              difficulty level.
             </Text>
           </View>
         )}
@@ -457,278 +437,206 @@ export default function Trainer() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
+  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
 
-  headerSection: { marginBottom: 24 },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "900",
+  pageHeader: { paddingVertical: 16, gap: 4 },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: "700",
     color: Sketch.ink,
-    marginBottom: 8,
-    lineHeight: 30,
+    letterSpacing: -0.3,
   },
-  headerSubtitle: {
+  pageSubtitle: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "400",
     color: Sketch.inkMuted,
     lineHeight: 18,
   },
 
-  section: { marginBottom: 26 },
-  sectionHeader: {
+  section: { marginBottom: 24, gap: 10 },
+  sectionRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
-    letterSpacing: 0.8,
-    flex: 1,
-  },
-  sectionCount: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.orange,
-    backgroundColor: Sketch.orange + "15",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-
-  difficultyRow: { flexDirection: "row", gap: 12, marginTop: 14 },
-  diffButton: {
-    flex: 1,
-    minHeight: 56,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    ...sketchShadow(3),
-  },
-  diffButtonText: {
-    fontSize: 13,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
-    textAlign: "center",
-  },
-  diffButtonTextActive: { color: Sketch.ink },
-
-  consonantGrid: { flexDirection: "column", gap: 12 },
-  consonantCard: {
-    width: "100%",
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
-    padding: 14,
-    paddingRight: 48,
-    ...sketchShadow(3),
-  },
-  consonantCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  consonantTextSection: { flex: 1 },
-  consonantTitle: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: Sketch.inkMuted,
-    marginBottom: 4,
-  },
-  consonantTitleActive: { color: Sketch.ink },
-  consonantSubtitle: {
-    fontSize: 11,
     fontWeight: "600",
-    color: Sketch.inkFaint,
-  },
-  consonantSubtitleActive: { color: "rgba(0,0,0,0.6)" },
-  letterPreview: { flexDirection: "row", gap: 8 },
-  previewLetter: { fontSize: 22, fontWeight: "900", color: Sketch.ink },
-  selectedBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Sketch.cardBg,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-  },
-
-  vowelGrid: { flexDirection: "column", gap: 12 },
-  vowelCard: {
-    width: "100%",
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 12,
-    padding: 14,
-    paddingRight: 48,
-    ...sketchShadow(3),
-  },
-  vowelCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  vowelTextSection: { flex: 1 },
-  vowelTitle: {
-    fontSize: 14,
-    fontWeight: "900",
     color: Sketch.inkMuted,
-    marginBottom: 4,
+    letterSpacing: 1,
   },
-  vowelTitleActive: { color: Sketch.ink },
-  vowelSubtitle: { fontSize: 11, fontWeight: "600", color: Sketch.inkFaint },
-  vowelSubtitleActive: { color: "rgba(0,0,0,0.6)" },
-  vowelPreview: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: Sketch.ink,
-    marginLeft: 12,
-    letterSpacing: 6,
+  countPill: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  vowelSelectedBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Sketch.cardBg,
-    justifyContent: "center",
+  countPillText: { fontSize: 11, fontWeight: "500", color: Sketch.inkLight },
+
+  // Difficulty
+  diffRow: { flexDirection: "row", gap: 12 },
+  diffBtn: {
+    flex: 1,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paperDark,
+    minHeight: 60,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  diffBtnText: { fontSize: 14, fontWeight: "600", color: Sketch.inkMuted },
+
+  // Selection cards (shared by consonant + vowel)
+  cardList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  selCard: {
+    width: "31%",
+    flexGrow: 1,
+    flexBasis: "30%",
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 12,
+    gap: 6,
+    minHeight: 90,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  selCardInner: { gap: 6 },
+  selDot: { width: 8, height: 8, borderRadius: 4 },
+  selText: { gap: 3 },
+  selTitle: { fontSize: 14, fontWeight: "700", color: Sketch.ink },
+  selSub: { fontSize: 11, fontWeight: "500", color: Sketch.inkMuted },
+  letterPreview: {
+    flexDirection: "row",
+    gap: 4,
+    flexWrap: "wrap",
+    marginTop: 4,
+  },
+  previewLetter: { fontSize: 22, fontWeight: "700", color: Sketch.inkMuted },
+  vowelPreview: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 4,
+    marginTop: 4,
   },
 
-  validationWarning: {
+  // Validation
+  validationBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    backgroundColor: Sketch.red + "18",
-    borderWidth: 2,
-    borderColor: Sketch.red,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
+    gap: 8,
+    backgroundColor: Sketch.red + "12",
+    borderWidth: 1,
+    borderColor: Sketch.red + "40",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
   },
   validationText: {
     flex: 1,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "500",
     color: Sketch.red,
     lineHeight: 18,
   },
 
-  generateButton: {
+  // Generate button
+  generateBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    marginBottom: 24,
     gap: 8,
-    ...sketchShadow(5),
+    backgroundColor: Sketch.orange,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 14,
+    marginBottom: 8,
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  generateButtonDisabled: {
+  generateBtnDisabled: {
     backgroundColor: Sketch.inkFaint,
-    borderColor: Sketch.inkFaint,
+    shadowOpacity: 0,
+    borderColor: "transparent",
   },
-  generateText: {
-    color: Sketch.cardBg,
+  generateBtnText: {
     fontSize: 15,
-    fontWeight: "900",
-    letterSpacing: 0.3,
+    fontWeight: "600",
+    color: "#fff",
+    letterSpacing: 0.1,
   },
 
-  resultsSection: { marginTop: 16, marginBottom: 32 },
-  resultsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  resultsTitle: { fontSize: 20, fontWeight: "900", color: Sketch.ink },
-  resultsSummary: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Sketch.inkMuted,
-    marginTop: 4,
-  },
-  resultsCount: { fontSize: 28, fontWeight: "900", color: Sketch.orange },
+  // Results
+  results: { marginTop: 16, gap: 10 },
+  resultsHeader: { gap: 2, marginBottom: 4 },
+  resultsTitle: { fontSize: 17, fontWeight: "700", color: Sketch.ink },
+  resultsMeta: { fontSize: 12, fontWeight: "400", color: Sketch.inkMuted },
 
   wordCard: {
-    backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 12,
-    ...sketchShadow(3),
-  },
-  wordHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  wordThai: { flex: 1, fontSize: 34, fontWeight: "900", color: Sketch.ink },
-  soundButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Sketch.orange,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
-    borderRadius: 22,
+  wordCardLeft: { flex: 1, gap: 2 },
+  wordThai: { fontSize: 28, fontWeight: "700", color: Sketch.ink },
+  wordRoman: { fontSize: 13, fontWeight: "500", color: Sketch.inkMuted },
+  wordEnglish: { fontSize: 13, fontWeight: "400", color: Sketch.inkLight },
+  soundBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
-    ...sketchShadow(2),
+    marginLeft: 12,
   },
-  wordRoman: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Sketch.inkLight,
-    marginBottom: 6,
-  },
-  wordEnglish: { fontSize: 14, fontWeight: "500", color: Sketch.inkMuted },
 
+  // Empty state
   emptyState: {
     backgroundColor: Sketch.cardBg,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
     borderRadius: 14,
-    padding: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 24,
     alignItems: "center",
     marginTop: 16,
-    ...sketchShadow(3),
+    gap: 8,
   },
-
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: Sketch.ink,
-    marginTop: 8,
-    marginBottom: 6,
-  },
-
+  emptyTitle: { fontSize: 15, fontWeight: "600", color: Sketch.ink },
   emptyText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "400",
     color: Sketch.inkMuted,
     textAlign: "center",
-    lineHeight: 18,
+    lineHeight: 19,
   },
 });

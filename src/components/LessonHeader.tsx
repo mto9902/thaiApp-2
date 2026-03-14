@@ -1,8 +1,8 @@
+import { Sketch } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Sketch, sketchShadow } from "@/constants/theme";
 
 type LessonHeaderProps = {
   title?: string;
@@ -14,7 +14,7 @@ export default function LessonHeader({ title }: LessonHeaderProps) {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={22} color={Sketch.ink} />
+        <Ionicons name="arrow-back" size={20} color={Sketch.inkLight} />
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>
@@ -22,7 +22,7 @@ export default function LessonHeader({ title }: LessonHeaderProps) {
       </View>
 
       <TouchableOpacity style={styles.iconButton}>
-        <Ionicons name="settings-outline" size={22} color={Sketch.ink} />
+        <Ionicons name="settings-outline" size={20} color={Sketch.inkLight} />
       </TouchableOpacity>
     </View>
   );
@@ -40,28 +40,26 @@ const styles = StyleSheet.create({
 
   iconButton: {
     padding: 8,
-    borderWidth: 2,
-    borderColor: Sketch.ink,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     borderRadius: 10,
-    backgroundColor: Sketch.cardBg,
-    ...sketchShadow(2),
+    backgroundColor: Sketch.paperDark,
   },
 
   titleContainer: {
-    backgroundColor: Sketch.orange,
-    borderWidth: 2.5,
-    borderColor: Sketch.ink,
-    borderRadius: 8,
-    paddingHorizontal: 18,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    borderRadius: 10,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    ...sketchShadow(3),
   },
 
   titleText: {
-    fontWeight: "900",
-    fontSize: 15,
-    color: Sketch.cardBg,
+    fontWeight: "600",
+    fontSize: 14,
+    color: Sketch.ink,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
 });
