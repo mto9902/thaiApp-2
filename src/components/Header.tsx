@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -11,6 +11,10 @@ import {
   View,
 } from "react-native";
 import { Sketch } from "@/constants/theme";
+import {
+  getPracticeWordTrackingEnabled,
+  setPracticeWordTrackingEnabled,
+} from "../utils/practiceWordPreference";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
@@ -22,6 +26,7 @@ export type SettingsState = {
   showEnglish: boolean;
   autoplayTTS: boolean;
   ttsSpeed: "slow" | "normal" | "fast";
+  autoAddPracticeVocab: boolean;
 };
 
 type HeaderProps = {
@@ -45,38 +50,68 @@ export default function Header({
     showEnglish: true,
     autoplayTTS: false,
     ttsSpeed: "slow",
+    autoAddPracticeVocab: true,
   });
 
-  useEffect(() => {
-    (async () => {
+  const loadSettings = useCallback(async () => {
+    try {
       const [roman, english, tts, speed] = await Promise.all([
         AsyncStorage.getItem(PREF_ROMANIZATION),
         AsyncStorage.getItem(PREF_ENGLISH),
         AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
         AsyncStorage.getItem(PREF_TTS_SPEED),
       ]);
+      const autoAddPracticeVocab = await getPracticeWordTrackingEnabled();
       const s: SettingsState = {
         showRoman: roman !== null ? roman === "true" : true,
         showEnglish: english !== null ? english === "true" : true,
         autoplayTTS: tts !== null ? tts === "true" : false,
         ttsSpeed: (speed as SettingsState["ttsSpeed"]) || "slow",
+        autoAddPracticeVocab,
       };
       setSettings(s);
       onSettingsChange?.(s);
-    })();
+    } catch (err) {
+      console.error("Failed to load header settings:", err);
+    }
   }, [onSettingsChange]);
 
-  function updateSetting<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  async function updateSetting<K extends keyof SettingsState>(
+    key: K,
+    value: SettingsState[K],
+  ) {
     const next = { ...settings, [key]: value };
     setSettings(next);
     onSettingsChange?.(next);
-    const storageMap: Record<string, string> = {
+
+    if (key === "autoAddPracticeVocab") {
+      try {
+        const saved = await setPracticeWordTrackingEnabled(Boolean(value));
+        const synced = { ...next, autoAddPracticeVocab: saved };
+        setSettings(synced);
+        onSettingsChange?.(synced);
+      } catch (err) {
+        console.error("Failed to update practice word setting:", err);
+        setSettings(settings);
+        onSettingsChange?.(settings);
+      }
+      return;
+    }
+
+    const storageMap: Record<
+      Exclude<keyof SettingsState, "autoAddPracticeVocab">,
+      string
+    > = {
       showRoman: PREF_ROMANIZATION,
       showEnglish: PREF_ENGLISH,
       autoplayTTS: PREF_AUTOPLAY_TTS,
       ttsSpeed: PREF_TTS_SPEED,
     };
-    AsyncStorage.setItem(storageMap[key], String(value));
+    await AsyncStorage.setItem(storageMap[key], String(value));
   }
 
   const speedOptions: { label: string; value: SettingsState["ttsSpeed"] }[] = [
@@ -160,6 +195,21 @@ export default function Header({
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>Add Practice Words</Text>
+                <Text style={styles.settingDesc}>
+                  Save new words from grammar practice to your review deck
+                </Text>
+              </View>
+              <Switch
+                value={settings.autoAddPracticeVocab}
+                onValueChange={(v) => void updateSetting("autoAddPracticeVocab", v)}
+                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                thumbColor="white"
+              />
+            </View>
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Speech Speed</Text>
                 <Text style={styles.settingDesc}>Text-to-speech pace</Text>
               </View>
@@ -171,7 +221,7 @@ export default function Header({
                       styles.speedPill,
                       settings.ttsSpeed === opt.value && styles.speedPillActive,
                     ]}
-                    onPress={() => updateSetting("ttsSpeed", opt.value)}
+                    onPress={() => void updateSetting("ttsSpeed", opt.value)}
                   >
                     <Text
                       style={[

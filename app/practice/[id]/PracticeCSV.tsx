@@ -23,6 +23,7 @@ import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
 import { saveRound } from "../../../src/utils/grammarProgress";
+import { getPracticeWordTrackingEnabled } from "../../../src/utils/practiceWordPreference";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const TONE_COLORS: Record<string, string> = {
@@ -175,6 +176,7 @@ export default function PracticeCSV() {
   const [showEnglish, setShowEnglish] = useState(true);
   const [autoplayTTS, setAutoplayTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
+  const [autoAddPracticeVocab, setAutoAddPracticeVocab] = useState(true);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
@@ -188,14 +190,16 @@ export default function PracticeCSV() {
 
   useEffect(() => {
     (async () => {
-      const [roman, english, tts] = await Promise.all([
+      const [roman, english, tts, practiceVocab] = await Promise.all([
         AsyncStorage.getItem(PREF_ROMANIZATION),
         AsyncStorage.getItem(PREF_ENGLISH),
         AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
+        getPracticeWordTrackingEnabled(),
       ]);
       if (roman !== null) setShowRoman(roman === "true");
       if (english !== null) setShowEnglish(english === "true");
       if (tts !== null) setAutoplayTTS(tts === "true");
+      setAutoAddPracticeVocab(practiceVocab);
     })();
   }, []);
 
@@ -204,6 +208,7 @@ export default function PracticeCSV() {
     setShowEnglish(s.showEnglish);
     setAutoplayTTS(s.autoplayTTS);
     setTtsSpeed(s.ttsSpeed);
+    setAutoAddPracticeVocab(s.autoAddPracticeVocab);
   }
 
   useEffect(() => {
@@ -249,6 +254,8 @@ export default function PracticeCSV() {
     trigger: string,
     romanTokensForWords?: string[],
   ) {
+    if (!autoAddPracticeVocab) return;
+
     const guest = await isGuestUser();
     if (guest) return;
     try {

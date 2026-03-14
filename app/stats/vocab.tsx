@@ -1,18 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import { API_BASE } from "../../src/config";
+import {
+  getPracticeWordTrackingEnabled,
+  setPracticeWordTrackingEnabled,
+} from "../../src/utils/practiceWordPreference";
 
 type VocabStatsData = {
   total_words: number;
@@ -55,6 +60,8 @@ export default function VocabStatsScreen() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<VocabStatsData | null>(null);
   const [progress, setProgress] = useState<VocabProgressData | null>(null);
+  const [trackPracticeVocab, setTrackPracticeVocab] = useState(true);
+  const [savingPreference, setSavingPreference] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -76,13 +83,30 @@ export default function VocabStatsScreen() {
         statsRes.json(),
         progressRes.json(),
       ]);
+      const practiceWordSetting = await getPracticeWordTrackingEnabled();
 
       setStats(statsData);
       setProgress(progressData);
+      setTrackPracticeVocab(practiceWordSetting);
     } catch (err) {
       console.error("Failed to load vocab stats:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function togglePracticeWordTracking(value: boolean) {
+    setTrackPracticeVocab(value);
+    setSavingPreference(true);
+
+    try {
+      const saved = await setPracticeWordTrackingEnabled(value);
+      setTrackPracticeVocab(saved);
+    } catch (err) {
+      console.error("Failed to save practice word preference:", err);
+      setTrackPracticeVocab((current) => !current);
+    } finally {
+      setSavingPreference(false);
     }
   }
 
@@ -133,6 +157,31 @@ export default function VocabStatsScreen() {
               label="Reviews Today"
               value={progress?.reviews_today || 0}
             />
+          </View>
+
+          <View style={styles.preferenceCard}>
+            <View style={styles.preferenceCopy}>
+              <Text style={styles.sectionTitle}>Vocabulary SRS Import</Text>
+              <Text style={styles.preferenceText}>
+                Add new words from your grammar sessions to your deck when you
+                answer them correctly.
+              </Text>
+              <Text style={styles.preferenceStatus}>
+                {trackPracticeVocab ? "Currently on" : "Currently off"}
+              </Text>
+            </View>
+            <View style={styles.preferenceControl}>
+              {savingPreference ? (
+                <ActivityIndicator size="small" color={Sketch.orange} />
+              ) : null}
+              <Switch
+                value={trackPracticeVocab}
+                onValueChange={togglePracticeWordTracking}
+                disabled={savingPreference}
+                trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                thumbColor="white"
+              />
+            </View>
           </View>
 
           <View style={styles.sectionCard}>
@@ -233,6 +282,37 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.inkMuted,
     marginTop: 4,
+  },
+  preferenceCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 18,
+  },
+  preferenceCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  preferenceText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Sketch.inkLight,
+  },
+  preferenceStatus: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.orange,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  preferenceControl: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   sectionCard: {
     backgroundColor: Sketch.cardBg,
