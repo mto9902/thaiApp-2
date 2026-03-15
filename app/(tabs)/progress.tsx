@@ -13,9 +13,9 @@ import Svg, { Circle } from "react-native-svg";
 import { Sketch } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
 import {
-  CEFR_LEVEL_META,
-  CEFR_LEVELS,
-} from "../../src/data/grammarLevels";
+  GRAMMAR_STAGE_META,
+  GRAMMAR_STAGES,
+} from "../../src/data/grammarStages";
 import {
   getAllProgress,
   GrammarProgressData,
@@ -59,6 +59,9 @@ function ProgressRing({ percent, size = 72, strokeWidth = 6 }: { percent: number
 export default function GrammarScreen() {
   const router = useRouter();
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
+  const stages = GRAMMAR_STAGES.filter((stage) =>
+    grammarPoints.some((point) => point.stage === stage),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -92,11 +95,11 @@ export default function GrammarScreen() {
 
         <View style={styles.spacingLg} />
 
-        {/* 2x2 Grid */}
+        {/* Stage Grid */}
         <View style={styles.grid}>
-          {CEFR_LEVELS.map((level) => {
-            const meta = CEFR_LEVEL_META[level];
-            const points = grammarPoints.filter((g) => g.level === level);
+          {stages.map((stage) => {
+            const meta = GRAMMAR_STAGE_META[stage];
+            const points = grammarPoints.filter((g) => g.stage === stage);
             const practiced = points.filter((g) =>
               isGrammarPracticed(progress[g.id]),
             ).length;
@@ -104,13 +107,14 @@ export default function GrammarScreen() {
 
             return (
               <TouchableOpacity
-                key={level}
+                key={stage}
                 style={styles.gridTile}
-                onPress={() => router.push(`/practice/CSVGrammarIndex?level=${level}` as any)}
+                onPress={() => router.push(`/practice/CSVGrammarIndex?stage=${stage}` as any)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.tileLevel}>{level}</Text>
-                <Text style={styles.tileTitle} numberOfLines={2}>{meta.homeTitle}</Text>
+                <Text style={styles.tileLevel}>{stage}</Text>
+                <Text style={styles.tileTitle} numberOfLines={2}>{meta.shortTitle}</Text>
+                <Text style={styles.tileSubtitle} numberOfLines={2}>{meta.subtitle}</Text>
 
                 <View style={styles.tileProgressRow}>
                   <View style={styles.tileProgressBar}>
@@ -219,6 +223,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Sketch.ink,
     lineHeight: 19,
+  },
+  tileSubtitle: {
+    fontSize: 11,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+    lineHeight: 15,
     flex: 1,
   },
   tileProgressRow: {

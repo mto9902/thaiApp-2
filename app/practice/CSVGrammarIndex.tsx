@@ -19,18 +19,29 @@ import { Sketch } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
 import {
+  GRAMMAR_STAGE_META,
+  GRAMMAR_STAGES,
+  GrammarStage,
+} from "../../src/data/grammarStages";
+import {
   getAllProgress,
   GrammarProgressData,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 
 export default function CSVGrammarIndex() {
   const router = useRouter();
-  const { level } = useLocalSearchParams<{ level?: string }>();
+  const { level, stage } = useLocalSearchParams<{ level?: string; stage?: string }>();
   const rawLevel = Array.isArray(level) ? level[0] : level;
+  const rawStage = Array.isArray(stage) ? stage[0] : stage;
   const selectedLevel =
     rawLevel && rawLevel in CEFR_LEVEL_META
       ? (rawLevel as CefrLevel)
+      : undefined;
+  const selectedStage =
+    rawStage && GRAMMAR_STAGES.includes(rawStage as GrammarStage)
+      ? (rawStage as GrammarStage)
       : undefined;
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
 
@@ -41,11 +52,13 @@ export default function CSVGrammarIndex() {
   );
 
   const filtered = useMemo(() => {
+    if (selectedStage) return grammarPoints.filter((p) => p.stage === selectedStage);
     if (!selectedLevel) return grammarPoints;
     return grammarPoints.filter((p) => p.level === selectedLevel);
-  }, [selectedLevel]);
+  }, [selectedLevel, selectedStage]);
 
-  const meta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
+  const levelMeta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
+  const stageMeta = selectedStage ? GRAMMAR_STAGE_META[selectedStage] : null;
   const practiced = filtered.filter((g) =>
     isGrammarPracticed(progress[g.id]),
   ).length;
@@ -60,7 +73,11 @@ export default function CSVGrammarIndex() {
           <Ionicons name="arrow-back" size={22} color={Sketch.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {selectedLevel ? `${selectedLevel} Grammar` : "Grammar"}
+          {selectedStage
+            ? stageMeta?.title ?? "Grammar"
+            : selectedLevel
+              ? `${selectedLevel} Grammar`
+              : "Grammar"}
         </Text>
         <View style={{ width: 38 }} />
       </View>
@@ -71,9 +88,25 @@ export default function CSVGrammarIndex() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          meta ? (
+          stageMeta ? (
             <View style={styles.levelSummary}>
-              <Text style={styles.levelTitle}>{meta.homeTitle}</Text>
+              <Text style={styles.levelTitle}>{stageMeta.title}</Text>
+              <Text style={styles.levelSubtitle}>
+                {stageMeta.subtitle}
+              </Text>
+              <Text style={styles.progressHint}>
+                {practiced} of {filtered.length} topics practiced
+              </Text>
+              <View style={styles.summaryProgressRow}>
+                <View style={styles.summaryProgressBar}>
+                  <View style={[styles.summaryProgressFill, { width: `${percentage}%` }]} />
+                </View>
+                <Text style={styles.summaryPercent}>{percentage}%</Text>
+              </View>
+            </View>
+          ) : levelMeta ? (
+            <View style={styles.levelSummary}>
+              <Text style={styles.levelTitle}>{levelMeta.homeTitle}</Text>
               <Text style={styles.levelSubtitle}>
                 {practiced} of {filtered.length} topics practiced
               </Text>
@@ -88,6 +121,7 @@ export default function CSVGrammarIndex() {
         }
         renderItem={({ item, index }) => {
           const done = isGrammarPracticed(progress[item.id]);
+          const cardCopy = getGrammarCardCopy(item);
           return (
             <TouchableOpacity
               style={styles.card}
@@ -101,9 +135,13 @@ export default function CSVGrammarIndex() {
                   </Text>
                 </View>
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {cardCopy.title}
+                  </Text>
                   <View style={styles.patternRow}>
-                    <Text style={styles.patternText}>{item.pattern}</Text>
+                    <Text style={styles.patternText} numberOfLines={2}>
+                      {cardCopy.pattern}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.cardRight}>
@@ -119,10 +157,12 @@ export default function CSVGrammarIndex() {
 
               <View style={styles.cardBottom}>
                 <View style={styles.focusPill}>
-                  <Text style={styles.focusParticle}>{item.focus.particle}</Text>
+                  <Text style={styles.focusParticle} numberOfLines={1}>
+                    {cardCopy.focus}
+                  </Text>
                 </View>
-                <Text style={styles.focusMeaning}>
-                  {item.focus.meaning}
+                <Text style={styles.focusMeaning} numberOfLines={2}>
+                  {cardCopy.meaning}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -166,6 +206,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   levelSubtitle: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: Sketch.inkMuted,
+  },
+  progressHint: {
     fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
@@ -236,6 +281,7 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
     gap: 6,
+    minWidth: 0,
   },
   cardTitle: {
     fontSize: 16,
@@ -249,12 +295,14 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 6,
     alignSelf: "flex-start",
+    maxWidth: "100%",
   },
   patternText: {
     fontSize: 11,
     fontWeight: "600",
     color: Sketch.inkLight,
     letterSpacing: 0.3,
+    flexShrink: 1,
   },
   cardRight: {
     paddingTop: 2,
@@ -269,9 +317,9 @@ const styles = StyleSheet.create({
   },
   // Bottom row — focus particle
   cardBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 8,
     paddingLeft: 28 + 12, // align with content after number
   },
   focusPill: {
@@ -289,6 +337,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    flex: 1,
+    lineHeight: 17,
+    width: "100%",
   },
 });

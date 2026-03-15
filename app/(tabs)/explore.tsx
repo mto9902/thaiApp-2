@@ -17,6 +17,7 @@ import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
 import { isGuestUser } from "../../src/utils/auth";
+import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 import {
   GrammarProgressData,
   getAllProgress,
@@ -123,6 +124,7 @@ export default function DecksScreen() {
   function renderCard(item: GrammarPoint) {
     const p = progress[item.id];
     const practiced = isGrammarPracticed(p);
+    const cardCopy = getGrammarCardCopy(item);
 
     return (
       <TouchableOpacity
@@ -133,12 +135,14 @@ export default function DecksScreen() {
       >
         <View style={styles.cardTop}>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelBadgeText}>{item.level}</Text>
+            <Text style={styles.levelBadgeText}>{item.stage}</Text>
           </View>
           <Ionicons name="bookmark" size={15} color={Sketch.orange} />
         </View>
 
-        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {cardCopy.title}
+        </Text>
 
         {practiced && p ? (
           <View style={styles.statsRow}>

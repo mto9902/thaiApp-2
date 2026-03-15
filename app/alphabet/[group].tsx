@@ -37,25 +37,25 @@ const GROUP_META: Record<
     badge: "Group 1",
     title: "Mid Class",
     description:
-      "Core consonants with balanced tone behavior. Learn the shape, name, and base sound together.",
+      "Mid class consonants are the baseline for Thai tone rules and provide a strong foundation for reading.",
   },
   2: {
     badge: "Group 2",
     title: "High Class",
     description:
-      "Sharp, high-class consonants that show up often in tone patterns and spelling rules.",
+      "High class consonants play an important role in tone reading and help you notice how Thai spelling affects pronunciation.",
   },
   3: {
     badge: "Group 3",
     title: "Low Class I",
     description:
-      "The first low-class set. Focus on recognition first, then use practice mode to lock in the sounds.",
+      "This first low class set appears often in everyday Thai and is worth learning early for stronger recognition.",
   },
   4: {
     badge: "Group 4",
     title: "Low Class II",
     description:
-      "The second low-class set. This group is bigger, so the grid stays compact for quick scanning on mobile.",
+      "This second low class set completes the low-class family and makes tone contrasts across consonant classes easier to understand.",
   },
 };
 
@@ -112,8 +112,8 @@ export default function AlphabetLesson() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Tap any card to hear the letter name.</Text>
           <Text style={styles.sectionSubtitle}>
-            Each card keeps the sound and a quick example visible so it is easy
-            to scan on a phone.
+            Use this set to connect the letter, its Thai name, and a simple
+            example before you move into practice.
           </Text>
         </View>
 

@@ -13,9 +13,9 @@ import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import { grammarPoints } from "../../src/data/grammar";
 import {
-  CEFR_LEVEL_META,
-  CEFR_LEVELS,
-} from "../../src/data/grammarLevels";
+  GRAMMAR_STAGE_META,
+  GRAMMAR_STAGES,
+} from "../../src/data/grammarStages";
 import {
   getAllProgress,
   GrammarProgressData,
@@ -23,8 +23,8 @@ import {
 } from "../../src/utils/grammarProgress";
 import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
 
-type LevelSummary = {
-  level: string;
+type StageSummary = {
+  stage: string;
   title: string;
   practiced: number;
   total: number;
@@ -104,8 +104,10 @@ export default function GrammarStatsScreen() {
       ? sortedPracticeDates[sortedPracticeDates.length - 1]
       : undefined;
 
-  const levelSummaries: LevelSummary[] = CEFR_LEVELS.map((level) => {
-    const points = grammarPoints.filter((item) => item.level === level);
+  const stageSummaries: StageSummary[] = GRAMMAR_STAGES.filter((stage) =>
+    grammarPoints.some((item) => item.stage === stage),
+  ).map((stage) => {
+    const points = grammarPoints.filter((item) => item.stage === stage);
     const levelProgress = points
       .map((item) => progress[item.id])
       .filter(isGrammarPracticed);
@@ -115,8 +117,8 @@ export default function GrammarStatsScreen() {
     const attempts = levelProgress.reduce((sum, item) => sum + item.total, 0);
 
     return {
-      level,
-      title: CEFR_LEVEL_META[level].homeTitle,
+      stage,
+      title: GRAMMAR_STAGE_META[stage].title,
       practiced,
       total: points.length,
       rounds,
@@ -172,8 +174,8 @@ export default function GrammarStatsScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>By level</Text>
-            {levelSummaries.map((item, index) => {
+            <Text style={styles.sectionTitle}>By stage</Text>
+            {stageSummaries.map((item, index) => {
               const accent = LEVEL_ACCENTS[index % LEVEL_ACCENTS.length];
               const percentage =
                 item.total > 0
@@ -181,10 +183,10 @@ export default function GrammarStatsScreen() {
                   : 0;
 
               return (
-                <View key={item.level} style={styles.levelCard}>
+                <View key={item.stage} style={styles.levelCard}>
                   <View style={styles.levelHeader}>
                     <Text style={[styles.levelTag, { color: accent }]}>
-                      {item.level}
+                      {item.stage}
                     </Text>
                     <Text style={[styles.levelRounds, { color: accent }]}>
                       {item.rounds} rounds

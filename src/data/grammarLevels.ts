@@ -14,31 +14,31 @@ export const CEFR_LEVEL_META: Record<
   A1: {
     label: "A1",
     title: "A1 Foundations",
-    subtitle: "Core sentence patterns, simple questions, and polite basics",
+    subtitle: "Personal details, time, movement, requests, quantity, and location for survival Thai",
     homeTitle: "A1 Foundations",
   },
   A2: {
     label: "A2",
     title: "A2 Everyday Thai",
-    subtitle: "Identity, location, possession, and counting in daily situations",
+    subtitle: "Time, comparison, permission, advice, feelings, and more connected daily Thai",
     homeTitle: "A2 Everyday Thai",
   },
   B1: {
     label: "B1",
     title: "B1 Connected Thai",
-    subtitle: "Time, aspect, sequencing, and giving reasons",
+    subtitle: "Cause, contrast, sequencing, opinion, and richer connected Thai",
     homeTitle: "B1 Connected Thai",
   },
   B2: {
     label: "B2",
     title: "B2 Independent Thai",
-    subtitle: "Comparison, clause linking, and more precise sentence building",
+    subtitle: "Discourse markers, modality, emphasis, and more controlled nuance",
     homeTitle: "B2 Independent Thai",
   },
   C1: {
     label: "C1",
     title: "C1 Nuanced Thai",
-    subtitle: "Reported ideas, passives, purpose, and concession",
+    subtitle: "Cause and result, concession, and more nuanced inference",
     homeTitle: "C1 Nuanced Thai",
   },
   C2: {

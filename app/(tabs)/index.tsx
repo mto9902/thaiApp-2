@@ -19,10 +19,10 @@ import KeystoneLogo from "../../src/components/KeystoneLogo";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import {
-  CEFR_LEVEL_META,
-  CEFR_LEVELS,
-  CefrLevel,
-} from "../../src/data/grammarLevels";
+  GRAMMAR_STAGE_META,
+  GRAMMAR_STAGES,
+  GrammarStage,
+} from "../../src/data/grammarStages";
 import {
   getAllProgress,
   isGrammarPracticed,
@@ -48,7 +48,7 @@ function localDateKey(d: Date): string {
 const HEATMAP_COLORS = ["#E8E8E8", "#D0D0D0", "#B0B0B0", "#888888", "#555555"];
 
 type ModuleInfo = {
-  level: CefrLevel;
+  stage: GrammarStage;
   title: string;
   grammarIds: string[];
 };
@@ -68,10 +68,12 @@ function formatReviewDelay(nextDueAt: string): string {
 }
 
 const MODULES: ModuleInfo[] = [
-  ...CEFR_LEVELS.map((level) => ({
-    level,
-    title: CEFR_LEVEL_META[level].homeTitle,
-    grammarIds: grammarPoints.filter((g) => g.level === level).map((g) => g.id),
+  ...GRAMMAR_STAGES.filter((stage) =>
+    grammarPoints.some((g) => g.stage === stage),
+  ).map((stage) => ({
+    stage,
+    title: GRAMMAR_STAGE_META[stage].shortTitle,
+    grammarIds: grammarPoints.filter((g) => g.stage === stage).map((g) => g.id),
   })),
 ];
 
@@ -427,17 +429,17 @@ export default function HomeScreen() {
                 if (moduleProgress[i] === 0) return null;
                 return (
                   <TouchableOpacity
-                    key={mod.level}
+                    key={mod.stage}
                     style={styles.moduleCard}
                     onPress={() =>
                       router.push(
-                        `/practice/CSVGrammarIndex?level=${mod.level}` as any,
+                        `/practice/CSVGrammarIndex?stage=${mod.stage}` as any,
                       )
                     }
                     activeOpacity={0.7}
                   >
                     <View style={styles.moduleCardHeader}>
-                      <Text style={styles.moduleLevel}>{mod.level}</Text>
+                      <Text style={styles.moduleLevel}>{mod.stage}</Text>
                     </View>
                     <Text style={styles.moduleTitle}>{mod.title}</Text>
                     <View style={styles.progressContainer}>
@@ -469,7 +471,7 @@ export default function HomeScreen() {
                   Begin your grammar journey
                 </Text>
                 <Text style={styles.startGrammarSub}>
-                  Explore Thai grammar from A1 to C1
+                  Explore Thai grammar from A1.1 onward
                 </Text>
               </View>
               <Ionicons

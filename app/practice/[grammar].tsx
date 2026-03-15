@@ -17,7 +17,6 @@ import LessonHeader from "../../src/components/LessonHeader";
 import ToneGuide, { ToneGuideButton } from "../../src/components/ToneGuide";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
-import { CEFR_LEVEL_META } from "../../src/data/grammarLevels";
 import { isGuestUser } from "../../src/utils/auth";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
@@ -116,7 +115,7 @@ export default function GrammarDetail() {
         <View style={styles.titleSection}>
           <View style={styles.levelBadge}>
             <Text style={styles.levelText}>
-              {CEFR_LEVEL_META[grammarPoint.level].label}
+              {grammarPoint.stage}
             </Text>
           </View>
           <View style={styles.titleCard}>

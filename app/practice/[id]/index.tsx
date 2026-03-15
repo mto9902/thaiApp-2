@@ -25,7 +25,6 @@ import Header from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
-import { CEFR_LEVEL_META } from "../../../src/data/grammarLevels";
 import { isGuestUser } from "../../../src/utils/auth";
 import { getToneAccent } from "../../../src/utils/toneAccent";
 
@@ -151,7 +150,7 @@ export default function GrammarDetail() {
         {/* Level + Title */}
         <View style={styles.titleSection}>
           <Text style={styles.levelLabel}>
-            {CEFR_LEVEL_META[grammar.level].label}
+            {grammar.stage}
           </Text>
           <Text style={styles.title}>{grammar.title}</Text>
         </View>

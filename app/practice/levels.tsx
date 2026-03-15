@@ -6,13 +6,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../src/components/Header";
 import { grammarPoints } from "../../src/data/grammar";
 import {
-  CEFR_LEVEL_META,
-  CEFR_LEVELS,
-  CefrLevel,
-} from "../../src/data/grammarLevels";
+  GRAMMAR_STAGE_META,
+  GRAMMAR_STAGES,
+  GrammarStage,
+} from "../../src/data/grammarStages";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
-const LEVEL_COLORS: Record<CefrLevel, string> = {
+const LEVEL_COLORS = {
   A1: Sketch.green,
   A2: Sketch.blue,
   B1: Sketch.orange,
@@ -21,7 +21,7 @@ const LEVEL_COLORS: Record<CefrLevel, string> = {
   C2: Sketch.pink,
 };
 
-const LEVEL_ICONS: Record<CefrLevel, keyof typeof Ionicons.glyphMap> = {
+const LEVEL_ICONS = {
   A1: "leaf-outline",
   A2: "sparkles-outline",
   B1: "trending-up-outline",
@@ -30,50 +30,50 @@ const LEVEL_ICONS: Record<CefrLevel, keyof typeof Ionicons.glyphMap> = {
   C2: "diamond-outline",
 };
 
-function getLevels() {
-  const levelMap = new Map<CefrLevel, number>();
+function getStages() {
+  const stageMap = new Map<GrammarStage, number>();
   for (const point of grammarPoints) {
-    levelMap.set(point.level, (levelMap.get(point.level) || 0) + 1);
+    stageMap.set(point.stage, (stageMap.get(point.stage) || 0) + 1);
   }
-  return CEFR_LEVELS.filter((level) => levelMap.has(level)).map((level) => ({
-    level,
-    count: levelMap.get(level) || 0,
+  return GRAMMAR_STAGES.filter((stage) => stageMap.has(stage)).map((stage) => ({
+    stage,
+    count: stageMap.get(stage) || 0,
   }));
 }
 
 export default function GrammarLevels() {
   const router = useRouter();
-  const levels = getLevels();
+  const stages = getStages();
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
-      <Header title="CEFR Grammar Levels" onBack={() => router.back()} />
+      <Header title="Grammar Stages" onBack={() => router.back()} />
 
       <FlatList
-        data={levels}
-        keyExtractor={(item) => String(item.level)}
+        data={stages}
+        keyExtractor={(item) => String(item.stage)}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.card,
-              { backgroundColor: LEVEL_COLORS[item.level] || Sketch.blue },
+              { backgroundColor: LEVEL_COLORS[GRAMMAR_STAGE_META[item.stage].level] || Sketch.blue },
             ]}
             onPress={() =>
-              router.push(`/practice/CSVGrammarIndex?level=${item.level}`)
+              router.push(`/practice/CSVGrammarIndex?stage=${item.stage}`)
             }
           >
               <View style={styles.cardHeader}>
               <View style={styles.textContainer}>
-                <Text style={styles.levelLabel}>CEFR {item.level}</Text>
+                <Text style={styles.levelLabel}>{item.stage}</Text>
                 <Text style={styles.grammarTitle}>
-                  {CEFR_LEVEL_META[item.level].title.toUpperCase()}
+                  {GRAMMAR_STAGE_META[item.stage].shortTitle.toUpperCase()}
                 </Text>
               </View>
 
               <View style={styles.iconContainer}>
                 <Ionicons
-                  name={LEVEL_ICONS[item.level] || "book-outline"}
+                  name={LEVEL_ICONS[GRAMMAR_STAGE_META[item.stage].level] || "book-outline"}
                   size={22}
                   color={Sketch.ink}
                 />

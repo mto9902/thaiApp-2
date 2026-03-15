@@ -37,37 +37,37 @@ const GROUP_META: Record<
     badge: "Group 1",
     title: "Before Consonant",
     description:
-      "These vowels appear in front of the consonant shape, even when the sound unfolds after it.",
+      "These vowels are written before the consonant and introduce Thai's visual order on the page.",
   },
   2: {
     badge: "Group 2",
     title: "After Consonant",
     description:
-      "Start with the cleanest patterns first. This group is ideal for quick sound mapping practice.",
+      "These vowels appear after the consonant and are some of the most straightforward patterns to read in Thai.",
   },
   3: {
     badge: "Group 3",
     title: "Above Consonant",
     description:
-      "Compact vowel marks that sit above the consonant. The cards stay roomy so the marks remain legible.",
+      "These vowels sit above the consonant and train your eye to notice marks that can be easy to overlook at first.",
   },
   4: {
     badge: "Group 4",
     title: "Below Consonant",
     description:
-      "Below-consonant vowels are small but important. Use the larger previews here before jumping into drills.",
+      "These vowels sit below the consonant and benefit from slower study until they become easier to spot in real words.",
   },
   5: {
     badge: "Group 5",
     title: "Around Consonant I",
     description:
-      "These patterns wrap the consonant from more than one side, so this screen focuses on visual pattern recognition.",
+      "These vowel patterns wrap around the consonant from more than one side and are best learned as full shapes.",
   },
   6: {
     badge: "Group 6",
     title: "Around Consonant II",
     description:
-      "Longer surrounding patterns with more moving parts. The larger cards help each component stay readable.",
+      "This group continues the surrounding vowel patterns and helps you read longer spellings as one complete unit.",
   },
 };
 
@@ -129,8 +129,8 @@ export default function VowelLesson() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Tap a card to hear the vowel.</Text>
           <Text style={styles.sectionSubtitle}>
-            The example is large and color-coded so the vowel pattern is easier
-            to spot at a glance.
+            Focus on where the vowel sits around the consonant and how that
+            pattern sounds in a real syllable.
           </Text>
         </View>
 
