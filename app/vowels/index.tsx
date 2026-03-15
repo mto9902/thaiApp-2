@@ -37,9 +37,7 @@ function VowelGroupCard({
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.82}>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>Group {group}</Text>
-      </View>
+      <Text style={styles.eyebrow}>Group {group}</Text>
 
       <Text style={styles.cardTitle}>{title}</Text>
       <Text style={styles.cardSubtitle}>{subtitle}</Text>
@@ -152,20 +150,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
-  badge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: Sketch.orange + "12",
-    marginBottom: 12,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
     color: Sketch.orange,
+    marginBottom: 10,
   },
   cardTitle: {
     fontSize: 22,

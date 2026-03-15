@@ -24,10 +24,7 @@ function EntryCard({
       onPress={onPress}
       activeOpacity={0.82}
     >
-      <View style={styles.entryAccent} />
-      <View style={styles.entryBadge}>
-        <Text style={styles.entryBadgeText}>{eyebrow}</Text>
-      </View>
+      <Text style={styles.entryEyebrow}>{eyebrow}</Text>
       <Text style={styles.entryTitle}>{title}</Text>
       <Text style={styles.entrySubtitle}>{subtitle}</Text>
 
@@ -132,27 +129,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
-  entryAccent: {
-    width: 40,
-    height: 3,
-    borderRadius: 999,
-    backgroundColor: Sketch.orange,
-    marginBottom: 14,
-  },
-  entryBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: Sketch.orange + "12",
-    marginBottom: 12,
-  },
-  entryBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+  entryEyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
     color: Sketch.orange,
+    marginBottom: 10,
   },
   entryTitle: {
     fontSize: 28,
