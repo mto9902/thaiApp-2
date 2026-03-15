@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ScrollView,
@@ -87,6 +87,7 @@ export default function HomeScreen() {
   const [overallGrammarProgress, setOverallGrammarProgress] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [reviewStatusText, setReviewStatusText] = useState("You're caught up");
+  const [progressPage, setProgressPage] = useState(0);
 
   const checkAuth = useCallback(async () => {
     const allowed = await canAccessApp();
@@ -131,6 +132,52 @@ export default function HomeScreen() {
       console.error("Failed to load progress:", err);
     }
   }
+
+  const progressCards = useMemo(() => {
+    const cards: {
+      key: string;
+      label: string;
+      title: string;
+      percent: number;
+      route: string;
+    }[] = [];
+
+    if (moduleProgress.some((p) => p > 0)) {
+      cards.push({
+        key: "overview",
+        label: "Overview",
+        title: "All Grammar",
+        percent: overallGrammarProgress,
+        route: "/progress",
+      });
+
+      MODULES.forEach((mod, i) => {
+        if (moduleProgress[i] === 0) return;
+        cards.push({
+          key: mod.stage,
+          label: mod.stage,
+          title: mod.title,
+          percent: moduleProgress[i],
+          route: `/practice/CSVGrammarIndex?stage=${mod.stage}`,
+        });
+      });
+    }
+
+    return cards;
+  }, [moduleProgress, overallGrammarProgress]);
+
+  const progressPageCount = Math.ceil(progressCards.length / 3);
+  const visibleProgressCards = progressCards.slice(
+    progressPage * 3,
+    progressPage * 3 + 3,
+  );
+
+  useEffect(() => {
+    setProgressPage((current) => {
+      if (progressPageCount === 0) return 0;
+      return Math.min(current, progressPageCount - 1);
+    });
+  }, [progressPageCount]);
 
   async function loadReviewStatus() {
     try {
@@ -397,67 +444,86 @@ export default function HomeScreen() {
 
         {/* Grammar Modules */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
+          <View style={styles.progressSectionHeader}>
+            <Text style={styles.sectionTitle}>Your Progress</Text>
+            {progressPageCount > 1 ? (
+              <View style={styles.progressPager}>
+                <TouchableOpacity
+                  style={[
+                    styles.progressPagerButton,
+                    progressPage === 0 && styles.progressPagerButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    setProgressPage((current) => Math.max(0, current - 1))
+                  }
+                  activeOpacity={0.75}
+                  disabled={progressPage === 0}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={16}
+                    color={progressPage === 0 ? Sketch.inkFaint : Sketch.inkMuted}
+                  />
+                </TouchableOpacity>
+                <Text style={styles.progressPagerText}>
+                  {progressPage + 1}/{progressPageCount}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.progressPagerButton,
+                    progressPage >= progressPageCount - 1 &&
+                      styles.progressPagerButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    setProgressPage((current) =>
+                      Math.min(progressPageCount - 1, current + 1),
+                    )
+                  }
+                  activeOpacity={0.75}
+                  disabled={progressPage >= progressPageCount - 1}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={
+                      progressPage >= progressPageCount - 1
+                        ? Sketch.inkFaint
+                        : Sketch.inkMuted
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
 
           {moduleProgress.some((p) => p > 0) ? (
             <View style={styles.modulesGrid}>
-              <TouchableOpacity
-                style={styles.moduleCard}
-                onPress={() => router.push("/progress" as any)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.moduleCardHeader}>
-                  <Text style={styles.moduleLevel}>Overview</Text>
-                </View>
-                <Text style={styles.moduleTitle}>All Grammar</Text>
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${overallGrammarProgress}%` },
-                      ]}
-                    />
+              {visibleProgressCards.map((card) => (
+                <TouchableOpacity
+                  key={card.key}
+                  style={styles.moduleCard}
+                  onPress={() => router.push(card.route as any)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.moduleCardHeader}>
+                    <Text style={styles.moduleLevel}>{card.label}</Text>
                   </View>
-                  <Text style={styles.progressPercent}>
-                    {overallGrammarProgress}%
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {MODULES.map((mod, i) => {
-                if (moduleProgress[i] === 0) return null;
-                return (
-                  <TouchableOpacity
-                    key={mod.stage}
-                    style={styles.moduleCard}
-                    onPress={() =>
-                      router.push(
-                        `/practice/CSVGrammarIndex?stage=${mod.stage}` as any,
-                      )
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.moduleCardHeader}>
-                      <Text style={styles.moduleLevel}>{mod.stage}</Text>
+                  <Text style={styles.moduleTitle}>{card.title}</Text>
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${card.percent}%` },
+                        ]}
+                      />
                     </View>
-                    <Text style={styles.moduleTitle}>{mod.title}</Text>
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBar}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            { width: `${moduleProgress[i]}%` },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.progressPercent}>
-                        {moduleProgress[i]}%
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                    <Text style={styles.progressPercent}>
+                      {card.percent}%
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           ) : (
             <TouchableOpacity
@@ -597,6 +663,12 @@ const styles = StyleSheet.create({
   section: {
     gap: 16,
   },
+  progressSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -611,6 +683,31 @@ const styles = StyleSheet.create({
   sectionHint: {
     fontSize: 11,
     fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  progressPager: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  progressPagerButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+  },
+  progressPagerButtonDisabled: {
+    opacity: 0.6,
+  },
+  progressPagerText: {
+    minWidth: 34,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "600",
     color: Sketch.inkMuted,
   },
   heatmapCard: {

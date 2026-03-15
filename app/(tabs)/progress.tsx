@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  InteractionManager,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -66,11 +68,16 @@ function ProgressRing({ percent, size = 72, strokeWidth = 6 }: { percent: number
 
 export default function GrammarScreen() {
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const levelOffsetsRef = useRef<Partial<Record<CefrLevel, number>>>({});
+  const hasAutoScrolledRef = useRef(false);
+  const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
   const [expandedLevels, setExpandedLevels] = useState<
     Partial<Record<CefrLevel, boolean>>
   >({});
   const [hasManualLevelToggle, setHasManualLevelToggle] = useState(false);
+  const [focusTick, setFocusTick] = useState(0);
   const stageSummaries = useMemo(
     () => buildStageProgressSummaries(grammarPoints, progress),
     [progress],
@@ -129,8 +136,10 @@ export default function GrammarScreen() {
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
+      hasAutoScrolledRef.current = false;
       setExpandedLevels({});
       setHasManualLevelToggle(false);
+      setFocusTick((current) => current + 1);
 
       getAllProgress().then((nextProgress) => {
         if (!isActive) return;
@@ -159,9 +168,68 @@ export default function GrammarScreen() {
     }));
   };
 
+  const openStage = (stage: string) => {
+    router.push(`/practice/CSVGrammarIndex?stage=${stage}` as any);
+  };
+
+  const clearAutoScrollTimeout = useCallback(() => {
+    if (autoScrollTimeoutRef.current) {
+      clearTimeout(autoScrollTimeoutRef.current);
+      autoScrollTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scrollToRecommendedLevel = useCallback(() => {
+    if (!recommendedLevel || hasManualLevelToggle || hasAutoScrolledRef.current) {
+      return;
+    }
+
+    const targetY = levelOffsetsRef.current[recommendedLevel];
+    if (typeof targetY !== "number") return;
+
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(0, targetY - 12),
+      animated: true,
+    });
+    hasAutoScrolledRef.current = true;
+  }, [hasManualLevelToggle, recommendedLevel]);
+
+  const scheduleAutoScroll = useCallback(() => {
+    if (!recommendedLevel || hasManualLevelToggle || hasAutoScrolledRef.current) {
+      return;
+    }
+
+    clearAutoScrollTimeout();
+    autoScrollTimeoutRef.current = setTimeout(() => {
+      InteractionManager.runAfterInteractions(() => {
+        scrollToRecommendedLevel();
+      });
+    }, 80);
+  }, [
+    clearAutoScrollTimeout,
+    hasManualLevelToggle,
+    recommendedLevel,
+    scrollToRecommendedLevel,
+  ]);
+
+  useEffect(() => {
+    scheduleAutoScroll();
+
+    return () => {
+      clearAutoScrollTimeout();
+    };
+  }, [clearAutoScrollTimeout, focusTick, scheduleAutoScroll]);
+
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {
+          scheduleAutoScroll();
+        }}
+      >
         <Text style={styles.pageTitle}>Grammar</Text>
 
         <View style={styles.spacing} />
@@ -184,12 +252,16 @@ export default function GrammarScreen() {
             const isExpanded =
               expandedLevels[section.level] ??
               (!hasManualLevelToggle && section.isRecommended);
-            const recommendedStageMeta = section.recommendedStageSummary
-              ? GRAMMAR_STAGE_META[section.recommendedStageSummary.stage]
-              : null;
 
             return (
-              <View key={section.level} style={styles.levelCard}>
+              <View
+                key={section.level}
+                style={styles.levelCard}
+                onLayout={(event) => {
+                  levelOffsetsRef.current[section.level] = event.nativeEvent.layout.y;
+                  scheduleAutoScroll();
+                }}
+              >
                 <TouchableOpacity
                   style={styles.levelHeader}
                   onPress={() => toggleLevel(section.level)}
@@ -211,15 +283,11 @@ export default function GrammarScreen() {
                     </View>
                   </View>
 
-                  {section.isRecommended && recommendedStageMeta ? (
-                    <View style={styles.continueBlock}>
-                      <Text style={styles.continueLine}>
-                        <Text style={styles.continueLabel}>Recommended:</Text>{" "}
-                        {section.recommendedStageSummary?.stage}{" "}
-                        {recommendedStageMeta.shortTitle}
-                      </Text>
-                    </View>
-                  ) : null}
+                    {section.isRecommended && section.recommendedStageSummary ? (
+                      <View style={styles.continueBlock}>
+                        <Text style={styles.continueLabel}>RECOMMENDED</Text>
+                      </View>
+                    ) : null}
 
                   <Text style={styles.levelSubtitle}>{section.meta.subtitle}</Text>
 
@@ -250,28 +318,40 @@ export default function GrammarScreen() {
                         stageSummary.stage === recommendedStage;
 
                       return (
-                        <TouchableOpacity
-                          key={stageSummary.stage}
-                          style={styles.stageRow}
-                          onPress={() =>
-                            router.push(
-                              `/practice/CSVGrammarIndex?stage=${stageSummary.stage}` as any,
-                            )
-                          }
-                          activeOpacity={0.76}
-                        >
-                          <View style={styles.stageRowTop}>
-                            <View style={styles.stageHeading}>
-                              <View style={styles.stageMetaRow}>
-                                <Text style={styles.stageLabel}>{stageSummary.stage}</Text>
-                                {isRecommendedStage ? (
-                                  <Text style={styles.stageRecommended}>
-                                    Recommended
-                                  </Text>
-                                ) : null}
+                          <TouchableOpacity
+                            key={stageSummary.stage}
+                            style={styles.stageRow}
+                            onPress={() => openStage(stageSummary.stage)}
+                            activeOpacity={0.76}
+                          >
+                            <View style={styles.stageRowTop}>
+                              <View style={styles.stageHeading}>
+                                <View style={styles.stageMetaRow}>
+                                  <Text style={styles.stageLabel}>{stageSummary.stage}</Text>
+                                </View>
+                                <View style={styles.stageTitleRow}>
+                                  <Text style={styles.stageTitle}>{meta.shortTitle}</Text>
+                                  {isRecommendedStage ? (
+                                    <Pressable
+                                      onPress={(event) => {
+                                        event.stopPropagation();
+                                        openStage(stageSummary.stage);
+                                      }}
+                                      style={({ pressed }) => [
+                                        styles.stageContinueButton,
+                                        pressed && styles.stageContinueButtonPressed,
+                                      ]}
+                                    >
+                                      <Text style={styles.stageContinueText}>Continue</Text>
+                                      <Ionicons
+                                        name="chevron-forward"
+                                        size={13}
+                                        color={Sketch.orange}
+                                      />
+                                    </Pressable>
+                                  ) : null}
+                                </View>
                               </View>
-                              <Text style={styles.stageTitle}>{meta.shortTitle}</Text>
-                            </View>
                             <View style={styles.stageStats}>
                               <Text style={styles.stagePercent}>
                                 {stageSummary.percentage}%
@@ -415,17 +495,11 @@ const styles = StyleSheet.create({
   continueBlock: {
     marginTop: 2,
   },
-  continueLine: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Sketch.ink,
-    lineHeight: 18,
-  },
   continueLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
     color: Sketch.orange,
-    letterSpacing: 0.1,
+    letterSpacing: 0.5,
   },
   levelSubtitle: {
     fontSize: 13,
@@ -493,17 +567,31 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
     letterSpacing: 0.5,
   },
-  stageRecommended: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.orange,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
   stageTitle: {
     fontSize: 14,
     fontWeight: "600",
     color: Sketch.ink,
+    flexShrink: 1,
+  },
+  stageTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  stageContinueButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 1,
+    paddingVertical: 1,
+  },
+  stageContinueButtonPressed: {
+    opacity: 0.72,
+  },
+  stageContinueText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.orange,
+    letterSpacing: 0.1,
   },
   stageStats: {
     alignItems: "flex-end",

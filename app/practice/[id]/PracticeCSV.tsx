@@ -164,8 +164,13 @@ function splitRomanization(
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function PracticeCSV() {
-  const { id, mix } = useLocalSearchParams<{ id: string; mix?: string }>();
+  const { id, mix, source } = useLocalSearchParams<{
+    id: string;
+    mix?: string;
+    source?: string;
+  }>();
   const router = useRouter();
+  const mixSource = Array.isArray(source) ? source[0] : source;
 
   const roundRef = useRef(0);
   const mixIdsRef = useRef<string[]>([]);
@@ -322,6 +327,12 @@ export default function PracticeCSV() {
     const grammarId = getCurrentGrammarId();
     if (!grammarId) return;
     void saveRound(grammarId, wasCorrect);
+  }
+
+  function openCurrentGrammarLesson() {
+    const grammarId = getCurrentGrammarId();
+    if (!grammarId) return;
+    router.push(`/practice/${grammarId}` as any);
   }
 
   function shuffleNotSame(items: any[], correct: any[]) {
@@ -493,20 +504,24 @@ export default function PracticeCSV() {
   const availableWords = words.filter(
     (word) => !builtSentence.some((selected) => selected.id === word.id),
   );
+  const showLessonShortcut =
+    (mixSource === "bookmarks" || mixSource === "progress") && Boolean(grammarPoint?.id);
   return (
     <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         contentContainerStyle={st.scroll}
         showsVerticalScrollIndicator={false}
-      >
-        <Header
-          title={
-            mixIdsRef.current.length > 0
-              ? "Quick Mix"
-              : grammarPoint?.title || "Practice"
-          }
-          onBack={() => router.back()}
+        >
+          <Header
+            title={
+              mixIdsRef.current.length > 0
+                ? mixSource === "progress"
+                  ? "Studied Grammar"
+                  : "Quick Practice"
+                : grammarPoint?.title || "Practice"
+            }
+            onBack={() => router.back()}
           showClose
           onSettingsChange={handleSettingsChange}
         />
@@ -526,7 +541,18 @@ export default function PracticeCSV() {
                 </View>
                 <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
               </View>
-              <Text style={st.modeTitle}>{meta.title}</Text>
+              <View style={st.modeTitleRow}>
+                <Text style={st.modeTitle}>{meta.title}</Text>
+                {showLessonShortcut ? (
+                  <TouchableOpacity
+                    style={st.lessonShortcut}
+                    onPress={openCurrentGrammarLesson}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={st.lessonShortcutText}>Open lesson</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
 
             {/* ── BREAKDOWN (Study) ── */}
@@ -1087,6 +1113,21 @@ const st = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.2,
+  },
+  modeTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  lessonShortcut: {
+    paddingVertical: 2,
+  },
+  lessonShortcutText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.orange,
+    letterSpacing: 0.1,
   },
   exerciseWrap: {
     paddingHorizontal: 20,

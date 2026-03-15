@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
+import { CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
 import { isGuestUser } from "../../src/utils/auth";
 import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 import {
@@ -23,6 +26,18 @@ import {
   getAllProgress,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+
+const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
+  (level) => level !== "C2",
+) as readonly CefrLevel[];
+
+const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
+
+type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
+
+function shuffleIds(ids: string[]) {
+  return [...ids].sort(() => Math.random() - 0.5);
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -37,7 +52,7 @@ function timeAgo(iso: string): string {
 }
 
 function accuracyLabel(p: GrammarProgressData): string {
-  if (p.total === 0) return "—";
+  if (p.total === 0) return "--";
   return `${Math.round((p.correct / p.total) * 100)}%`;
 }
 
@@ -51,6 +66,10 @@ export default function DecksScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [showProgressMixModal, setShowProgressMixModal] = useState(false);
+  const [selectedProgressLevels, setSelectedProgressLevels] = useState<
+    ProgressFilterLevel[]
+  >(["All"]);
 
   async function loadData() {
     try {
@@ -70,8 +89,15 @@ export default function DecksScreen() {
       const data = await res.json();
 
       const matched = data
-        .map((b: any) => grammarPoints.find((g) => g.id === b.grammar_id))
-        .filter(Boolean) as GrammarPoint[];
+        .map((b: { grammar_id?: string }) =>
+          grammarPoints.find((g) => g.id === b.grammar_id),
+        )
+        .filter(Boolean)
+        .sort((a, b) => {
+          const aIndex = grammarPoints.findIndex((point) => point.id === a.id);
+          const bIndex = grammarPoints.findIndex((point) => point.id === b.id);
+          return aIndex - bIndex;
+        }) as GrammarPoint[];
 
       const allProgress = await getAllProgress();
 
@@ -98,11 +124,64 @@ export default function DecksScreen() {
 
   function handleQuickMix() {
     if (bookmarked.length === 0) return;
-    const shuffled = [...bookmarked]
-      .sort(() => Math.random() - 0.5)
-      .map((g) => g.id);
+    const shuffled = shuffleIds(bookmarked.map((g) => g.id));
     router.push(
-      `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}`,
+      `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=bookmarks`,
+    );
+  }
+
+  const practicedGrammar = useMemo(
+    () => grammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
+    [progress],
+  );
+
+  const progressCountsByLevel = useMemo(
+    () =>
+      CEFR_LEVELS.reduce(
+        (acc, level) => {
+          acc[level] = practicedGrammar.filter(
+            (point) => point.level === level,
+          ).length;
+          return acc;
+        },
+        {} as Record<CefrLevel, number>,
+      ),
+    [practicedGrammar],
+  );
+
+  const filteredProgressGrammar = useMemo(() => {
+    if (selectedProgressLevels.includes("All")) return practicedGrammar;
+    return practicedGrammar.filter(
+      (point) => selectedProgressLevels.includes(point.level),
+    );
+  }, [practicedGrammar, selectedProgressLevels]);
+
+  function toggleProgressLevel(level: ProgressFilterLevel) {
+    if (level === "All") {
+      setSelectedProgressLevels(["All"]);
+      return;
+    }
+
+    setSelectedProgressLevels((current) => {
+      const withoutAll = current.filter(
+        (value): value is CefrLevel => value !== "All",
+      );
+
+      if (withoutAll.includes(level)) {
+        const next = withoutAll.filter((value) => value !== level);
+        return next.length > 0 ? next : ["All"];
+      }
+
+      return [...withoutAll, level];
+    });
+  }
+
+  function handleStartProgressMix() {
+    if (filteredProgressGrammar.length === 0) return;
+    const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
+    setShowProgressMixModal(false);
+    router.push(
+      `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=progress`,
     );
   }
 
@@ -137,7 +216,6 @@ export default function DecksScreen() {
           <View style={styles.levelBadge}>
             <Text style={styles.levelBadgeText}>{item.stage}</Text>
           </View>
-          <Ionicons name="bookmark" size={15} color={Sketch.orange} />
         </View>
 
         <Text style={styles.cardTitle} numberOfLines={2}>
@@ -145,11 +223,10 @@ export default function DecksScreen() {
         </Text>
 
         {practiced && p ? (
-          <View style={styles.statsRow}>
-            <Text style={styles.statText}>{p.rounds} rounds</Text>
-            <Text style={styles.statDot}>·</Text>
-            <Text style={styles.statText}>{accuracyLabel(p)} accuracy</Text>
-            <Text style={styles.statDot}>·</Text>
+          <View style={styles.statsStack}>
+            <Text style={styles.statText}>
+              {p.rounds} rounds · {accuracyLabel(p)}
+            </Text>
             <Text style={styles.statText}>{timeAgo(p.lastPracticed)}</Text>
           </View>
         ) : (
@@ -158,7 +235,7 @@ export default function DecksScreen() {
 
         <TouchableOpacity
           style={styles.practiceBtn}
-          onPress={() => router.push(`/practice/${item.id}/PracticeCSV`)}
+          onPress={() => router.push(`/practice/${item.id}`)}
           activeOpacity={0.8}
         >
           <Text style={styles.practiceBtnText}>Practice</Text>
@@ -169,6 +246,99 @@ export default function DecksScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
+      <Modal
+        visible={showProgressMixModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProgressMixModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setShowProgressMixModal(false)}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeading}>
+                <Text style={styles.modalTitle}>Studied Grammar</Text>
+                <Text style={styles.modalSubtitle}>
+                  Practice grammar points you have already studied.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowProgressMixModal(false)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterWrap}>
+              {PROGRESS_FILTER_LEVELS.map((level) => {
+                const count =
+                  level === "All"
+                    ? practicedGrammar.length
+                    : progressCountsByLevel[level];
+                const isSelected = selectedProgressLevels.includes(level);
+                const isDisabled = count === 0;
+
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.filterChip,
+                      isSelected && styles.filterChipActive,
+                      isDisabled && styles.filterChipDisabled,
+                    ]}
+                    onPress={() => {
+                      if (isDisabled) return;
+                      toggleProgressLevel(level);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        isSelected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {level}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.filterChipCount,
+                        isSelected && styles.filterChipCountActive,
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.modalSummaryText}>
+              {filteredProgressGrammar.length} practiced topic
+              {filteredProgressGrammar.length === 1 ? "" : "s"} ready
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.modalPrimaryButton,
+                filteredProgressGrammar.length === 0 &&
+                  styles.modalPrimaryButtonDisabled,
+              ]}
+              onPress={handleStartProgressMix}
+              activeOpacity={0.82}
+              disabled={filteredProgressGrammar.length === 0}
+            >
+              <Text style={styles.modalPrimaryButtonText}>Practice</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={Sketch.inkMuted} />
@@ -212,31 +382,44 @@ export default function DecksScreen() {
             renderEmpty()
           ) : (
             <>
-              {/* Quick Mix — compact action tile */}
-              <TouchableOpacity
-                style={styles.quickMix}
-                onPress={handleQuickMix}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickMixLeft}>
-                  <Ionicons name="shuffle" size={20} color={Sketch.orange} />
-                  <View>
-                    <Text style={styles.quickMixTitle}>Quick Mix</Text>
-                    <Text style={styles.quickMixSub}>
-                      {bookmarked.length} bookmarks · random order
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={Sketch.inkMuted}
-                />
-              </TouchableOpacity>
+              <View style={styles.mixRow}>
+                <TouchableOpacity
+                  style={styles.mixTile}
+                  onPress={handleQuickMix}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.mixTileTitle}>Quick Practice</Text>
+                  <Text style={styles.mixTileSub}>
+                    Practice grammar points using bookmarks
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.mixTile,
+                    practicedGrammar.length === 0 && styles.mixTileDisabled,
+                  ]}
+                  onPress={() => {
+                    if (practicedGrammar.length === 0) return;
+                    setSelectedProgressLevels(["All"]);
+                    setShowProgressMixModal(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.mixTileTitle}>Studied Grammar</Text>
+                  <Text style={styles.mixTileSub}>
+                    {practicedGrammar.length > 0
+                      ? "Practice grammar points you have already studied"
+                      : "Practice grammar first"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <View style={styles.spacing} />
 
-              {bookmarked.map((item) => renderCard(item))}
+              <View style={styles.bookmarksGrid}>
+                {bookmarked.map((item) => renderCard(item))}
+              </View>
             </>
           )}
 
@@ -272,64 +455,186 @@ const styles = StyleSheet.create({
   },
 
   spacing: { height: 16 },
-
-  // Quick Mix — horizontal row tile matching actionTile style
-  quickMix: {
+  bookmarksGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 12,
+    alignItems: "stretch",
+  },
+
+  mixRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  mixTile: {
+    flex: 1,
     backgroundColor: Sketch.paperDark,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 16,
     paddingHorizontal: 16,
+    gap: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
+    justifyContent: "space-between",
+    minHeight: 102,
   },
-  quickMixLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+  mixTileDisabled: {
+    opacity: 0.56,
   },
-  quickMixTitle: {
+  mixTileTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: Sketch.ink,
   },
-  quickMixSub: {
+  mixTileSub: {
     fontSize: 12,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    marginTop: 1,
   },
 
-  // Cards matching moduleCard style
-  card: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(33, 28, 24, 0.18)",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    backgroundColor: Sketch.paper,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 16,
-    marginBottom: 12,
+    padding: 20,
+    gap: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  modalHeading: {
+    flex: 1,
+    gap: 4,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.3,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  filterWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+  },
+  filterChipActive: {
+    borderColor: Sketch.orange,
+    backgroundColor: `${Sketch.orange}10`,
+  },
+  filterChipDisabled: {
+    opacity: 0.45,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  filterChipTextActive: {
+    color: Sketch.orange,
+  },
+  filterChipCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+  },
+  filterChipCountActive: {
+    color: Sketch.orange,
+  },
+  modalSummaryText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  modalPrimaryButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.orange,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 13,
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  modalPrimaryButtonDisabled: {
+    opacity: 0.45,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  modalPrimaryButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  card: {
+    width: "48%",
+    backgroundColor: Sketch.cardBg,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 13,
+    gap: 7,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
+    justifyContent: "space-between",
+    minHeight: 156,
   },
   cardTop: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
   },
   levelBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: 6,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
@@ -342,19 +647,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: Sketch.ink,
+    lineHeight: 19,
   },
 
-  statsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 4,
+  statsStack: {
+    gap: 2,
   },
   statText: { fontSize: 12, fontWeight: "400", color: Sketch.inkMuted },
-  statDot: { fontSize: 12, color: Sketch.inkFaint },
   noPractice: {
     fontSize: 12,
     fontWeight: "400",
@@ -362,28 +664,26 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 
-  // Primary button matching index primaryBtn
   practiceBtn: {
     alignItems: "center",
     backgroundColor: Sketch.orange,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
-    paddingVertical: 11,
-    marginTop: 4,
+    paddingVertical: 9,
+    marginTop: 2,
     shadowColor: Sketch.orange,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
     elevation: 3,
   },
   practiceBtnText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: "#fff",
   },
 
-  // Shared primary btn (empty/guest states)
   primaryBtn: {
     backgroundColor: Sketch.orange,
     borderRadius: 12,
