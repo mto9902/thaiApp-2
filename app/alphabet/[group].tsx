@@ -85,9 +85,7 @@ export default function AlphabetLesson() {
       >
         <View style={styles.summaryCard}>
           <View style={styles.summaryTop}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{groupInfo.badge}</Text>
-            </View>
+            <Text style={styles.eyebrow}>{groupInfo.badge}</Text>
             <View style={styles.countPill}>
               <Text style={styles.countValue}>{letters.length}</Text>
               <Text style={styles.countLabel}>letters</Text>
@@ -182,17 +180,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: ACCENT + "12",
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
     color: ACCENT,
   },
   countPill: {

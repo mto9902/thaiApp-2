@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
-import Header from "../../../src/components/Header";
+import Header, { SettingsState } from "../../../src/components/Header";
 import { alphabet } from "../../../src/data/alphabet";
 import { MUTED_FEEDBACK_ACCENTS } from "../../../src/utils/toneAccent";
 
@@ -82,6 +82,19 @@ function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function pickNextItem<T>(
+  items: T[],
+  currentItem: T,
+  isSameItem: (left: T, right: T) => boolean,
+): T {
+  if (items.length <= 1) {
+    return items[0];
+  }
+
+  const pool = items.filter((item) => !isSameItem(item, currentItem));
+  return pickRandom(pool.length > 0 ? pool : items);
+}
+
 function pickNextMode(currentMode?: Mode): Mode {
   const pool = currentMode
     ? ALL_MODES.filter((mode) => mode !== currentMode)
@@ -107,37 +120,6 @@ function generateOptions(
   return shuffle([correct, ...shuffle(candidates).slice(0, 3)]);
 }
 
-function ResultBanner({
-  result,
-  text,
-}: {
-  result: "correct" | "wrong";
-  text: string;
-}) {
-  return (
-    <View
-      style={[
-        styles.resultBanner,
-        result === "correct" ? styles.resultBannerOk : styles.resultBannerBad,
-      ]}
-    >
-      <Text
-        style={[
-          styles.resultBannerText,
-          {
-            color:
-              result === "correct"
-                ? MUTED_FEEDBACK_ACCENTS.success
-                : MUTED_FEEDBACK_ACCENTS.error,
-          },
-        ]}
-      >
-        {text}
-      </Text>
-    </View>
-  );
-}
-
 export default function AlphabetPractice() {
   const { group } = useLocalSearchParams<{ group: string }>();
   const router = useRouter();
@@ -160,26 +142,54 @@ export default function AlphabetPractice() {
   );
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
-  const [result, setResult] = useState<"" | "correct" | "wrong">("");
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [autoplayTTS, setAutoplayTTS] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState<SettingsState["ttsSpeed"]>("slow");
 
-  function playSound(text: string) {
-    Speech.stop();
-    Speech.speak(text, { language: "th-TH", rate: 0.82 });
-  }
+  const playSound = useCallback(
+    (text: string) => {
+      const rate =
+        ttsSpeed === "fast" ? 1.05 : ttsSpeed === "normal" ? 0.92 : 0.82;
+      Speech.stop();
+      Speech.speak(text, { language: "th-TH", rate });
+    },
+    [ttsSpeed],
+  );
 
-  function setupRound(nextMode: Mode) {
-    const nextItem = pickRandom(letters);
-    setMode(nextMode);
-    setCurrentItem(nextItem);
-    setSelectedOption(null);
-    setRevealed(false);
-    setResult("");
-    setOptions(
-      nextMode === "study"
-        ? []
-        : generateOptions(nextItem, letters, allLetters),
-    );
-  }
+  const setupRound = useCallback(
+    (nextMode: Mode) => {
+      const nextItem = pickNextItem(
+        letters,
+        currentItem,
+        (left, right) => left.letter === right.letter,
+      );
+      setMode(nextMode);
+      setCurrentItem(nextItem);
+      setSelectedOption(null);
+      setRevealed(false);
+      setOptions(
+        nextMode === "study"
+          ? []
+          : generateOptions(nextItem, letters, allLetters),
+      );
+    },
+    [allLetters, currentItem, letters],
+  );
+
+  useEffect(() => {
+    if (!revealed || mode === "study") return;
+
+    autoAdvanceRef.current = setTimeout(() => {
+      setupRound(mode);
+    }, 800);
+
+    return () => {
+      if (autoAdvanceRef.current) {
+        clearTimeout(autoAdvanceRef.current);
+        autoAdvanceRef.current = null;
+      }
+    };
+  }, [mode, revealed, setupRound]);
 
   function handleModePress(nextMode: Mode) {
     setupRound(nextMode);
@@ -189,21 +199,21 @@ export default function AlphabetPractice() {
     if (revealed) return;
 
     const picked = options[index];
-    const isCorrect = picked.letter === currentItem.letter;
-
     setSelectedOption(index);
     setRevealed(true);
-    setResult(isCorrect ? "correct" : "wrong");
-    playSound(picked.name);
+    if (autoplayTTS) {
+      playSound(picked.name);
+    }
   }
 
   function handleRecallSelect(index: number) {
     if (revealed) return;
 
-    const isCorrect = options[index].sound === currentItem.sound;
     setSelectedOption(index);
     setRevealed(true);
-    setResult(isCorrect ? "correct" : "wrong");
+    if (autoplayTTS) {
+      playSound(currentItem.name);
+    }
   }
 
   function handleContinue() {
@@ -215,7 +225,15 @@ export default function AlphabetPractice() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header title="Alphabet Practice" onBack={() => router.back()} showClose />
+      <Header
+        title="Alphabet Practice"
+        onBack={() => router.back()}
+        showClose
+        onSettingsChange={(settings) => {
+          setAutoplayTTS(settings.autoplayTTS);
+          setTtsSpeed(settings.ttsSpeed);
+        }}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -231,20 +249,14 @@ export default function AlphabetPractice() {
               return (
                 <TouchableOpacity
                   key={item}
-                  style={[
-                    styles.modeChip,
-                    active && {
-                      backgroundColor: `${ACCENT}14`,
-                      borderColor: ACCENT,
-                    },
-                  ]}
+                  style={[styles.modeChip, active && styles.modeChipActive]}
                   onPress={() => handleModePress(item)}
                   activeOpacity={0.85}
                 >
                   <Text
                     style={[
                       styles.modeChipText,
-                      active && { color: ACCENT },
+                      active && styles.modeChipTextActive,
                     ]}
                   >
                     {MODE_META[item].label}
@@ -256,6 +268,11 @@ export default function AlphabetPractice() {
         </View>
 
         <View style={styles.promptCard}>
+          <View style={styles.promptMetaRow}>
+            <Text style={styles.promptBadge}>{groupInfo.badge}</Text>
+            <Text style={styles.promptMetaDivider}>|</Text>
+            <Text style={styles.promptGroupTitle}>{groupInfo.title}</Text>
+          </View>
           <Text style={styles.promptEyebrow}>{MODE_META[mode].label}</Text>
           <Text style={styles.promptTitle}>{modeInfo.title}</Text>
           <Text style={styles.promptSubtitle}>{modeInfo.subtitle}</Text>
@@ -263,23 +280,23 @@ export default function AlphabetPractice() {
 
         {mode === "study" ? (
           <>
-            <View style={styles.studyCard}>
+            <TouchableOpacity
+              style={styles.studyCard}
+              onPress={() => playSound(currentItem.name)}
+              activeOpacity={0.9}
+            >
               <View style={styles.studyCardTop}>
-                <View
-                  style={[
-                    styles.soundBadge,
-                    { backgroundColor: `${ACCENT}12` },
-                  ]}
-                >
-                  <Text
-                    style={[styles.soundBadgeText, { color: ACCENT }]}
-                  >
+                <View style={styles.soundBadge}>
+                  <Text style={styles.soundBadgeText}>
                     {currentItem.sound.toUpperCase()}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.speakerButton}
-                  onPress={() => playSound(currentItem.name)}
+                  onPress={(event) => {
+                    event.stopPropagation?.();
+                    playSound(currentItem.name);
+                  }}
                   activeOpacity={0.85}
                 >
                   <Ionicons
@@ -296,12 +313,15 @@ export default function AlphabetPractice() {
 
               <View style={styles.exampleCard}>
                 <Text style={styles.exampleLabel}>Example</Text>
-                <Text style={styles.exampleThai}>{currentItem.example.thai}</Text>
+                <Text style={styles.exampleThai}>
+                  {currentItem.example.thai}
+                </Text>
                 <Text style={styles.exampleDetail}>
-                  {currentItem.example.romanization} · {currentItem.example.english}
+                  {currentItem.example.romanization} ·{" "}
+                  {currentItem.example.english}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[
@@ -349,7 +369,10 @@ export default function AlphabetPractice() {
                 return (
                   <TouchableOpacity
                     key={option.letter}
-                    style={[styles.optionCard, { borderColor, backgroundColor }]}
+                    style={[
+                      styles.optionCard,
+                      { borderColor, backgroundColor },
+                    ]}
                     onPress={() => handleMatchSelect(index)}
                     activeOpacity={0.85}
                     disabled={revealed}
@@ -360,32 +383,6 @@ export default function AlphabetPractice() {
                 );
               })}
             </View>
-
-            {revealed && result ? (
-              <>
-                <ResultBanner
-                  result={result}
-                  text={
-                    result === "correct"
-                      ? "Correct. That sound maps to this consonant."
-                      : `Correct answer: ${currentItem.letter}`
-                  }
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: ACCENT,
-                      borderColor: ACCENT,
-                    },
-                  ]}
-                  onPress={handleContinue}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryButtonText}>Continue</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
           </>
         ) : null}
 
@@ -422,43 +419,22 @@ export default function AlphabetPractice() {
                 return (
                   <TouchableOpacity
                     key={`${option.letter}-${index}`}
-                    style={[styles.optionCard, { borderColor, backgroundColor }]}
+                    style={[
+                      styles.optionCard,
+                      { borderColor, backgroundColor },
+                    ]}
                     onPress={() => handleRecallSelect(index)}
                     activeOpacity={0.85}
                     disabled={revealed}
                   >
                     <Text style={styles.optionSound}>{option.sound}</Text>
-                    <Text style={styles.optionLabel}>{option.romanization}</Text>
+                    <Text style={styles.optionLabel}>
+                      {option.romanization}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-
-            {revealed && result ? (
-              <>
-                <ResultBanner
-                  result={result}
-                  text={
-                    result === "correct"
-                      ? "Correct. You recognized the sound quickly."
-                      : `Correct answer: ${currentItem.sound}`
-                  }
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: ACCENT,
-                      borderColor: ACCENT,
-                    },
-                  ]}
-                  onPress={handleContinue}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryButtonText}>Continue</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
           </>
         ) : null}
       </ScrollView>
@@ -478,33 +454,61 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   practiceHeader: {
-    gap: 10,
-    marginBottom: 2,
+    gap: 14,
+    marginBottom: 8,
+    alignItems: "center",
   },
   practiceMeta: {
+    display: "none",
+  },
+  promptMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  promptBadge: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.8,
     textTransform: "uppercase",
     color: ACCENT,
+    textAlign: "center",
+  },
+  promptMetaDivider: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkFaint,
+  },
+  promptGroupTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    color: Sketch.inkMuted,
+    textAlign: "center",
   },
   modeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    justifyContent: "center",
+    gap: 14,
   },
   modeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    paddingBottom: 6,
+  },
+  modeChipActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: ACCENT,
   },
   modeChipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Sketch.inkLight,
+    fontSize: 14,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  modeChipTextActive: {
+    fontWeight: "700",
+    color: ACCENT,
   },
   promptCard: {
     backgroundColor: Sketch.cardBg,
@@ -548,14 +552,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   soundBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
+    minHeight: 20,
+    justifyContent: "center",
   },
   soundBadgeText: {
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.7,
+    color: ACCENT,
   },
   speakerButton: {
     width: 40,

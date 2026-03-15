@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -12,9 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
-import Header from "../../../src/components/Header";
+import Header, { SettingsState } from "../../../src/components/Header";
 import VowelText from "../../../src/components/VowelText";
 import { vowels } from "../../../src/data/vowels";
+import { MUTED_FEEDBACK_ACCENTS } from "../../../src/utils/toneAccent";
 
 type Vowel = {
   symbol: string;
@@ -52,7 +53,8 @@ const MODE_META: Record<
   study: {
     label: "Study",
     title: "See the pattern and hear the vowel shape in context.",
-    subtitle: "Great for understanding where the vowel appears around the consonant.",
+    subtitle:
+      "Great for understanding where the vowel appears around the consonant.",
   },
   match: {
     label: "Match",
@@ -83,6 +85,19 @@ function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function pickNextItem<T>(
+  items: T[],
+  currentItem: T,
+  isSameItem: (left: T, right: T) => boolean,
+): T {
+  if (items.length <= 1) {
+    return items[0];
+  }
+
+  const pool = items.filter((item) => !isSameItem(item, currentItem));
+  return pickRandom(pool.length > 0 ? pool : items);
+}
+
 function pickNextMode(currentMode?: Mode): Mode {
   const pool = currentMode
     ? ALL_MODES.filter((mode) => mode !== currentMode)
@@ -97,35 +112,12 @@ function generateOptions(correct: Vowel, pool: Vowel[], allVowels: Vowel[]) {
 
   if (candidates.length < 3) {
     candidates = allVowels.filter(
-      (item) => item.example !== correct.example && item.sound !== correct.sound,
+      (item) =>
+        item.example !== correct.example && item.sound !== correct.sound,
     );
   }
 
   return shuffle([correct, ...shuffle(candidates).slice(0, 3)]);
-}
-
-function ResultBanner({
-  result,
-  text,
-}: {
-  result: "correct" | "wrong";
-  text: string;
-}) {
-  return (
-    <View
-      style={[
-        styles.resultBanner,
-        result === "correct" ? styles.resultBannerOk : styles.resultBannerBad,
-      ]}
-    >
-      <Ionicons
-        name={result === "correct" ? "checkmark-circle" : "close-circle"}
-        size={18}
-        color={result === "correct" ? Sketch.green : Sketch.red}
-      />
-      <Text style={styles.resultBannerText}>{text}</Text>
-    </View>
-  );
 }
 
 export default function VowelPractice() {
@@ -151,7 +143,54 @@ export default function VowelPractice() {
   );
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
-  const [result, setResult] = useState<"" | "correct" | "wrong">("");
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [autoplayTTS, setAutoplayTTS] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState<SettingsState["ttsSpeed"]>("slow");
+
+  const speak = useCallback(
+    (text: string) => {
+      const rate =
+        ttsSpeed === "fast" ? 1.05 : ttsSpeed === "normal" ? 0.92 : 0.82;
+      Speech.stop();
+      Speech.speak(text, { language: "th-TH", rate });
+    },
+    [ttsSpeed],
+  );
+
+  const setupRound = useCallback(
+    (nextMode: Mode) => {
+      const nextItem = pickNextItem(
+        groupVowels,
+        currentItem,
+        (left, right) => left.example === right.example,
+      );
+      setMode(nextMode);
+      setCurrentItem(nextItem);
+      setSelectedOption(null);
+      setRevealed(false);
+      setOptions(
+        nextMode === "study"
+          ? []
+          : generateOptions(nextItem, groupVowels, allVowels),
+      );
+    },
+    [allVowels, currentItem, groupVowels],
+  );
+
+  useEffect(() => {
+    if (!revealed || mode === "study") return;
+
+    autoAdvanceRef.current = setTimeout(() => {
+      setupRound(mode);
+    }, 800);
+
+    return () => {
+      if (autoAdvanceRef.current) {
+        clearTimeout(autoAdvanceRef.current);
+        autoAdvanceRef.current = null;
+      }
+    };
+  }, [mode, revealed, setupRound]);
 
   if (!fallbackItem || groupVowels.length === 0) {
     return (
@@ -170,25 +209,6 @@ export default function VowelPractice() {
     );
   }
 
-  function speak(text: string) {
-    Speech.stop();
-    Speech.speak(text, { language: "th-TH", rate: 0.82 });
-  }
-
-  function setupRound(nextMode: Mode) {
-    const nextItem = pickRandom(groupVowels);
-    setMode(nextMode);
-    setCurrentItem(nextItem);
-    setSelectedOption(null);
-    setRevealed(false);
-    setResult("");
-    setOptions(
-      nextMode === "study"
-        ? []
-        : generateOptions(nextItem, groupVowels, allVowels),
-    );
-  }
-
   function handleModePress(nextMode: Mode) {
     setupRound(nextMode);
   }
@@ -197,21 +217,21 @@ export default function VowelPractice() {
     if (revealed) return;
 
     const picked = options[index];
-    const isCorrect = picked.example === currentItem.example;
-
     setSelectedOption(index);
     setRevealed(true);
-    setResult(isCorrect ? "correct" : "wrong");
-    speak(picked.example);
+    if (autoplayTTS) {
+      speak(picked.example);
+    }
   }
 
   function handleRecallSelect(index: number) {
     if (revealed) return;
 
-    const isCorrect = options[index].sound === currentItem.sound;
     setSelectedOption(index);
     setRevealed(true);
-    setResult(isCorrect ? "correct" : "wrong");
+    if (autoplayTTS) {
+      speak(currentItem.example);
+    }
   }
 
   function handleContinue() {
@@ -223,7 +243,15 @@ export default function VowelPractice() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header title="Vowel Practice" onBack={() => router.back()} showClose />
+      <Header
+        title="Vowel Practice"
+        onBack={() => router.back()}
+        showClose
+        onSettingsChange={(settings) => {
+          setAutoplayTTS(settings.autoplayTTS);
+          setTtsSpeed(settings.ttsSpeed);
+        }}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -239,20 +267,14 @@ export default function VowelPractice() {
               return (
                 <TouchableOpacity
                   key={item}
-                  style={[
-                    styles.modeChip,
-                    active && {
-                      backgroundColor: `${ACCENT}14`,
-                      borderColor: ACCENT,
-                    },
-                  ]}
+                  style={[styles.modeChip, active && styles.modeChipActive]}
                   onPress={() => handleModePress(item)}
                   activeOpacity={0.85}
                 >
                   <Text
                     style={[
                       styles.modeChipText,
-                      active && { color: ACCENT },
+                      active && styles.modeChipTextActive,
                     ]}
                   >
                     {MODE_META[item].label}
@@ -264,6 +286,11 @@ export default function VowelPractice() {
         </View>
 
         <View style={styles.promptCard}>
+          <View style={styles.promptMetaRow}>
+            <Text style={styles.promptBadge}>{groupInfo.badge}</Text>
+            <Text style={styles.promptMetaDivider}>|</Text>
+            <Text style={styles.promptGroupTitle}>{groupInfo.title}</Text>
+          </View>
           <Text style={styles.promptEyebrow}>{modeInfo.label}</Text>
           <Text style={styles.promptTitle}>{modeInfo.title}</Text>
           <Text style={styles.promptSubtitle}>{modeInfo.subtitle}</Text>
@@ -271,23 +298,23 @@ export default function VowelPractice() {
 
         {mode === "study" ? (
           <>
-            <View style={styles.studyCard}>
+            <TouchableOpacity
+              style={styles.studyCard}
+              onPress={() => speak(currentItem.example)}
+              activeOpacity={0.9}
+            >
               <View style={styles.studyCardTop}>
-                <View
-                  style={[
-                    styles.soundBadge,
-                    { backgroundColor: `${ACCENT}12` },
-                  ]}
-                >
-                  <Text
-                    style={[styles.soundBadgeText, { color: ACCENT }]}
-                  >
+                <View style={styles.soundBadge}>
+                  <Text style={styles.soundBadgeText}>
                     {currentItem.sound.toUpperCase()}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.speakerButton}
-                  onPress={() => speak(currentItem.example)}
+                  onPress={(event) => {
+                    event.stopPropagation?.();
+                    speak(currentItem.example);
+                  }}
                   activeOpacity={0.85}
                 >
                   <Ionicons
@@ -306,7 +333,7 @@ export default function VowelPractice() {
               />
               <Text style={styles.studyName}>{currentItem.name}</Text>
               <Text style={styles.studySymbol}>{currentItem.symbol}</Text>
-            </View>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[
@@ -332,20 +359,32 @@ export default function VowelPractice() {
               {options.map((option, index) => {
                 const isSelected = selectedOption === index;
                 const isCorrect = option.example === currentItem.example;
+                const backgroundColor = revealed
+                  ? isCorrect
+                    ? MUTED_FEEDBACK_ACCENTS.successTint
+                    : isSelected
+                      ? MUTED_FEEDBACK_ACCENTS.errorTint
+                      : Sketch.cardBg
+                  : isSelected
+                    ? MUTED_FEEDBACK_ACCENTS.selectedTint
+                    : Sketch.cardBg;
                 const borderColor = revealed
                   ? isCorrect
-                    ? Sketch.green
+                    ? MUTED_FEEDBACK_ACCENTS.successBorder
                     : isSelected
-                      ? Sketch.red
+                      ? MUTED_FEEDBACK_ACCENTS.errorBorder
                       : Sketch.inkFaint
                   : isSelected
-                    ? ACCENT
+                    ? MUTED_FEEDBACK_ACCENTS.selectedBorder
                     : Sketch.inkFaint;
 
                 return (
                   <TouchableOpacity
                     key={`${option.example}-${index}`}
-                    style={[styles.optionCard, { borderColor }]}
+                    style={[
+                      styles.optionCard,
+                      { borderColor, backgroundColor },
+                    ]}
                     onPress={() => handleMatchSelect(index)}
                     activeOpacity={0.85}
                     disabled={revealed}
@@ -361,32 +400,6 @@ export default function VowelPractice() {
                 );
               })}
             </View>
-
-            {revealed && result ? (
-              <>
-                <ResultBanner
-                  result={result}
-                  text={
-                    result === "correct"
-                      ? "Correct. That sound matches this vowel pattern."
-                      : `Correct answer: ${currentItem.example}`
-                  }
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: ACCENT,
-                      borderColor: ACCENT,
-                    },
-                  ]}
-                  onPress={handleContinue}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryButtonText}>Continue</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
           </>
         ) : null}
 
@@ -406,20 +419,32 @@ export default function VowelPractice() {
               {options.map((option, index) => {
                 const isSelected = selectedOption === index;
                 const isCorrect = option.sound === currentItem.sound;
+                const backgroundColor = revealed
+                  ? isCorrect
+                    ? MUTED_FEEDBACK_ACCENTS.successTint
+                    : isSelected
+                      ? MUTED_FEEDBACK_ACCENTS.errorTint
+                      : Sketch.cardBg
+                  : isSelected
+                    ? MUTED_FEEDBACK_ACCENTS.selectedTint
+                    : Sketch.cardBg;
                 const borderColor = revealed
                   ? isCorrect
-                    ? Sketch.green
+                    ? MUTED_FEEDBACK_ACCENTS.successBorder
                     : isSelected
-                      ? Sketch.red
+                      ? MUTED_FEEDBACK_ACCENTS.errorBorder
                       : Sketch.inkFaint
                   : isSelected
-                    ? ACCENT
+                    ? MUTED_FEEDBACK_ACCENTS.selectedBorder
                     : Sketch.inkFaint;
 
                 return (
                   <TouchableOpacity
                     key={`${option.example}-${index}`}
-                    style={[styles.optionCard, { borderColor }]}
+                    style={[
+                      styles.optionCard,
+                      { borderColor, backgroundColor },
+                    ]}
                     onPress={() => handleRecallSelect(index)}
                     activeOpacity={0.85}
                     disabled={revealed}
@@ -430,32 +455,6 @@ export default function VowelPractice() {
                 );
               })}
             </View>
-
-            {revealed && result ? (
-              <>
-                <ResultBanner
-                  result={result}
-                  text={
-                    result === "correct"
-                      ? "Correct. You identified the sound."
-                      : `Correct answer: ${currentItem.sound}`
-                  }
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: ACCENT,
-                      borderColor: ACCENT,
-                    },
-                  ]}
-                  onPress={handleContinue}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryButtonText}>Continue</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
           </>
         ) : null}
       </ScrollView>
@@ -498,33 +497,61 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
   },
   practiceHeader: {
-    gap: 10,
-    marginBottom: 2,
+    gap: 14,
+    marginBottom: 8,
+    alignItems: "center",
   },
   practiceMeta: {
+    display: "none",
+  },
+  promptMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  promptBadge: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.8,
     textTransform: "uppercase",
     color: ACCENT,
+    textAlign: "center",
+  },
+  promptMetaDivider: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkFaint,
+  },
+  promptGroupTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    color: Sketch.inkMuted,
+    textAlign: "center",
   },
   modeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    justifyContent: "center",
+    gap: 14,
   },
   modeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    paddingBottom: 6,
+  },
+  modeChipActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: ACCENT,
   },
   modeChipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Sketch.inkLight,
+    fontSize: 14,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  modeChipTextActive: {
+    fontWeight: "700",
+    color: ACCENT,
   },
   promptCard: {
     backgroundColor: Sketch.cardBg,
@@ -568,14 +595,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   soundBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
+    minHeight: 20,
+    justifyContent: "center",
   },
   soundBadgeText: {
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.7,
+    color: ACCENT,
   },
   speakerButton: {
     width: 40,
