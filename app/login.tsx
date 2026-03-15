@@ -1,4 +1,5 @@
 import { Sketch } from "@/constants/theme";
+import GoogleAuthButton from "@/src/components/GoogleAuthButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -95,6 +96,8 @@ export default function Login() {
             <View style={styles.dividerLine} />
           </View>
 
+          <GoogleAuthButton />
+
           <TouchableOpacity style={styles.guestButton} onPress={handleGuest}>
             <Text style={styles.guestButtonText}>Continue as Guest</Text>
           </TouchableOpacity>
@@ -187,6 +190,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   guestButton: {
+    marginTop: 12,
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
