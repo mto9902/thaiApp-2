@@ -21,7 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import PremiumGateCard from "@/src/components/PremiumGateCard";
-import Header from "../../../src/components/Header";
+import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
@@ -30,6 +30,7 @@ import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { isGuestUser } from "../../../src/utils/auth";
 import { getAuthToken } from "../../../src/utils/authStorage";
+import { normalizeThaiTtsText } from "../../../src/utils/thaiSpeech";
 import { getToneAccent } from "../../../src/utils/toneAccent";
 
 const CURRENT_GRAMMAR_IDS = new Set(grammarPoints.map((point) => point.id));
@@ -40,12 +41,49 @@ function toneColor(tone?: string): string {
 
 function speak(text: string) {
   Speech.stop();
-  Speech.speak(text, { language: "th-TH", rate: 0.9 });
+  Speech.speak(normalizeThaiTtsText(text), {
+    language: "th-TH",
+    rate: 0.9,
+  });
 }
 
-function splitRomanization(romanization: string, breakdownLength: number) {
-  const tokens = romanization.split(/\s+/);
-  return Array.from({ length: breakdownLength }, (_, index) => tokens[index] ?? "");
+function getBreakdownRomanizations(
+  romanization: string,
+  breakdown: { romanization?: string; roman?: string }[],
+) {
+  const tokens = romanization.split(/\s+/).filter(Boolean);
+  if (!tokens.length) {
+    return breakdown.map((item) => item.romanization || item.roman || "");
+  }
+
+  const hasExplicitRomanization = breakdown.some(
+    (item) => item.romanization || item.roman,
+  );
+
+  if (!hasExplicitRomanization && tokens.length === breakdown.length) {
+    return breakdown.map((_, index) => tokens[index] ?? "");
+  }
+
+  let cursor = 0;
+  return breakdown.map((item, index) => {
+    const explicitRomanization = item.romanization || item.roman;
+    if (explicitRomanization) {
+      cursor += explicitRomanization.split(/\s+/).filter(Boolean).length;
+      return explicitRomanization;
+    }
+
+    if (index === breakdown.length - 1) {
+      const remaining = tokens.slice(cursor).join(" ");
+      cursor = tokens.length;
+      return remaining;
+    }
+
+    const nextToken = tokens[cursor] ?? "";
+    if (nextToken) {
+      cursor += 1;
+    }
+    return nextToken;
+  });
 }
 
 export default function GrammarDetail() {
@@ -57,6 +95,7 @@ export default function GrammarDetail() {
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
+  const [wordBreakdownTTS, setWordBreakdownTTS] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
@@ -98,6 +137,10 @@ export default function GrammarDetail() {
       checkBookmark();
     }
   }, [checkBookmark, id]);
+
+  function handleSettingsChange(settings: SettingsState) {
+    setWordBreakdownTTS(settings.wordBreakdownTTS);
+  }
 
   async function toggleBookmark() {
     try {
@@ -168,6 +211,8 @@ export default function GrammarDetail() {
           title={grammar.title}
           onBack={() => router.back()}
           showSettings={false}
+          showWordBreakdownTtsSetting
+          onSettingsChange={handleSettingsChange}
         />
         <View style={styles.lockLoadingWrap}>
           <Text style={styles.lockLoadingText}>Checking Keystone Access...</Text>
@@ -184,6 +229,8 @@ export default function GrammarDetail() {
           title={grammar.title}
           onBack={() => router.back()}
           showSettings={false}
+          showWordBreakdownTtsSetting
+          onSettingsChange={handleSettingsChange}
         />
         <ScrollView
           ref={scrollRef}
@@ -216,9 +263,9 @@ export default function GrammarDetail() {
       { thai: "ประโยค", english: "sentence", tone: "mid" },
     ],
   };
-  const exampleRomanTokens = splitRomanization(
+  const exampleRomanTokens = getBreakdownRomanizations(
     example.roman || "",
-    example.breakdown.length,
+    example.breakdown,
   );
 
   return (
@@ -228,6 +275,8 @@ export default function GrammarDetail() {
         title={grammar.title}
         onBack={() => router.back()}
         showSettings={false}
+        showWordBreakdownTtsSetting
+        onSettingsChange={handleSettingsChange}
       />
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent}>
@@ -331,30 +380,55 @@ export default function GrammarDetail() {
 
             <View style={styles.breakdownContainer}>
               {example.breakdown.map((item: any, index: number) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.wordTile}
-                  onPress={() => speak(item.thai)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.wordTileHeader}>
-                    <Text style={styles.wordTileThai}>{item.thai}</Text>
-                    {item.tone && (
-                      <View
-                        style={[
-                          styles.toneDot,
-                          { backgroundColor: toneColor(item.tone) },
-                        ]}
-                      />
-                    )}
+                wordBreakdownTTS ? (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.wordTile}
+                    onPress={() => speak(item.thai)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.wordTileHeader}>
+                      <Text style={styles.wordTileThai}>{item.thai}</Text>
+                      {item.tone && (
+                        <View
+                          style={[
+                            styles.toneDot,
+                            { backgroundColor: toneColor(item.tone) },
+                          ]}
+                        />
+                      )}
+                    </View>
+                    <Text style={styles.wordTileRoman}>
+                      {item.romanization || item.roman || exampleRomanTokens[index]}
+                    </Text>
+                    <Text style={styles.wordTileEng}>
+                      {item.english.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View
+                    key={index}
+                    style={styles.wordTile}
+                  >
+                    <View style={styles.wordTileHeader}>
+                      <Text style={styles.wordTileThai}>{item.thai}</Text>
+                      {item.tone && (
+                        <View
+                          style={[
+                            styles.toneDot,
+                            { backgroundColor: toneColor(item.tone) },
+                          ]}
+                        />
+                      )}
+                    </View>
+                    <Text style={styles.wordTileRoman}>
+                      {item.romanization || item.roman || exampleRomanTokens[index]}
+                    </Text>
+                    <Text style={styles.wordTileEng}>
+                      {item.english.toUpperCase()}
+                    </Text>
                   </View>
-                  <Text style={styles.wordTileRoman}>
-                    {item.romanization || item.roman || exampleRomanTokens[index]}
-                  </Text>
-                  <Text style={styles.wordTileEng}>
-                    {item.english.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
+                )
               ))}
             </View>
           </View>

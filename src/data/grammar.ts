@@ -9,6 +9,7 @@ export interface WordBreakdown {
   english: string;
   tone: ToneName;
   grammar?: boolean;
+  romanization?: string;
 }
 
 export interface GrammarPoint {

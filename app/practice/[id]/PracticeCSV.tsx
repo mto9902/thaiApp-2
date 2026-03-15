@@ -33,9 +33,11 @@ import {
   GrammarExerciseSettings,
 } from "../../../src/utils/grammarExerciseSettings";
 import { getPracticeWordTrackingEnabled } from "../../../src/utils/practiceWordPreference";
+import { normalizeThaiTtsText } from "../../../src/utils/thaiSpeech";
 import {
   getToneAccent,
   MUTED_FEEDBACK_ACCENTS,
+  withAlpha,
 } from "../../../src/utils/toneAccent";
 import { getAuthToken } from "../../../src/utils/authStorage";
 
@@ -43,6 +45,15 @@ import { getAuthToken } from "../../../src/utils/authStorage";
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
 }
+
+const MATTE_RESULT_COLORS = {
+  successBg: withAlpha(MUTED_FEEDBACK_ACCENTS.success, "10"),
+  successBorder: withAlpha(MUTED_FEEDBACK_ACCENTS.success, "26"),
+  successText: MUTED_FEEDBACK_ACCENTS.success,
+  errorBg: withAlpha(MUTED_FEEDBACK_ACCENTS.error, "10"),
+  errorBorder: withAlpha(MUTED_FEEDBACK_ACCENTS.error, "26"),
+  errorText: MUTED_FEEDBACK_ACCENTS.error,
+} as const;
 
 type Mode = GrammarExerciseMode;
 const ALL_MODES: Mode[] = ["breakdown", "wordScraps", "matchThai"];
@@ -182,6 +193,7 @@ export default function PracticeCSV() {
   const mixIndexRef = useRef(0);
   const currentGrammarIdRef = useRef<string | null>(null);
   const modeHistoryRef = useRef<Mode[]>([]);
+  const speechCompletionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enabledModesRef = useRef<GrammarExerciseSettings>(
     DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   );
@@ -213,6 +225,7 @@ export default function PracticeCSV() {
   const [showRoman, setShowRoman] = useState(true);
   const [showEnglish, setShowEnglish] = useState(true);
   const [autoplayTTS, setAutoplayTTS] = useState(false);
+  const [wordBreakdownTTS, setWordBreakdownTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
   const [autoAddPracticeVocab, setAutoAddPracticeVocab] = useState(true);
   const [premiumBlocked, setPremiumBlocked] = useState<{
@@ -254,6 +267,7 @@ export default function PracticeCSV() {
     setShowRoman(s.showRoman);
     setShowEnglish(s.showEnglish);
     setAutoplayTTS(s.autoplayTTS);
+    setWordBreakdownTTS(s.wordBreakdownTTS);
     setTtsSpeed(s.ttsSpeed);
     setAutoAddPracticeVocab(s.autoAddPracticeVocab);
     enabledModesRef.current = s.grammarExerciseModes;
@@ -515,10 +529,13 @@ export default function PracticeCSV() {
     recordRound(ok);
     if (ok) {
       trackWords(breakdown, "wordScraps-correct", romanTokens);
-      setTimeout(
-        () => fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current)),
-        1200,
-      );
+      const goNext = () =>
+        fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
+      if (autoplayTTS) {
+        speak(sentence, goNext);
+      } else {
+        setTimeout(goNext, 1200);
+      }
     }
   }
 
@@ -530,12 +547,23 @@ export default function PracticeCSV() {
     const ok = opt.isCorrect;
     setResult(ok ? "correct" : "wrong");
     recordRound(ok);
+    if (autoplayTTS) {
+      speak(opt.thai, ok
+        ? () =>
+            fetchRound(
+              randomMode(enabledModesRef.current, modeHistoryRef.current),
+            )
+        : undefined);
+    }
     if (ok) {
       trackWords(breakdown, "matchThai-correct", romanTokens);
-      setTimeout(
-        () => fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current)),
-        1400,
-      );
+      if (!autoplayTTS) {
+        setTimeout(
+          () =>
+            fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current)),
+          1400,
+        );
+      }
     }
   }
 
@@ -548,10 +576,48 @@ export default function PracticeCSV() {
     normal: 1.0,
     fast: 1.3,
   };
-  const speak = (t: string) => {
+
+  function clearSpeechCompletion() {
+    if (speechCompletionRef.current) {
+      clearTimeout(speechCompletionRef.current);
+      speechCompletionRef.current = null;
+    }
+  }
+
+  function getSpeechFallbackDuration(text: string) {
+    return Math.min(6000, Math.max(1200, text.length * 140));
+  }
+
+  const speak = (t: string, onDone?: () => void) => {
+    const normalized = normalizeThaiTtsText(t);
+    clearSpeechCompletion();
     Speech.stop();
-    Speech.speak(t, { language: "th-TH", rate: TTS_RATE[ttsSpeed] || 0.7 });
+    const complete = () => {
+      clearSpeechCompletion();
+      onDone?.();
+    };
+    if (onDone) {
+      speechCompletionRef.current = setTimeout(
+        complete,
+        getSpeechFallbackDuration(normalized),
+      );
+    }
+    Speech.speak(normalized, {
+      language: "th-TH",
+      rate: TTS_RATE[ttsSpeed] || 0.7,
+      onDone: onDone ? complete : undefined,
+      onStopped: onDone ? complete : undefined,
+      onError: onDone ? complete : undefined,
+    });
   };
+
+  useEffect(
+    () => () => {
+      clearSpeechCompletion();
+      Speech.stop();
+    },
+    [],
+  );
 
   const meta = MODE_META[mode];
   const availableWords = words.filter(
@@ -620,9 +686,10 @@ export default function PracticeCSV() {
                 : grammarPoint?.title || "Practice"
             }
             onBack={() => router.back()}
-          showClose
-          onSettingsChange={handleSettingsChange}
-        />
+            showClose
+            showWordBreakdownTtsSetting
+            onSettingsChange={handleSettingsChange}
+          />
 
         {loading ? (
           <View style={st.loadingWrap}>
@@ -689,32 +756,59 @@ export default function PracticeCSV() {
                   <Text style={st.tileSectionLabel}>WORD BREAKDOWN</Text>
                   <View style={st.tileRow}>
                     {breakdown.map((w, i) => (
-                      <TouchableOpacity
-                        key={i}
-                        style={st.wordTile}
-                        onPress={() => speak(w.thai)}
-                        activeOpacity={0.8}
-                      >
-                        <View style={st.wordTileHeader}>
-                          <Text style={st.wordTileThai}>{w.thai}</Text>
-                          {w.tone && (
-                            <View
-                              style={[
-                                st.toneDot,
-                                { backgroundColor: toneColor(w.tone) },
-                              ]}
-                            />
+                      wordBreakdownTTS ? (
+                        <TouchableOpacity
+                          key={i}
+                          style={st.wordTile}
+                          onPress={() => speak(w.thai)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={st.wordTileHeader}>
+                            <Text style={st.wordTileThai}>{w.thai}</Text>
+                            {w.tone && (
+                              <View
+                                style={[
+                                  st.toneDot,
+                                  { backgroundColor: toneColor(w.tone) },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          {showRoman && romanTokens[i] ? (
+                            <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
+                          ) : null}
+                          {showEnglish && (
+                            <Text style={st.wordTileEng}>
+                              {w.english.toUpperCase()}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      ) : (
+                        <View
+                          key={i}
+                          style={st.wordTile}
+                        >
+                          <View style={st.wordTileHeader}>
+                            <Text style={st.wordTileThai}>{w.thai}</Text>
+                            {w.tone && (
+                              <View
+                                style={[
+                                  st.toneDot,
+                                  { backgroundColor: toneColor(w.tone) },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          {showRoman && romanTokens[i] ? (
+                            <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
+                          ) : null}
+                          {showEnglish && (
+                            <Text style={st.wordTileEng}>
+                              {w.english.toUpperCase()}
+                            </Text>
                           )}
                         </View>
-                        {showRoman && romanTokens[i] ? (
-                          <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
-                        ) : null}
-                        {showEnglish && (
-                          <Text style={st.wordTileEng}>
-                            {w.english.toUpperCase()}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
+                      )
                     ))}
                   </View>
                 </View>
@@ -817,8 +911,8 @@ export default function PracticeCSV() {
                         {
                           color:
                             result === "correct"
-                              ? MUTED_FEEDBACK_ACCENTS.success
-                              : MUTED_FEEDBACK_ACCENTS.error,
+                              ? MATTE_RESULT_COLORS.successText
+                              : MATTE_RESULT_COLORS.errorText,
                         },
                       ]}
                     >
@@ -851,7 +945,6 @@ export default function PracticeCSV() {
                       key={word.id}
                       style={st.wordTile}
                       onPress={() => {
-                        if (autoplayTTS) speak(word.thai);
                         handleWordTap(word);
                       }}
                       activeOpacity={0.8}
@@ -925,11 +1018,11 @@ export default function PracticeCSV() {
 
                     if (matchRevealed) {
                       if (isCorrect) {
-                        borderColor = MUTED_FEEDBACK_ACCENTS.successBorder;
-                        bgColor = MUTED_FEEDBACK_ACCENTS.successTint;
+                        borderColor = MATTE_RESULT_COLORS.successBorder;
+                        bgColor = MATTE_RESULT_COLORS.successBg;
                       } else if (isSelected && !isCorrect) {
-                        borderColor = MUTED_FEEDBACK_ACCENTS.errorBorder;
-                        bgColor = MUTED_FEEDBACK_ACCENTS.errorTint;
+                        borderColor = MATTE_RESULT_COLORS.errorBorder;
+                        bgColor = MATTE_RESULT_COLORS.errorBg;
                       } else {
                         bgColor = Sketch.paperDark;
                       }
@@ -939,23 +1032,23 @@ export default function PracticeCSV() {
                     }
 
                     const sentenceBorderColor = isCorrect && matchRevealed
-                      ? MUTED_FEEDBACK_ACCENTS.successBorder
+                      ? MATTE_RESULT_COLORS.successBorder
                       : isSelected && matchRevealed && !isCorrect
-                        ? MUTED_FEEDBACK_ACCENTS.errorBorder
+                        ? MATTE_RESULT_COLORS.errorBorder
                         : isSelected
                           ? MUTED_FEEDBACK_ACCENTS.selectedBorder
                           : Sketch.inkFaint;
                     const sentenceBgColor = isCorrect && matchRevealed
-                      ? MUTED_FEEDBACK_ACCENTS.successTint
+                      ? MATTE_RESULT_COLORS.successBg
                       : isSelected && matchRevealed && !isCorrect
-                        ? MUTED_FEEDBACK_ACCENTS.errorTint
+                        ? MATTE_RESULT_COLORS.errorBg
                         : isSelected
                           ? MUTED_FEEDBACK_ACCENTS.selectedTint
                           : Sketch.paperDark;
                     const sentenceTextColor = isCorrect && matchRevealed
-                      ? MUTED_FEEDBACK_ACCENTS.success
+                      ? Sketch.ink
                       : isSelected && matchRevealed && !isCorrect
-                        ? MUTED_FEEDBACK_ACCENTS.error
+                        ? Sketch.ink
                         : Sketch.ink;
 
                     return (
@@ -1019,34 +1112,63 @@ export default function PracticeCSV() {
                           <View style={st.matchDetailsPanel}>
                             <View style={st.matchTileRow}>
                               {opt.breakdown.map((w, wi) => (
-                                <TouchableOpacity
-                                  key={wi}
-                                  style={st.matchWordTile}
-                                  onPress={() => speak(w.thai)}
-                                  activeOpacity={0.8}
-                                >
-                                  <View style={st.matchWordTileHeader}>
-                                    <Text style={st.matchWordTileThai}>{w.thai}</Text>
-                                    {w.tone && (
-                                      <View
-                                        style={[
-                                          st.toneDot,
-                                          { backgroundColor: toneColor(w.tone) },
-                                        ]}
-                                      />
+                                wordBreakdownTTS ? (
+                                  <TouchableOpacity
+                                    key={wi}
+                                    style={st.matchWordTile}
+                                    onPress={() => speak(w.thai)}
+                                    activeOpacity={0.8}
+                                  >
+                                    <View style={st.matchWordTileHeader}>
+                                      <Text style={st.matchWordTileThai}>{w.thai}</Text>
+                                      {w.tone && (
+                                        <View
+                                          style={[
+                                            st.toneDot,
+                                            { backgroundColor: toneColor(w.tone) },
+                                          ]}
+                                        />
+                                      )}
+                                    </View>
+                                    {showRoman && optRomanTokens[wi] ? (
+                                      <Text style={st.wordTileRoman}>
+                                        {optRomanTokens[wi]}
+                                      </Text>
+                                    ) : null}
+                                    {showEnglish && (
+                                      <Text style={st.wordTileEng}>
+                                        {w.english.toUpperCase()}
+                                      </Text>
+                                    )}
+                                  </TouchableOpacity>
+                                ) : (
+                                  <View
+                                    key={wi}
+                                    style={st.matchWordTile}
+                                  >
+                                    <View style={st.matchWordTileHeader}>
+                                      <Text style={st.matchWordTileThai}>{w.thai}</Text>
+                                      {w.tone && (
+                                        <View
+                                          style={[
+                                            st.toneDot,
+                                            { backgroundColor: toneColor(w.tone) },
+                                          ]}
+                                        />
+                                      )}
+                                    </View>
+                                    {showRoman && optRomanTokens[wi] ? (
+                                      <Text style={st.wordTileRoman}>
+                                        {optRomanTokens[wi]}
+                                      </Text>
+                                    ) : null}
+                                    {showEnglish && (
+                                      <Text style={st.wordTileEng}>
+                                        {w.english.toUpperCase()}
+                                      </Text>
                                     )}
                                   </View>
-                                  {showRoman && optRomanTokens[wi] ? (
-                                    <Text style={st.wordTileRoman}>
-                                      {optRomanTokens[wi]}
-                                    </Text>
-                                  ) : null}
-                                  {showEnglish && (
-                                    <Text style={st.wordTileEng}>
-                                      {w.english.toUpperCase()}
-                                    </Text>
-                                  )}
-                                </TouchableOpacity>
+                                )
                               ))}
                             </View>
                           </View>
@@ -1057,10 +1179,10 @@ export default function PracticeCSV() {
                             <Text
                               style={[
                                 st.badgeText,
-                                { color: MUTED_FEEDBACK_ACCENTS.success },
+                                { color: MATTE_RESULT_COLORS.successText },
                               ]}
                             >
-                              ✓ Correct
+                              Correct
                             </Text>
                           </View>
                         )}
@@ -1069,10 +1191,10 @@ export default function PracticeCSV() {
                             <Text
                               style={[
                                 st.badgeText,
-                                { color: MUTED_FEEDBACK_ACCENTS.error },
+                                { color: MATTE_RESULT_COLORS.errorText },
                               ]}
                             >
-                              ✗ Wrong
+                              Wrong
                             </Text>
                           </View>
                         )}
@@ -1094,8 +1216,8 @@ export default function PracticeCSV() {
                         {
                           color:
                             result === "correct"
-                              ? MUTED_FEEDBACK_ACCENTS.success
-                              : MUTED_FEEDBACK_ACCENTS.error,
+                              ? MATTE_RESULT_COLORS.successText
+                              : MATTE_RESULT_COLORS.errorText,
                         },
                       ]}
                     >
@@ -1438,14 +1560,14 @@ const st = StyleSheet.create({
     borderStyle: "dashed",
   },
   builderCorrect: {
-    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
+    borderColor: MATTE_RESULT_COLORS.successBorder,
     borderStyle: "solid",
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
+    backgroundColor: MATTE_RESULT_COLORS.successBg,
   },
   builderWrong: {
-    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
+    borderColor: MATTE_RESULT_COLORS.errorBorder,
     borderStyle: "solid",
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
+    backgroundColor: MATTE_RESULT_COLORS.errorBg,
   },
   builderPlaceholder: {
     fontSize: 14,
@@ -1529,12 +1651,12 @@ const st = StyleSheet.create({
     borderColor: Sketch.inkFaint,
   },
   resultOk: {
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
-    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
+    backgroundColor: MATTE_RESULT_COLORS.successBg,
+    borderColor: MATTE_RESULT_COLORS.successBorder,
   },
   resultBad: {
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
-    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
+    backgroundColor: MATTE_RESULT_COLORS.errorBg,
+    borderColor: MATTE_RESULT_COLORS.errorBorder,
   },
   resultLabel: { fontSize: 13, fontWeight: "600" },
 
@@ -1590,16 +1712,16 @@ const st = StyleSheet.create({
 
   badge: {
     alignSelf: "flex-start",
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
+    backgroundColor: MATTE_RESULT_COLORS.successBg,
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderWidth: 1.5,
-    borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
+    borderColor: MATTE_RESULT_COLORS.successBorder,
   },
   badgeWrong: {
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
-    borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
+    backgroundColor: MATTE_RESULT_COLORS.errorBg,
+    borderColor: MATTE_RESULT_COLORS.errorBorder,
   },
-  badgeText: { fontSize: 12, fontWeight: "800" },
+  badgeText: { fontSize: 12, fontWeight: "700" },
 });

@@ -28,12 +28,14 @@ import {
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
 const PREF_AUTOPLAY_TTS = "pref_autoplay_tts";
+const PREF_WORD_BREAKDOWN_TTS = "pref_word_breakdown_tts";
 const PREF_TTS_SPEED = "pref_tts_speed";
 
 export type SettingsState = {
   showRoman: boolean;
   showEnglish: boolean;
   autoplayTTS: boolean;
+  wordBreakdownTTS: boolean;
   ttsSpeed: "slow" | "normal" | "fast";
   autoAddPracticeVocab: boolean;
   grammarExerciseModes: GrammarExerciseSettings;
@@ -44,6 +46,7 @@ type HeaderProps = {
   onBack?: () => void;
   showClose?: boolean;
   showSettings?: boolean;
+  showWordBreakdownTtsSetting?: boolean;
   onSettingsChange?: (settings: SettingsState) => void;
 };
 
@@ -52,6 +55,7 @@ export default function Header({
   onBack,
   showClose,
   showSettings = true,
+  showWordBreakdownTtsSetting = false,
   onSettingsChange,
 }: HeaderProps) {
   const [modalVisible, setModalVisible] = useState(false);
@@ -59,6 +63,7 @@ export default function Header({
     showRoman: true,
     showEnglish: true,
     autoplayTTS: false,
+    wordBreakdownTTS: false,
     ttsSpeed: "slow",
     autoAddPracticeVocab: true,
     grammarExerciseModes: DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
@@ -66,11 +71,12 @@ export default function Header({
 
   const loadSettings = useCallback(async () => {
     try {
-      const [roman, english, tts, speed, autoAddPracticeVocab, grammarExerciseModes] =
+      const [roman, english, tts, breakdownTts, speed, autoAddPracticeVocab, grammarExerciseModes] =
         await Promise.all([
         AsyncStorage.getItem(PREF_ROMANIZATION),
         AsyncStorage.getItem(PREF_ENGLISH),
         AsyncStorage.getItem(PREF_AUTOPLAY_TTS),
+        AsyncStorage.getItem(PREF_WORD_BREAKDOWN_TTS),
         AsyncStorage.getItem(PREF_TTS_SPEED),
         getPracticeWordTrackingEnabled(),
         getGrammarExerciseSettings(),
@@ -79,6 +85,8 @@ export default function Header({
         showRoman: roman !== null ? roman === "true" : true,
         showEnglish: english !== null ? english === "true" : true,
         autoplayTTS: tts !== null ? tts === "true" : false,
+        wordBreakdownTTS:
+          breakdownTts !== null ? breakdownTts === "true" : false,
         ttsSpeed: (speed as SettingsState["ttsSpeed"]) || "slow",
         autoAddPracticeVocab,
         grammarExerciseModes,
@@ -123,12 +131,13 @@ export default function Header({
     }
 
     const storageMap: Record<
-      Exclude<keyof SettingsState, "autoAddPracticeVocab">,
+      Exclude<keyof SettingsState, "autoAddPracticeVocab" | "grammarExerciseModes">,
       string
     > = {
       showRoman: PREF_ROMANIZATION,
       showEnglish: PREF_ENGLISH,
       autoplayTTS: PREF_AUTOPLAY_TTS,
+      wordBreakdownTTS: PREF_WORD_BREAKDOWN_TTS,
       ttsSpeed: PREF_TTS_SPEED,
     };
     await AsyncStorage.setItem(storageMap[key], String(value));
@@ -238,6 +247,23 @@ export default function Header({
                   thumbColor="white"
                 />
               </View>
+
+              {showWordBreakdownTtsSetting ? (
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingLabel}>Word Breakdown TTS (Beta)</Text>
+                    <Text style={styles.settingDesc}>
+                      Experimental word-by-word audio for grammar breakdown cards. Some voices may sound off.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={settings.wordBreakdownTTS}
+                    onValueChange={(v) => updateSetting("wordBreakdownTTS", v)}
+                    trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
+                    thumbColor="white"
+                  />
+                </View>
+              ) : null}
 
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>

@@ -7,6 +7,7 @@ type WordBreakdown = {
   english: string;
   tone: ToneName;
   grammar?: boolean;
+  romanization?: string;
 };
 
 type RawGrammarPointLike = {
@@ -28,15 +29,89 @@ type RawGrammarPointLike = {
   };
 };
 
+const B2_BREAKDOWN_ROMANIZATION: Record<string, string> = {
+  "เข้าไป": "khao pai",
+  "ในห้อง": "nai hong",
+  "มาให้": "ma hai",
+  "ถึงบ้าน": "thueng ban",
+  "อาบน้ำ": "ap nam",
+  "ตั้งแต่": "tang tae",
+  "ย้ายบ้าน": "yai ban",
+  "ระหว่างที่": "rawang thi",
+  "ทันทีที่": "thanthi thi",
+  "ได้ยิน": "dai yin",
+  "โทรมา": "thoh ma",
+  "กำลังจะ": "kamlang cha",
+  "ค่อยๆ": "khoi khoi",
+  "ไม่ได้ตั้งใจ": "mai dai tangjai",
+  "คนเรา": "khon rao",
+  "ผู้เรียน": "phu rian",
+  "อย่างที่คิด": "yang thi khit",
+  "ตามที่": "tam thi",
+  "แก้ใหม่": "kae mai",
+  "เอาร่มไป": "ao rom pai",
+  "เผื่อว่า": "phuea wa",
+  "ทำอะไรก็ได้": "tham arai ko dai",
+  "ตราบใดที่": "trap dai thi",
+  "ผิดกฎหมาย": "phit kotmai",
+  "คอร์ส": "kho",
+  "คุ้มค่า": "khum kha",
+  "ที่จะ": "thi cha",
+  "เรื่องเดิม": "rueang doem",
+  "ซ้ำๆ": "sam sam",
+  "สองทีม": "song thim",
+  "คล้ายกับ": "khlai kap",
+  "ต่างจาก": "tang jak",
+  "สามคน": "sam khon",
+  "เท่านั้น": "thao nan",
+  "พักผ่อน": "phak phon",
+  "โดยเฉพาะ": "doichapho",
+  "เด็กเล็ก": "dek lek",
+  "อย่างน้อย": "yang noi",
+  "ทีเดียว": "thi diao",
+  "เรื่องนี้": "rueang ni",
+  "นะล่ะ": "na la",
+  "อีกครั้ง": "ik khrang",
+  "ว่าไหม": "wa mai",
+  "ไม่ใช่หรือ": "mai chai rue",
+  "ทำเป็น": "tham pen",
+  "เสียดาย": "sia dai",
+  "ไม่ได้": "mai dai",
+  "มิน่าล่ะ": "mina la",
+  "กลายเป็นว่า": "klai pen wa",
+  "นอกจาก": "nok chak",
+  "ไม่เพียงแต่": "mai phiang tae",
+  "พูดเก่ง": "phut keng",
+  "แต่ยัง": "tae yang",
+  "เขียนดี": "khian di",
+  "แม้แต่": "mae tae",
+  "เรื่องง่าย": "rueang ngai",
+  "ยังไม่เข้าใจ": "yang mai khaochai",
+  "นับประสาอะไรกับ": "nap prasa arai kap",
+  "เลื่อนนัด": "luean nat",
+  "การที่": "kan thi",
+  "มาช้า": "ma cha",
+  "ถ้าเป็นวันหยุด": "tha pen wan yut",
+  "สำหรับ": "samrap",
+  "อย่างไร": "yang rai",
+  "นอกจากนั้น": "nok chak nan",
+  "ฝนตกหนัก": "fon tok nak",
+  "ส่งผลให้": "song phon hai",
+  "ในขณะที่": "nai khana thi",
+  "ทำงาน": "tham ngan",
+};
+
 function w(
   thai: string,
   english: string,
   tone: ToneName,
   grammar = false,
 ): WordBreakdown {
-  return grammar
-    ? { thai, english, tone, grammar: true }
+  const romanization = B2_BREAKDOWN_ROMANIZATION[thai];
+  const base = romanization
+    ? { thai, english, tone, romanization }
     : { thai, english, tone };
+  return grammar ? { ...base, grammar: true } : base;
 }
 
 export const b2GrammarPoints: RawGrammarPointLike[] = [
