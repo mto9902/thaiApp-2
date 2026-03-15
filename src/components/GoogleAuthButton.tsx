@@ -1,16 +1,20 @@
 import { Sketch } from "@/constants/theme";
+import TermsAgreement from "@/src/components/TermsAgreement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { API_BASE } from "../config";
 
@@ -21,6 +25,39 @@ const googleClientConfig = {
   androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+};
+
+const configuredWebRedirectUri =
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_REDIRECT_URI?.trim() || null;
+const redirectPath =
+  Platform.OS === "web" ? "auth/callback" : "oauthredirect";
+
+function getWebRedirectUri() {
+  if (configuredWebRedirectUri) {
+    return configuredWebRedirectUri;
+  }
+
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/auth/callback`;
+  }
+
+  return undefined;
+}
+
+function getConfiguredWebOrigin() {
+  if (!configuredWebRedirectUri) return null;
+
+  try {
+    return new URL(configuredWebRedirectUri).origin;
+  } catch {
+    return null;
+  }
+}
+
+type PendingGoogleConsent = {
+  idToken: string;
+  email: string;
+  displayName?: string | null;
 };
 
 function getCurrentPlatformClientId() {
@@ -42,19 +79,66 @@ function getCurrentPlatformClientId() {
 function GoogleAuthButtonReady() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     {
       clientId: googleClientConfig.clientId,
       androidClientId: googleClientConfig.androidClientId,
       iosClientId: googleClientConfig.iosClientId,
       webClientId: googleClientConfig.webClientId,
+      redirectUri: Platform.OS === "web" ? getWebRedirectUri() : undefined,
       selectAccount: true,
     },
     {
       scheme: "thaiapp",
-      path: "oauthredirect",
+      path: redirectPath,
       preferLocalhost: true,
     },
+  );
+
+  const exchangeGoogleToken = useCallback(
+    async (idToken: string, acceptedTermsForSignup: boolean) => {
+      try {
+        const authResponse = await fetch(`${API_BASE}/auth/google`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            idToken,
+            acceptedTerms: acceptedTermsForSignup,
+          }),
+        });
+
+        const data = await authResponse.json();
+
+        if (!authResponse.ok) {
+          throw new Error(data.error || "Google sign-in failed");
+        }
+
+        if (data.requiresTerms) {
+          setPendingConsent({
+            idToken,
+            email: data.email ?? "",
+            displayName: data.displayName ?? null,
+          });
+          setAcceptedTerms(false);
+          setIsSubmitting(false);
+          return;
+        }
+
+        setPendingConsent(null);
+        setAcceptedTerms(false);
+        await AsyncStorage.multiRemove(["isGuest"]);
+        await AsyncStorage.setItem("token", data.token);
+        router.replace("/(tabs)");
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Google sign-in failed";
+        Alert.alert("Google sign-in failed", message);
+        setIsSubmitting(false);
+      }
+    },
+    [router],
   );
 
   useEffect(() => {
@@ -85,45 +169,8 @@ function GoogleAuthButtonReady() {
       return;
     }
 
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const authResponse = await fetch(`${API_BASE}/auth/google`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken }),
-        });
-
-        const data = await authResponse.json();
-
-        if (!authResponse.ok) {
-          throw new Error(data.error || "Google sign-in failed");
-        }
-
-        await AsyncStorage.multiRemove(["isGuest"]);
-        await AsyncStorage.setItem("token", data.token);
-
-        if (!cancelled) {
-          router.replace("/(tabs)");
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const message =
-            err instanceof Error ? err.message : "Google sign-in failed";
-          Alert.alert("Google sign-in failed", message);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSubmitting(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [response, router]);
+    void exchangeGoogleToken(idToken, false);
+  }, [exchangeGoogleToken, response]);
 
   async function handlePress() {
     if (!request || isSubmitting) return;
@@ -151,17 +198,100 @@ function GoogleAuthButtonReady() {
     }
   }
 
+  async function handleConsentContinue() {
+    if (!pendingConsent || !acceptedTerms || isSubmitting) return;
+
+    setIsSubmitting(true);
+    await exchangeGoogleToken(pendingConsent.idToken, true);
+  }
+
   return (
-    <TouchableOpacity
-      style={[styles.button, isSubmitting && styles.buttonDisabled]}
-      onPress={handlePress}
-      activeOpacity={0.85}
-      disabled={!request || isSubmitting}
-    >
-      <Text style={styles.buttonText}>
-        {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
-      </Text>
-    </TouchableOpacity>
+    <>
+      <Modal
+        visible={pendingConsent !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isSubmitting) {
+            setPendingConsent(null);
+            setAcceptedTerms(false);
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              if (!isSubmitting) {
+                setPendingConsent(null);
+                setAcceptedTerms(false);
+              }
+            }}
+          />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Agree to Continue</Text>
+            <Text style={styles.modalBody}>
+              Before we create your Keystone account with Google, please agree
+              to the Terms and Conditions and Privacy Policy.
+            </Text>
+
+            {pendingConsent ? (
+              <View style={styles.accountCard}>
+                <Text style={styles.accountLabel}>Google account</Text>
+                <Text style={styles.accountName}>
+                  {pendingConsent.displayName?.trim() || pendingConsent.email}
+                </Text>
+                <Text style={styles.accountEmail}>{pendingConsent.email}</Text>
+              </View>
+            ) : null}
+
+            <TermsAgreement
+              accepted={acceptedTerms}
+              onToggle={() => setAcceptedTerms((current) => !current)}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.secondaryButton, styles.modalAction]}
+                onPress={() => {
+                  setPendingConsent(null);
+                  setAcceptedTerms(false);
+                }}
+                activeOpacity={0.82}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.secondaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  styles.modalAction,
+                  (!acceptedTerms || isSubmitting) && styles.primaryButtonDisabled,
+                ]}
+                onPress={handleConsentContinue}
+                activeOpacity={0.82}
+                disabled={!acceptedTerms || isSubmitting}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isSubmitting ? "Creating account..." : "Agree and Continue"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <TouchableOpacity
+        style={[styles.button, isSubmitting && styles.buttonDisabled]}
+        onPress={handlePress}
+        activeOpacity={0.85}
+        disabled={!request || isSubmitting}
+      >
+        <Text style={styles.buttonText}>
+          {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
+        </Text>
+      </TouchableOpacity>
+    </>
   );
 }
 
@@ -170,6 +300,16 @@ export default function GoogleAuthButton() {
   const isExpoGoNative =
     Platform.OS !== "web" &&
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const configuredWebOrigin = getConfiguredWebOrigin();
+  const currentWebOrigin =
+    Platform.OS === "web" && typeof window !== "undefined"
+      ? window.location.origin
+      : null;
+  const hasWebOriginMismatch =
+    Platform.OS === "web" &&
+    !!configuredWebOrigin &&
+    !!currentWebOrigin &&
+    configuredWebOrigin !== currentWebOrigin;
 
   if (isExpoGoNative) {
     return (
@@ -180,6 +320,23 @@ export default function GoogleAuthButton() {
           Alert.alert(
             "Google sign-in needs a development build",
             "Expo Go cannot be used to test OAuth sign-in flows like Google on native. Use web for now, or run a development build and test again.",
+          )
+        }
+      >
+        <Text style={styles.buttonText}>Continue with Google</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  if (hasWebOriginMismatch) {
+    return (
+      <TouchableOpacity
+        style={styles.button}
+        activeOpacity={0.85}
+        onPress={() =>
+          Alert.alert(
+            "Open the configured web URL",
+            `Google sign-in is configured for ${configuredWebOrigin}. Open the app from that exact address to avoid redirect mismatches.`,
           )
         }
       >
@@ -224,5 +381,109 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.ink,
     fontSize: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(33, 28, 24, 0.18)",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    backgroundColor: Sketch.paper,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 20,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.3,
+  },
+  modalBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
+  },
+  accountCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 14,
+    gap: 4,
+  },
+  accountLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  accountName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  accountEmail: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  modalAction: {
+    flex: 1,
+  },
+  primaryButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.orange,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 13,
+    shadowColor: Sketch.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.45,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  secondaryButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Sketch.ink,
   },
 });

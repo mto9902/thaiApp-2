@@ -1,6 +1,6 @@
 import { Sketch } from "@/constants/theme";
+import TermsAgreement from "@/src/components/TermsAgreement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -29,13 +29,6 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  function openPlaceholderLink(label: string) {
-    Alert.alert(
-      `${label} link`,
-      `Add your ${label.toLowerCase()} URL here later.`,
-    );
-  }
-
   async function handleRegister() {
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -63,7 +56,11 @@ export default function Register() {
     const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: normalizedEmail, password }),
+      body: JSON.stringify({
+        email: normalizedEmail,
+        password,
+        acceptedTerms: true,
+      }),
     });
 
     const data = await res.json();
@@ -127,39 +124,10 @@ export default function Register() {
             </Text>
           ) : null}
 
-          <TouchableOpacity
-            style={styles.termsRow}
-            onPress={() => setAcceptedTerms((current) => !current)}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                acceptedTerms && styles.checkboxChecked,
-              ]}
-            >
-              {acceptedTerms ? (
-                <Ionicons name="checkmark" size={14} color="#fff" />
-              ) : null}
-            </View>
-            <Text style={styles.termsText}>
-              I agree to the{" "}
-              <Text
-                style={styles.termsLink}
-                onPress={() => openPlaceholderLink("Terms and Conditions")}
-              >
-                Terms and Conditions
-              </Text>{" "}
-              and{" "}
-              <Text
-                style={styles.termsLink}
-                onPress={() => openPlaceholderLink("Privacy Policy")}
-              >
-                Privacy Policy
-              </Text>
-              .
-            </Text>
-          </TouchableOpacity>
+          <TermsAgreement
+            accepted={acceptedTerms}
+            onToggle={() => setAcceptedTerms((current) => !current)}
+          />
 
           <TouchableOpacity
             style={[styles.button, !acceptedTerms && styles.buttonDisabled]}
@@ -221,38 +189,6 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
 
-  termsRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  checkboxChecked: {
-    backgroundColor: Sketch.orange,
-    borderColor: Sketch.orange,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: Sketch.inkMuted,
-  },
-  termsLink: {
-    color: Sketch.orange,
-    fontWeight: "600",
-  },
   helperText: {
     fontSize: 12,
     lineHeight: 18,

@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../src/config";
+import { usePremiumAccess } from "../src/subscription/usePremiumAccess";
 import { clearAuthState } from "../src/utils/auth";
 
 type SettingsProfile = {
@@ -36,6 +37,14 @@ export default function SettingsScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [draftDisplayName, setDraftDisplayName] = useState("");
+  const {
+    busy: premiumBusy,
+    isPremium,
+    isSupported,
+    canMakePurchases,
+    openSubscriptionManager,
+    restorePremiumAccess,
+  } = usePremiumAccess();
 
   const loadProfile = useCallback(async () => {
     try {
@@ -348,6 +357,59 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Keystone Access</Text>
+          <View style={styles.card}>
+            <View style={styles.infoBlock}>
+              <Text style={styles.fieldLabel}>Status</Text>
+              <Text style={styles.infoValue}>
+                {isPremium ? "Keystone Access active" : "Free plan"}
+              </Text>
+            </View>
+
+            <Text style={styles.helperText}>
+              {isPremium
+                ? "You have access to the full A1.2 to C2 Keystone Access path. Use the button below to manage your subscription."
+                : isSupported
+                  ? canMakePurchases
+                    ? "Keystone Access unlocks A1.2 and above, along with higher-level mixed practice, in the mobile app."
+                    : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
+                  : "Keystone Access checkout is available in the mobile app for now."}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                premiumBusy && styles.primaryBtnDisabled,
+              ]}
+              onPress={() => void openSubscriptionManager()}
+              activeOpacity={0.82}
+              disabled={premiumBusy}
+            >
+              <Text style={styles.primaryBtnText}>
+                {premiumBusy
+                  ? "Loading..."
+                  : isPremium
+                    ? "Manage Keystone Access"
+                    : isSupported && canMakePurchases
+                      ? "Unlock Keystone Access"
+                      : "Keystone Access on mobile"}
+              </Text>
+            </TouchableOpacity>
+
+            {isSupported && canMakePurchases ? (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => void restorePremiumAccess()}
+                activeOpacity={0.8}
+                disabled={premiumBusy}
+              >
+                <Text style={styles.secondaryBtnText}>Restore Purchases</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Danger Zone</Text>
           <View style={styles.dangerCard}>
             <Text style={styles.dangerTitle}>Reset Progress</Text>
@@ -444,6 +506,11 @@ const styles = StyleSheet.create({
   },
   infoBlock: {
     gap: 6,
+  },
+  helperText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
   },
   fieldLabel: {
     fontSize: 12,

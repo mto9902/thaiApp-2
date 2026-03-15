@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  InteractionManager,
   Modal,
   Pressable,
   RefreshControl,
@@ -19,6 +20,9 @@ import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
+import { isPremiumGrammarPoint } from "../../src/subscription/premium";
+import { useSubscription } from "../../src/subscription/SubscriptionProvider";
+import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 import { isGuestUser } from "../../src/utils/auth";
 import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 import {
@@ -34,6 +38,17 @@ const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
 const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
 
 type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
+
+type PendingProgressMixAction =
+  | {
+      type: "premium";
+      label: string;
+      route: string;
+    }
+  | {
+      type: "practice";
+      route: string;
+    };
 
 function shuffleIds(ids: string[]) {
   return [...ids].sort(() => Math.random() - 0.5);
@@ -58,6 +73,8 @@ function accuracyLabel(p: GrammarProgressData): string {
 
 export default function DecksScreen() {
   const router = useRouter();
+  const { isPremium } = useSubscription();
+  const { ensurePremiumAccess } = usePremiumAccess();
 
   const [bookmarked, setBookmarked] = useState<GrammarPoint[]>([]);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
@@ -70,6 +87,8 @@ export default function DecksScreen() {
   const [selectedProgressLevels, setSelectedProgressLevels] = useState<
     ProgressFilterLevel[]
   >(["All"]);
+  const [pendingProgressMixAction, setPendingProgressMixAction] =
+    useState<PendingProgressMixAction | null>(null);
 
   async function loadData() {
     try {
@@ -113,9 +132,33 @@ export default function DecksScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setShowProgressMixModal(false);
+      setPendingProgressMixAction(null);
       loadData();
+      return () => {
+        setShowProgressMixModal(false);
+      };
     }, []),
   );
+
+  useEffect(() => {
+    if (showProgressMixModal || !pendingProgressMixAction) return;
+
+    const action = pendingProgressMixAction;
+    const task = InteractionManager.runAfterInteractions(() => {
+      setPendingProgressMixAction(null);
+      if (action.type === "premium") {
+        void ensurePremiumAccess(action.label, action.route);
+        return;
+      }
+
+      router.push(action.route);
+    });
+
+    return () => {
+      task.cancel();
+    };
+  }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
 
   function handleRefresh() {
     setRefreshing(true);
@@ -123,10 +166,22 @@ export default function DecksScreen() {
   }
 
   function handleQuickMix() {
-    if (bookmarked.length === 0) return;
+    if (bookmarked.length === 0) {
+      return;
+    }
+
     const shuffled = shuffleIds(bookmarked.map((g) => g.id));
+    const practiceRoute = `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=bookmarks`;
+
+    if (!isPremium && bookmarked.some((point) => isPremiumGrammarPoint(point))) {
+      void ensurePremiumAccess(
+        "your bookmarked Keystone Access lessons",
+        practiceRoute,
+      );
+      return;
+    }
     router.push(
-      `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=bookmarks`,
+      practiceRoute,
     );
   }
 
@@ -177,12 +232,26 @@ export default function DecksScreen() {
   }
 
   function handleStartProgressMix() {
-    if (filteredProgressGrammar.length === 0) return;
+    if (filteredProgressGrammar.length === 0) {
+      return;
+    }
     const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
+    const practiceRoute = `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=progress`;
+
+    if (
+      !isPremium &&
+      filteredProgressGrammar.some((point) => isPremiumGrammarPoint(point))
+    ) {
+      setShowProgressMixModal(false);
+      setPendingProgressMixAction({
+        type: "premium",
+        label: "the studied grammar in this mix",
+        route: practiceRoute,
+      });
+      return;
+    }
     setShowProgressMixModal(false);
-    router.push(
-      `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=progress`,
-    );
+    setPendingProgressMixAction({ type: "practice", route: practiceRoute });
   }
 
   function renderEmpty() {
@@ -384,13 +453,18 @@ export default function DecksScreen() {
             <>
               <View style={styles.mixRow}>
                 <TouchableOpacity
-                  style={styles.mixTile}
+                  style={[
+                    styles.mixTile,
+                    bookmarked.length === 0 && styles.mixTileDisabled,
+                  ]}
                   onPress={handleQuickMix}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.mixTileTitle}>Quick Practice</Text>
                   <Text style={styles.mixTileSub}>
-                    Practice grammar points using bookmarks
+                    {bookmarked.length > 0
+                      ? "Practice grammar points using bookmarks"
+                      : "Save grammar points to practice them here"}
                   </Text>
                 </TouchableOpacity>
 
@@ -631,6 +705,7 @@ const styles = StyleSheet.create({
   cardTop: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   levelBadge: {
     paddingHorizontal: 7,

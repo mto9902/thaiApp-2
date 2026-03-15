@@ -31,6 +31,9 @@ import {
 } from "../../src/utils/grammarProgress";
 import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 import { API_BASE } from "../../src/config";
+import { isPremiumGrammarPoint } from "../../src/subscription/premium";
+import { useSubscription } from "../../src/subscription/SubscriptionProvider";
+import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 
 export default function CSVGrammarIndex() {
   const router = useRouter();
@@ -47,6 +50,8 @@ export default function CSVGrammarIndex() {
       : undefined;
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const { isPremium } = useSubscription();
+  const { ensurePremiumAccess } = usePremiumAccess();
 
   useFocusEffect(
     useCallback(() => {
@@ -99,7 +104,9 @@ export default function CSVGrammarIndex() {
     return grammarPoints.filter((p) => p.level === selectedLevel);
   }, [selectedLevel, selectedStage]);
   const nextUnlearned = useMemo(
-    () => filtered.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
+    () =>
+      filtered.find((point) => !isGrammarPracticed(progress[point.id])) ??
+      null,
     [filtered, progress],
   );
   const nextCardCopy = nextUnlearned ? getGrammarCardCopy(nextUnlearned) : null;
@@ -166,7 +173,14 @@ export default function CSVGrammarIndex() {
               {nextUnlearned && nextCardCopy ? (
                 <TouchableOpacity
                   style={styles.nextButton}
-                  onPress={() => router.push(`/practice/${nextUnlearned.id}`)}
+                  onPress={() =>
+                    !isPremium && isPremiumGrammarPoint(nextUnlearned)
+                      ? void ensurePremiumAccess(
+                          nextCardCopy.title,
+                          `/practice/${nextUnlearned.id}`,
+                        )
+                      : router.push(`/practice/${nextUnlearned.id}`)
+                  }
                   activeOpacity={0.78}
                 >
                   <View style={styles.nextButtonText}>
@@ -191,10 +205,15 @@ export default function CSVGrammarIndex() {
           const done = isGrammarPracticed(progress[item.id]);
           const bookmarked = bookmarkedIds.has(item.id);
           const cardCopy = getGrammarCardCopy(item);
+          const locked = isPremiumGrammarPoint(item) && !isPremium;
           return (
             <TouchableOpacity
               style={styles.card}
-              onPress={() => router.push(`/practice/${item.id}`)}
+              onPress={() =>
+                locked
+                  ? void ensurePremiumAccess(cardCopy.title, `/practice/${item.id}`)
+                  : router.push(`/practice/${item.id}`)
+              }
               activeOpacity={0.7}
             >
               <View style={styles.cardTop}>
@@ -223,7 +242,13 @@ export default function CSVGrammarIndex() {
                   </View>
                 </View>
                 <View style={styles.cardRight}>
-                  {done ? (
+                  {locked ? (
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={16}
+                      color={Sketch.orange}
+                    />
+                  ) : done ? (
                     <View style={styles.doneBadge}>
                       <Ionicons name="checkmark" size={14} color="#fff" />
                     </View>
@@ -235,6 +260,11 @@ export default function CSVGrammarIndex() {
 
               <View style={styles.cardBottom}>
                 <View style={styles.metaRow}>
+                  {locked ? (
+                    <View style={styles.premiumPill}>
+                      <Text style={styles.premiumPillText}>Keystone Access</Text>
+                    </View>
+                  ) : null}
                   <View style={styles.focusPill}>
                     <Text style={styles.focusParticle} numberOfLines={1}>
                       {cardCopy.focus}
@@ -453,6 +483,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: 8,
+  },
+  premiumPill: {
+    backgroundColor: "rgba(196, 97, 60, 0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  premiumPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.orange,
   },
   focusPill: {
     backgroundColor: Sketch.orange + "12",

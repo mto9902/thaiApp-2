@@ -16,12 +16,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header, { SettingsState } from "../../../src/components/Header";
+import PremiumGateCard from "../../../src/components/PremiumGateCard";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
 import { Sketch } from "@/constants/theme";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
+import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
+import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { saveRound } from "../../../src/utils/grammarProgress";
 import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
@@ -171,6 +174,11 @@ export default function PracticeCSV() {
   }>();
   const router = useRouter();
   const mixSource = Array.isArray(source) ? source[0] : source;
+  const hasMixSource = typeof mix === "string" && mix.length > 0;
+  const mixParam = typeof mix === "string" ? mix : "";
+  const currentPracticeRoute = hasMixSource
+    ? `/practice/${id}/PracticeCSV?mix=${mixParam}${mixSource ? `&source=${mixSource}` : ""}`
+    : `/practice/${id}/PracticeCSV`;
 
   const roundRef = useRef(0);
   const mixIdsRef = useRef<string[]>([]);
@@ -210,6 +218,11 @@ export default function PracticeCSV() {
   const [autoplayTTS, setAutoplayTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
   const [autoAddPracticeVocab, setAutoAddPracticeVocab] = useState(true);
+  const [premiumBlocked, setPremiumBlocked] = useState<{
+    title: string;
+    body: string;
+  } | null>(null);
+  const { isPremium, loading: premiumLoading } = useSubscription();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
@@ -253,17 +266,61 @@ export default function PracticeCSV() {
   }
 
   useEffect(() => {
-    if (!settingsReady) return;
-    if (mix) {
-      mixIdsRef.current = mix.split(",");
+    if (!settingsReady || premiumLoading) return;
+
+    const requestedGrammar =
+      typeof id === "string" ? findGrammarById(id) ?? null : null;
+    const requestedMixIds =
+      typeof mix === "string" ? mix.split(",").filter(Boolean) : [];
+
+    if (requestedMixIds.length > 0) {
+      if (
+        !isPremium &&
+        requestedMixIds.some((grammarId) =>
+          isPremiumGrammarPoint(findGrammarById(grammarId)),
+        )
+      ) {
+        mixIdsRef.current = [];
+        mixIndexRef.current = 0;
+        currentGrammarIdRef.current = requestedGrammar?.id ?? null;
+        setGrammarPoint(requestedGrammar);
+        setPremiumBlocked({
+          title:
+            mixSource === "progress"
+              ? "Keystone Access practice set"
+              : "Keystone Access bookmarks",
+          body:
+            "This practice mix includes Keystone Access grammar. Unlock Keystone Access to keep practicing A1.2 and above on mobile.",
+        });
+        return;
+      }
+
+      mixIdsRef.current = requestedMixIds;
       mixIndexRef.current = 0;
     } else {
       mixIdsRef.current = [];
       mixIndexRef.current = 0;
+
+      if (
+        requestedGrammar &&
+        !isPremium &&
+        isPremiumGrammarPoint(requestedGrammar)
+      ) {
+        currentGrammarIdRef.current = requestedGrammar.id;
+        setGrammarPoint(requestedGrammar);
+        setPremiumBlocked({
+          title: "Keystone Access practice",
+          body:
+            "A1.2 and above are part of Keystone Access. Unlock Keystone Access to practice this lesson on mobile.",
+        });
+        return;
+      }
     }
+
+    setPremiumBlocked(null);
     modeHistoryRef.current = [];
     fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
-  }, [id, mix, settingsReady]);
+  }, [id, isPremium, mix, mixSource, premiumLoading, settingsReady]);
 
   function getRandomGrammar() {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
@@ -506,6 +563,51 @@ export default function PracticeCSV() {
   );
   const showLessonShortcut =
     (mixSource === "bookmarks" || mixSource === "progress") && Boolean(grammarPoint?.id);
+
+  if (premiumLoading) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Header title="Practice" onBack={() => router.back()} showClose />
+        <View style={st.loadingWrap}>
+          <View style={st.loadingPulse} />
+          <Text style={st.loadingLabel}>Checking Keystone Access...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (premiumBlocked) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScrollView
+          contentContainerStyle={st.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <Header
+            title={
+              hasMixSource
+                ? mixSource === "progress"
+                  ? "Studied Grammar"
+                  : "Quick Practice"
+                : grammarPoint?.title || "Practice"
+            }
+            onBack={() => router.back()}
+            showClose
+          />
+          <View style={st.premiumBlockWrap}>
+            <PremiumGateCard
+              title={premiumBlocked.title}
+              body={premiumBlocked.body}
+              redirectTo={currentPracticeRoute}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -515,7 +617,7 @@ export default function PracticeCSV() {
         >
           <Header
             title={
-              mixIdsRef.current.length > 0
+              hasMixSource
                 ? mixSource === "progress"
                   ? "Studied Grammar"
                   : "Quick Practice"
@@ -1075,6 +1177,7 @@ const st = StyleSheet.create({
   scroll: { paddingBottom: 64 },
 
   loadingWrap: { alignItems: "center", paddingTop: 120, gap: 14 },
+  premiumBlockWrap: { paddingTop: 18 },
   loadingPulse: {
     width: 40,
     height: 40,

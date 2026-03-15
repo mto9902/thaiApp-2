@@ -21,10 +21,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import PremiumGateCard from "@/src/components/PremiumGateCard";
 import Header from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
+import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
+import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
+import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { isGuestUser } from "../../../src/utils/auth";
 import { getToneAccent } from "../../../src/utils/toneAccent";
 
@@ -49,8 +53,11 @@ export default function GrammarDetail() {
   const scrollRef = useRef<ScrollView>(null);
 
   const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkCount, setBookmarkCount] = useState(0);
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const { isPremium, loading: premiumLoading } = useSubscription();
+  const { ensurePremiumAccess } = usePremiumAccess();
 
   const grammar = grammarPoints.find((p) => p.id === id);
 
@@ -69,6 +76,7 @@ export default function GrammarDetail() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
+      setBookmarkCount(Array.isArray(data) ? data.length : 0);
       const exists = data.some((b: any) => b.grammar_id === id);
       setBookmarked(exists);
     } catch (err) {
@@ -96,7 +104,23 @@ export default function GrammarDetail() {
           body: JSON.stringify({ grammarId: id }),
         });
         setBookmarked(false);
+        setBookmarkCount((current) => Math.max(0, current - 1));
       } else {
+        if (!isPremium) {
+          const bookmarkRes = await fetch(`${API_BASE}/bookmarks`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const bookmarkData = bookmarkRes.ok ? await bookmarkRes.json() : [];
+          const nextBookmarkCount = Array.isArray(bookmarkData)
+            ? bookmarkData.length
+            : bookmarkCount;
+          setBookmarkCount(nextBookmarkCount);
+
+          if (nextBookmarkCount >= 3) {
+            void ensurePremiumAccess("more than three bookmarks");
+            return;
+          }
+        }
         await fetch(`${API_BASE}/bookmark`, {
           method: "POST",
           headers: {
@@ -106,6 +130,7 @@ export default function GrammarDetail() {
           body: JSON.stringify({ grammarId: id }),
         });
         setBookmarked(true);
+        setBookmarkCount((current) => current + 1);
       }
     } catch (err) {
       console.error(err);
@@ -117,6 +142,53 @@ export default function GrammarDetail() {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
         <Text>Grammar point not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const isLocked = isPremiumGrammarPoint(grammar) && !isPremium;
+
+  if (isLocked && premiumLoading) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Header
+          title={grammar.title}
+          onBack={() => router.back()}
+          showSettings={false}
+        />
+        <View style={styles.lockLoadingWrap}>
+          <Text style={styles.lockLoadingText}>Checking Keystone Access...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Header
+          title={grammar.title}
+          onBack={() => router.back()}
+          showSettings={false}
+        />
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.titleSection}>
+            <Text style={styles.levelLabel}>{grammar.stage}</Text>
+            <Text style={styles.title}>{grammar.title}</Text>
+          </View>
+
+          <PremiumGateCard
+            title="Keystone Access lesson"
+            body="A1.2 and above are part of Keystone Access. Unlock Keystone Access to open this lesson, practice it, and continue through the rest of the curriculum."
+            redirectTo={`/practice/${id}`}
+          />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -297,6 +369,17 @@ export default function GrammarDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Sketch.paper },
   scrollContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 100 },
+  lockLoadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  lockLoadingText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
 
   // Title
   titleSection: {

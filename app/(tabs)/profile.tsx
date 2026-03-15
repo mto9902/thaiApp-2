@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
+import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
 import {
   getAllProgress,
@@ -47,6 +48,13 @@ export default function Profile() {
   const [isGuest, setIsGuest] = useState(false);
 
   const router = useRouter();
+  const {
+    busy: premiumBusy,
+    isPremium,
+    isSupported,
+    canMakePurchases,
+    openSubscriptionManager,
+  } = usePremiumAccess();
 
   useFocusEffect(
     useCallback(() => {
@@ -234,6 +242,40 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
+        <Text style={styles.sectionTitle}>Keystone Access</Text>
+        <View style={styles.premiumCard}>
+          <View style={styles.premiumCardText}>
+            <Text style={styles.premiumCardTitle}>
+              {isPremium ? "Keystone Access is active" : "Unlock A1.2 and above"}
+            </Text>
+            <Text style={styles.premiumCardBody}>
+              {isPremium
+                ? "Manage your subscription and keep access to the full Keystone Access path."
+                : isSupported
+                  ? canMakePurchases
+                    ? "Keystone Access opens the A1.2 to C2 curriculum and higher-level practice on mobile."
+                    : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
+                  : "Keystone Access checkout is available in the mobile app for now."}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.primaryBtn, premiumBusy && styles.primaryBtnDisabled]}
+            onPress={() => void openSubscriptionManager()}
+            activeOpacity={0.82}
+            disabled={premiumBusy}
+          >
+            <Text style={styles.primaryBtnText}>
+              {premiumBusy
+                ? "Loading..."
+                : isPremium
+                  ? "Manage Keystone Access"
+                  : isSupported && canMakePurchases
+                    ? "Unlock Keystone Access"
+                    : "Keystone Access on mobile"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.sectionTitle}>Insights</Text>
         <View style={styles.menuCard}>
           {[
@@ -378,6 +420,27 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
+  premiumCard: {
+    backgroundColor: Sketch.paperDark,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
+    gap: 14,
+  },
+  premiumCardText: {
+    gap: 6,
+  },
+  premiumCardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  premiumCardBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
+  },
   menuCard: {
     backgroundColor: Sketch.paperDark,
     borderRadius: 12,
@@ -412,6 +475,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 32,
     marginTop: 8,
+    alignItems: "center",
+  },
+  primaryBtnDisabled: {
+    opacity: 0.65,
   },
   primaryBtnText: {
     fontSize: 15,
