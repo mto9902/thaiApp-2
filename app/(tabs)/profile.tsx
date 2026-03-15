@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
 import { useCallback, useState } from "react";
@@ -11,7 +12,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
@@ -25,6 +25,7 @@ import {
 type UserProfile = {
   id: number;
   email: string;
+  display_name?: string | null;
 };
 
 type VocabProgress = {
@@ -75,35 +76,39 @@ export default function Profile() {
       const fallbackProfile = {
         id: decoded.userId || 0,
         email: "",
+        display_name: null,
       };
 
       const [meRes, progressRes, reviewRes, bookmarksRes, grammarProgress] =
         await Promise.all([
-        fetch(`${API_BASE}/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_BASE}/vocab/progress`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_BASE}/vocab/review`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_BASE}/bookmarks`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        getAllProgress(),
-      ]);
+          fetch(`${API_BASE}/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE}/vocab/progress`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE}/vocab/review`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE}/bookmarks`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          getAllProgress(),
+        ]);
 
-      const [meData, progressData, reviewData, bookmarksData] = await Promise.all([
-        meRes.ok ? meRes.json() : Promise.resolve(fallbackProfile),
-        progressRes.json(),
-        reviewRes.json(),
-        bookmarksRes.ok ? bookmarksRes.json() : Promise.resolve([]),
-      ]);
+      const [meData, progressData, reviewData, bookmarksData] = await Promise.all(
+        [
+          meRes.ok ? meRes.json() : Promise.resolve(fallbackProfile),
+          progressRes.json(),
+          reviewRes.json(),
+          bookmarksRes.ok ? bookmarksRes.json() : Promise.resolve([]),
+        ],
+      );
 
       setProfile({
         id: meData.id ?? fallbackProfile.id,
         email: meData.email ?? "",
+        display_name: meData.display_name ?? null,
       });
       setProgress(progressData);
       setBookmarkedCount(Array.isArray(bookmarksData) ? bookmarksData.length : 0);
@@ -155,8 +160,11 @@ export default function Profile() {
   }
 
   const avatarLabel =
+    profile?.display_name?.trim()?.[0]?.toUpperCase() ||
     profile?.email?.trim()?.[0]?.toUpperCase() ||
-    (profile?.id ? String(profile.id) : "…");
+    (profile?.id ? String(profile.id) : "...");
+  const profileName =
+    profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
@@ -171,7 +179,7 @@ export default function Profile() {
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>{avatarLabel}</Text>
           </View>
-          <Text style={styles.profileName}>User #{profile?.id || "..."}</Text>
+          <Text style={styles.profileName}>{profileName}</Text>
           <Text style={styles.profileEmail}>
             {profile?.email || "Loading email..."}
           </Text>
@@ -229,6 +237,11 @@ export default function Profile() {
         <Text style={styles.sectionTitle}>Insights</Text>
         <View style={styles.menuCard}>
           {[
+            {
+              label: "Settings",
+              route: "/settings",
+              icon: "settings-outline",
+            },
             {
               label: "Vocab Stats",
               route: "/stats/vocab",

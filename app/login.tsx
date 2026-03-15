@@ -60,6 +60,10 @@ export default function Login() {
             onChangeText={setEmail}
             style={styles.input}
             autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            autoComplete="email"
+            textContentType="emailAddress"
             keyboardType="email-address"
           />
 

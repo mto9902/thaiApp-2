@@ -1,8 +1,10 @@
 import { Sketch } from "@/constants/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -12,17 +14,56 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "../src/config";
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPassword(password: string): boolean {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
+}
+
 export default function Register() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  function openPlaceholderLink(label: string) {
+    Alert.alert(
+      `${label} link`,
+      `Add your ${label.toLowerCase()} URL here later.`,
+    );
+  }
 
   async function handleRegister() {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!isValidEmail(normalizedEmail)) {
+      Alert.alert("Invalid email", "Please enter a valid email address.");
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      Alert.alert(
+        "Weak password",
+        "Use at least 8 characters, including an uppercase letter, a lowercase letter, and a number.",
+      );
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert(
+        "Agreement required",
+        "Please agree to the Terms and Conditions and Privacy Policy to create an account.",
+      );
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
+      body: JSON.stringify({ email: normalizedEmail, password }),
     });
 
     const data = await res.json();
@@ -50,11 +91,18 @@ export default function Register() {
             value={email}
             onChangeText={setEmail}
             style={styles.input}
-            autoComplete="off"
-            textContentType="none"
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            autoComplete="email"
+            textContentType="emailAddress"
             inputMode="email"
+            keyboardType="email-address"
             nativeID="register-email"
           />
+          {email.trim().length > 0 && !isValidEmail(email.toLowerCase().trim()) ? (
+            <Text style={styles.validationText}>Enter a valid email address.</Text>
+          ) : null}
 
           <TextInput
             placeholder="Password"
@@ -70,8 +118,54 @@ export default function Register() {
             textContentType="newPassword"
             nativeID="register-password"
           />
+          <Text style={styles.helperText}>
+            Use at least 8 characters, including uppercase, lowercase, and a number.
+          </Text>
+          {password.length > 0 && !isValidPassword(password) ? (
+            <Text style={styles.validationText}>
+              Password does not meet the requirements yet.
+            </Text>
+          ) : null}
 
-          <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <TouchableOpacity
+            style={styles.termsRow}
+            onPress={() => setAcceptedTerms((current) => !current)}
+            activeOpacity={0.8}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                acceptedTerms && styles.checkboxChecked,
+              ]}
+            >
+              {acceptedTerms ? (
+                <Ionicons name="checkmark" size={14} color="#fff" />
+              ) : null}
+            </View>
+            <Text style={styles.termsText}>
+              I agree to the{" "}
+              <Text
+                style={styles.termsLink}
+                onPress={() => openPlaceholderLink("Terms and Conditions")}
+              >
+                Terms and Conditions
+              </Text>{" "}
+              and{" "}
+              <Text
+                style={styles.termsLink}
+                onPress={() => openPlaceholderLink("Privacy Policy")}
+              >
+                Privacy Policy
+              </Text>
+              .
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, !acceptedTerms && styles.buttonDisabled]}
+            onPress={handleRegister}
+            activeOpacity={acceptedTerms ? 0.8 : 1}
+          >
             <Text style={styles.buttonText}>Create Account</Text>
           </TouchableOpacity>
 
@@ -127,12 +221,62 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
 
+  termsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: Sketch.orange,
+    borderColor: Sketch.orange,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
+  },
+  termsLink: {
+    color: Sketch.orange,
+    fontWeight: "600",
+  },
+  helperText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Sketch.inkMuted,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  validationText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Sketch.red,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+
   button: {
     backgroundColor: Sketch.orange,
     borderRadius: 10,
     padding: 16,
     alignItems: "center",
     marginTop: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.45,
   },
 
   buttonText: {
