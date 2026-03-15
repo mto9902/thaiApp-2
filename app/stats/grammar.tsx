@@ -157,13 +157,13 @@ export default function GrammarStatsScreen() {
               <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.clay }]}>
                 {totalRounds}
               </Text>
-              <Text style={styles.statLabel}>Rounds</Text>
+              <Text style={styles.statLabel}>All-time rounds</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.sage }]}>
                 {percent(totalCorrect, totalAttempts)}%
               </Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
+              <Text style={styles.statLabel}>All-time accuracy</Text>
             </View>
             <View style={[styles.statCard, styles.wideCard]}>
               <Text style={styles.lastPracticedLabel}>Last practiced</Text>
@@ -174,7 +174,7 @@ export default function GrammarStatsScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>By stage</Text>
+            <Text style={styles.sectionTitle}>By unit</Text>
             {stageSummaries.map((item, index) => {
               const accent = LEVEL_ACCENTS[index % LEVEL_ACCENTS.length];
               const percentage =

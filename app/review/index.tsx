@@ -587,21 +587,27 @@ export default function ReviewScreen() {
               {showRoman ? "Hide romanization" : "Show romanization"}
             </Text>
           </TouchableOpacity>
-          {streak > 2 ? (
+          <TouchableOpacity
+            style={styles.infoPillInline}
+            onPress={() => setShowSrsInfo(true)}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.infoPillText}>How SRS works</Text>
+            <Ionicons
+              name="help-circle-outline"
+              size={16}
+              color={Sketch.inkLight}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {streak > 2 ? (
+          <View style={styles.streakRow}>
             <View style={[styles.controlPill, styles.streakPill]}>
               <Text style={styles.controlPillText}>{streak} streak</Text>
             </View>
-          ) : null}
-        </View>
-
-        <TouchableOpacity
-          style={styles.infoPill}
-          onPress={() => setShowSrsInfo(true)}
-          activeOpacity={0.82}
-        >
-          <Text style={styles.infoMark}>?</Text>
-          <Text style={styles.infoPillText}>How SRS works</Text>
-        </TouchableOpacity>
+          </View>
+        ) : null}
 
         <TouchableOpacity
           style={styles.flashcard}
@@ -901,33 +907,26 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(MUTED_APP_ACCENTS.clay, "12"),
     borderColor: withAlpha(MUTED_APP_ACCENTS.clay, "30"),
   },
+  streakRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: -4,
+  },
   controlPillText: {
     fontSize: 12,
     fontWeight: "500",
     color: Sketch.inkLight,
   },
-  infoPill: {
-    alignSelf: "flex-start",
+  infoPillInline: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     backgroundColor: Sketch.paperDark,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 8,
     paddingHorizontal: 12,
-  },
-  infoMark: {
-    width: 18,
-    height: 18,
-    textAlign: "center",
-    lineHeight: 18,
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.orangeDark,
-    backgroundColor: withAlpha(MUTED_APP_ACCENTS.clay, "16"),
-    borderRadius: 9,
   },
   infoPillText: {
     fontSize: 12,

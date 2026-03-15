@@ -12,7 +12,6 @@ import { Sketch, sketchShadow } from "@/constants/theme";
 import {
   MUTED_APP_ACCENTS,
   MUTED_FEEDBACK_ACCENTS,
-  withAlpha,
 } from "../utils/toneAccent";
 
 type Props = {
@@ -69,77 +68,57 @@ export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
                   style={[
                     styles.gradeChip,
                     {
-                      backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
-                      borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
+                      backgroundColor: MUTED_FEEDBACK_ACCENTS.error,
+                      borderColor: MUTED_FEEDBACK_ACCENTS.error,
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.gradeLabel,
-                      { color: MUTED_FEEDBACK_ACCENTS.error },
-                    ]}
-                  >
-                    Again
+                  <Text style={styles.gradeLabelOnDark}>Again</Text>
+                  <Text style={styles.gradeTextOnDark}>
+                    Brings the word back soon.
                   </Text>
-                  <Text style={styles.gradeText}>Brings the word back soon.</Text>
                 </View>
                 <View
                   style={[
                     styles.gradeChip,
                     {
-                      backgroundColor: withAlpha(MUTED_APP_ACCENTS.clay, "10"),
-                      borderColor: withAlpha(MUTED_APP_ACCENTS.clay, "24"),
+                      backgroundColor: MUTED_APP_ACCENTS.clay,
+                      borderColor: MUTED_APP_ACCENTS.clay,
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.gradeLabel,
-                      { color: MUTED_APP_ACCENTS.clay },
-                    ]}
-                  >
-                    Hard
+                  <Text style={styles.gradeLabelOnDark}>Hard</Text>
+                  <Text style={styles.gradeTextOnDark}>
+                    Keeps progress slower.
                   </Text>
-                  <Text style={styles.gradeText}>Keeps progress slower.</Text>
                 </View>
                 <View
                   style={[
                     styles.gradeChip,
                     {
-                      backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
-                      borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
+                      backgroundColor: MUTED_FEEDBACK_ACCENTS.success,
+                      borderColor: MUTED_FEEDBACK_ACCENTS.success,
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.gradeLabel,
-                      { color: MUTED_FEEDBACK_ACCENTS.success },
-                    ]}
-                  >
-                    Good
+                  <Text style={styles.gradeLabelOnDark}>Good</Text>
+                  <Text style={styles.gradeTextOnDark}>
+                    Uses the normal next step.
                   </Text>
-                  <Text style={styles.gradeText}>Uses the normal next step.</Text>
                 </View>
                 <View
                   style={[
                     styles.gradeChip,
                     {
-                      backgroundColor: withAlpha(MUTED_APP_ACCENTS.slate, "10"),
-                      borderColor: withAlpha(MUTED_APP_ACCENTS.slate, "24"),
+                      backgroundColor: MUTED_APP_ACCENTS.slate,
+                      borderColor: MUTED_APP_ACCENTS.slate,
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.gradeLabel,
-                      { color: MUTED_APP_ACCENTS.slate },
-                    ]}
-                  >
-                    Easy
+                  <Text style={styles.gradeLabelOnDark}>Easy</Text>
+                  <Text style={styles.gradeTextOnDark}>
+                    Jumps the word further ahead.
                   </Text>
-                  <Text style={styles.gradeText}>Jumps the word further ahead.</Text>
                 </View>
               </View>
             </View>
@@ -279,12 +258,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  gradeLabel: {
+  gradeLabelOnDark: {
+    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
   },
-  gradeText: {
-    color: Sketch.inkLight,
+  gradeTextOnDark: {
+    color: "rgba(255,255,255,0.88)",
     fontSize: 12,
     lineHeight: 18,
   },

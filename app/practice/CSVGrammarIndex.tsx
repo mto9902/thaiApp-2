@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Stack,
@@ -29,6 +30,7 @@ import {
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
 import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
+import { API_BASE } from "../../src/config";
 
 export default function CSVGrammarIndex() {
   const router = useRouter();
@@ -44,11 +46,51 @@ export default function CSVGrammarIndex() {
       ? (rawStage as GrammarStage)
       : undefined;
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
-      getAllProgress().then(setProgress);
-    }, [])
+      let isActive = true;
+
+      (async () => {
+        const [nextProgress, token] = await Promise.all([
+          getAllProgress(),
+          AsyncStorage.getItem("token"),
+        ]);
+        if (!isActive) return;
+        setProgress(nextProgress);
+
+        if (!token) {
+          setBookmarkedIds(new Set());
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/bookmarks`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = res.ok ? await res.json() : [];
+          if (!isActive) return;
+          setBookmarkedIds(
+            new Set(
+              Array.isArray(data)
+                ? data
+                    .map((item: { grammar_id?: string }) => item.grammar_id)
+                    .filter((value): value is string => Boolean(value))
+                : [],
+            ),
+          );
+        } catch (err) {
+          console.error("[CSVGrammarIndex] load bookmarks failed:", err);
+          if (!isActive) return;
+          setBookmarkedIds(new Set());
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
   );
 
   const filtered = useMemo(() => {
@@ -56,6 +98,11 @@ export default function CSVGrammarIndex() {
     if (!selectedLevel) return grammarPoints;
     return grammarPoints.filter((p) => p.level === selectedLevel);
   }, [selectedLevel, selectedStage]);
+  const nextUnlearned = useMemo(
+    () => filtered.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
+    [filtered, progress],
+  );
+  const nextCardCopy = nextUnlearned ? getGrammarCardCopy(nextUnlearned) : null;
 
   const levelMeta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
   const stageMeta = selectedStage ? GRAMMAR_STAGE_META[selectedStage] : null;
@@ -88,39 +135,61 @@ export default function CSVGrammarIndex() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          stageMeta ? (
             <View style={styles.levelSummary}>
-              <Text style={styles.levelTitle}>{stageMeta.title}</Text>
-              <Text style={styles.levelSubtitle}>
-                {stageMeta.subtitle}
-              </Text>
-              <Text style={styles.progressHint}>
-                {practiced} of {filtered.length} topics practiced
-              </Text>
-              <View style={styles.summaryProgressRow}>
-                <View style={styles.summaryProgressBar}>
-                  <View style={[styles.summaryProgressFill, { width: `${percentage}%` }]} />
+              {stageMeta ? (
+                <>
+                  <Text style={styles.levelTitle}>{stageMeta.title}</Text>
+                  <Text style={styles.levelSubtitle}>
+                    {stageMeta.subtitle}
+                  </Text>
+                  <Text style={styles.progressHint}>
+                    {practiced} of {filtered.length} topics practiced
+                  </Text>
+                </>
+              ) : levelMeta ? (
+                <>
+                  <Text style={styles.levelTitle}>{levelMeta.homeTitle}</Text>
+                  <Text style={styles.levelSubtitle}>
+                    {practiced} of {filtered.length} topics practiced
+                  </Text>
+                </>
+              ) : null}
+              {(stageMeta || levelMeta) ? (
+                <View style={styles.summaryProgressRow}>
+                  <View style={styles.summaryProgressBar}>
+                    <View style={[styles.summaryProgressFill, { width: `${percentage}%` }]} />
+                  </View>
+                  <Text style={styles.summaryPercent}>{percentage}%</Text>
                 </View>
-                <Text style={styles.summaryPercent}>{percentage}%</Text>
-              </View>
+              ) : null}
+
+              {nextUnlearned && nextCardCopy ? (
+                <TouchableOpacity
+                  style={styles.nextButton}
+                  onPress={() => router.push(`/practice/${nextUnlearned.id}`)}
+                  activeOpacity={0.78}
+                >
+                  <View style={styles.nextButtonText}>
+                    <Text style={styles.nextButtonLabel}>Next up</Text>
+                    <Text style={styles.nextButtonTitle} numberOfLines={1}>
+                      {nextCardCopy.title}
+                    </Text>
+                  </View>
+                  <View style={styles.nextButtonAction}>
+                    <Text style={styles.nextButtonActionText}>Learn</Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={Sketch.orange}
+                    />
+                  </View>
+                </TouchableOpacity>
+              ) : null}
             </View>
-          ) : levelMeta ? (
-            <View style={styles.levelSummary}>
-              <Text style={styles.levelTitle}>{levelMeta.homeTitle}</Text>
-              <Text style={styles.levelSubtitle}>
-                {practiced} of {filtered.length} topics practiced
-              </Text>
-              <View style={styles.summaryProgressRow}>
-                <View style={styles.summaryProgressBar}>
-                  <View style={[styles.summaryProgressFill, { width: `${percentage}%` }]} />
-                </View>
-                <Text style={styles.summaryPercent}>{percentage}%</Text>
-              </View>
-            </View>
-          ) : null
         }
         renderItem={({ item, index }) => {
           const done = isGrammarPracticed(progress[item.id]);
+          const bookmarked = bookmarkedIds.has(item.id);
           const cardCopy = getGrammarCardCopy(item);
           return (
             <TouchableOpacity
@@ -133,6 +202,15 @@ export default function CSVGrammarIndex() {
                   <Text style={[styles.cardNumber, done && styles.cardNumberDone]}>
                     {String(index + 1).padStart(2, "0")}
                   </Text>
+                  {bookmarked ? (
+                    <View style={styles.cardMarker}>
+                      <Ionicons
+                        name="bookmark"
+                        size={16}
+                        color={Sketch.orange}
+                      />
+                    </View>
+                  ) : null}
                 </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle} numberOfLines={2}>
@@ -156,10 +234,12 @@ export default function CSVGrammarIndex() {
               </View>
 
               <View style={styles.cardBottom}>
-                <View style={styles.focusPill}>
-                  <Text style={styles.focusParticle} numberOfLines={1}>
-                    {cardCopy.focus}
-                  </Text>
+                <View style={styles.metaRow}>
+                  <View style={styles.focusPill}>
+                    <Text style={styles.focusParticle} numberOfLines={1}>
+                      {cardCopy.focus}
+                    </Text>
+                  </View>
                 </View>
                 <Text style={styles.focusMeaning} numberOfLines={2}>
                   {cardCopy.meaning}
@@ -240,6 +320,46 @@ const styles = StyleSheet.create({
     minWidth: 32,
     textAlign: "right",
   },
+  nextButton: {
+    marginTop: 12,
+    paddingTop: 14,
+    paddingBottom: 2,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  nextButtonText: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  nextButtonLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.orange,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  nextButtonTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Sketch.ink,
+    lineHeight: 20,
+  },
+  nextButtonAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingBottom: 1,
+  },
+  nextButtonActionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.orange,
+  },
   // List
   listContent: {
     paddingHorizontal: 20,
@@ -268,6 +388,7 @@ const styles = StyleSheet.create({
   cardNumberCol: {
     width: 28,
     paddingTop: 2,
+    alignItems: "center",
   },
   cardNumber: {
     fontSize: 16,
@@ -277,6 +398,11 @@ const styles = StyleSheet.create({
   },
   cardNumberDone: {
     color: Sketch.orange,
+  },
+  cardMarker: {
+    marginTop: 4,
+    alignItems: "center",
+    justifyContent: "center",
   },
   cardContent: {
     flex: 1,
@@ -321,6 +447,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
     paddingLeft: 28 + 12, // align with content after number
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
   },
   focusPill: {
     backgroundColor: Sketch.orange + "12",

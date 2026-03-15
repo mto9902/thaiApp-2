@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -15,7 +15,12 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
+import { grammarPoints } from "../../src/data/grammar";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
+import {
+  getAllProgress,
+  isGrammarPracticed,
+} from "../../src/utils/grammarProgress";
 
 type UserProfile = {
   id: number;
@@ -27,11 +32,6 @@ type VocabProgress = {
   mastered_words: number;
 };
 
-type VocabStats = {
-  total_words: number;
-  mastered_words: number;
-};
-
 type JwtPayload = {
   userId?: number;
 };
@@ -40,20 +40,31 @@ export default function Profile() {
   const tabBarHeight = useBottomTabBarHeight();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [progress, setProgress] = useState<VocabProgress | null>(null);
-  const [vocabStats, setVocabStats] = useState<VocabStats | null>(null);
   const [reviewsDue, setReviewsDue] = useState(0);
+  const [bookmarkedCount, setBookmarkedCount] = useState(0);
+  const [grammarPracticedCount, setGrammarPracticedCount] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
 
   const router = useRouter();
 
-  useEffect(() => {
-    isGuestUser().then((guest) => {
-      setIsGuest(guest);
-      if (!guest) {
-        loadData();
-      }
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      (async () => {
+        const guest = await isGuestUser();
+        if (!isActive) return;
+        setIsGuest(guest);
+        if (!guest) {
+          await loadData();
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   async function loadData() {
     try {
@@ -66,26 +77,28 @@ export default function Profile() {
         email: "",
       };
 
-      const [meRes, progressRes, statsRes, reviewRes] = await Promise.all([
+      const [meRes, progressRes, reviewRes, bookmarksRes, grammarProgress] =
+        await Promise.all([
         fetch(`${API_BASE}/me`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_BASE}/vocab/progress`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${API_BASE}/vocab/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
         fetch(`${API_BASE}/vocab/review`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
+        fetch(`${API_BASE}/bookmarks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        getAllProgress(),
       ]);
 
-      const [meData, progressData, statsData, reviewData] = await Promise.all([
+      const [meData, progressData, reviewData, bookmarksData] = await Promise.all([
         meRes.ok ? meRes.json() : Promise.resolve(fallbackProfile),
         progressRes.json(),
-        statsRes.json(),
         reviewRes.json(),
+        bookmarksRes.ok ? bookmarksRes.json() : Promise.resolve([]),
       ]);
 
       setProfile({
@@ -93,7 +106,13 @@ export default function Profile() {
         email: meData.email ?? "",
       });
       setProgress(progressData);
-      setVocabStats(statsData);
+      setBookmarkedCount(Array.isArray(bookmarksData) ? bookmarksData.length : 0);
+
+      const practicedGrammarCount = grammarPoints.filter((point) =>
+        isGrammarPracticed(grammarProgress[point.id]),
+      ).length;
+
+      setGrammarPracticedCount(practicedGrammarCount);
 
       if (reviewData?.done || reviewData?.waiting) {
         setReviewsDue(0);
@@ -160,42 +179,51 @@ export default function Profile() {
 
         <View style={styles.divider} />
 
-        <Text style={styles.sectionTitle}>Today</Text>
+        <Text style={styles.sectionTitle}>Today&apos;s Vocabulary</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Text style={[styles.statNum, { color: Sketch.orange }]}>
               {reviewsDue}
             </Text>
-            <Text style={styles.statLabel}>Reviews Due</Text>
+            <Text style={styles.statLabel}>Vocab Reviews Due</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statNum, { color: Sketch.blue }]}>
               {progress?.words_learned_today || 0}
             </Text>
-            <Text style={styles.statLabel}>Learned</Text>
+            <Text style={styles.statLabel}>New Words Added</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statNum, { color: Sketch.green }]}>
               {progress?.mastered_words || 0}
             </Text>
-            <Text style={styles.statLabel}>Mastered</Text>
+            <Text style={styles.statLabel}>Total Mastered</Text>
           </View>
         </View>
 
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Deck Snapshot</Text>
-          <View style={styles.snapshotRow}>
-            <Text style={styles.snapshotLabel}>Tracked words</Text>
-            <Text style={styles.snapshotValue}>
-              {vocabStats?.total_words || 0}
+        <Text style={styles.sectionTitle}>Grammar</Text>
+        <View style={styles.statsGrid}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push("/explore")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.statNum, { color: Sketch.orange }]}>
+              {bookmarkedCount}
             </Text>
-          </View>
-          <View style={[styles.snapshotRow, styles.snapshotRowLast]}>
-            <Text style={styles.snapshotLabel}>Mastered words</Text>
-            <Text style={styles.snapshotValue}>
-              {vocabStats?.mastered_words || 0}
+            <Text style={styles.statLabel}>Bookmarked</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statCard, styles.wideStatCard]}
+            onPress={() => router.push("/progress")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.statNum, { color: Sketch.ink }]}>
+              {grammarPracticedCount}
+              <Text style={styles.statNumMuted}> / {grammarPoints.length}</Text>
             </Text>
-          </View>
+            <Text style={styles.statLabel}>Topics Practiced</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Insights</Text>
@@ -316,10 +344,18 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: "center",
   },
+  wideStatCard: {
+    flex: 2,
+  },
   statNum: {
     fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
+  },
+  statNumMuted: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
   },
   statLabel: {
     fontSize: 11,
@@ -328,36 +364,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textTransform: "uppercase",
     letterSpacing: 0.6,
-  },
-  sectionCard: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    padding: 16,
-    gap: 6,
-  },
-  snapshotRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
-  },
-  snapshotRowLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 2,
-  },
-  snapshotLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: Sketch.inkLight,
-  },
-  snapshotValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Sketch.ink,
   },
   menuCard: {
     backgroundColor: Sketch.paperDark,

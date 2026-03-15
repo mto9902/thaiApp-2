@@ -43,12 +43,35 @@ function toneColor(tone?: string): string {
 type Mode = GrammarExerciseMode;
 const ALL_MODES: Mode[] = ["breakdown", "wordScraps", "matchThai"];
 
-function randomMode(enabledModes?: Record<Mode, boolean>): Mode {
+function getAvailableModes(enabledModes?: Record<Mode, boolean>): Mode[] {
   const availableModes = enabledModes
     ? ALL_MODES.filter((mode) => enabledModes[mode])
     : ALL_MODES;
-  const pool = availableModes.length > 0 ? availableModes : ALL_MODES;
+  return availableModes.length > 0 ? availableModes : ALL_MODES;
+}
+
+function randomFromPool(pool: Mode[]): Mode {
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function randomMode(
+  enabledModes?: Record<Mode, boolean>,
+  recentModes: Mode[] = [],
+): Mode {
+  const pool = getAvailableModes(enabledModes);
+  if (pool.length <= 1) return pool[0];
+
+  const lastMode = recentModes[recentModes.length - 1];
+  const previousMode = recentModes[recentModes.length - 2];
+
+  if (lastMode && previousMode && lastMode === previousMode) {
+    const cappedPool = pool.filter((mode) => mode !== lastMode);
+    if (cappedPool.length > 0) {
+      return randomFromPool(cappedPool);
+    }
+  }
+
+  return randomFromPool(pool);
 }
 
 const MODE_META: Record<Mode, { tag: string; title: string }> = {
@@ -148,6 +171,7 @@ export default function PracticeCSV() {
   const mixIdsRef = useRef<string[]>([]);
   const mixIndexRef = useRef(0);
   const currentGrammarIdRef = useRef<string | null>(null);
+  const modeHistoryRef = useRef<Mode[]>([]);
   const enabledModesRef = useRef<GrammarExerciseSettings>(
     DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   );
@@ -219,7 +243,7 @@ export default function PracticeCSV() {
     setAutoAddPracticeVocab(s.autoAddPracticeVocab);
     enabledModesRef.current = s.grammarExerciseModes;
     if (!s.grammarExerciseModes[mode]) {
-      void fetchRound(randomMode(s.grammarExerciseModes));
+      void fetchRound(randomMode(s.grammarExerciseModes, modeHistoryRef.current));
     }
   }
 
@@ -232,7 +256,8 @@ export default function PracticeCSV() {
       mixIdsRef.current = [];
       mixIndexRef.current = 0;
     }
-    fetchRound(randomMode(enabledModesRef.current));
+    modeHistoryRef.current = [];
+    fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
   }, [id, mix, settingsReady]);
 
   function getRandomGrammar() {
@@ -371,6 +396,7 @@ export default function PracticeCSV() {
       }
 
       setMode(nextMode);
+      modeHistoryRef.current = [...modeHistoryRef.current.slice(-1), nextMode];
       fadeIn();
 
       if (mixIdsRef.current.length > 0) {
@@ -425,7 +451,10 @@ export default function PracticeCSV() {
     recordRound(ok);
     if (ok) {
       trackWords(breakdown, "wordScraps-correct", romanTokens);
-      setTimeout(() => fetchRound(randomMode(enabledModesRef.current)), 1200);
+      setTimeout(
+        () => fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current)),
+        1200,
+      );
     }
   }
 
@@ -439,7 +468,10 @@ export default function PracticeCSV() {
     recordRound(ok);
     if (ok) {
       trackWords(breakdown, "matchThai-correct", romanTokens);
-      setTimeout(() => fetchRound(randomMode(enabledModesRef.current)), 1400);
+      setTimeout(
+        () => fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current)),
+        1400,
+      );
     }
   }
 
@@ -573,7 +605,9 @@ export default function PracticeCSV() {
                   onPress={() => {
                     trackWords(breakdown, "breakdown-next", romanTokens);
                     recordRound(true);
-                    fetchRound(randomMode(enabledModesRef.current));
+                    fetchRound(
+                      randomMode(enabledModesRef.current, modeHistoryRef.current),
+                    );
                   }}
                   activeOpacity={0.85}
                 >
@@ -739,7 +773,11 @@ export default function PracticeCSV() {
                 {result !== "correct" && (
                   <TouchableOpacity
                     style={[st.primaryBtn, st.secondaryBtn]}
-                    onPress={() => fetchRound(randomMode(enabledModesRef.current))}
+                    onPress={() =>
+                      fetchRound(
+                        randomMode(enabledModesRef.current, modeHistoryRef.current),
+                      )
+                    }
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
@@ -963,7 +1001,11 @@ export default function PracticeCSV() {
                 {matchRevealed && result === "wrong" && (
                   <TouchableOpacity
                     style={[st.primaryBtn, st.secondaryBtn]}
-                    onPress={() => fetchRound(randomMode(enabledModesRef.current))}
+                    onPress={() =>
+                      fetchRound(
+                        randomMode(enabledModesRef.current, modeHistoryRef.current),
+                      )
+                    }
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
@@ -975,7 +1017,11 @@ export default function PracticeCSV() {
                 {!matchRevealed && (
                   <TouchableOpacity
                     style={[st.primaryBtn, st.secondaryBtn]}
-                    onPress={() => fetchRound(randomMode(enabledModesRef.current))}
+                    onPress={() =>
+                      fetchRound(
+                        randomMode(enabledModesRef.current, modeHistoryRef.current),
+                      )
+                    }
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>

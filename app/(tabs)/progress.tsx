@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -20,13 +20,15 @@ import {
 } from "../../src/data/grammarLevels";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
 } from "../../src/data/grammarStages";
 import {
   getAllProgress,
   GrammarProgressData,
-  isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+import {
+  buildStageProgressSummaries,
+  getRecommendedGrammarStage,
+} from "../../src/utils/grammarStageRecommendation";
 
 function ProgressRing({ percent, size = 72, strokeWidth = 6 }: { percent: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2;
@@ -68,48 +70,89 @@ export default function GrammarScreen() {
   const [expandedLevels, setExpandedLevels] = useState<
     Partial<Record<CefrLevel, boolean>>
   >({});
-  const stages = GRAMMAR_STAGES.filter((stage) =>
-    grammarPoints.some((point) => point.stage === stage),
+  const [hasManualLevelToggle, setHasManualLevelToggle] = useState(false);
+  const stageSummaries = useMemo(
+    () => buildStageProgressSummaries(grammarPoints, progress),
+    [progress],
   );
-  const levelSections = CEFR_LEVELS.map((level) => {
-    const levelStages = stages.filter(
-      (stage) => GRAMMAR_STAGE_META[stage].level === level,
-    );
-    const levelPoints = grammarPoints.filter((point) => point.level === level);
-    const practiced = levelPoints.filter((point) =>
-      isGrammarPracticed(progress[point.id]),
-    ).length;
-    const percentage =
-      levelPoints.length > 0
-        ? Math.round((practiced / levelPoints.length) * 100)
-        : 0;
+  const recommended = useMemo(
+    () => getRecommendedGrammarStage(stageSummaries),
+    [stageSummaries],
+  );
+  const recommendedStage = recommended?.stage ?? null;
+  const recommendedLevel = recommended?.level ?? null;
+  const levelSections = useMemo(
+    () =>
+      CEFR_LEVELS.map((level) => {
+        const levelStages = stageSummaries.filter(
+          (summary) => summary.level === level,
+        );
+        if (levelStages.length === 0) return null;
 
-    return {
-      level,
-      meta: CEFR_LEVEL_META[level],
-      levelTitle: CEFR_LEVEL_META[level].homeTitle.startsWith(`${level} `)
-        ? CEFR_LEVEL_META[level].homeTitle.slice(level.length + 1)
-        : CEFR_LEVEL_META[level].homeTitle,
-      stages: levelStages,
-      points: levelPoints,
-      practiced,
-      percentage,
-    };
-  }).filter((section) => section.points.length > 0);
+        const practiced = levelStages.reduce(
+          (sum, summary) => sum + summary.practiced,
+          0,
+        );
+        const total = levelStages.reduce((sum, summary) => sum + summary.total, 0);
+        const percentage = total > 0 ? Math.round((practiced / total) * 100) : 0;
+        const nextStage = levelStages.find(
+          (summary) => summary.stage === recommendedStage,
+        );
+
+        return {
+          level,
+          meta: CEFR_LEVEL_META[level],
+          levelTitle: CEFR_LEVEL_META[level].homeTitle.startsWith(`${level} `)
+            ? CEFR_LEVEL_META[level].homeTitle.slice(level.length + 1)
+            : CEFR_LEVEL_META[level].homeTitle,
+          stages: levelStages,
+          total,
+          practiced,
+          percentage,
+          isRecommended: level === recommendedLevel,
+          recommendedStageSummary: nextStage ?? null,
+        };
+      }).filter(Boolean),
+    [recommendedLevel, recommendedStage, stageSummaries],
+  ) as {
+    level: CefrLevel;
+    meta: (typeof CEFR_LEVEL_META)[CefrLevel];
+    levelTitle: string;
+    stages: ReturnType<typeof buildStageProgressSummaries>;
+    total: number;
+    practiced: number;
+    percentage: number;
+    isRecommended: boolean;
+    recommendedStageSummary: ReturnType<typeof buildStageProgressSummaries>[number] | null;
+  }[];
 
   useFocusEffect(
     useCallback(() => {
-      getAllProgress().then(setProgress);
-    }, [])
+      let isActive = true;
+      setExpandedLevels({});
+      setHasManualLevelToggle(false);
+
+      getAllProgress().then((nextProgress) => {
+        if (!isActive) return;
+        setProgress(nextProgress);
+      });
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
   );
 
   const totalPoints = grammarPoints.length;
-  const totalPracticed = grammarPoints.filter((g) =>
-    isGrammarPracticed(progress[g.id]),
-  ).length;
-  const overallPercent = totalPoints > 0 ? Math.round((totalPracticed / totalPoints) * 100) : 0;
+  const totalPracticed = stageSummaries.reduce(
+    (sum, summary) => sum + summary.practiced,
+    0,
+  );
+  const overallPercent =
+    totalPoints > 0 ? Math.round((totalPracticed / totalPoints) * 100) : 0;
 
   const toggleLevel = (level: CefrLevel) => {
+    setHasManualLevelToggle(true);
     setExpandedLevels((current) => ({
       ...current,
       [level]: !current[level],
@@ -138,7 +181,12 @@ export default function GrammarScreen() {
 
         <View style={styles.levelList}>
           {levelSections.map((section) => {
-            const isExpanded = Boolean(expandedLevels[section.level]);
+            const isExpanded =
+              expandedLevels[section.level] ??
+              (!hasManualLevelToggle && section.isRecommended);
+            const recommendedStageMeta = section.recommendedStageSummary
+              ? GRAMMAR_STAGE_META[section.recommendedStageSummary.stage]
+              : null;
 
             return (
               <View key={section.level} style={styles.levelCard}>
@@ -163,14 +211,24 @@ export default function GrammarScreen() {
                     </View>
                   </View>
 
+                  {section.isRecommended && recommendedStageMeta ? (
+                    <View style={styles.continueBlock}>
+                      <Text style={styles.continueLine}>
+                        <Text style={styles.continueLabel}>Recommended:</Text>{" "}
+                        {section.recommendedStageSummary?.stage}{" "}
+                        {recommendedStageMeta.shortTitle}
+                      </Text>
+                    </View>
+                  ) : null}
+
                   <Text style={styles.levelSubtitle}>{section.meta.subtitle}</Text>
 
                   <View style={styles.levelMetaRow}>
                     <Text style={styles.levelCount}>
-                      {section.practiced}/{section.points.length} topics practiced
+                      {section.practiced}/{section.total} topics practiced
                     </Text>
                     <Text style={styles.levelStageCount}>
-                      {section.stages.length} stage{section.stages.length === 1 ? "" : "s"}
+                      {section.stages.length} unit{section.stages.length === 1 ? "" : "s"}
                     </Text>
                   </View>
 
@@ -186,35 +244,40 @@ export default function GrammarScreen() {
 
                 {isExpanded ? (
                   <View style={styles.stageList}>
-                    {section.stages.map((stage) => {
-                      const meta = GRAMMAR_STAGE_META[stage];
-                      const points = grammarPoints.filter((g) => g.stage === stage);
-                      const practiced = points.filter((g) =>
-                        isGrammarPracticed(progress[g.id]),
-                      ).length;
-                      const percentage =
-                        points.length > 0
-                          ? Math.round((practiced / points.length) * 100)
-                          : 0;
+                    {section.stages.map((stageSummary) => {
+                      const meta = GRAMMAR_STAGE_META[stageSummary.stage];
+                      const isRecommendedStage =
+                        stageSummary.stage === recommendedStage;
 
                       return (
                         <TouchableOpacity
-                          key={stage}
+                          key={stageSummary.stage}
                           style={styles.stageRow}
                           onPress={() =>
-                            router.push(`/practice/CSVGrammarIndex?stage=${stage}` as any)
+                            router.push(
+                              `/practice/CSVGrammarIndex?stage=${stageSummary.stage}` as any,
+                            )
                           }
                           activeOpacity={0.76}
                         >
                           <View style={styles.stageRowTop}>
                             <View style={styles.stageHeading}>
-                              <Text style={styles.stageLabel}>{stage}</Text>
+                              <View style={styles.stageMetaRow}>
+                                <Text style={styles.stageLabel}>{stageSummary.stage}</Text>
+                                {isRecommendedStage ? (
+                                  <Text style={styles.stageRecommended}>
+                                    Recommended
+                                  </Text>
+                                ) : null}
+                              </View>
                               <Text style={styles.stageTitle}>{meta.shortTitle}</Text>
                             </View>
                             <View style={styles.stageStats}>
-                              <Text style={styles.stagePercent}>{percentage}%</Text>
+                              <Text style={styles.stagePercent}>
+                                {stageSummary.percentage}%
+                              </Text>
                               <Text style={styles.stageCount}>
-                                {practiced}/{points.length}
+                                {stageSummary.practiced}/{stageSummary.total}
                               </Text>
                             </View>
                           </View>
@@ -225,7 +288,7 @@ export default function GrammarScreen() {
                             <View
                               style={[
                                 styles.stageProgressFill,
-                                { width: `${percentage}%` },
+                                { width: `${stageSummary.percentage}%` },
                               ]}
                             />
                           </View>
@@ -333,9 +396,9 @@ const styles = StyleSheet.create({
   },
   levelTrackTitle: {
     fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.orange,
-    letterSpacing: 0.4,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    letterSpacing: 0.2,
   },
   levelHeaderRight: {
     alignItems: "flex-end",
@@ -344,10 +407,25 @@ const styles = StyleSheet.create({
   levelPercent: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.ink,
   },
   levelChevron: {
     marginTop: 2,
+  },
+  continueBlock: {
+    marginTop: 2,
+  },
+  continueLine: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.ink,
+    lineHeight: 18,
+  },
+  continueLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.orange,
+    letterSpacing: 0.1,
   },
   levelSubtitle: {
     fontSize: 13,
@@ -402,17 +480,29 @@ const styles = StyleSheet.create({
   },
   stageHeading: {
     flex: 1,
+    gap: 4,
+  },
+  stageMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   stageLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.ink,
     letterSpacing: 0.5,
+  },
+  stageRecommended: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.orange,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
   },
   stageTitle: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
     color: Sketch.ink,
   },
   stageStats: {
@@ -422,7 +512,7 @@ const styles = StyleSheet.create({
   stagePercent: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.ink,
   },
   stageCount: {
     fontSize: 11,
