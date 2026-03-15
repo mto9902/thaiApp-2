@@ -78,6 +78,7 @@ const MODULES: ModuleInfo[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
+  const [isGuest, setIsGuest] = useState(false);
   const [moduleProgress, setModuleProgress] = useState<number[]>(() =>
     MODULES.map(() => 0),
   );
@@ -132,6 +133,7 @@ export default function HomeScreen() {
   async function loadReviewStatus() {
     try {
       const guest = await isGuestUser();
+      setIsGuest(guest);
       if (guest) {
         setReviewsDue(0);
         setReviewStatusText("Log in to review");
@@ -353,7 +355,12 @@ export default function HomeScreen() {
 
         {/* Activity */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Activity</Text>
+            {isGuest ? (
+              <Text style={styles.sectionHint}>Log in to track heatmap</Text>
+            ) : null}
+          </View>
           <View style={styles.heatmapCard}>{renderHeatmap()}</View>
         </View>
 
@@ -588,10 +595,21 @@ const styles = StyleSheet.create({
   section: {
     gap: 16,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: Sketch.ink,
+  },
+  sectionHint: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
   },
   heatmapCard: {
     backgroundColor: Sketch.paperDark,
