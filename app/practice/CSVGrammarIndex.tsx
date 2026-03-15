@@ -27,7 +27,11 @@ import {
 export default function CSVGrammarIndex() {
   const router = useRouter();
   const { level } = useLocalSearchParams<{ level?: string }>();
-  const selectedLevel = level as CefrLevel | undefined;
+  const rawLevel = Array.isArray(level) ? level[0] : level;
+  const selectedLevel =
+    rawLevel && rawLevel in CEFR_LEVEL_META
+      ? (rawLevel as CefrLevel)
+      : undefined;
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
 
   useFocusEffect(

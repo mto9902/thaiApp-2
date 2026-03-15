@@ -81,6 +81,7 @@ export default function HomeScreen() {
   const [moduleProgress, setModuleProgress] = useState<number[]>(() =>
     MODULES.map(() => 0),
   );
+  const [overallGrammarProgress, setOverallGrammarProgress] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [reviewStatusText, setReviewStatusText] = useState("You're caught up");
 
@@ -106,6 +107,9 @@ export default function HomeScreen() {
   async function loadProgress() {
     try {
       const allProgress = await getAllProgress();
+      const totalPracticed = grammarPoints.filter((point) =>
+        isGrammarPracticed(allProgress[point.id]),
+      ).length;
       const newModuleProgress = MODULES.map((mod) => {
         if (mod.grammarIds.length === 0) return 0;
         const practiced = mod.grammarIds.filter((id) =>
@@ -113,7 +117,13 @@ export default function HomeScreen() {
         ).length;
         return Math.round((practiced / mod.grammarIds.length) * 100);
       });
+      const overallPercent =
+        grammarPoints.length > 0
+          ? Math.round((totalPracticed / grammarPoints.length) * 100)
+          : 0;
+
       setModuleProgress(newModuleProgress);
+      setOverallGrammarProgress(overallPercent);
     } catch (err) {
       console.error("Failed to load progress:", err);
     }
@@ -382,6 +392,30 @@ export default function HomeScreen() {
 
           {moduleProgress.some((p) => p > 0) ? (
             <View style={styles.modulesGrid}>
+              <TouchableOpacity
+                style={styles.moduleCard}
+                onPress={() => router.push("/progress" as any)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.moduleCardHeader}>
+                  <Text style={styles.moduleLevel}>Overview</Text>
+                </View>
+                <Text style={styles.moduleTitle}>All Grammar</Text>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${overallGrammarProgress}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressPercent}>
+                    {overallGrammarProgress}%
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
               {MODULES.map((mod, i) => {
                 if (moduleProgress[i] === 0) return null;
                 return (
@@ -419,7 +453,7 @@ export default function HomeScreen() {
           ) : (
             <TouchableOpacity
               style={styles.startGrammarCard}
-              onPress={() => router.push("/practice/CSVGrammarIndex" as any)}
+              onPress={() => router.push("/progress" as any)}
               activeOpacity={0.7}
             >
               <Ionicons name="book-outline" size={28} color={Sketch.orange} />

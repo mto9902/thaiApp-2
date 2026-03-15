@@ -7,13 +7,13 @@ import { isGuestUser } from "../../../src/utils/auth";
 
 import {
   Animated,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
@@ -462,7 +462,7 @@ export default function PracticeCSV() {
     (word) => !builtSentence.some((selected) => selected.id === word.id),
   );
   return (
-    <SafeAreaView style={st.safe}>
+    <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         contentContainerStyle={st.scroll}

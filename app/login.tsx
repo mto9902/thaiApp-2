@@ -47,7 +47,7 @@ export default function Login() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>Keystone</Text>
         <Text style={styles.subtitle}>Thai Grammar Blueprint</Text>

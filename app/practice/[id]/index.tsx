@@ -116,7 +116,7 @@ export default function GrammarDetail() {
 
   if (!grammar) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
         <Text>Grammar point not found</Text>
       </SafeAreaView>
     );
@@ -139,8 +139,8 @@ export default function GrammarDetail() {
   );
 
   return (
-      <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
+    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Header
         title={grammar.title}
         onBack={() => router.back()}

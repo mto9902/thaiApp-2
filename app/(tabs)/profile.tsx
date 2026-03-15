@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
@@ -36,6 +37,7 @@ type JwtPayload = {
 };
 
 export default function Profile() {
+  const tabBarHeight = useBottomTabBarHeight();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [progress, setProgress] = useState<VocabProgress | null>(null);
   const [vocabStats, setVocabStats] = useState<VocabStats | null>(null);
@@ -140,7 +142,10 @@ export default function Profile() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: tabBarHeight + 20 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.profileHeader}>

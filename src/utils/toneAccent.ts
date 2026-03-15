@@ -9,9 +9,9 @@ export const MUTED_APP_ACCENTS = {
 
 const MUTED_TONE_ACCENTS = {
   mid: MUTED_APP_ACCENTS.stone,
-  low: MUTED_APP_ACCENTS.clay,
-  falling: MUTED_APP_ACCENTS.rose,
-  high: MUTED_APP_ACCENTS.slate,
+  low: "#8A5B41",
+  falling: "#8C627A",
+  high: "#4F6D86",
   rising: MUTED_APP_ACCENTS.sage,
 } as const;
 

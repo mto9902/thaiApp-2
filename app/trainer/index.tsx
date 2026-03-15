@@ -39,11 +39,11 @@ function DifficultyPicker({
         return (
           <Pressable
             key={level}
-            style={({ pressed }) => [
+            style={[
               styles.difficultyCard,
               active && styles.selectionCardActive,
-              pressed && styles.selectionCardPressed,
             ]}
+            android_ripple={{ color: "transparent" }}
             onPress={() => onChange(level)}
           >
             <Text
@@ -83,11 +83,11 @@ function ConsonantCard({
 
   return (
     <Pressable
-      style={({ pressed }) => [
+      style={[
         styles.selectionCard,
         isSelected && styles.selectionCardActive,
-        pressed && styles.selectionCardPressed,
       ]}
+      android_ripple={{ color: "transparent" }}
       onPress={onPress}
     >
       <Text
@@ -121,11 +121,11 @@ function VowelCard({
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [
+      style={[
         styles.selectionCard,
         isSelected && styles.selectionCardActive,
-        pressed && styles.selectionCardPressed,
       ]}
+      android_ripple={{ color: "transparent" }}
       onPress={onPress}
     >
       <Text
@@ -385,7 +385,6 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 12,
     justifyContent: "space-between",
-    overflow: "hidden",
     ...sketchShadow(3),
   },
   difficultyTitle: {
@@ -414,16 +413,11 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 12,
     justifyContent: "space-between",
-    overflow: "hidden",
     ...sketchShadow(3),
   },
   selectionCardActive: {
     borderColor: Sketch.orange,
-    backgroundColor: withAlpha(Sketch.orange, "10"),
-  },
-  selectionCardPressed: {
-    borderColor: Sketch.orange,
-    backgroundColor: withAlpha(Sketch.orange, "14"),
+    backgroundColor: Sketch.cardBg,
   },
   selectionTitle: {
     fontSize: 15,

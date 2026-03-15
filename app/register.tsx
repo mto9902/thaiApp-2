@@ -38,7 +38,7 @@ export default function Register() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Join Keystone</Text>

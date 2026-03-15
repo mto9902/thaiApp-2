@@ -10,7 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
 import Header from "../../src/components/Header";
@@ -23,8 +26,8 @@ import {
   VOWEL_INFO,
 } from "../../src/data/trainerOptions";
 import { vowels } from "../../src/data/vowels";
-import { generateTrainerBatch } from "../../src/utils/trainerBatch";
 import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
+import { generateTrainerBatch } from "../../src/utils/trainerBatch";
 
 function parseIdList(value?: string | string[]) {
   const source = Array.isArray(value) ? value[0] : value;
@@ -52,31 +55,43 @@ function WordCard({
   onPlaySound: (text: string) => void;
 }) {
   return (
-    <View style={styles.wordCard}>
-      <TouchableOpacity
-        style={styles.soundButton}
-        onPress={() => onPlaySound(word.thai)}
-        activeOpacity={0.8}
-      >
-        <Ionicons
-          name="volume-medium-outline"
-          size={16}
-          color={Sketch.inkLight}
-        />
-      </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.wordCard}
+      onPress={() => onPlaySound(word.thai)}
+      activeOpacity={0.88}
+    >
+      <View style={styles.wordCardHeader}>
+        <View style={styles.wordPrimaryCopy}>
+          <Text style={styles.wordThai}>{word.thai}</Text>
+          {word.romanization ? (
+            <Text style={styles.wordRoman}>{word.romanization}</Text>
+          ) : null}
+        </View>
+        <TouchableOpacity
+          style={styles.soundButton}
+          onPress={(event) => {
+            event.stopPropagation?.();
+            onPlaySound(word.thai);
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="volume-medium-outline"
+            size={16}
+            color={Sketch.inkLight}
+          />
+        </TouchableOpacity>
+      </View>
       <View style={styles.wordCardCopy}>
-        <Text style={styles.wordThai}>{word.thai}</Text>
-        {word.romanization ? (
-          <Text style={styles.wordRoman}>{word.romanization}</Text>
-        ) : null}
         <Text style={styles.wordEnglish}>{word.english}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function TrainerWordsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     difficulty?: string;
     consonantGroups?: string;
@@ -101,6 +116,7 @@ export default function TrainerWordsScreen() {
   const [loading, setLoading] = useState(true);
   const [noResults, setNoResults] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
+  const footerSafeSpace = Math.max(insets.bottom, 14);
 
   const selectedConsonantCount = alphabet.filter((item) =>
     consonantGroups.includes(item.group),
@@ -161,7 +177,10 @@ export default function TrainerWordsScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: 110 + footerSafeSpace },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageIntro}>
@@ -196,13 +215,17 @@ export default function TrainerWordsScreen() {
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryPill}>
-            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
+            <Text
+              style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}
+            >
               {selectedConsonantCount}
             </Text>
             <Text style={styles.summaryLabel}>letters</Text>
           </View>
           <View style={styles.summaryPill}>
-            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
+            <Text
+              style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}
+            >
               {selectedVowelCount}
             </Text>
             <Text style={styles.summaryLabel}>vowels</Text>
@@ -225,7 +248,7 @@ export default function TrainerWordsScreen() {
         {loading ? (
           <View style={styles.stateCard}>
             <ActivityIndicator size="large" color={Sketch.orange} />
-            <Text style={styles.stateTitle}>Creating words...</Text>
+            <Text style={styles.stateTitle}>Fetching words...</Text>
             <Text style={styles.stateSubtitle}>
               Keeping the same trainer settings and generating a fresh batch.
             </Text>
@@ -243,7 +266,7 @@ export default function TrainerWordsScreen() {
           <View style={styles.resultsSection}>
             <Text style={styles.sectionTitle}>Practice Words</Text>
             <Text style={styles.sectionSubtitle}>
-              Read through the set, tap for audio, then generate another batch
+              Read through the set, tap for audio, then practice another batch
               whenever you&apos;re ready.
             </Text>
             <View style={styles.resultsGrid}>
@@ -259,7 +282,12 @@ export default function TrainerWordsScreen() {
         )}
       </ScrollView>
 
-      <View style={styles.footerBar}>
+      <View
+        style={[
+          styles.footerBar,
+          { paddingBottom: footerSafeSpace, paddingTop: 10 },
+        ]}
+      >
         <TouchableOpacity
           style={styles.moreWordsButton}
           onPress={() => void loadWords()}
@@ -288,7 +316,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 4,
-    paddingBottom: 120,
     gap: 14,
   },
   pageIntro: {
@@ -413,16 +440,27 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 16,
     minHeight: 132,
-    justifyContent: "space-between",
+    gap: 12,
     ...sketchShadow(3),
   },
+  wordCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  wordPrimaryCopy: {
+    flex: 1,
+    gap: 4,
+  },
   wordCardCopy: {
-    gap: 3,
+    gap: 4,
   },
   wordThai: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
     color: Sketch.ink,
+    lineHeight: 32,
   },
   wordRoman: {
     fontSize: 13,
@@ -431,6 +469,7 @@ const styles = StyleSheet.create({
   wordEnglish: {
     fontSize: 13,
     color: Sketch.inkLight,
+    lineHeight: 18,
   },
   soundButton: {
     width: 36,
@@ -441,8 +480,7 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paperDark,
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "flex-end",
-    marginBottom: 12,
+    marginTop: 2,
   },
   footerBar: {
     position: "absolute",
@@ -450,8 +488,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 18,
     backgroundColor: "rgba(255,255,255,0.98)",
     borderTopWidth: 1,
     borderTopColor: Sketch.inkFaint,
