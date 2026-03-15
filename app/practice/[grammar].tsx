@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -18,6 +17,7 @@ import ToneGuide, { ToneGuideButton } from "../../src/components/ToneGuide";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import { isGuestUser } from "../../src/utils/auth";
+import { getAuthToken } from "../../src/utils/authStorage";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
 const BREAKDOWN_COLORS = [Sketch.yellow, Sketch.pink, Sketch.blue, Sketch.green];
@@ -36,7 +36,7 @@ export default function GrammarDetail() {
     try {
       const guest = await isGuestUser();
       if (guest) return;
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/bookmarks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -56,7 +56,7 @@ export default function GrammarDetail() {
 
   async function toggleBookmark() {
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       if (bookmarked) {
         await fetch(`${API_BASE}/bookmark`, {
           method: "DELETE",

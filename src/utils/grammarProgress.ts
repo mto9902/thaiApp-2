@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE } from "../config";
+import { getAuthToken as getStoredAuthToken } from "./authStorage";
 
 const GUEST_PREFIX = "grammar_progress_guest_v1:";
 
@@ -20,10 +21,6 @@ export interface GrammarProgressData {
 
 function getGuestStorageKey(grammarId: string): string {
   return `${GUEST_PREFIX}${grammarId}`;
-}
-
-async function getAuthToken(): Promise<string | null> {
-  return AsyncStorage.getItem("token");
 }
 
 function authHeaders(token: string): Record<string, string> {
@@ -129,7 +126,7 @@ export function isGrammarPracticed(
 export async function getProgress(
   grammarId: string,
 ): Promise<GrammarProgressData | null> {
-  const token = await getAuthToken();
+  const token = await getStoredAuthToken();
 
   try {
     if (token) {
@@ -148,7 +145,7 @@ export async function saveRound(
   grammarId: string,
   wasCorrect: boolean,
 ): Promise<void> {
-  const token = await getAuthToken();
+  const token = await getStoredAuthToken();
 
   try {
     if (token) {
@@ -174,7 +171,7 @@ export async function saveRound(
 export async function getAllProgress(): Promise<
   Record<string, GrammarProgressData>
 > {
-  const token = await getAuthToken();
+  const token = await getStoredAuthToken();
 
   try {
     if (token) {
@@ -190,7 +187,7 @@ export async function getAllProgress(): Promise<
 
 /** Clear progress for one grammar point. */
 export async function resetProgress(grammarId: string): Promise<void> {
-  const token = await getAuthToken();
+  const token = await getStoredAuthToken();
 
   try {
     if (token) {
@@ -215,7 +212,7 @@ export async function resetProgress(grammarId: string): Promise<void> {
 }
 
 export async function clearAllProgress(): Promise<void> {
-  const token = await getAuthToken();
+  const token = await getStoredAuthToken();
 
   try {
     if (token) {

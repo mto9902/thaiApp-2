@@ -1,7 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { API_BASE } from "../../src/config";
+import { getAuthToken } from "../../src/utils/authStorage";
 
 export default function MasteryStats() {
   const [stats, setStats] = useState<any[]>([]);
@@ -11,7 +11,7 @@ export default function MasteryStats() {
   }, []);
 
   async function loadStats() {
-    const token = await AsyncStorage.getItem("token");
+    const token = await getAuthToken();
 
     const res = await fetch(`${API_BASE}/vocab/mastery-stats`, {
       headers: {

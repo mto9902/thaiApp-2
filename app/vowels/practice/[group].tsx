@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import Header, { SettingsState } from "../../../src/components/Header";
 import VowelText from "../../../src/components/VowelText";
 import { vowels } from "../../../src/data/vowels";
@@ -560,7 +560,6 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 18,
     gap: 6,
-    ...sketchShadow(4),
   },
   promptEyebrow: {
     fontSize: 11,
@@ -587,7 +586,6 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 22,
     gap: 10,
-    ...sketchShadow(4),
   },
   studyCardTop: {
     flexDirection: "row",
@@ -641,7 +639,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     alignItems: "center",
     gap: 8,
-    ...sketchShadow(4),
   },
   questionLabel: {
     fontSize: 11,
@@ -677,7 +674,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    ...sketchShadow(3),
   },
   optionGlyph: {
     fontSize: 36,
@@ -726,7 +722,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    ...sketchShadow(4),
   },
   primaryButtonText: {
     fontSize: 15,

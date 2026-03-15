@@ -979,6 +979,232 @@ const B1_GRAMMAR_ROWS = {
       word("หนัก", "hard / heavily", "low"),
     ]),
   ],
+  "tend-to-mak-ja": [
+    row("เขามักจะตื่นเช้า", "khao mak cha tuen chao", "He tends to wake up early.", [
+      word("เขา", "he / she", "rising"),
+      word("มักจะ", "tend to", "high", true),
+      word("ตื่น", "wake up", "low"),
+      word("เช้า", "early", "falling"),
+    ]),
+    row("คนไทยมักจะกินข้าวเช้า", "khon thai mak cha kin khao chao", "Thai people tend to eat breakfast.", [
+      word("คนไทย", "Thai people", "mid"),
+      word("มักจะ", "tend to", "high", true),
+      word("กิน", "eat", "mid"),
+      word("ข้าวเช้า", "breakfast", "falling"),
+    ]),
+  ],
+  "rather-khon-khang": [
+    row("ร้านนี้ค่อนข้างแพง", "ran ni khon khang phaeng", "This shop is rather expensive.", [
+      word("ร้าน", "shop", "high"),
+      word("นี้", "this", "high", true),
+      word("ค่อนข้าง", "rather / quite", "falling", true),
+      word("แพง", "expensive", "mid"),
+    ]),
+    row("วันนี้ค่อนข้างเงียบ", "wanni khon khang ngiap", "Today is quite quiet.", [
+      word("วันนี้", "today", "high"),
+      word("ค่อนข้าง", "rather / quite", "falling", true),
+      word("เงียบ", "quiet", "falling"),
+    ]),
+  ],
+  "too-much-koen-pai": [
+    row("หวานเกินไป", "wan koen pai", "It is too sweet.", [
+      word("หวาน", "sweet", "rising"),
+      word("เกินไป", "too much", "mid", true),
+    ]),
+    row("พูดเร็วเกินไป", "phut reo koen pai", "You speak too fast.", [
+      word("พูด", "speak", "falling"),
+      word("เร็ว", "fast", "mid"),
+      word("เกินไป", "too much", "mid", true),
+    ]),
+  ],
+  "just-in-time-pho-di": [
+    row("เขามาถึงพอดี", "khao ma thueng pho di", "He arrived just in time.", [
+      word("เขา", "he / she", "rising"),
+      word("มาถึง", "arrive", "mid"),
+      word("พอดี", "just right / exactly", "mid", true),
+    ]),
+    row("เงินพอดี", "ngoen pho di", "The money is exactly enough.", [
+      word("เงิน", "money", "mid"),
+      word("พอดี", "just enough", "mid", true),
+    ]),
+  ],
+  "to-be-khue-vs-pen": [
+    row("สิ่งสำคัญคือเวลา", "sing samkhan khue wela", "The important thing is time.", [
+      word("สิ่งสำคัญ", "important thing", "falling"),
+      word("คือ", "is / namely", "mid", true),
+      word("เวลา", "time", "mid"),
+    ]),
+    row("เขาเป็นครู", "khao pen khru", "He is a teacher.", [
+      word("เขา", "he / she", "rising"),
+      word("เป็น", "be / be a", "mid", true),
+      word("ครู", "teacher", "mid"),
+    ]),
+  ],
+  "reciprocal-kan": [
+    row("เราช่วยกันทำงาน", "rao chuai kan tham ngan", "We help each other work together.", [
+      word("เรา", "we", "mid"),
+      word("ช่วย", "help", "falling"),
+      word("กัน", "together / each other", "mid", true),
+      word("ทำงาน", "work", "mid"),
+    ]),
+    row("เขามองหน้ากัน", "khao mong na kan", "They looked at each other.", [
+      word("เขา", "they", "rising"),
+      word("มองหน้า", "look at each other", "mid"),
+      word("กัน", "each other", "mid", true),
+    ]),
+  ],
+  "beneficial-hai": [
+    row("ฉันทำอาหารให้แม่", "chan tham ahan hai mae", "I cook for Mom.", [
+      word("ฉัน", "I", "rising"),
+      word("ทำ", "make / do", "mid"),
+      word("อาหาร", "food", "rising"),
+      word("ให้", "for / give to", "falling", true),
+      word("แม่", "mom", "falling"),
+    ]),
+    row("เขาซื้อกาแฟให้เพื่อน", "khao sue kafae hai phuean", "He bought coffee for a friend.", [
+      word("เขา", "he / she", "rising"),
+      word("ซื้อ", "buy", "high"),
+      word("กาแฟ", "coffee", "mid"),
+      word("ให้", "for / give to", "falling", true),
+      word("เพื่อน", "friend", "falling"),
+    ]),
+  ],
+  "do-in-advance-wai": [
+    row("ฉันจดไว้ก่อน", "chan jot wai kon", "I wrote it down in advance.", [
+      word("ฉัน", "I", "rising"),
+      word("จด", "write down", "low"),
+      word("ไว้", "keep / do in advance", "falling", true),
+      word("ก่อน", "first / in advance", "mid"),
+    ]),
+    row("ปิดประตูไว้ด้วย", "pit pratu wai duai", "Please keep the door closed.", [
+      word("ปิด", "close", "low"),
+      word("ประตู", "door", "mid"),
+      word("ไว้", "keep it that way", "falling", true),
+      word("ด้วย", "please / too", "falling", true),
+    ]),
+  ],
+  "about-concerning-kiaw-kap": [
+    row("เราคุยเกี่ยวกับงาน", "rao khui kiao kap ngan", "We talked about work.", [
+      word("เรา", "we", "mid"),
+      word("คุย", "talk", "mid"),
+      word("เกี่ยวกับ", "about / concerning", "low", true),
+      word("งาน", "work", "mid"),
+    ]),
+    row("หนังสือเล่มนี้เกี่ยวกับประวัติศาสตร์", "nangsue lem ni kiao kap prawattisat", "This book is about history.", [
+      word("หนังสือ", "book", "rising"),
+      word("เล่ม", "classifier", "falling", true),
+      word("นี้", "this", "high", true),
+      word("เกี่ยวกับ", "about / concerning", "low", true),
+      word("ประวัติศาสตร์", "history", "falling"),
+    ]),
+  ],
+  "prefer-di-kwa": [
+    row("นั่งรถไฟดีกว่า", "nang rotfai di kwa", "It is better to take the train.", [
+      word("นั่ง", "ride / sit", "falling"),
+      word("รถไฟ", "train", "mid"),
+      word("ดีกว่า", "better", "mid", true),
+    ]),
+    row("พักก่อนดีกว่า", "phak kon di kwa", "It is better to rest first.", [
+      word("พัก", "rest", "high"),
+      word("ก่อน", "first", "mid"),
+      word("ดีกว่า", "better", "mid", true),
+    ]),
+  ],
+  "cause-result-phro-wa": [
+    row("เขาไม่มาเพราะว่าไม่สบาย", "khao mai ma phro wa mai sabai", "He did not come because he was unwell.", [
+      word("เขา", "he / she", "rising"),
+      word("ไม่", "not", "low", true),
+      word("มา", "come", "mid"),
+      word("เพราะว่า", "because", "falling", true),
+      word("ไม่สบาย", "unwell", "mid"),
+    ]),
+    row("ฉันกลับเร็วเพราะว่าเหนื่อย", "chan klap reo phro wa nueai", "I went home early because I was tired.", [
+      word("ฉัน", "I", "rising"),
+      word("กลับ", "return", "low"),
+      word("เร็ว", "early / quickly", "mid"),
+      word("เพราะว่า", "because", "falling", true),
+      word("เหนื่อย", "tired", "low"),
+    ]),
+  ],
+  "cause-result-tham-hai": [
+    row("ข่าวนี้ทำให้ฉันกังวล", "khao ni tham hai chan kangwon", "This news makes me worried.", [
+      word("ข่าว", "news", "low"),
+      word("นี้", "this", "high", true),
+      word("ทำให้", "make / cause", "mid", true),
+      word("ฉัน", "me", "rising"),
+      word("กังวล", "worried", "mid"),
+    ]),
+    row("ฝนตกทำให้รถติด", "fon tok tham hai rot tit", "Rain causes traffic jams.", [
+      word("ฝน", "rain", "rising"),
+      word("ตก", "fall / rain", "low"),
+      word("ทำให้", "make / cause", "mid", true),
+      word("รถติด", "traffic jam", "high"),
+    ]),
+  ],
+  "cause-result-jueng": [
+    row("ฝนตกหนักจึงกลับบ้านเร็ว", "fon tok nak chueng klap ban reo", "It rained heavily, so we went home early.", [
+      word("ฝน", "rain", "rising"),
+      word("ตก", "fall / rain", "low"),
+      word("หนัก", "heavily", "low"),
+      word("จึง", "therefore", "mid", true),
+      word("กลับบ้าน", "go home", "low"),
+      word("เร็ว", "early / quickly", "mid"),
+    ]),
+    row("ไม่มีเวลา จึงไม่ได้ไป", "mai mi wela chueng mai dai pai", "There was no time, so I did not go.", [
+      word("ไม่มี", "there is not / do not have", "mid", true),
+      word("เวลา", "time", "mid"),
+      word("จึง", "therefore", "mid", true),
+      word("ไม่ได้", "did not / could not", "falling", true),
+      word("ไป", "go", "mid"),
+    ]),
+  ],
+  "sequence-laew-kor": [
+    row("เขากินข้าวแล้วก็ไปทำงาน", "khao kin khao laeo ko pai tham ngan", "He ate and then went to work.", [
+      word("เขา", "he / she", "rising"),
+      word("กิน", "eat", "mid"),
+      word("ข้าว", "rice / meal", "falling"),
+      word("แล้วก็", "and then", "high", true),
+      word("ไป", "go", "mid"),
+      word("ทำงาน", "work", "mid"),
+    ]),
+    row("ฉันอาบน้ำแล้วก็นอน", "chan ap nam laeo ko non", "I showered and then slept.", [
+      word("ฉัน", "I", "rising"),
+      word("อาบน้ำ", "shower", "low"),
+      word("แล้วก็", "and then", "high", true),
+      word("นอน", "sleep", "mid"),
+    ]),
+  ],
+  "sequence-jaak-nan": [
+    row("เราซื้อของ จากนั้นกลับบ้าน", "rao sue khong chak nan klap ban", "We bought things. After that, we went home.", [
+      word("เรา", "we", "mid"),
+      word("ซื้อ", "buy", "high"),
+      word("ของ", "things", "rising"),
+      word("จากนั้น", "after that", "mid", true),
+      word("กลับบ้าน", "go home", "low"),
+    ]),
+    row("เขาเรียนเสร็จ จากนั้นโทรหาแม่", "khao rian set chak nan thoh ha mae", "He finished studying. After that, he called Mom.", [
+      word("เขา", "he / she", "rising"),
+      word("เรียน", "study", "mid"),
+      word("เสร็จ", "finish", "low", true),
+      word("จากนั้น", "after that", "mid", true),
+      word("โทรหา", "call", "mid"),
+      word("แม่", "mom", "falling"),
+    ]),
+  ],
+  "sequence-nai-thi-sut": [
+    row("ในที่สุดเขาก็มาถึง", "nai thi sut khao ko ma thueng", "In the end, he finally arrived.", [
+      word("ในที่สุด", "in the end / finally", "low", true),
+      word("เขา", "he / she", "rising"),
+      word("ก็", "then / finally", "falling", true),
+      word("มาถึง", "arrive", "mid"),
+    ]),
+    row("ในที่สุดเราก็เข้าใจ", "nai thi sut rao ko khaochai", "In the end, we understood.", [
+      word("ในที่สุด", "in the end / finally", "low", true),
+      word("เรา", "we", "mid"),
+      word("ก็", "then / finally", "falling", true),
+      word("เข้าใจ", "understand", "mid"),
+    ]),
+  ],
   "contrast-concession": [
     row("ถึงแม้ว่าเหนื่อยแต่เขาก็มา", "thuengmae wa nueai tae khao ko ma", "Even though he was tired, he still came.", [
       word("ถึงแม้ว่า", "even though", "falling", true),
@@ -1043,6 +1269,13 @@ const B1_GRAMMAR_ROWS = {
       word("ทำงาน", "work", "mid"),
       word("ต่อไป", "continue / next", "low", true),
     ]),
+    row("เขายังอ่านหนังสืออยู่", "khao yang an nangsue yu", "He is still reading a book.", [
+      word("เขา", "he / she", "rising"),
+      word("ยัง", "still", "mid", true),
+      word("อ่าน", "read", "low"),
+      word("หนังสือ", "book", "rising"),
+      word("อยู่", "be in an ongoing state", "low", true),
+    ]),
   ],
   "result-complements-b1": [
     row("ฉันทำงานเสร็จแล้ว", "chan tham ngan set laeo", "I have finished the work.", [
@@ -1057,24 +1290,10 @@ const B1_GRAMMAR_ROWS = {
       word("ไม่ทัน", "not in time", "mid", true),
       word("รถไฟ", "train", "mid"),
     ]),
-  ],
-  "expanded-relative-structures": [
-    row("คนที่ยืนอยู่หน้าร้านเป็นครู", "khon thi yuen yu na ran pen khru", "The person standing in front of the shop is a teacher.", [
-      word("คน", "person", "mid"),
-      word("ที่", "who / that", "falling", true),
-      word("ยืน", "stand", "mid"),
-      word("อยู่", "be in an ongoing state", "low", true),
-      word("หน้าร้าน", "in front of the shop", "falling"),
-      word("เป็น", "be", "mid"),
-      word("ครู", "teacher", "mid"),
-    ]),
-    row("สิ่งที่ฉันหาอยู่หายไปแล้ว", "sing thi chan ha yu hai pai laeo", "The thing I was looking for has disappeared.", [
-      word("สิ่ง", "thing", "falling"),
-      word("ที่", "that / which", "falling", true),
+    row("ฉันจดไว้แล้ว", "chan jot wai laeo", "I wrote it down for later.", [
       word("ฉัน", "I", "rising"),
-      word("หา", "search for", "rising"),
-      word("อยู่", "be in an ongoing state", "low", true),
-      word("หายไป", "disappear", "rising"),
+      word("จด", "write down", "low"),
+      word("ไว้", "set aside / keep for later", "falling", true),
       word("แล้ว", "already", "high", true),
     ]),
   ],
@@ -1126,6 +1345,316 @@ const B1_GRAMMAR_ROWS = {
       word("หรือยัง", "yet?", "mid", true),
     ]),
   ],
+  "reflexive-tua-eng": [
+    row("ฉันทำอาหารเอง", "chan tham ahan eng", "I cook the food myself.", [
+      word("ฉัน", "I", "rising"),
+      word("ทำ", "make / do", "mid"),
+      word("อาหาร", "food", "rising"),
+      word("เอง", "oneself / personally", "mid", true),
+    ]),
+    row("เขาเรียนด้วยตัวเอง", "khao rian duai tua eng", "He studies by himself.", [
+      word("เขา", "he / she", "rising"),
+      word("เรียน", "study", "mid"),
+      word("ด้วยตัวเอง", "by oneself", "mid", true),
+    ]),
+  ],
+  "distributive-tae-la": [
+    row("แต่ละคนมีหน้าที่", "tae la khon mi nathi", "Each person has a duty.", [
+      word("แต่ละ", "each", "low", true),
+      word("คน", "person", "mid"),
+      word("มี", "have", "mid"),
+      word("หน้าที่", "duty / role", "falling"),
+    ]),
+    row("แต่ละวันฉันอ่านหนังสือ", "tae la wan chan an nangsue", "I read every day.", [
+      word("แต่ละ", "each", "low", true),
+      word("วัน", "day", "mid"),
+      word("ฉัน", "I", "rising"),
+      word("อ่าน", "read", "low"),
+      word("หนังสือ", "book", "rising"),
+    ]),
+  ],
+  "intention-tang-jai": [
+    row("ฉันตั้งใจจะเรียนภาษาไทย", "chan tangchai cha rian phasa thai", "I intend to study Thai.", [
+      word("ฉัน", "I", "rising"),
+      word("ตั้งใจ", "intend to / be determined to", "falling", true),
+      word("จะ", "will", "low", true),
+      word("เรียน", "study", "mid"),
+      word("ภาษาไทย", "Thai language", "mid"),
+    ]),
+    row("เขาตั้งใจจะประหยัดเงิน", "khao tangchai cha prayat ngoen", "He intends to save money.", [
+      word("เขา", "he / she", "rising"),
+      word("ตั้งใจ", "intend to / be determined to", "falling", true),
+      word("จะ", "will", "low", true),
+      word("ประหยัด", "save / economize", "falling"),
+      word("เงิน", "money", "mid"),
+    ]),
+  ],
+  "almost-kueap": [
+    row("เขาเกือบจะลืมแล้ว", "khao kueap cha luem laeo", "He almost forgot.", [
+      word("เขา", "he / she", "rising"),
+      word("เกือบ", "almost", "low", true),
+      word("จะ", "will", "low", true),
+      word("ลืม", "forget", "mid"),
+      word("แล้ว", "already", "high", true),
+    ]),
+    row("ฉันเกือบจะตกบันได", "chan kueap cha tok bandai", "I almost fell down the stairs.", [
+      word("ฉัน", "I", "rising"),
+      word("เกือบ", "almost", "low", true),
+      word("จะ", "will", "low", true),
+      word("ตก", "fall", "low"),
+      word("บันได", "stairs", "mid"),
+    ]),
+  ],
+  "barely-thaep-ja": [
+    row("ฉันแทบจะไม่ได้ยิน", "chan thaep cha mai dai yin", "I could barely hear.", [
+      word("ฉัน", "I", "rising"),
+      word("แทบจะ", "barely / almost not", "mid", true),
+      word("ไม่ได้ยิน", "barely hear / cannot hear", "falling"),
+    ]),
+    row("เขาแทบจะไม่ได้นอน", "khao thaep cha mai dai non", "He barely slept.", [
+      word("เขา", "he / she", "rising"),
+      word("แทบจะ", "barely / almost not", "mid", true),
+      word("ไม่ได้นอน", "barely sleep / did not sleep", "falling"),
+    ]),
+  ],
+  "extent-jon": [
+    row("เขากินจนปวดท้อง", "khao kin chon puat thong", "He ate until his stomach hurt.", [
+      word("เขา", "he / she", "rising"),
+      word("กิน", "eat", "mid"),
+      word("จน", "until / to the extent that", "mid", true),
+      word("ปวด", "ache", "low"),
+      word("ท้อง", "stomach", "high"),
+    ]),
+    row("เขาวิ่งจนเหนื่อยมาก", "khao wing chon nueai mak", "He ran until he was very tired.", [
+      word("เขา", "he / she", "rising"),
+      word("วิ่ง", "run", "falling"),
+      word("จน", "until / to the extent that", "mid", true),
+      word("เหนื่อย", "tired", "low"),
+      word("มาก", "very", "falling"),
+    ]),
+  ],
+  "since-tang-tae": [
+    row("ฉันอยู่ที่นี่ตั้งแต่เช้า", "chan yu thi ni tang tae chao", "I have been here since morning.", [
+      word("ฉัน", "I", "rising"),
+      word("อยู่", "stay / be located", "low"),
+      word("ที่นี่", "here", "falling"),
+      word("ตั้งแต่", "since / starting from", "falling", true),
+      word("เช้า", "morning", "falling"),
+    ]),
+    row("เขาทำงานที่นี่ตั้งแต่ปีที่แล้ว", "khao tham ngan thi ni tang tae pi thi laeo", "He has worked here since last year.", [
+      word("เขา", "he / she", "rising"),
+      word("ทำงาน", "work", "mid"),
+      word("ที่นี่", "here", "falling"),
+      word("ตั้งแต่", "since / starting from", "falling", true),
+      word("ปีที่แล้ว", "last year", "mid"),
+    ]),
+  ],
+  "every-time-thuk-khrang-thi": [
+    row("ทุกครั้งที่ฝนตก รถก็ติด", "thuk khrang thi fon tok rot ko tit", "Every time it rains, traffic gets jammed.", [
+      word("ทุกครั้งที่", "every time that", "high", true),
+      word("ฝน", "rain", "rising"),
+      word("ตก", "fall / rain", "low"),
+      word("รถ", "traffic / cars", "high"),
+      word("ก็", "then / as a result", "falling", true),
+      word("ติด", "be stuck / jammed", "low"),
+    ]),
+    row("ทุกครั้งที่เจอกัน เขายิ้ม", "thuk khrang thi joe kan khao yim", "Every time we meet, he smiles.", [
+      word("ทุกครั้งที่", "every time that", "high", true),
+      word("เจอกัน", "meet each other", "mid"),
+      word("เขา", "he / she", "rising"),
+      word("ยิ้ม", "smile", "falling"),
+    ]),
+  ],
+  "depends-on-khun-yu-kap": [
+    row("ผลขึ้นอยู่กับเวลา", "phon khuen yu kap wela", "The result depends on time.", [
+      word("ผล", "result", "rising"),
+      word("ขึ้นอยู่กับ", "depend on", "falling", true),
+      word("เวลา", "time", "mid"),
+    ]),
+    row("ความสำเร็จขึ้นอยู่กับการฝึก", "khwam samret khuen yu kap kan fuek", "Success depends on practice.", [
+      word("ความสำเร็จ", "success", "low"),
+      word("ขึ้นอยู่กับ", "depend on", "falling", true),
+      word("การฝึก", "practice / training", "high"),
+    ]),
+  ],
+  "so-that-ja-dai": [
+    row("รีบไปหน่อย จะได้ทันรถ", "rip pai noi cha dai than rot", "Hurry a bit so that we can catch the bus.", [
+      word("รีบ", "hurry", "falling"),
+      word("ไป", "go", "mid"),
+      word("หน่อย", "a bit / please", "low", true),
+      word("จะได้", "so that / then can", "falling", true),
+      word("ทัน", "in time for", "mid"),
+      word("รถ", "bus / vehicle", "high"),
+    ]),
+    row("อธิบายช้าๆ จะได้เข้าใจ", "athibai cha cha cha dai khaochai", "Explain slowly so that it becomes understandable.", [
+      word("อธิบาย", "explain", "mid"),
+      word("ช้าๆ", "slowly", "high"),
+      word("จะได้", "so that / then can", "falling", true),
+      word("เข้าใจ", "understand", "mid"),
+    ]),
+  ],
+  "instead-of-thaen-thi-ja": [
+    row("ดื่มน้ำแทนที่จะกินขนม", "duem nam thaen thi cha kin khanom", "Drink water instead of eating snacks.", [
+      word("ดื่ม", "drink", "low"),
+      word("น้ำ", "water", "high"),
+      word("แทนที่จะ", "instead of", "mid", true),
+      word("กิน", "eat", "mid"),
+      word("ขนม", "snack", "rising"),
+    ]),
+    row("นอนพักแทนที่จะออกไป", "non phak thaen thi cha ok pai", "Rest instead of going out.", [
+      word("นอนพัก", "rest", "mid"),
+      word("แทนที่จะ", "instead of", "mid", true),
+      word("ออกไป", "go out", "low"),
+    ]),
+  ],
+  "indirect-questions-ru-plao": [
+    row("ไม่รู้ว่าเขาจะมาหรือเปล่า", "mai ru wa khao cha ma ru plao", "I don't know whether he will come or not.", [
+      word("ไม่", "not", "falling"),
+      word("รู้", "know", "high"),
+      word("ว่า", "that", "falling", true),
+      word("เขา", "he / she", "rising"),
+      word("จะ", "will", "low"),
+      word("มา", "come", "mid"),
+      word("หรือเปล่า", "or not", "rising", true),
+    ]),
+    row("ฉันถามว่าเขาว่างหรือเปล่า", "chan tham wa khao wang rue plao", "I asked whether he was free or not.", [
+      word("ฉัน", "I", "rising"),
+      word("ถาม", "ask", "rising"),
+      word("ว่า", "that", "falling", true),
+      word("เขา", "he / she", "rising"),
+      word("ว่าง", "free", "falling"),
+      word("หรือเปล่า", "or not", "rising", true),
+    ]),
+  ],
+  "expanded-relative-structures": [
+    row("คนที่ยืนอยู่หน้าร้านเป็นครู", "khon thi yuen yu na ran pen khru", "The person standing in front of the shop is a teacher.", [
+      word("คน", "person", "mid"),
+      word("ที่", "who / that", "falling", true),
+      word("ยืน", "stand", "mid"),
+      word("อยู่", "be in an ongoing state", "low", true),
+      word("หน้าร้าน", "in front of the shop", "falling"),
+      word("เป็น", "be", "mid"),
+      word("ครู", "teacher", "mid"),
+    ]),
+    row("สิ่งที่ฉันหาอยู่หายไปแล้ว", "sing thi chan ha yu hai pai laeo", "The thing I was looking for has disappeared.", [
+      word("สิ่ง", "thing", "falling"),
+      word("ที่", "that / which", "falling", true),
+      word("ฉัน", "I", "rising"),
+      word("หา", "search for", "rising"),
+      word("อยู่", "be in an ongoing state", "low", true),
+      word("หายไป", "disappear", "rising"),
+      word("แล้ว", "already", "high", true),
+    ]),
+  ],
+  "nominalization-karn-khwam": [
+    row("การนอนสำคัญมาก", "kan non samkhan mak", "Sleeping is very important.", [
+      word("การ", "action-to-noun prefix", "mid", true),
+      word("นอน", "sleep", "mid"),
+      word("สำคัญ", "important", "mid"),
+      word("มาก", "very", "falling"),
+    ]),
+    row("ความสุขสำคัญกว่าเงิน", "khwam suk samkhan kwa ngoen", "Happiness is more important than money.", [
+      word("ความ", "abstract-noun prefix", "mid", true),
+      word("สุข", "happy / happiness", "low"),
+      word("สำคัญกว่า", "more important than", "mid"),
+      word("เงิน", "money", "mid"),
+    ]),
+  ],
+  "perspective-marker-samrap": [
+    row("สำหรับเด็ก เรื่องนี้ยาก", "samrap dek rueang ni yak", "For children, this topic is difficult.", [
+      word("สำหรับ", "for / as for", "low", true),
+      word("เด็ก", "child", "low"),
+      word("เรื่อง", "topic / matter", "falling"),
+      word("นี้", "this", "high", true),
+      word("ยาก", "difficult", "falling"),
+    ]),
+    row("สำหรับฉัน เวลาสำคัญ", "samrap chan wela samkhan", "For me, time is important.", [
+      word("สำหรับ", "for / as for", "low", true),
+      word("ฉัน", "me", "rising"),
+      word("เวลา", "time", "mid"),
+      word("สำคัญ", "important", "mid"),
+    ]),
+  ],
+  "opinion-marker-nai-khwam-hen": [
+    row("ในความเห็นของฉัน เรื่องนี้ยาก", "nai khwam hen khong chan rueang ni yak", "In my opinion, this topic is difficult.", [
+      word("ในความเห็นของฉัน", "in my opinion", "rising", true),
+      word("เรื่อง", "topic / matter", "falling"),
+      word("นี้", "this", "high", true),
+      word("ยาก", "difficult", "falling"),
+    ]),
+    row("ในความเห็นผม เขาพูดชัด", "nai khwam hen phom khao phut chat", "In my opinion, he speaks clearly.", [
+      word("ในความเห็นผม", "in my opinion", "rising", true),
+      word("เขา", "he / she", "rising"),
+      word("พูด", "speak", "falling"),
+      word("ชัด", "clear / clearly", "high"),
+    ]),
+  ],
+  "stance-marker-tam-thi-chan-hen": [
+    row("ตามที่ฉันเห็น เขาพร้อมแล้ว", "tam thi chan hen khao phrom laeo", "As I see it, he is ready now.", [
+      word("ตามที่ฉันเห็น", "as I see it", "mid", true),
+      word("เขา", "he / she", "rising"),
+      word("พร้อม", "ready", "high"),
+      word("แล้ว", "already / now", "high", true),
+    ]),
+    row("ตามที่ผมเห็น แผนนี้ใช้ได้", "tam thi phom hen phaen ni chai dai", "As I see it, this plan works.", [
+      word("ตามที่ผมเห็น", "as I see it", "mid", true),
+      word("แผน", "plan", "mid"),
+      word("นี้", "this", "high", true),
+      word("ใช้ได้", "works / is usable", "falling"),
+    ]),
+  ],
+  "contrast-tae-thawaa": [
+    row("อยากไป แต่วันนี้ไม่ว่าง", "yak pai tae wanni mai wang", "I want to go, but I am not free today.", [
+      word("อยาก", "want to", "low"),
+      word("ไป", "go", "mid"),
+      word("แต่", "but", "low", true),
+      word("วันนี้", "today", "high"),
+      word("ไม่", "not", "low", true),
+      word("ว่าง", "free", "falling"),
+    ]),
+    row("เขาขยัน ทว่าพักน้อย", "khao khayan thawa phak noi", "He is diligent, however he rests very little.", [
+      word("เขา", "he / she", "rising"),
+      word("ขยัน", "diligent", "rising"),
+      word("ทว่า", "however", "mid", true),
+      word("พัก", "rest", "high"),
+      word("น้อย", "little", "falling"),
+    ]),
+  ],
+  "concession-maewaa": [
+    row("แม้ว่าฝนตก เราก็ไป", "mae wa fon tok rao ko pai", "Although it was raining, we still went.", [
+      word("แม้ว่า", "although", "falling", true),
+      word("ฝน", "rain", "rising"),
+      word("ตก", "fall / rain", "low"),
+      word("เรา", "we", "mid"),
+      word("ก็", "still / then", "falling", true),
+      word("ไป", "go", "mid"),
+    ]),
+    row("แม้ว่าไกล เขาก็มา", "mae wa klai khao ko ma", "Although it was far, he still came.", [
+      word("แม้ว่า", "although", "falling", true),
+      word("ไกล", "far", "mid"),
+      word("เขา", "he / she", "rising"),
+      word("ก็", "still / then", "falling", true),
+      word("มา", "come", "mid"),
+    ]),
+  ],
+  "concession-thang-thi": [
+    row("ทั้งที่รู้ว่าแพง เขาก็ซื้อ", "thang thi ru wa phaeng khao ko sue", "Even though he knew it was expensive, he still bought it.", [
+      word("ทั้งที่", "even though / despite that", "falling", true),
+      word("รู้", "know", "high"),
+      word("ว่า", "that", "falling", true),
+      word("แพง", "expensive", "mid"),
+      word("เขา", "he / she", "rising"),
+      word("ก็", "still / then", "falling", true),
+      word("ซื้อ", "buy", "high"),
+    ]),
+    row("ทั้งที่เหนื่อย เขายังทำงาน", "thang thi nueai khao yang tham ngan", "Even though he was tired, he still worked.", [
+      word("ทั้งที่", "even though / despite that", "falling", true),
+      word("เหนื่อย", "tired", "low"),
+      word("เขา", "he / she", "rising"),
+      word("ยัง", "still", "mid", true),
+      word("ทำงาน", "work", "mid"),
+    ]),
+  ],
 };
 
 const B2_GRAMMAR_ROWS = {
@@ -1143,6 +1672,20 @@ const B2_GRAMMAR_ROWS = {
       word("ก็", "also / then", "falling", true),
       word("ต้อง", "must", "falling"),
       word("รอ", "wait", "mid"),
+    ]),
+    row("งั้นเราไปกันป่ะ", "ngan rao pai kan pa", "Then shall we go?", [
+      word("งั้น", "then / in that case", "falling", true),
+      word("เรา", "we", "mid"),
+      word("ไป", "go", "mid"),
+      word("กัน", "together / let's", "mid", true),
+      word("ป่ะ", "shall we? / okay?", "low", true),
+    ]),
+    row("งี้ก็เข้าใจง่ายขึ้น", "ngi ko khaochai ngai khuen", "Like this, it becomes easier to understand.", [
+      word("งี้", "like this", "falling", true),
+      word("ก็", "then / so", "falling", true),
+      word("เข้าใจ", "understand", "mid"),
+      word("ง่าย", "easy", "falling"),
+      word("ขึ้น", "more / upward", "falling", true),
     ]),
   ],
   "formal-connectors-b2": [
@@ -1229,6 +1772,24 @@ const B2_GRAMMAR_ROWS = {
       word("มี", "have / there is", "mid"),
       word("เท่านั้นเอง", "only that / nothing more", "mid", true),
     ]),
+    row("ก็แค่ถามดู", "ko khae tham du", "I was only asking.", [
+      word("ก็แค่", "just / merely", "falling", true),
+      word("ถาม", "ask", "rising"),
+      word("ดู", "try / just see", "mid", true),
+    ]),
+    row("นี่แหละที่ฉันต้องการ", "ni lae thi chan tongkan", "This is exactly what I want.", [
+      word("นี่แหละ", "this exact one", "falling", true),
+      word("ที่", "that / which", "falling", true),
+      word("ฉัน", "I", "rising"),
+      word("ต้องการ", "want / need", "mid"),
+    ]),
+    row("อ๋อนี่เองที่หาอยู่", "o ni eng thi ha yu", "Oh, this is the one I was looking for.", [
+      word("อ๋อ", "oh", "rising"),
+      word("นี่เอง", "this exact one", "mid", true),
+      word("ที่", "that / which", "falling", true),
+      word("หา", "look for", "rising"),
+      word("อยู่", "be in an ongoing state", "low", true),
+    ]),
   ],
   "confirmation-rhetorical-particles-b2": [
     row("สวยใช่ไหมล่ะ", "suai chai mai la", "It is beautiful, right?", [
@@ -1268,6 +1829,42 @@ const B2_GRAMMAR_ROWS = {
       word("นั่ง", "sit", "falling"),
       word("อ่าน", "read", "low"),
       word("หนังสือ", "book", "rising"),
+    ]),
+    row("เขาเอาขนมมาให้ฉัน", "khao ao khanom ma hai chan", "He brought me snacks.", [
+      word("เขา", "he / she", "rising"),
+      word("เอา", "take / bring", "mid"),
+      word("ขนม", "snack", "rising"),
+      word("มา", "come / bring toward", "mid", true),
+      word("ให้", "give to", "falling", true),
+      word("ฉัน", "me", "rising"),
+    ]),
+    row("เด็กเดินเข้าไปในห้อง", "dek doen khao pai nai hong", "The child walked into the room.", [
+      word("เด็ก", "child", "low"),
+      word("เดิน", "walk", "mid"),
+      word("เข้า", "enter / inward", "falling", true),
+      word("ไป", "go / away", "mid", true),
+      word("ในห้อง", "in the room", "falling"),
+    ]),
+    row("เขาเอาหนังสือออกมา", "khao ao nangsue ok ma", "He took the book out.", [
+      word("เขา", "he / she", "rising"),
+      word("เอา", "take", "mid"),
+      word("หนังสือ", "book", "rising"),
+      word("ออก", "outward", "low", true),
+      word("มา", "come / toward", "mid", true),
+    ]),
+    row("เขาเดินขึ้นไปชั้นบน", "khao doen khuen pai chan bon", "He walked upstairs.", [
+      word("เขา", "he / she", "rising"),
+      word("เดิน", "walk", "mid"),
+      word("ขึ้น", "upward", "falling", true),
+      word("ไป", "go / away", "mid", true),
+      word("ชั้นบน", "upstairs", "high"),
+    ]),
+    row("เขาวิ่งลงมาข้างล่าง", "khao wing long ma khang lang", "He ran down here.", [
+      word("เขา", "he / she", "rising"),
+      word("วิ่ง", "run", "falling"),
+      word("ลง", "downward", "mid", true),
+      word("มา", "come / toward", "mid", true),
+      word("ข้างล่าง", "downstairs / below", "falling"),
     ]),
   ],
   "particles-na-si-la": [
@@ -1311,6 +1908,41 @@ const B2_GRAMMAR_ROWS = {
     ]),
   ],
 };
+
+function parseB2RowsFromSource() {
+  const source = fs.readFileSync(
+    new URL("../src/data/grammarB2.ts", import.meta.url),
+    "utf8",
+  );
+
+  const rows = {};
+  const entryRegex =
+    /{\s*id: "([^"]+)"[\s\S]*?example:\s*{\s*thai: "([^"]*)",\s*roman: "([^"]*)",\s*english: "([^"]*)",\s*breakdown:\s*\[([\s\S]*?)\],\s*},\s*focus:/g;
+
+  for (const match of source.matchAll(entryRegex)) {
+    const [, grammarId, thai, romanization, english, breakdownBlock] = match;
+    const breakdown = [];
+    const wordRegex =
+      /w\("([^"]*)", "([^"]*)", "(mid|low|falling|high|rising)"(?:, (true|false))?\)/g;
+
+    for (const wordMatch of breakdownBlock.matchAll(wordRegex)) {
+      const [, wordThai, wordEnglish, tone, grammarFlag] = wordMatch;
+      breakdown.push(
+        grammarFlag === "true"
+          ? word(wordThai, wordEnglish, tone, true)
+          : word(wordThai, wordEnglish, tone),
+      );
+    }
+
+    rows[grammarId] = [
+      row(thai, romanization, english, breakdown, "hard"),
+    ];
+  }
+
+  return rows;
+}
+
+const B2_ATOMIC_GRAMMAR_ROWS = parseB2RowsFromSource();
 
 function csvEscape(value) {
   return `"${String(value).replaceAll('"', '""')}"`;
@@ -1360,6 +1992,7 @@ function main() {
     ...A2_GRAMMAR_ROWS,
     ...B1_GRAMMAR_ROWS,
     ...B2_GRAMMAR_ROWS,
+    ...B2_ATOMIC_GRAMMAR_ROWS,
   };
 
   let written = 0;

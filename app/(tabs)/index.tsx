@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { canAccessApp, isGuestUser } from "../../src/utils/auth";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
@@ -27,6 +26,7 @@ import {
   getAllProgress,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+import { getAuthToken } from "../../src/utils/authStorage";
 
 // Thresholds: 0 = nothing, 1-14 = light, 15-39 = medium, 40-79 = dark, 80+ = darkest
 function activityToLevel(count: number): number {
@@ -189,7 +189,7 @@ export default function HomeScreen() {
         return;
       }
 
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/vocab/review`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -230,7 +230,7 @@ export default function HomeScreen() {
     try {
       const guest = await isGuestUser();
       if (guest) return;
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/vocab/heatmap`, {
         headers: { Authorization: `Bearer ${token}` },
       });

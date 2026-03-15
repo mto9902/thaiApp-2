@@ -18,6 +18,7 @@ import React, {
   useState,
 } from "react";
 import { Platform } from "react-native";
+import { getAuthToken } from "../utils/authStorage";
 
 import {
   getRevenueCatApiKeyForCurrentPlatform,
@@ -58,7 +59,7 @@ function hasPremiumEntitlement(customerInfo: CustomerInfo | null): boolean {
 
 async function getStoredUser() {
   const [token, guestFlag] = await Promise.all([
-    AsyncStorage.getItem("token"),
+    getAuthToken(),
     AsyncStorage.getItem("isGuest"),
   ]);
 

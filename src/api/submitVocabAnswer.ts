@@ -1,11 +1,11 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE } from "../config";
+import { getAuthToken } from "../utils/authStorage";
 
 export async function submitVocabAnswer(
   thai: string,
   grade: "again" | "hard" | "good" | "easy",
 ) {
-  const token = await AsyncStorage.getItem("token");
+  const token = await getAuthToken();
 
   const res = await fetch(`${API_BASE}/vocab/answer`, {
     method: "POST",

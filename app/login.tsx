@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "../src/config";
+import { clearAuthToken, setAuthToken } from "../src/utils/authStorage";
 
 export default function Login() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   async function handleGuest() {
-    await AsyncStorage.removeItem("token");
+    await clearAuthToken();
     await AsyncStorage.setItem("isGuest", "true");
     router.replace("/(tabs)");
   }
@@ -43,7 +44,7 @@ export default function Login() {
     }
 
     await AsyncStorage.multiRemove(["isGuest"]);
-    await AsyncStorage.setItem("token", data.token);
+    await setAuthToken(data.token);
     router.replace("/(tabs)");
   }
 

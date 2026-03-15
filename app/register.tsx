@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE } from "../src/config";
+import { setAuthToken } from "../src/utils/authStorage";
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -71,7 +72,7 @@ export default function Register() {
     }
 
     await AsyncStorage.multiRemove(["isGuest"]);
-    await AsyncStorage.setItem("token", data.token);
+    await setAuthToken(data.token);
     router.replace("/(tabs)");
   }
 

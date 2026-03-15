@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -18,6 +17,7 @@ import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
+import { getAuthToken } from "../../src/utils/authStorage";
 import {
   getAllProgress,
   isGrammarPracticed,
@@ -77,7 +77,7 @@ export default function Profile() {
 
   async function loadData() {
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       if (!token) return;
 
       const decoded = jwtDecode<JwtPayload>(token);
@@ -119,7 +119,12 @@ export default function Profile() {
         display_name: meData.display_name ?? null,
       });
       setProgress(progressData);
-      setBookmarkedCount(Array.isArray(bookmarksData) ? bookmarksData.length : 0);
+      const validBookmarkCount = Array.isArray(bookmarksData)
+        ? bookmarksData.filter((bookmark: { grammar_id?: string }) =>
+            grammarPoints.some((point) => point.id === bookmark.grammar_id),
+          ).length
+        : 0;
+      setBookmarkedCount(validBookmarkCount);
 
       const practicedGrammarCount = grammarPoints.filter((point) =>
         isGrammarPracticed(grammarProgress[point.id]),
@@ -149,7 +154,7 @@ export default function Profile() {
 
   if (isGuest) {
     return (
-      <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <SafeAreaView edges={["top"]} style={styles.safe}>
         <View style={styles.centerWrap}>
           <View style={styles.avatarCircle}>
             <Ionicons name="person-outline" size={28} color={Sketch.inkMuted} />
@@ -175,11 +180,11 @@ export default function Profile() {
     profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+    <SafeAreaView edges={["top"]} style={styles.safe}>
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: tabBarHeight + 20 },
+          { paddingBottom: tabBarHeight + 8 },
         ]}
         showsVerticalScrollIndicator={false}
       >

@@ -1,3 +1,4 @@
+import { b2GrammarPoints } from "./grammarB2";
 import { CefrLevel } from "./grammarLevels";
 import { GRAMMAR_STAGE_BY_ID, GrammarStage } from "./grammarStages";
 
@@ -38,7 +39,9 @@ function w(
   tone: ToneName,
   grammar = false,
 ): WordBreakdown {
-  return grammar ? { thai, english, tone, grammar: true } : { thai, english, tone };
+  return grammar
+    ? { thai, english, tone, grammar: true }
+    : { thai, english, tone };
 }
 
 type RawGrammarPoint = Omit<
@@ -62,7 +65,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันกินข้าว",
       roman: "chan kin khao",
       english: "I eat rice.",
-      breakdown: [w("ฉัน", "I", "rising"), w("กิน", "eat", "mid"), w("ข้าว", "rice", "falling")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice", "falling"),
+      ],
     },
     focus: {
       particle: "SVO order",
@@ -89,7 +96,8 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     },
     focus: {
       particle: "ไม่",
-      meaning: "The core spoken negation marker used before verbs and adjectives.",
+      meaning:
+        "The core spoken negation marker used before verbs and adjectives.",
     },
   },
   {
@@ -103,7 +111,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันชื่อมิน",
       roman: "chan chue Min",
       english: "My name is Min.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ชื่อ", "name", "falling", true), w("มิน", "Min", "mid")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ชื่อ", "name", "falling", true),
+        w("มิน", "Min", "mid"),
+      ],
     },
     focus: {
       particle: "ชื่อ",
@@ -130,7 +142,8 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     },
     focus: {
       particle: "ผม / หนู / พี่ / น้อง",
-      meaning: "Thai often uses context, names, or kinship terms instead of an explicit subject pronoun.",
+      meaning:
+        "Thai often uses context, names, or kinship terms instead of an explicit subject pronoun.",
     },
   },
   {
@@ -166,7 +179,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ห้องน้ำอยู่ที่ไหน",
       roman: "hongnam yu thinai",
       english: "Where is the bathroom?",
-      breakdown: [w("ห้องน้ำ", "bathroom", "falling"), w("อยู่", "be located", "low"), w("ที่ไหน", "where", "falling", true)],
+      breakdown: [
+        w("ห้องน้ำ", "bathroom", "falling"),
+        w("อยู่", "be located", "low"),
+        w("ที่ไหน", "where", "falling", true),
+      ],
     },
     focus: {
       particle: "อะไร / ใคร / ที่ไหน / เท่าไร",
@@ -184,7 +201,10 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ขอบคุณครับ",
       roman: "khopkhun khrap",
       english: "Thank you. (male speaker)",
-      breakdown: [w("ขอบคุณ", "thank you", "low"), w("ครับ", "polite particle", "high", true)],
+      breakdown: [
+        w("ขอบคุณ", "thank you", "low"),
+        w("ครับ", "polite particle", "high", true),
+      ],
     },
     focus: {
       particle: "ครับ / ค่ะ / คะ",
@@ -220,7 +240,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาเป็นครู",
       roman: "khao pen khru",
       english: "He is a teacher.",
-      breakdown: [w("เขา", "he / she", "rising"), w("เป็น", "to be", "mid", true), w("ครู", "teacher", "mid")],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("เป็น", "to be", "mid", true),
+        w("ครู", "teacher", "mid"),
+      ],
     },
     focus: {
       particle: "เป็น",
@@ -238,11 +262,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาไม่ใช่หมอ",
       roman: "khao maichai mo",
       english: "He is not a doctor.",
-      breakdown: [w("เขา", "he / she", "rising"), w("ไม่ใช่", "is not / not be", "falling", true), w("หมอ", "doctor", "rising")],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("ไม่ใช่", "is not / not be", "falling", true),
+        w("หมอ", "doctor", "rising"),
+      ],
     },
     focus: {
       particle: "ไม่ใช่",
-      meaning: "The standard negation pattern for nouns and identity statements.",
+      meaning:
+        "The standard negation pattern for nouns and identity statements.",
     },
   },
   {
@@ -256,7 +285,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันมาจากไทย",
       roman: "chan machak Thai",
       english: "I am from Thailand.",
-      breakdown: [w("ฉัน", "I", "rising"), w("มาจาก", "come from", "mid", true), w("ไทย", "Thailand", "mid")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("มาจาก", "come from", "mid", true),
+        w("ไทย", "Thailand", "mid"),
+      ],
     },
     focus: {
       particle: "มาจาก",
@@ -274,7 +307,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "แม่อยู่บ้าน",
       roman: "mae yu ban",
       english: "Mom is at home.",
-      breakdown: [w("แม่", "mom", "falling"), w("อยู่", "be located", "low", true), w("บ้าน", "home", "falling")],
+      breakdown: [
+        w("แม่", "mom", "falling"),
+        w("อยู่", "be located", "low", true),
+        w("บ้าน", "home", "falling"),
+      ],
     },
     focus: {
       particle: "อยู่",
@@ -292,7 +329,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "แมวอยู่ใต้โต๊ะ",
       roman: "maeo yu tai to",
       english: "The cat is under the table.",
-      breakdown: [w("แมว", "cat", "mid"), w("อยู่", "be located", "low", true), w("ใต้", "under", "falling", true), w("โต๊ะ", "table", "falling")],
+      breakdown: [
+        w("แมว", "cat", "mid"),
+        w("อยู่", "be located", "low", true),
+        w("ใต้", "under", "falling", true),
+        w("โต๊ะ", "table", "falling"),
+      ],
     },
     focus: {
       particle: "ใน / บน / ใต้ / ข้าง",
@@ -310,7 +352,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "บ้านนี้มีสวน",
       roman: "ban ni mi suan",
       english: "This house has a garden.",
-      breakdown: [w("บ้าน", "house", "falling"), w("นี้", "this", "high", true), w("มี", "have", "mid", true), w("สวน", "garden", "rising")],
+      breakdown: [
+        w("บ้าน", "house", "falling"),
+        w("นี้", "this", "high", true),
+        w("มี", "have", "mid", true),
+        w("สวน", "garden", "rising"),
+      ],
     },
     focus: {
       particle: "มี",
@@ -328,7 +375,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันไม่มีรถ",
       roman: "chan maimi rot",
       english: "I do not have a car.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ไม่มี", "do not have / there is not", "mid", true), w("รถ", "car", "high")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ไม่มี", "do not have / there is not", "mid", true),
+        w("รถ", "car", "high"),
+      ],
     },
     focus: {
       particle: "ไม่มี",
@@ -346,7 +397,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "หนังสือนี้ดี",
       roman: "nangsue ni di",
       english: "This book is good.",
-      breakdown: [w("หนังสือ", "book", "rising"), w("นี้", "this", "high", true), w("ดี", "good", "mid")],
+      breakdown: [
+        w("หนังสือ", "book", "rising"),
+        w("นี้", "this", "high", true),
+        w("ดี", "good", "mid"),
+      ],
     },
     focus: {
       particle: "นี้ / นั้น / โน้น",
@@ -364,7 +419,13 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "กระเป๋านี้เป็นของฉัน",
       roman: "krapao ni pen khong chan",
       english: "This bag is mine.",
-      breakdown: [w("กระเป๋า", "bag", "mid"), w("นี้", "this", "high", true), w("เป็น", "be", "mid", true), w("ของ", "of / belonging to", "rising", true), w("ฉัน", "me / my", "rising")],
+      breakdown: [
+        w("กระเป๋า", "bag", "mid"),
+        w("นี้", "this", "high", true),
+        w("เป็น", "be", "mid", true),
+        w("ของ", "of / belonging to", "rising", true),
+        w("ฉัน", "me / my", "rising"),
+      ],
     },
     focus: {
       particle: "ของ",
@@ -382,7 +443,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันอยากกินข้าว",
       roman: "chan yak kin khao",
       english: "I want to eat rice.",
-      breakdown: [w("ฉัน", "I", "rising"), w("อยาก", "want to", "low", true), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("อยาก", "want to", "low", true),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+      ],
     },
     focus: {
       particle: "อยาก",
@@ -400,11 +466,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ขอน้ำหน่อย",
       roman: "kho nam noi",
       english: "Could I have some water, please?",
-      breakdown: [w("ขอ", "request", "rising", true), w("น้ำ", "water", "high"), w("หน่อย", "a little / please", "low", true)],
+      breakdown: [
+        w("ขอ", "request", "rising", true),
+        w("น้ำ", "water", "high"),
+        w("หน่อย", "a little / please", "low", true),
+      ],
     },
     focus: {
       particle: "ขอ",
-      meaning: "Polite request marker used before the thing or action requested.",
+      meaning:
+        "Polite request marker used before the thing or action requested.",
     },
   },
   {
@@ -418,7 +489,13 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันมีหนังสือสองเล่ม",
       roman: "chan mi nangsue song lem",
       english: "I have two books.",
-      breakdown: [w("ฉัน", "I", "rising"), w("มี", "have", "mid", true), w("หนังสือ", "book", "rising"), w("สอง", "two", "rising"), w("เล่ม", "classifier", "falling", true)],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("มี", "have", "mid", true),
+        w("หนังสือ", "book", "rising"),
+        w("สอง", "two", "rising"),
+        w("เล่ม", "classifier", "falling", true),
+      ],
     },
     focus: {
       particle: "classifier",
@@ -436,7 +513,10 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "อันนี้เท่าไร",
       roman: "anni thaorai",
       english: "How much is this?",
-      breakdown: [w("อันนี้", "this one", "high"), w("เท่าไร", "how much", "falling", true)],
+      breakdown: [
+        w("อันนี้", "this one", "high"),
+        w("เท่าไร", "how much", "falling", true),
+      ],
     },
     focus: {
       particle: "เท่าไร",
@@ -454,7 +534,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันไปตลาดวันนี้",
       roman: "chan pai talat wanni",
       english: "I go to the market today.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ไป", "go", "mid"), w("ตลาด", "market", "low"), w("วันนี้", "today", "high", true)],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ไป", "go", "mid"),
+        w("ตลาด", "market", "low"),
+        w("วันนี้", "today", "high", true),
+      ],
     },
     focus: {
       particle: "วันนี้ / ตอนนี้ / พรุ่งนี้",
@@ -472,11 +557,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ไปกันเถอะ",
       roman: "pai kan thoe",
       english: "Let's go.",
-      breakdown: [w("ไป", "go", "mid"), w("กัน", "together / let's", "mid", true), w("เถอะ", "suggestion particle", "mid", true)],
+      breakdown: [
+        w("ไป", "go", "mid"),
+        w("กัน", "together / let's", "mid", true),
+        w("เถอะ", "suggestion particle", "mid", true),
+      ],
     },
     focus: {
       particle: "กัน / เถอะ / เลย",
-      meaning: "Core suggestion and imperative markers for simple spoken interaction.",
+      meaning:
+        "Core suggestion and imperative markers for simple spoken interaction.",
     },
   },
   {
@@ -490,7 +580,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "อย่าลืมกระเป๋า",
       roman: "ya luem krapao",
       english: "Don't forget your bag.",
-      breakdown: [w("อย่า", "don't", "low", true), w("ลืม", "forget", "mid"), w("กระเป๋า", "bag", "mid")],
+      breakdown: [
+        w("อย่า", "don't", "low", true),
+        w("ลืม", "forget", "mid"),
+        w("กระเป๋า", "bag", "mid"),
+      ],
     },
     focus: {
       particle: "อย่า",
@@ -510,7 +604,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาพูดไทยได้",
       roman: "khao phut thai dai",
       english: "He can speak Thai.",
-      breakdown: [w("เขา", "he / she", "rising"), w("พูด", "speak", "falling"), w("ไทย", "Thai", "mid"), w("ได้", "can", "falling", true)],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("พูด", "speak", "falling"),
+        w("ไทย", "Thai", "mid"),
+        w("ได้", "can", "falling", true),
+      ],
     },
     focus: {
       particle: "ได้",
@@ -552,7 +651,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "วันนี้ร้อนมาก",
       roman: "wan ni ron mak",
       english: "It is very hot today.",
-      breakdown: [w("วันนี้", "today", "high"), w("ร้อน", "hot", "high"), w("มาก", "very", "falling", true)],
+      breakdown: [
+        w("วันนี้", "today", "high"),
+        w("ร้อน", "hot", "high"),
+        w("มาก", "very", "falling", true),
+      ],
     },
     focus: {
       particle: "มาก / น้อย",
@@ -570,7 +673,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันไปโรงเรียน",
       roman: "chan pai rongrian",
       english: "I go to school.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ไป", "go", "mid", true), w("โรงเรียน", "school", "mid")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ไป", "go", "mid", true),
+        w("โรงเรียน", "school", "mid"),
+      ],
     },
     focus: {
       particle: "ไป / มา",
@@ -588,7 +695,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันกำลังกินข้าว",
       roman: "chan kamlang kin khao",
       english: "I am eating.",
-      breakdown: [w("ฉัน", "I", "rising"), w("กำลัง", "currently", "mid", true), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("กำลัง", "currently", "mid", true),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+      ],
     },
     focus: {
       particle: "กำลัง",
@@ -606,7 +718,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันเคยไปเชียงใหม่",
       roman: "chan koei pai Chiang Mai",
       english: "I have been to Chiang Mai before.",
-      breakdown: [w("ฉัน", "I", "rising"), w("เคย", "have ever", "mid", true), w("ไป", "go", "mid"), w("เชียงใหม่", "Chiang Mai", "mid")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("เคย", "have ever", "mid", true),
+        w("ไป", "go", "mid"),
+        w("เชียงใหม่", "Chiang Mai", "mid"),
+      ],
     },
     focus: {
       particle: "เคย",
@@ -624,7 +741,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันกินข้าวและดื่มน้ำ",
       roman: "chan kin khao lae duem nam",
       english: "I eat rice and drink water.",
-      breakdown: [w("ฉัน", "I", "rising"), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling"), w("และ", "and", "mid", true), w("ดื่ม", "drink", "low"), w("น้ำ", "water", "high")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+        w("และ", "and", "mid", true),
+        w("ดื่ม", "drink", "low"),
+        w("น้ำ", "water", "high"),
+      ],
     },
     focus: {
       particle: "และ / หรือ / แต่",
@@ -642,7 +766,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันไม่ไปเพราะฝนตก",
       roman: "chan mai pai phro fon tok",
       english: "I am not going because it is raining.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ไม่", "not", "low", true), w("ไป", "go", "mid"), w("เพราะ", "because", "high", true), w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ไม่", "not", "low", true),
+        w("ไป", "go", "mid"),
+        w("เพราะ", "because", "high", true),
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+      ],
     },
     focus: {
       particle: "เพราะ",
@@ -662,7 +793,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันกินข้าวแล้ว",
       roman: "chan kin khao laeo",
       english: "I have already eaten.",
-      breakdown: [w("ฉัน", "I", "rising"), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling"), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
       particle: "แล้ว",
@@ -680,7 +816,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันเพิ่งกินข้าว",
       roman: "chan phoeng kin khao",
       english: "I just ate.",
-      breakdown: [w("ฉัน", "I", "rising"), w("เพิ่ง", "just recently", "falling", true), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("เพิ่ง", "just recently", "falling", true),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+      ],
     },
     focus: {
       particle: "เพิ่ง",
@@ -698,11 +839,18 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาอยู่ที่นี่มานานแล้ว",
       roman: "khao yu thini ma nan laeo",
       english: "He has been here for a long time.",
-      breakdown: [w("เขา", "he / she", "rising"), w("อยู่", "stay / be located", "low"), w("ที่นี่", "here", "high"), w("มานาน", "for a long time", "mid", true), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("อยู่", "stay / be located", "low"),
+        w("ที่นี่", "here", "high"),
+        w("มานาน", "for a long time", "mid", true),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
       particle: "เป็นเวลา / มานาน",
-      meaning: "Common duration frames for fixed time and long-lasting situations.",
+      meaning:
+        "Common duration frames for fixed time and long-lasting situations.",
     },
   },
   {
@@ -716,11 +864,20 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันรู้จักเขาแต่ไม่รู้ชื่อ",
       roman: "chan rujak khao tae mai ru chue",
       english: "I know him, but I do not know his name.",
-      breakdown: [w("ฉัน", "I", "rising"), w("รู้จัก", "be familiar with", "high", true), w("เขา", "him", "rising"), w("แต่", "but", "low", true), w("ไม่", "not", "low", true), w("รู้", "know", "high", true), w("ชื่อ", "name", "falling")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("รู้จัก", "be familiar with", "high", true),
+        w("เขา", "him", "rising"),
+        w("แต่", "but", "low", true),
+        w("ไม่", "not", "low", true),
+        w("รู้", "know", "high", true),
+        w("ชื่อ", "name", "falling"),
+      ],
     },
     focus: {
       particle: "รู้ / รู้จัก",
-      meaning: "รู้ is for facts or information, while รู้จัก is for familiarity with people or places.",
+      meaning:
+        "รู้ is for facts or information, while รู้จัก is for familiarity with people or places.",
     },
   },
   {
@@ -734,11 +891,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "วันนี้ว่างไหมคะ",
       roman: "wanni wang mai kha",
       english: "Are you free today? (female speaker)",
-      breakdown: [w("วันนี้", "today", "high"), w("ว่าง", "free", "falling"), w("ไหม", "question marker", "rising", true), w("คะ", "female question particle", "high", true)],
+      breakdown: [
+        w("วันนี้", "today", "high"),
+        w("ว่าง", "free", "falling"),
+        w("ไหม", "question marker", "rising", true),
+        w("คะ", "female question particle", "high", true),
+      ],
     },
     focus: {
       particle: "คะ / ค่ะ",
-      meaning: "Female politeness particles differ by function and tone in questions versus statements.",
+      meaning:
+        "Female politeness particles differ by function and tone in questions versus statements.",
     },
   },
   {
@@ -752,7 +915,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันไปยิมบ่อย",
       roman: "chan pai yim boi",
       english: "I go to the gym often.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ไป", "go", "mid"), w("ยิม", "gym", "mid"), w("บ่อย", "often", "low", true)],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ไป", "go", "mid"),
+        w("ยิม", "gym", "mid"),
+        w("บ่อย", "often", "low", true),
+      ],
     },
     focus: {
       particle: "บ่อย / เสมอ / บางครั้ง",
@@ -770,7 +938,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "น้องชอบกาแฟ",
       roman: "nong chop kafae",
       english: "My younger sibling likes coffee.",
-      breakdown: [w("น้อง", "younger sibling", "high"), w("ชอบ", "like", "falling", true), w("กาแฟ", "coffee", "mid")],
+      breakdown: [
+        w("น้อง", "younger sibling", "high"),
+        w("ชอบ", "like", "falling", true),
+        w("กาแฟ", "coffee", "mid"),
+      ],
     },
     focus: {
       particle: "ชอบ",
@@ -788,7 +960,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "พี่ว่ายน้ำเป็น",
       roman: "phi wai nam pen",
       english: "I know how to swim.",
-      breakdown: [w("พี่", "I / older person", "falling"), w("ว่ายน้ำ", "swim", "falling"), w("เป็น", "know how to", "mid", true)],
+      breakdown: [
+        w("พี่", "I / older person", "falling"),
+        w("ว่ายน้ำ", "swim", "falling"),
+        w("เป็น", "know how to", "mid", true),
+      ],
     },
     focus: {
       particle: "เป็น",
@@ -806,11 +982,18 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันเดินไม่ไหวแล้ว",
       roman: "chan doen mai wai laeo",
       english: "I cannot keep walking anymore.",
-      breakdown: [w("ฉัน", "I", "rising"), w("เดิน", "walk", "mid"), w("ไม่", "not", "low", true), w("ไหว", "be able to endure", "rising", true), w("แล้ว", "already / anymore", "high", true)],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("เดิน", "walk", "mid"),
+        w("ไม่", "not", "low", true),
+        w("ไหว", "be able to endure", "rising", true),
+        w("แล้ว", "already / anymore", "high", true),
+      ],
     },
     focus: {
       particle: "ไหว / ไม่ไหว",
-      meaning: "Marker for whether someone can physically or mentally handle something.",
+      meaning:
+        "Marker for whether someone can physically or mentally handle something.",
     },
   },
   {
@@ -824,11 +1007,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ที่นี่ถ่ายรูปได้",
       roman: "thini thai rup dai",
       english: "You can take photos here.",
-      breakdown: [w("ที่นี่", "here", "high"), w("ถ่ายรูป", "take photos", "low"), w("ได้", "allowed / possible", "falling", true)],
+      breakdown: [
+        w("ที่นี่", "here", "high"),
+        w("ถ่ายรูป", "take photos", "low"),
+        w("ได้", "allowed / possible", "falling", true),
+      ],
     },
     focus: {
       particle: "ได้",
-      meaning: "Can mark permission, opportunity, or possibility depending on context.",
+      meaning:
+        "Can mark permission, opportunity, or possibility depending on context.",
     },
   },
   {
@@ -842,7 +1030,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ห้องนี้ใหญ่กว่าห้องนั้น",
       roman: "hong ni yai kwa hong nan",
       english: "This room is bigger than that room.",
-      breakdown: [w("ห้อง", "room", "falling"), w("นี้", "this", "high", true), w("ใหญ่", "big", "low"), w("กว่า", "more than", "low", true), w("ห้อง", "room", "falling"), w("นั้น", "that", "high", true)],
+      breakdown: [
+        w("ห้อง", "room", "falling"),
+        w("นี้", "this", "high", true),
+        w("ใหญ่", "big", "low"),
+        w("กว่า", "more than", "low", true),
+        w("ห้อง", "room", "falling"),
+        w("นั้น", "that", "high", true),
+      ],
     },
     focus: {
       particle: "กว่า",
@@ -860,7 +1055,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ร้านนี้ถูกที่สุด",
       roman: "ran ni thuk thi sut",
       english: "This shop is the cheapest.",
-      breakdown: [w("ร้าน", "shop", "high"), w("นี้", "this", "high", true), w("ถูก", "cheap", "low"), w("ที่สุด", "the most", "low", true)],
+      breakdown: [
+        w("ร้าน", "shop", "high"),
+        w("นี้", "this", "high", true),
+        w("ถูก", "cheap", "low"),
+        w("ที่สุด", "the most", "low", true),
+      ],
     },
     focus: {
       particle: "ที่สุด",
@@ -878,7 +1078,13 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "นักเรียนหลายคนมาแล้ว",
       roman: "nakrian lai khon ma laeo",
       english: "Many students have arrived.",
-      breakdown: [w("นักเรียน", "student", "mid"), w("หลาย", "many", "rising", true), w("คน", "classifier for people", "mid", true), w("มา", "come", "mid"), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("นักเรียน", "student", "mid"),
+        w("หลาย", "many", "rising", true),
+        w("คน", "classifier for people", "mid", true),
+        w("มา", "come", "mid"),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
       particle: "ทุก / บาง / หลาย",
@@ -896,7 +1102,15 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "กินข้าวแล้ว หลังจากนั้นเราไปตลาด",
       roman: "kin khao laeo langchak nan rao pai talat",
       english: "We ate, and after that we went to the market.",
-      breakdown: [w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling"), w("แล้ว", "already", "high", true), w("หลังจากนั้น", "after that", "falling", true), w("เรา", "we", "mid"), w("ไป", "go", "mid"), w("ตลาด", "market", "low")],
+      breakdown: [
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+        w("แล้ว", "already", "high", true),
+        w("หลังจากนั้น", "after that", "falling", true),
+        w("เรา", "we", "mid"),
+        w("ไป", "go", "mid"),
+        w("ตลาด", "market", "low"),
+      ],
     },
     focus: {
       particle: "หลังจากนั้น / ต่อมา",
@@ -914,7 +1128,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เราต้องตื่นเช้า",
       roman: "rao tong tuen chao",
       english: "We have to wake up early.",
-      breakdown: [w("เรา", "we", "mid"), w("ต้อง", "must", "falling", true), w("ตื่น", "wake up", "low"), w("เช้า", "early", "falling")],
+      breakdown: [
+        w("เรา", "we", "mid"),
+        w("ต้อง", "must", "falling", true),
+        w("ตื่น", "wake up", "low"),
+        w("เช้า", "early", "falling"),
+      ],
     },
     focus: {
       particle: "ต้อง",
@@ -932,7 +1151,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "คุณควรพักก่อน",
       roman: "khun khuan phak kon",
       english: "You should rest first.",
-      breakdown: [w("คุณ", "you", "mid"), w("ควร", "should", "mid", true), w("พัก", "rest", "high"), w("ก่อน", "first", "low")],
+      breakdown: [
+        w("คุณ", "you", "mid"),
+        w("ควร", "should", "mid", true),
+        w("พัก", "rest", "high"),
+        w("ก่อน", "first", "low"),
+      ],
     },
     focus: {
       particle: "ควร / น่าจะ",
@@ -950,11 +1174,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "หนังเรื่องนี้น่าสนใจ",
       roman: "nang rueang ni na sonchai",
       english: "This movie is interesting.",
-      breakdown: [w("หนัง", "movie", "rising"), w("เรื่อง", "classifier / story", "falling"), w("นี้", "this", "high", true), w("น่าสนใจ", "interesting", "falling", true)],
+      breakdown: [
+        w("หนัง", "movie", "rising"),
+        w("เรื่อง", "classifier / story", "falling"),
+        w("นี้", "this", "high", true),
+        w("น่าสนใจ", "interesting", "falling", true),
+      ],
     },
     focus: {
       particle: "น่า-",
-      meaning: "Prefix that adds a sense of worthiness, appeal, or expected reaction.",
+      meaning:
+        "Prefix that adds a sense of worthiness, appeal, or expected reaction.",
     },
   },
   {
@@ -968,7 +1198,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันรู้สึกเหนื่อย",
       roman: "chan rusuek nueai",
       english: "I feel tired.",
-      breakdown: [w("ฉัน", "I", "rising"), w("รู้สึก", "feel", "high", true), w("เหนื่อย", "tired", "low")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("รู้สึก", "feel", "high", true),
+        w("เหนื่อย", "tired", "low"),
+      ],
     },
     focus: {
       particle: "รู้สึก",
@@ -986,7 +1220,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ลองชิมดู",
       roman: "long chim du",
       english: "Try tasting it.",
-      breakdown: [w("ลอง", "try", "mid", true), w("ชิม", "taste", "mid"), w("ดู", "see / try", "mid", true)],
+      breakdown: [
+        w("ลอง", "try", "mid", true),
+        w("ชิม", "taste", "mid"),
+        w("ดู", "see / try", "mid", true),
+      ],
     },
     focus: {
       particle: "ลอง...ดู",
@@ -1004,11 +1242,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาทำงานสำเร็จแล้ว",
       roman: "khao tham ngan samret laeo",
       english: "He completed the task successfully.",
-      breakdown: [w("เขา", "he / she", "rising"), w("ทำงาน", "do work", "mid"), w("สำเร็จ", "succeed", "low", true), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("ทำงาน", "do work", "mid"),
+        w("สำเร็จ", "succeed", "low", true),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
       particle: "ออก / สำเร็จ",
-      meaning: "Result markers showing whether an action works or is successfully completed.",
+      meaning:
+        "Result markers showing whether an action works or is successfully completed.",
     },
   },
   {
@@ -1022,7 +1266,13 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "หนังสือที่ฉันซื้อแพง",
       roman: "nangsue thi chan sue phaeng",
       english: "The book that I bought is expensive.",
-      breakdown: [w("หนังสือ", "book", "rising"), w("ที่", "that / which", "falling", true), w("ฉัน", "I", "rising"), w("ซื้อ", "buy", "high"), w("แพง", "expensive", "mid")],
+      breakdown: [
+        w("หนังสือ", "book", "rising"),
+        w("ที่", "that / which", "falling", true),
+        w("ฉัน", "I", "rising"),
+        w("ซื้อ", "buy", "high"),
+        w("แพง", "expensive", "mid"),
+      ],
     },
     focus: {
       particle: "ที่",
@@ -1040,7 +1290,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาโดนครูเรียก",
       roman: "khao don khru riak",
       english: "He got called by the teacher.",
-      breakdown: [w("เขา", "he / she", "rising"), w("โดน", "be affected by", "mid", true), w("ครู", "teacher", "mid"), w("เรียก", "call", "falling")],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("โดน", "be affected by", "mid", true),
+        w("ครู", "teacher", "mid"),
+        w("เรียก", "call", "falling"),
+      ],
     },
     focus: {
       particle: "ถูก / โดน",
@@ -1058,7 +1313,13 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาบอกว่าจะมา",
       roman: "khao bok wa cha ma",
       english: "He said that he would come.",
-      breakdown: [w("เขา", "he / she", "rising"), w("บอก", "say / tell", "low"), w("ว่า", "that", "falling", true), w("จะ", "will", "low", true), w("มา", "come", "mid")],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("บอก", "say / tell", "low"),
+        w("ว่า", "that", "falling", true),
+        w("จะ", "will", "low", true),
+        w("มา", "come", "mid"),
+      ],
     },
     focus: {
       particle: "ว่า",
@@ -1076,7 +1337,15 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ถ้าฝนตกฉันจะอยู่บ้าน",
       roman: "tha fon tok chan cha yu ban",
       english: "If it rains, I will stay home.",
-      breakdown: [w("ถ้า", "if", "falling", true), w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low"), w("ฉัน", "I", "rising"), w("จะ", "will", "low", true), w("อยู่", "stay", "low"), w("บ้าน", "home", "falling")],
+      breakdown: [
+        w("ถ้า", "if", "falling", true),
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+        w("ฉัน", "I", "rising"),
+        w("จะ", "will", "low", true),
+        w("อยู่", "stay", "low"),
+        w("บ้าน", "home", "falling"),
+      ],
     },
     focus: {
       particle: "ถ้า...จะ",
@@ -1094,7 +1363,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "อากาศเย็นลงแล้ว",
       roman: "akat yen long laeo",
       english: "The weather has become cooler.",
-      breakdown: [w("อากาศ", "weather", "low"), w("เย็น", "cool", "mid"), w("ลง", "down / become less", "mid", true), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("อากาศ", "weather", "low"),
+        w("เย็น", "cool", "mid"),
+        w("ลง", "down / become less", "mid", true),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
       particle: "ขึ้น / ลง",
@@ -1112,7 +1386,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันพูดช้าๆเพื่อให้ทุกคนเข้าใจ",
       roman: "chan phut cha cha phuea hai thuk khon khaochai",
       english: "I speak slowly so that everyone can understand.",
-      breakdown: [w("ฉัน", "I", "rising"), w("พูด", "speak", "falling"), w("ช้าๆ", "slowly", "high"), w("เพื่อให้", "so that", "falling", true), w("ทุกคน", "everyone", "high"), w("เข้าใจ", "understand", "mid")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("พูด", "speak", "falling"),
+        w("ช้าๆ", "slowly", "high"),
+        w("เพื่อให้", "so that", "falling", true),
+        w("ทุกคน", "everyone", "high"),
+        w("เข้าใจ", "understand", "mid"),
+      ],
     },
     focus: {
       particle: "เพื่อ / ให้",
@@ -1122,75 +1403,520 @@ const rawGrammarPoints: RawGrammarPoint[] = [
 
   // B1
   {
-    id: "cause-result-connectors",
-    title: "Cause and Result with เพราะว่า / ก็เลย / ดังนั้น",
+    id: "tend-to-mak-ja",
+    title: "Tend to with มักจะ",
     level: "B1",
     explanation:
-      "B1 learners need to explain reasons and results more clearly than simple เพราะ alone. These connectors support fuller spoken and written cause-and-effect relations.",
-    pattern: "CAUSE + เพราะว่า / ก็เลย / ดังนั้น + RESULT",
+      "มักจะ helps learners describe habits and repeated tendencies in a slightly more analytical way than a simple present-tense statement.",
+    pattern: "SUBJECT + มักจะ + VERB",
     example: {
-      thai: "ฝนตกก็เลยไม่ไป",
-      roman: "fon tok ko loei mai pai",
-      english: "It rained, so I did not go.",
-      breakdown: [w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low"), w("ก็เลย", "so / therefore", "falling", true), w("ไม่", "not", "low", true), w("ไป", "go", "mid")],
+      thai: "เขามักจะตื่นเช้า",
+      roman: "khao mak cha tuen chao",
+      english: "He tends to wake up early.",
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("มักจะ", "tend to", "high", true),
+        w("ตื่น", "wake up", "low"),
+        w("เช้า", "early", "falling"),
+      ],
     },
     focus: {
-      particle: "เพราะว่า / ก็เลย / ดังนั้น / เพราะฉะนั้น / เนื่องจาก",
-      meaning: "Common connectors for giving a cause and linking it to a result.",
+      particle: "มักจะ",
+      meaning: "Habit marker for saying someone tends to do something.",
     },
   },
   {
-    id: "contrast-concession",
-    title: "Contrast and Concession",
+    id: "rather-khon-khang",
+    title: "Rather / Quite with ค่อนข้าง",
     level: "B1",
     explanation:
-      "Intermediate Thai needs more than a simple แต่. These frames help learners express contrast, concession, and partial exception more naturally.",
-    pattern: "แต่ / ถึงแม้ว่า...แต่... / แม้ว่า...ก็... / ถึงจะ...ก็...",
+      "ค่อนข้าง softens a description into quite or rather, which helps learners sound more measured and natural when giving opinions.",
+    pattern: "SUBJECT / THING + ค่อนข้าง + ADJECTIVE",
     example: {
-      thai: "ถึงแม้ว่าเหนื่อยแต่เขาก็มา",
-      roman: "thuengmae wa nueai tae khao ko ma",
-      english: "Even though he was tired, he still came.",
-      breakdown: [w("ถึงแม้ว่า", "even though", "falling", true), w("เหนื่อย", "tired", "low"), w("แต่", "but", "low", true), w("เขา", "he / she", "rising"), w("ก็", "still / then", "falling", true), w("มา", "come", "mid")],
+      thai: "ร้านนี้ค่อนข้างแพง",
+      roman: "ran ni khon khang phaeng",
+      english: "This shop is rather expensive.",
+      breakdown: [
+        w("ร้าน", "shop", "high"),
+        w("นี้", "this", "high", true),
+        w("ค่อนข้าง", "rather / quite", "falling", true),
+        w("แพง", "expensive", "mid"),
+      ],
     },
     focus: {
-      particle: "แต่ / ถึงแม้ว่า...แต่... / แม้ว่า...ก็... / อย่างน้อย",
-      meaning: "Patterns for contrast, concession, and limited exception.",
+      particle: "ค่อนข้าง",
+      meaning: "Degree marker meaning fairly, rather, or quite.",
     },
   },
   {
-    id: "sequence-narrative-connectors",
-    title: "Sequential and Narrative Connectors",
+    id: "too-much-koen-pai",
+    title: "Too Much with เกินไป",
     level: "B1",
     explanation:
-      "These connectors help learners narrate a routine, a story, or a sequence of instructions in a clearer order.",
-    pattern: "แล้วก็ / จากนั้น / ก่อนที่จะ / หลังจากที่ / ระหว่างที่",
+      "เกินไป marks that something goes beyond a suitable amount. It is common in feedback, complaints, and polite evaluation.",
+    pattern: "ADJECTIVE / VERB + เกินไป",
     example: {
-      thai: "หลังจากที่กินข้าวแล้วเราไปเดินเล่น",
-      roman: "langchak thi kin khao laeo rao pai doen len",
-      english: "After eating, we went for a walk.",
-      breakdown: [w("หลังจากที่", "after", "falling", true), w("กิน", "eat", "mid"), w("ข้าว", "rice / meal", "falling"), w("แล้ว", "already", "high", true), w("เรา", "we", "mid"), w("ไป", "go", "mid"), w("เดินเล่น", "go for a walk", "mid")],
+      thai: "หวานเกินไป",
+      roman: "wan koen pai",
+      english: "It is too sweet.",
+      breakdown: [
+        w("หวาน", "sweet", "rising"),
+        w("เกินไป", "too much", "mid", true),
+      ],
     },
     focus: {
-      particle: "แล้วก็ / จากนั้น / ก่อนที่จะ / หลังจากที่ / ระหว่างที่",
-      meaning: "Time and sequence linkers for telling events in order.",
+      particle: "เกินไป",
+      meaning: "Degree marker for saying something is excessive.",
     },
   },
   {
-    id: "opinion-perspective",
-    title: "Opinion and Perspective",
+    id: "just-in-time-pho-di",
+    title: "Just Right with พอดี",
     level: "B1",
     explanation:
-      "B1 speakers need to soften claims and present personal opinion or interpretation. These markers help Thai sound more natural and less absolute.",
-    pattern: "คิดว่า / ดูเหมือนว่า / รู้สึกว่า / น่าจะ / คงจะ + CLAUSE",
+      "พอดี helps speakers say that timing, amount, or fit is exactly right. It appears constantly in everyday problem-solving and conversation.",
+    pattern: "VERB / ADJECTIVE + พอดี",
     example: {
-      thai: "ฉันคิดว่าเขาน่าจะมา",
-      roman: "chan khit wa khao na cha ma",
-      english: "I think he will probably come.",
-      breakdown: [w("ฉัน", "I", "rising"), w("คิดว่า", "think that", "high", true), w("เขา", "he / she", "rising"), w("น่าจะ", "probably", "falling", true), w("มา", "come", "mid")],
+      thai: "เขามาถึงพอดี",
+      roman: "khao ma thueng pho di",
+      english: "He arrived just in time.",
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("มาถึง", "arrive", "mid"),
+        w("พอดี", "just right / exactly", "mid", true),
+      ],
     },
     focus: {
-      particle: "คิดว่า / ดูเหมือนว่า / รู้สึกว่า / น่าจะ / คงจะ",
-      meaning: "Common frames for opinion, impression, and likely judgment.",
+      particle: "พอดี",
+      meaning: "Marker for exact timing, amount, or suitability.",
+    },
+  },
+  {
+    id: "to-be-khue-vs-pen",
+    title: "คือ vs เป็น",
+    level: "B1",
+    explanation:
+      "At this stage learners need to distinguish explanatory คือ from classificatory เป็น. Thai uses คือ to define or identify something and เป็น for roles or membership.",
+    pattern: "X คือ Y / SUBJECT + เป็น + ROLE",
+    example: {
+      thai: "สิ่งสำคัญคือเวลา",
+      roman: "sing samkhan khue wela",
+      english: "The important thing is time.",
+      breakdown: [
+        w("สิ่งสำคัญ", "important thing", "falling"),
+        w("คือ", "is / namely", "mid", true),
+        w("เวลา", "time", "mid"),
+      ],
+    },
+    focus: {
+      particle: "คือ vs เป็น",
+      meaning: "คือ defines or explains, while เป็น marks role, identity, or category.",
+    },
+  },
+  {
+    id: "reciprocal-kan",
+    title: "Doing Something Together with กัน",
+    level: "B1",
+    explanation:
+      "กัน lets learners talk about shared or reciprocal actions such as helping each other, meeting up, or doing something together.",
+    pattern: "SUBJECT + VERB + กัน",
+    example: {
+      thai: "เราช่วยกันทำงาน",
+      roman: "rao chuai kan tham ngan",
+      english: "We help each other work together.",
+      breakdown: [
+        w("เรา", "we", "mid"),
+        w("ช่วย", "help", "falling"),
+        w("กัน", "together / each other", "mid", true),
+        w("ทำงาน", "work", "mid"),
+      ],
+    },
+    focus: {
+      particle: "กัน",
+      meaning: "Marker for shared, mutual, or reciprocal action.",
+    },
+  },
+  {
+    id: "beneficial-hai",
+    title: "Doing Something for Someone with ให้",
+    level: "B1",
+    explanation:
+      "ให้ often marks that an action is done for another person. It is essential for describing favors, service, and everyday helpful actions.",
+    pattern: "VERB + OBJECT + ให้ + PERSON",
+    example: {
+      thai: "ฉันทำอาหารให้แม่",
+      roman: "chan tham ahan hai mae",
+      english: "I cook for Mom.",
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ทำ", "make / do", "mid"),
+        w("อาหาร", "food", "rising"),
+        w("ให้", "for / give to", "falling", true),
+        w("แม่", "mom", "falling"),
+      ],
+    },
+    focus: {
+      particle: "ให้",
+      meaning: "Marker showing the beneficiary or recipient of an action.",
+    },
+  },
+  {
+    id: "do-in-advance-wai",
+    title: "Do in Advance with ไว้",
+    level: "B1",
+    explanation:
+      "Placed after a verb, ไว้ shows that something is prepared, saved, or done ahead of time for later use.",
+    pattern: "VERB + ไว้",
+    example: {
+      thai: "ฉันจดไว้ก่อน",
+      roman: "chan jot wai kon",
+      english: "I wrote it down in advance.",
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("จด", "write down", "low"),
+        w("ไว้", "keep / do in advance", "falling", true),
+        w("ก่อน", "first / in advance", "mid"),
+      ],
+    },
+    focus: {
+      particle: "ไว้",
+      meaning: "Result marker for keeping, saving, or preparing something for later.",
+    },
+  },
+  {
+    id: "about-concerning-kiaw-kap",
+    title: "About / Concerning with เกี่ยวกับ",
+    level: "B1",
+    explanation:
+      "เกี่ยวกับ lets learners clearly introduce a topic, subject, or issue. It is useful in conversation, study, and work-related Thai.",
+    pattern: "VERB / NOUN + เกี่ยวกับ + TOPIC",
+    example: {
+      thai: "เราคุยเกี่ยวกับงาน",
+      roman: "rao khui kiao kap ngan",
+      english: "We talked about work.",
+      breakdown: [
+        w("เรา", "we", "mid"),
+        w("คุย", "talk", "mid"),
+        w("เกี่ยวกับ", "about / concerning", "low", true),
+        w("งาน", "work", "mid"),
+      ],
+    },
+    focus: {
+      particle: "เกี่ยวกับ",
+      meaning: "Topic marker meaning about or concerning.",
+    },
+  },
+  {
+    id: "prefer-di-kwa",
+    title: "Prefer with ดีกว่า",
+    level: "B1",
+    explanation:
+      "ดีกว่า lets speakers compare options and recommend one as better. It is common when making decisions or giving practical advice.",
+    pattern: "OPTION + ดีกว่า",
+    example: {
+      thai: "นั่งรถไฟดีกว่า",
+      roman: "nang rotfai di kwa",
+      english: "It is better to take the train.",
+      breakdown: [
+        w("นั่ง", "ride / sit", "falling"),
+        w("รถไฟ", "train", "mid"),
+        w("ดีกว่า", "better", "mid", true),
+      ],
+    },
+    focus: {
+      particle: "ดีกว่า",
+      meaning: "Comparative marker for saying one choice is better.",
+    },
+  },
+  {
+    id: "cause-result-phro-wa",
+    title: "Because with เพราะว่า",
+    level: "B1",
+    explanation:
+      "เพราะว่า gives a fuller, more explicit way to state a reason than the shorter เพราะ. It is common in spoken explanation and writing.",
+    pattern: "RESULT + เพราะว่า + REASON",
+    example: {
+      thai: "เขาไม่มาเพราะว่าไม่สบาย",
+      roman: "khao mai ma phro wa mai sabai",
+      english: "He did not come because he was unwell.",
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("ไม่", "not", "low", true),
+        w("มา", "come", "mid"),
+        w("เพราะว่า", "because", "falling", true),
+        w("ไม่สบาย", "unwell", "mid"),
+      ],
+    },
+    focus: {
+      particle: "เพราะว่า",
+      meaning: "Explicit connector for giving a reason.",
+    },
+  },
+  {
+    id: "cause-result-tham-hai",
+    title: "Cause and Result with ทำให้",
+    level: "B1",
+    explanation:
+      "ทำให้ links a cause directly to its effect. It is important for saying that something makes, causes, or leads to a result.",
+    pattern: "CAUSE + ทำให้ + RESULT",
+    example: {
+      thai: "ข่าวนี้ทำให้ฉันกังวล",
+      roman: "khao ni tham hai chan kangwon",
+      english: "This news makes me worried.",
+      breakdown: [
+        w("ข่าว", "news", "low"),
+        w("นี้", "this", "high", true),
+        w("ทำให้", "make / cause", "mid", true),
+        w("ฉัน", "me", "rising"),
+        w("กังวล", "worried", "mid"),
+      ],
+    },
+    focus: {
+      particle: "ทำให้",
+      meaning: "Cause-result connector meaning make or cause.",
+    },
+  },
+  {
+    id: "cause-result-jueng",
+    title: "Therefore with จึง",
+    level: "B1",
+    explanation:
+      "จึง is a compact therefore marker that often sounds more written or deliberate than ก็เลย. It helps learners connect reason and result more cleanly.",
+    pattern: "REASON + จึง + RESULT",
+    example: {
+      thai: "ฝนตกหนักจึงกลับบ้านเร็ว",
+      roman: "fon tok nak chueng klap ban reo",
+      english: "It rained heavily, so we went home early.",
+      breakdown: [
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+        w("หนัก", "heavily", "low"),
+        w("จึง", "therefore", "mid", true),
+        w("กลับบ้าน", "go home", "low"),
+        w("เร็ว", "early / quickly", "mid"),
+      ],
+    },
+    focus: {
+      particle: "จึง",
+      meaning: "Connector meaning therefore, therefore leading to a result.",
+    },
+  },
+  {
+    id: "sequence-laew-kor",
+    title: "And Then with แล้วก็",
+    level: "B1",
+    explanation:
+      "แล้วก็ is one of the most natural ways to continue a spoken sequence. It helps events feel connected and conversational.",
+    pattern: "CLAUSE + แล้วก็ + CLAUSE",
+    example: {
+      thai: "เขากินข้าวแล้วก็ไปทำงาน",
+      roman: "khao kin khao laeo ko pai tham ngan",
+      english: "He ate and then went to work.",
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("กิน", "eat", "mid"),
+        w("ข้าว", "rice / meal", "falling"),
+        w("แล้วก็", "and then", "high", true),
+        w("ไป", "go", "mid"),
+        w("ทำงาน", "work", "mid"),
+      ],
+    },
+    focus: {
+      particle: "แล้วก็",
+      meaning: "Spoken sequence linker meaning and then.",
+    },
+  },
+  {
+    id: "sequence-jaak-nan",
+    title: "After That with จากนั้น",
+    level: "B1",
+    explanation:
+      "จากนั้น is useful for structured narration and step-by-step explanation. It sounds a little more organized than แล้วก็.",
+    pattern: "CLAUSE. จากนั้น + CLAUSE",
+    example: {
+      thai: "เราซื้อของ จากนั้นกลับบ้าน",
+      roman: "rao sue khong chak nan klap ban",
+      english: "We bought some things. After that, we went home.",
+      breakdown: [
+        w("เรา", "we", "mid"),
+        w("ซื้อ", "buy", "high"),
+        w("ของ", "things", "rising"),
+        w("จากนั้น", "after that", "mid", true),
+        w("กลับบ้าน", "go home", "low"),
+      ],
+    },
+    focus: {
+      particle: "จากนั้น",
+      meaning: "Sequence linker meaning after that or next.",
+    },
+  },
+  {
+    id: "sequence-nai-thi-sut",
+    title: "Finally with ในที่สุด",
+    level: "B1",
+    explanation:
+      "ในที่สุด marks the final outcome of a process or story. It helps learners close a sequence and show that something has finally happened.",
+    pattern: "ในที่สุด + CLAUSE",
+    example: {
+      thai: "ในที่สุดเขาก็มาถึง",
+      roman: "nai thi sut khao ko ma thueng",
+      english: "In the end, he finally arrived.",
+      breakdown: [
+        w("ในที่สุด", "in the end / finally", "low", true),
+        w("เขา", "he / she", "rising"),
+        w("ก็", "then / finally", "falling", true),
+        w("มาถึง", "arrive", "mid"),
+      ],
+    },
+    focus: {
+      particle: "ในที่สุด",
+      meaning: "Narrative marker for a final or eventual outcome.",
+    },
+  },
+  {
+    id: "contrast-tae-thawaa",
+    title: "But / However with แต่ / ทว่า",
+    level: "B1",
+    explanation:
+      "B1 learners need clear contrast markers for connecting two conflicting ideas. แต่ is the everyday spoken choice, while ทว่า sounds a little more deliberate or written.",
+    pattern: "CLAUSE + แต่ / ทว่า + CONTRAST",
+    example: {
+      thai: "อยากไป แต่วันนี้ไม่ว่าง",
+      roman: "yak pai tae wanni mai wang",
+      english: "I want to go, but I am not free today.",
+      breakdown: [
+        w("อยาก", "want to", "low"),
+        w("ไป", "go", "mid"),
+        w("แต่", "but", "low", true),
+        w("วันนี้", "today", "high"),
+        w("ไม่", "not", "low", true),
+        w("ว่าง", "free", "falling"),
+      ],
+    },
+    focus: {
+      particle: "แต่ / ทว่า",
+      meaning: "Common contrast markers meaning but or however.",
+    },
+  },
+  {
+    id: "concession-maewaa",
+    title: "Although with แม้ว่า",
+    level: "B1",
+    explanation:
+      "แม้ว่า introduces a concessive idea: one fact is true, but the main result still happens. It helps learners go beyond a simple but and show more nuance.",
+    pattern: "แม้ว่า + CLAUSE, MAIN CLAUSE",
+    example: {
+      thai: "แม้ว่าฝนตก เราก็ไป",
+      roman: "mae wa fon tok rao ko pai",
+      english: "Although it was raining, we still went.",
+      breakdown: [
+        w("แม้ว่า", "although", "falling", true),
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+        w("เรา", "we", "mid"),
+        w("ก็", "still / then", "falling", true),
+        w("ไป", "go", "mid"),
+      ],
+    },
+    focus: {
+      particle: "แม้ว่า...ก็...",
+      meaning: "Concessive frame meaning although or even though.",
+    },
+  },
+  {
+    id: "concession-thang-thi",
+    title: "Even Though with ทั้งที่",
+    level: "B1",
+    explanation:
+      "ทั้งที่ often adds a sense of surprise, contradiction, or mild frustration. It highlights that something should have led to a different outcome, but did not.",
+    pattern: "ทั้งที่ + CLAUSE, MAIN CLAUSE",
+    example: {
+      thai: "ทั้งที่รู้ว่าแพง เขาก็ซื้อ",
+      roman: "thang thi ru wa phaeng khao ko sue",
+      english: "Even though he knew it was expensive, he still bought it.",
+      breakdown: [
+        w("ทั้งที่", "even though / despite that", "falling", true),
+        w("รู้", "know", "high"),
+        w("ว่า", "that", "falling", true),
+        w("แพง", "expensive", "mid"),
+        w("เขา", "he / she", "rising"),
+        w("ก็", "still / then", "falling", true),
+        w("ซื้อ", "buy", "high"),
+      ],
+    },
+    focus: {
+      particle: "ทั้งที่",
+      meaning: "Concessive marker for an unexpected or contrary outcome.",
+    },
+  },
+  {
+    id: "opinion-marker-nai-khwam-hen",
+    title: "In My Opinion with ในความเห็น",
+    level: "B1",
+    explanation:
+      "When learners begin giving more personal judgments, ในความเห็น helps frame an idea clearly as a personal opinion rather than an absolute fact.",
+    pattern: "ในความเห็น(ของ...) + CLAUSE",
+    example: {
+      thai: "ในความเห็นของฉัน เรื่องนี้ยาก",
+      roman: "nai khwam hen khong chan rueang ni yak",
+      english: "In my opinion, this topic is difficult.",
+      breakdown: [
+        w("ในความเห็นของฉัน", "in my opinion", "rising", true),
+        w("เรื่อง", "topic / matter", "falling"),
+        w("นี้", "this", "high", true),
+        w("ยาก", "difficult", "falling"),
+      ],
+    },
+    focus: {
+      particle: "ในความเห็น(ของ...)",
+      meaning: "Opinion frame for saying in my view or in someone's opinion.",
+    },
+  },
+  {
+    id: "perspective-marker-samrap",
+    title: "As For / For with สำหรับ",
+    level: "B1",
+    explanation:
+      "สำหรับ marks a point of reference and helps speakers say how something looks from a particular person's perspective or for a certain group.",
+    pattern: "สำหรับ + PERSON / GROUP, CLAUSE",
+    example: {
+      thai: "สำหรับเด็ก เรื่องนี้ยาก",
+      roman: "samrap dek rueang ni yak",
+      english: "For children, this topic is difficult.",
+      breakdown: [
+        w("สำหรับ", "for / as for", "low", true),
+        w("เด็ก", "child", "low"),
+        w("เรื่อง", "topic / matter", "falling"),
+        w("นี้", "this", "high", true),
+        w("ยาก", "difficult", "falling"),
+      ],
+    },
+    focus: {
+      particle: "สำหรับ",
+      meaning: "Perspective marker meaning for or as for.",
+    },
+  },
+  {
+    id: "stance-marker-tam-thi-chan-hen",
+    title: "As I See It with ตามที่ฉันเห็น",
+    level: "B1",
+    explanation:
+      "ตามที่ฉันเห็น lets speakers present a stance or evaluation while signaling that it comes from their own observation. It is useful for measured opinions and workplace discussion.",
+    pattern: "ตามที่ฉันเห็น, CLAUSE",
+    example: {
+      thai: "ตามที่ฉันเห็น เขาพร้อมแล้ว",
+      roman: "tam thi chan hen khao phrom laeo",
+      english: "As I see it, he is ready now.",
+      breakdown: [
+        w("ตามที่ฉันเห็น", "as I see it", "mid", true),
+        w("เขา", "he / she", "rising"),
+        w("พร้อม", "ready", "high"),
+        w("แล้ว", "already / now", "high", true),
+      ],
+    },
+    focus: {
+      particle: "ตามที่ฉันเห็น",
+      meaning: "Stance marker used to frame a personal reading of a situation.",
     },
   },
   {
@@ -1198,17 +1924,22 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Continuation and Aspect",
     level: "B1",
     explanation:
-      "These forms help learners say that something is ongoing, continuing, or still in progress, which is essential for fuller narration.",
-    pattern: "ไปเรื่อยๆ / ต่อไป / อยู่ / ยัง",
+      "These forms help learners say that something is ongoing, continuing, or still in progress. This includes verb + อยู่ for an action or state that is still unfolding.",
+    pattern: "ไปเรื่อยๆ / ต่อไป / VERB + อยู่ / ยัง",
     example: {
       thai: "เขาพูดไปเรื่อยๆ",
       roman: "khao phut pai rueai rueai",
       english: "He kept talking on and on.",
-      breakdown: [w("เขา", "he / she", "rising"), w("พูด", "speak", "falling"), w("ไปเรื่อยๆ", "continuously", "mid", true)],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("พูด", "speak", "falling"),
+        w("ไปเรื่อยๆ", "continuously", "mid", true),
+      ],
     },
     focus: {
-      particle: "ไปเรื่อยๆ / ต่อไป / อยู่ / ยัง",
-      meaning: "Markers for ongoing action, continuation, and still-yet meaning.",
+      particle: "ไปเรื่อยๆ / ต่อไป / VERB + อยู่ / ยัง",
+      meaning:
+        "Markers for ongoing action, continuation, and still-yet meaning.",
     },
   },
   {
@@ -1216,17 +1947,23 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Result Complements",
     level: "B1",
     explanation:
-      "Thai often uses short result words after a verb to show whether an action was completed, achieved in time, or happened successfully.",
-    pattern: "VERB + เสร็จ / ทัน / ไม่ทัน / เจอ / หาย",
+      "Thai often uses short result words after a verb to show whether an action was completed, achieved in time, happened successfully, or was set aside for later.",
+    pattern: "VERB + เสร็จ / ทัน / ไม่ทัน / เจอ / หาย / ไว้",
     example: {
       thai: "ฉันทำงานเสร็จแล้ว",
       roman: "chan tham ngan set laeo",
       english: "I have finished the work.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ทำงาน", "work", "mid"), w("เสร็จ", "finished", "low", true), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ทำงาน", "work", "mid"),
+        w("เสร็จ", "finished", "low", true),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
-      particle: "เสร็จ / ทัน / ไม่ทัน / เจอ / หาย",
-      meaning: "Result words showing completion, success, timing, or disappearance.",
+      particle: "เสร็จ / ทัน / ไม่ทัน / เจอ / หาย / ไว้",
+      meaning:
+        "Result words showing completion, success, timing, disappearance, or keeping something in place for later.",
     },
   },
   {
@@ -1240,11 +1977,20 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "คนที่ยืนอยู่หน้าร้านเป็นครู",
       roman: "khon thi yuen yu na ran pen khru",
       english: "The person standing in front of the shop is a teacher.",
-      breakdown: [w("คน", "person", "mid"), w("ที่", "who / that", "falling", true), w("ยืน", "stand", "mid"), w("อยู่", "be in an ongoing state", "low", true), w("หน้าร้าน", "in front of the shop", "falling"), w("เป็น", "be", "mid"), w("ครู", "teacher", "mid")],
+      breakdown: [
+        w("คน", "person", "mid"),
+        w("ที่", "who / that", "falling", true),
+        w("ยืน", "stand", "mid"),
+        w("อยู่", "be in an ongoing state", "low", true),
+        w("หน้าร้าน", "in front of the shop", "falling"),
+        w("เป็น", "be", "mid"),
+        w("ครู", "teacher", "mid"),
+      ],
     },
     focus: {
       particle: "คนที่... / สิ่งที่... / ที่...อยู่",
-      meaning: "Relative patterns for identifying a person, thing, or ongoing situation.",
+      meaning:
+        "Relative patterns for identifying a person, thing, or ongoing situation.",
     },
   },
   {
@@ -1258,11 +2004,19 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันไม่ได้ไปเพราะฝนตก",
       roman: "chan mai dai pai phro fon tok",
       english: "I did not go because it rained.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ไม่ได้", "did not", "falling", true), w("ไป", "go", "mid"), w("เพราะ", "because", "high", true), w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ไม่ได้", "did not", "falling", true),
+        w("ไป", "go", "mid"),
+        w("เพราะ", "because", "high", true),
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+      ],
     },
     focus: {
       particle: "ไม่ค่อย / ยังไม่ / ไม่ได้...เพราะ...",
-      meaning: "Patterns for not very, not yet, and explaining why something did not happen.",
+      meaning:
+        "Patterns for not very, not yet, and explaining why something did not happen.",
     },
   },
   {
@@ -1276,11 +2030,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันก็ชอบเหมือนกัน",
       roman: "chan ko chop muean kan",
       english: "I like it too.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ก็", "also", "falling", true), w("ชอบ", "like", "falling"), w("เหมือนกัน", "as well", "rising")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ก็", "also", "falling", true),
+        w("ชอบ", "like", "falling"),
+        w("เหมือนกัน", "as well", "rising"),
+      ],
     },
     focus: {
       particle: "ก็",
-      meaning: "A very common linker used for addition, consequence, and soft emphasis.",
+      meaning:
+        "A very common linker used for addition, consequence, and soft emphasis.",
     },
   },
   {
@@ -1294,7 +2054,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ฉันยังไม่พร้อม",
       roman: "chan yang mai phrom",
       english: "I am not ready yet.",
-      breakdown: [w("ฉัน", "I", "rising"), w("ยัง", "yet / still", "mid", true), w("ไม่", "not", "low", true), w("พร้อม", "ready", "high")],
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ยัง", "yet / still", "mid", true),
+        w("ไม่", "not", "low", true),
+        w("พร้อม", "ready", "high"),
+      ],
     },
     focus: {
       particle: "ยัง...ไม่... / หรือยัง",
@@ -1302,241 +2067,321 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     },
   },
 
+  {
+    id: "nominalization-karn-khwam",
+    title: "Abstract Nouns with การ / ความ",
+    level: "B1",
+    explanation:
+      "To talk about abstract concepts or activities, Thai uses การ (kan) before action verbs and ความ (khwam) before adjectives or mental state verbs to turn them into nouns.",
+    pattern: "การ + ACTION VERB / ความ + ADJECTIVE",
+    example: {
+      thai: "การนอนสำคัญมาก",
+      roman: "kan non samkhan mak",
+      english: "Sleeping is very important.",
+      breakdown: [
+        w("การ", "prefix (action to noun)", "mid", true),
+        w("นอน", "sleep", "mid"),
+        w("สำคัญ", "important", "mid"),
+        w("มาก", "very", "falling"),
+      ],
+    },
+    focus: {
+      particle: "การ / ความ",
+      meaning: "Nominalization prefixes used to create abstract nouns.",
+    },
+  },
+  {
+    id: "indirect-questions-ru-plao",
+    title: "Whether or Not with หรือเปล่า",
+    level: "B1",
+    explanation:
+      "When embedding a yes/no question inside another sentence (like 'I don't know if...'), B1 learners need หรือเปล่า instead of the simple question word ไหม.",
+    pattern: "CLAUSE + ว่า + CLAUSE + หรือเปล่า",
+    example: {
+      thai: "ไม่รู้ว่าเขาจะมาหรือเปล่า",
+      roman: "mai ru wa khao cha ma ru plao",
+      english: "I don't know whether he will come or not.",
+      breakdown: [
+        w("ไม่", "not", "falling"),
+        w("รู้", "know", "high"),
+        w("ว่า", "that", "falling", true),
+        w("เขา", "he / she", "rising"),
+        w("จะ", "will", "low"),
+        w("มา", "come", "mid"),
+        w("หรือเปล่า", "or not", "rising", true),
+      ],
+    },
+    focus: {
+      particle: "ว่า...หรือเปล่า",
+      meaning: "Pattern for expressing 'whether or not' in embedded clauses.",
+    },
+  },
+  {
+    id: "reflexive-tua-eng",
+    title: "Reflexive Actions with ตัวเอง",
+    level: "B1",
+    explanation:
+      "ตัวเอง means 'oneself' and is used to emphasize that a subject performs an action alone, by themselves, or to themselves.",
+    pattern: "SUBJECT + VERB + ตัวเอง / ด้วยตัวเอง",
+    example: {
+      thai: "ฉันทำอาหารเอง",
+      roman: "chan tham ahan eng",
+      english: "I cook the food myself.",
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ทำ", "make / do", "mid"),
+        w("อาหาร", "food", "rising"),
+        w("เอง", "by oneself", "mid", true),
+      ],
+    },
+    focus: {
+      particle: "ตัวเอง / เอง",
+      meaning:
+        "Reflexive pronoun indicating the action is done by the subject alone.",
+    },
+  },
+  {
+    id: "distributive-tae-la",
+    title: "Each and Every with แต่ละ",
+    level: "B1",
+    explanation:
+      "แต่ละ singles out items within a group, similar to 'each'. Notice that it requires the classifier after it, unlike other quantifiers that allow dropping the noun.",
+    pattern: "แต่ละ + CLASSIFIER / NOUN",
+    example: {
+      thai: "แต่ละคนไม่เหมือนกัน",
+      roman: "tae la khon mai muean kan",
+      english: "Each person is not the same.",
+      breakdown: [
+        w("แต่ละ", "each", "low", true),
+        w("คน", "person", "mid"),
+        w("ไม่", "not", "falling"),
+        w("เหมือนกัน", "the same", "rising"),
+      ],
+    },
+    focus: {
+      particle: "แต่ละ",
+      meaning: "Distributive marker meaning 'each' or 'every single'.",
+    },
+  },
+  {
+    id: "instead-of-thaen-thi-ja",
+    title: "Alternatives with แทนที่จะ",
+    level: "B1",
+    explanation:
+      "แทนที่จะ allows learners to contrast an action taken against an action that was avoided, translating cleanly to 'instead of'.",
+    pattern: "ACTION 1 + แทนที่จะ + ACTION 2",
+    example: {
+      thai: "ดื่มน้ำแทนที่จะกินขนม",
+      roman: "duem nam thaen thi cha kin khanom",
+      english: "Drink water instead of eating snacks.",
+      breakdown: [
+        w("ดื่ม", "drink", "low"),
+        w("น้ำ", "water", "high"),
+        w("แทนที่จะ", "instead of", "mid", true),
+        w("กิน", "eat", "mid"),
+        w("ขนม", "snack", "rising"),
+      ],
+    },
+    focus: {
+      particle: "แทนที่จะ",
+      meaning:
+        "Connector used for proposing or explaining an alternative action.",
+    },
+  },
+  {
+    id: "intention-tang-jai",
+    title: "Firm Intentions with ตั้งใจ",
+    level: "B1",
+    explanation:
+      "While จะ shows simple future, ตั้งใจ shows premeditated intention, focus, or a firm plan. It marks a shift from reacting to proactive goal-setting.",
+    pattern: "SUBJECT + ตั้งใจ + จะ + VERB",
+    example: {
+      thai: "ฉันตั้งใจจะเรียนภาษาไทย",
+      roman: "chan tangchai cha rian phasa thai",
+      english: "I intend to study Thai.",
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("ตั้งใจ", "intend to", "falling", true),
+        w("จะ", "will", "low", true),
+        w("เรียน", "study", "mid"),
+        w("ภาษาไทย", "Thai language", "mid"),
+      ],
+    },
+    focus: {
+      particle: "ตั้งใจ(จะ)",
+      meaning: "Verb of volition expressing firm intention or determination.",
+    },
+  },
+  {
+    id: "almost-kueap",
+    title: "Near Misses with เกือบ",
+    level: "B1",
+    explanation:
+      "เกือบ expresses that an action came close to happening but ultimately did not. It's essential for narrating narrowly avoided mistakes or almost-achieved milestones.",
+    pattern: "SUBJECT + เกือบ + จะ + VERB",
+    example: {
+      thai: "เขาเกือบจะลืมแล้ว",
+      roman: "khao kueap cha luem laeo",
+      english: "He almost forgot.",
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("เกือบ", "almost", "low", true),
+        w("จะ", "will", "low"),
+        w("ลืม", "forget", "mid"),
+        w("แล้ว", "already", "high", true),
+      ],
+    },
+    focus: {
+      particle: "เกือบ(จะ)",
+      meaning: "Adverb denoting an action that nearly happened.",
+    },
+  },
+  {
+    id: "barely-thaep-ja",
+    title: "Barely with แทบจะ",
+    level: "B1",
+    explanation:
+      "แทบจะ shows that something happened only with difficulty or almost did not happen at all. It helps learners describe very small margins and weak success.",
+    pattern: "SUBJECT + แทบจะ + VERB",
+    example: {
+      thai: "ฉันแทบจะไม่ได้ยิน",
+      roman: "chan thaep cha mai dai yin",
+      english: "I could barely hear.",
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("แทบจะ", "barely / almost not", "mid", true),
+        w("ไม่ได้ยิน", "cannot hear / barely hear", "falling"),
+      ],
+    },
+    focus: {
+      particle: "แทบจะ",
+      meaning: "Marker meaning barely, hardly, or almost not.",
+    },
+  },
+  {
+    id: "extent-jon",
+    title: "To the Extent That with จน",
+    level: "B1",
+    explanation:
+      "จน links an action to an extreme or highly noticeable result, allowing learners to specify exactly how far or how much an action was carried out.",
+    pattern: "VERB + จน / จนกระทั่ง + RESULT",
+    example: {
+      thai: "เขากินจนปวดท้อง",
+      roman: "khao kin chon puat thong",
+      english: "He ate until his stomach hurt.",
+      breakdown: [
+        w("เขา", "he", "rising"),
+        w("กิน", "eat", "mid"),
+        w("จน", "until / to the point of", "mid", true),
+        w("ปวด", "ache", "low"),
+        w("ท้อง", "stomach", "high"),
+      ],
+    },
+    focus: {
+      particle: "จน / จนกระทั่ง",
+      meaning:
+        "Connector showing the extreme extent or logical endpoint of an action.",
+    },
+  },
+  {
+    id: "since-tang-tae",
+    title: "Since / Starting From with ตั้งแต่",
+    level: "B1",
+    explanation:
+      "ตั้งแต่ helps learners anchor an action or state to a starting point in time. It is a high-frequency bridge from simple time reference to more connected narrative.",
+    pattern: "VERB / STATE + ตั้งแต่ + TIME / EVENT",
+    example: {
+      thai: "ฉันอยู่ที่นี่ตั้งแต่เช้า",
+      roman: "chan yu thi ni tang tae chao",
+      english: "I have been here since morning.",
+      breakdown: [
+        w("ฉัน", "I", "rising"),
+        w("อยู่", "stay / be located", "low"),
+        w("ที่นี่", "here", "falling"),
+        w("ตั้งแต่", "since / starting from", "falling", true),
+        w("เช้า", "morning", "falling"),
+      ],
+    },
+    focus: {
+      particle: "ตั้งแต่",
+      meaning: "Time marker for since, from, or starting at a point.",
+    },
+  },
+  {
+    id: "depends-on-khun-yu-kap",
+    title: "Depend on with ขึ้นอยู่กับ",
+    level: "B1",
+    explanation:
+      "ขึ้นอยู่กับ lets speakers explain that an answer, result, or decision is conditional on another factor. It is important for measured answers and reasoning.",
+    pattern: "SUBJECT + ขึ้นอยู่กับ + FACTOR / CONDITION",
+    example: {
+      thai: "ผลขึ้นอยู่กับเวลา",
+      roman: "phon khuen yu kap wela",
+      english: "The result depends on time.",
+      breakdown: [
+        w("ผล", "result", "rising"),
+        w("ขึ้นอยู่กับ", "depend on", "falling", true),
+        w("เวลา", "time", "mid"),
+      ],
+    },
+    focus: {
+      particle: "ขึ้นอยู่กับ",
+      meaning: "Reasoning frame meaning depend on or be determined by.",
+    },
+  },
+  {
+    id: "every-time-thuk-khrang-thi",
+    title: "Every Time with ทุกครั้งที่",
+    level: "B1",
+    explanation:
+      "ทุกครั้งที่ links a repeated event to a repeated result. It helps learners describe habits, recurring problems, and predictable reactions more naturally.",
+    pattern: "ทุกครั้งที่ + EVENT, RESULT",
+    example: {
+      thai: "ทุกครั้งที่ฝนตก รถก็ติด",
+      roman: "thuk khrang thi fon tok rot ko tit",
+      english: "Every time it rains, traffic gets jammed.",
+      breakdown: [
+        w("ทุกครั้งที่", "every time that", "high", true),
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+        w("รถ", "traffic / cars", "high"),
+        w("ก็", "then / as a result", "falling", true),
+        w("ติด", "be stuck / jammed", "low"),
+      ],
+    },
+    focus: {
+      particle: "ทุกครั้งที่",
+      meaning: "Recurring-event connector meaning every time that.",
+    },
+  },
+  {
+    id: "so-that-ja-dai",
+    title: "So That with จะได้",
+    level: "B1",
+    explanation:
+      "จะได้ links an action to the benefit or result the speaker hopes to get from it. It is very common in everyday advice, planning, and persuasion.",
+    pattern: "ACTION + จะได้ + BENEFIT / RESULT",
+    example: {
+      thai: "รีบไปหน่อย จะได้ทันรถ",
+      roman: "rip pai noi cha dai than rot",
+      english: "Hurry a bit so that we can catch the bus.",
+      breakdown: [
+        w("รีบ", "hurry", "falling"),
+        w("ไป", "go", "mid"),
+        w("หน่อย", "a bit / please", "low", true),
+        w("จะได้", "so that / then can", "falling", true),
+        w("ทัน", "in time for", "mid"),
+        w("รถ", "bus / vehicle", "high"),
+      ],
+    },
+    focus: {
+      particle: "จะได้",
+      meaning: "Purpose-result marker meaning so that one can get a benefit or outcome.",
+    },
+  },
+
   // B2
-  {
-    id: "discourse-markers-b2",
-    title: "Discourse Markers",
-    level: "B2",
-    explanation:
-      "These markers help speakers organize argument, shift perspective, and guide the listener through a more developed discussion.",
-    pattern: "อย่างไรก็ตาม / ในขณะเดียวกัน / กล่าวคือ / นอกจากนี้ / กล่าวอีกอย่าง",
-    example: {
-      thai: "อย่างไรก็ตามปัญหายังไม่จบ",
-      roman: "yangraikodtam panha yang mai chop",
-      english: "However, the problem is still not over.",
-      breakdown: [w("อย่างไรก็ตาม", "however", "mid", true), w("ปัญหา", "problem", "mid"), w("ยัง", "still", "mid", true), w("ไม่", "not", "low", true), w("จบ", "finish / end", "low")],
-    },
-    focus: {
-      particle: "อย่างไรก็ตาม / ในขณะเดียวกัน / กล่าวคือ / นอกจากนี้ / กล่าวอีกอย่าง",
-      meaning: "Discourse-level markers for contrast, addition, and reformulation.",
-    },
-  },
-  {
-    id: "formal-connectors-b2",
-    title: "Formal Connectors",
-    level: "B2",
-    explanation:
-      "These connectors appear in formal speech, writing, and presentations. They help learners control register more intentionally.",
-    pattern: "เนื่องจากว่า / ทั้งนี้ / ดังกล่าว / โดยเฉพาะ / กล่าวโดยรวม",
-    example: {
-      thai: "นอกจากนี้โครงการนี้ช่วยนักเรียนมาก",
-      roman: "noktai khroangkan ni chuai nakrian mak",
-      english: "Furthermore, this project helps students a lot.",
-      breakdown: [w("นอกจากนี้", "furthermore", "falling", true), w("โครงการ", "project", "mid"), w("นี้", "this", "high"), w("ช่วย", "help", "falling"), w("นักเรียน", "student", "mid"), w("มาก", "a lot", "falling")],
-    },
-    focus: {
-      particle: "เนื่องจากว่า / ทั้งนี้ / ดังกล่าว / โดยเฉพาะ / กล่าวโดยรวม",
-      meaning: "More formal connectors and reference words for organized discourse.",
-    },
-  },
-  {
-    id: "advanced-modality-b2",
-    title: "Advanced Modality",
-    level: "B2",
-    explanation:
-      "At B2, learners need more than one word for maybe or probably. These markers let speakers grade certainty and inference more precisely.",
-    pattern: "อาจจะ / คงจะ / ดูท่าว่า / น่าจะ / คง + CLAUSE",
-    example: {
-      thai: "เขาคงจะมาสาย",
-      roman: "khao khong cha ma sai",
-      english: "He will probably be late.",
-      breakdown: [w("เขา", "he / she", "rising"), w("คงจะ", "probably", "mid", true), w("มา", "come", "mid"), w("สาย", "late", "rising")],
-    },
-    focus: {
-      particle: "อาจจะ / คงจะ / ดูท่าว่า / น่าจะ / คง",
-      meaning: "Markers for possibility, probability, and speaker judgment.",
-    },
-  },
-  {
-    id: "emphasis-tone-particles-b2",
-    title: "Emphasis and Tone Particles",
-    level: "B2",
-    explanation:
-      "These particles add stance, insistence, realization, or emphasis. They are important for conversational nuance and natural rhythm.",
-    pattern: "เลย / สิ / นี่แหละ / แท้ๆ / นี่นา",
-    example: {
-      thai: "ดีเลย",
-      roman: "di loei",
-      english: "That is great / perfect.",
-      breakdown: [w("ดี", "good", "mid"), w("เลย", "emphatic / very / so", "mid", true)],
-    },
-    focus: {
-      particle: "เลย / สิ / นี่แหละ / แท้ๆ / นี่นา",
-      meaning: "Particles that strengthen tone, emphasis, or realization.",
-    },
-  },
-  {
-    id: "nuanced-comparison-b2",
-    title: "Nuanced Comparison",
-    level: "B2",
-    explanation:
-      "These comparison frames go beyond simple กว่า and let learners express balance, similarity, difference, and change in degree.",
-    pattern: "ยิ่ง...ยิ่ง... / พอๆ กับ / ต่างกัน / คล้ายกับ / มากขึ้น / น้อยลง",
-    example: {
-      thai: "ยิ่งเรียนยิ่งสนุก",
-      roman: "ying rian ying sanuk",
-      english: "The more I study, the more fun it becomes.",
-      breakdown: [w("ยิ่ง", "the more", "falling", true), w("เรียน", "study", "mid"), w("ยิ่ง", "the more", "falling", true), w("สนุก", "fun", "low")],
-    },
-    focus: {
-      particle: "ยิ่ง...ยิ่ง... / พอๆ กับ / ต่างกัน / คล้ายกับ / มากขึ้น / น้อยลง",
-      meaning: "Patterns for stronger comparison, similarity, and degree change.",
-    },
-  },
-  {
-    id: "causative-passive-nuance-b2",
-    title: "Causative and Passive Nuance",
-    level: "B2",
-    explanation:
-      "B2 learners need to control whether someone causes an action, allows it, or is affected by it. These patterns are central to more precise event framing.",
-    pattern: "ให้ + PERSON + VERB / ถูก / โดน / ทำให้ / ทำให้เกิด",
-    example: {
-      thai: "ข่าวนี้ทำให้คนกังวล",
-      roman: "khao ni tham hai khon kangwon",
-      english: "This news makes people worried.",
-      breakdown: [w("ข่าว", "news", "low"), w("นี้", "this", "high"), w("ทำให้", "cause / make", "mid", true), w("คน", "people", "mid"), w("กังวล", "worried", "mid")],
-    },
-    focus: {
-      particle: "ให้ + PERSON + VERB / ถูก / โดน / ทำให้ / ทำให้เกิด",
-      meaning: "Patterns for causing, allowing, and being affected by actions.",
-    },
-  },
-  {
-    id: "limitation-focus-b2",
-    title: "Limitation and Focus",
-    level: "B2",
-    explanation:
-      "These small forms help speakers narrow focus, downplay something, or say that something is only this and nothing more.",
-    pattern: "แค่ / เพียง / เท่านั้น / เท่านั้นเอง",
-    example: {
-      thai: "แค่ถามเฉยๆ",
-      roman: "khae tham choei choei",
-      english: "I was just asking.",
-      breakdown: [w("แค่", "just / only", "falling", true), w("ถาม", "ask", "rising"), w("เฉยๆ", "just / casually", "rising", true)],
-    },
-    focus: {
-      particle: "แค่ / เพียง / เท่านั้น / เท่านั้นเอง",
-      meaning: "Focus markers for limiting, narrowing, or minimizing meaning.",
-    },
-  },
-  {
-    id: "confirmation-rhetorical-particles-b2",
-    title: "Confirmation and Rhetorical Particles",
-    level: "B2",
-    explanation:
-      "These forms let learners check agreement, push for confirmation, or present a realization in a more interactional way.",
-    pattern: "ใช่ไหม / ใช่ไหมล่ะ / นี่เอง / ล่ะ",
-    example: {
-      thai: "สวยใช่ไหมล่ะ",
-      roman: "suai chai mai la",
-      english: "It is beautiful, right?",
-      breakdown: [w("สวย", "beautiful", "rising"), w("ใช่ไหมล่ะ", "right? / see?", "falling", true)],
-    },
-    focus: {
-      particle: "ใช่ไหม / ใช่ไหมล่ะ / นี่เอง / ล่ะ",
-      meaning: "Particles for confirmation, rhetorical push, realization, and topic shift.",
-    },
-  },
-  {
-    id: "advanced-clause-patterns-b2",
-    title: "Advanced Clause Patterns",
-    level: "B2",
-    explanation:
-      "These clause frames let speakers build more nuanced condition and scope, especially in explanation, emphasis, and argument.",
-    pattern: "ถ้า...ก็... / แม้กระทั่ง",
-    example: {
-      thai: "ถ้ามีเวลาก็มาได้",
-      roman: "tha mi wela ko ma dai",
-      english: "If you have time, then you can come.",
-      breakdown: [w("ถ้า", "if", "falling", true), w("มี", "have", "mid"), w("เวลา", "time", "mid"), w("ก็", "then", "falling", true), w("มา", "come", "mid"), w("ได้", "can", "falling", true)],
-    },
-    focus: {
-      particle: "ถ้า...ก็... / แม้กระทั่ง",
-      meaning: "More developed clause frames for condition and widened scope.",
-    },
-  },
-  {
-    id: "serial-verbs",
-    title: "Serial Verb Constructions",
-    level: "B2",
-    explanation:
-      "Thai often places verbs in sequence without extra linking words. Mastering serial verbs makes speech sound much more natural and compact.",
-    pattern: "VERB 1 + VERB 2 + OBJECT",
-    example: {
-      thai: "เขาไปซื้อข้าว",
-      roman: "khao pai sue khao",
-      english: "He went to buy food.",
-      breakdown: [w("เขา", "he / she", "rising"), w("ไป", "go", "mid"), w("ซื้อ", "buy", "high"), w("ข้าว", "food", "falling")],
-    },
-    focus: {
-      particle: "verb chain",
-      meaning: "Two or more verbs appear in sequence as one event frame.",
-    },
-  },
-  {
-    id: "particles-na-si-la",
-    title: "Sentence-Final Particles นะ / สิ / ล่ะ",
-    level: "B2",
-    explanation:
-      "These small particles shape attitude, urgency, softness, and interactional tone. They are crucial for sounding more natural in spoken Thai.",
-    pattern: "CLAUSE + นะ / สิ / ล่ะ",
-    example: {
-      thai: "รอนี่นะ",
-      roman: "ro ni na",
-      english: "Wait here, okay?",
-      breakdown: [w("รอ", "wait", "mid"), w("นี่", "here", "high"), w("นะ", "softening particle", "high", true)],
-    },
-    focus: {
-      particle: "นะ / สิ / ล่ะ",
-      meaning: "Spoken particles that change stance, softness, and interactional feel.",
-    },
-  },
-  {
-    id: "time-clauses",
-    title: "Time Clauses with ก่อน / หลัง / ตอนที่",
-    level: "B2",
-    explanation:
-      "Time connectors let learners sequence events clearly. They are important once narration and multi-step explanations become more common.",
-    pattern: "ก่อน / หลัง / ตอนที่ + CLAUSE",
-    example: {
-      thai: "ก่อนนอนฉันอ่านหนังสือ",
-      roman: "kon non chan an nangsue",
-      english: "Before sleeping, I read a book.",
-      breakdown: [w("ก่อน", "before", "low", true), w("นอน", "sleep", "mid"), w("ฉัน", "I", "rising"), w("อ่าน", "read", "low"), w("หนังสือ", "book", "rising")],
-    },
-    focus: {
-      particle: "ก่อน / หลัง / ตอนที่",
-      meaning: "Time linkers meaning before, after, and when.",
-    },
-  },
-  {
-    id: "about-to-kamlangja",
-    title: "About to with กำลังจะ",
-    level: "B2",
-    explanation:
-      "กำลังจะ combines present progression with near-future meaning. It is useful for describing imminent events and immediate expectations.",
-    pattern: "SUBJECT + กำลังจะ + VERB",
-    example: {
-      thai: "ฝนกำลังจะตก",
-      roman: "fon kamlang cha tok",
-      english: "It is about to rain.",
-      breakdown: [w("ฝน", "rain", "rising"), w("กำลังจะ", "about to", "mid", true), w("ตก", "fall / rain", "low")],
-    },
-    focus: {
-      particle: "กำลังจะ",
-      meaning: "Near-future marker meaning be about to.",
-    },
-  },
+  ...b2GrammarPoints,
 
   // C1
   {
@@ -1550,7 +2395,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เสียงดังทำให้เด็กตื่น",
       roman: "siang dang tham hai dek tuen",
       english: "The loud noise made the child wake up.",
-      breakdown: [w("เสียงดัง", "loud noise", "rising"), w("ทำให้", "make / cause", "mid", true), w("เด็ก", "child", "low"), w("ตื่น", "wake up", "low")],
+      breakdown: [
+        w("เสียงดัง", "loud noise", "rising"),
+        w("ทำให้", "make / cause", "mid", true),
+        w("เด็ก", "child", "low"),
+        w("ตื่น", "wake up", "low"),
+      ],
     },
     focus: {
       particle: "ทำให้",
@@ -1568,7 +2418,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "แม้ว่าเหนื่อยเขาก็ยังทำต่อ",
       roman: "mae wa nueai khao ko yang tham to",
       english: "Even though he is tired, he still keeps going.",
-      breakdown: [w("แม้ว่า", "even though", "high", true), w("เหนื่อย", "tired", "low"), w("เขา", "he / she", "rising"), w("ก็ยัง", "still", "falling", true), w("ทำ", "do", "mid"), w("ต่อ", "continue", "low")],
+      breakdown: [
+        w("แม้ว่า", "even though", "high", true),
+        w("เหนื่อย", "tired", "low"),
+        w("เขา", "he / she", "rising"),
+        w("ก็ยัง", "still", "falling", true),
+        w("ทำ", "do", "mid"),
+        w("ต่อ", "continue", "low"),
+      ],
     },
     focus: {
       particle: "แม้ว่า...ก็",
@@ -1586,7 +2443,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ดูเหมือนว่าเขาจะไม่มา",
       roman: "du muean wa khao cha mai ma",
       english: "It seems that he will not come.",
-      breakdown: [w("ดูเหมือน", "it seems", "mid", true), w("ว่า", "that", "falling", true), w("เขา", "he / she", "rising"), w("จะ", "will", "low"), w("ไม่", "not", "low"), w("มา", "come", "mid")],
+      breakdown: [
+        w("ดูเหมือน", "it seems", "mid", true),
+        w("ว่า", "that", "falling", true),
+        w("เขา", "he / she", "rising"),
+        w("จะ", "will", "low"),
+        w("ไม่", "not", "low"),
+        w("มา", "come", "mid"),
+      ],
     },
     focus: {
       particle: "ดูเหมือน(ว่า)",
@@ -1606,11 +2470,18 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ไม่ว่าใครก็เข้าได้",
       roman: "mai wa khrai ko khao dai",
       english: "Anyone can come in.",
-      breakdown: [w("ไม่ว่า", "no matter", "falling", true), w("ใคร", "who", "mid"), w("ก็", "still / then", "falling", true), w("เข้า", "enter", "falling"), w("ได้", "can", "falling", true)],
+      breakdown: [
+        w("ไม่ว่า", "no matter", "falling", true),
+        w("ใคร", "who", "mid"),
+        w("ก็", "still / then", "falling", true),
+        w("เข้า", "enter", "falling"),
+        w("ได้", "can", "falling", true),
+      ],
     },
     focus: {
       particle: "ไม่ว่า...ก็",
-      meaning: "High-level generalization frame meaning no matter ... still ...",
+      meaning:
+        "High-level generalization frame meaning no matter ... still ...",
     },
   },
   {
@@ -1624,7 +2495,15 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ต่อให้ฝนตกเราก็จะไป",
       roman: "to hai fon tok rao ko cha pai",
       english: "Even if it rains, we will go.",
-      breakdown: [w("ต่อให้", "even if", "low", true), w("ฝน", "rain", "rising"), w("ตก", "fall / rain", "low"), w("เรา", "we", "mid"), w("ก็", "still", "falling", true), w("จะ", "will", "low"), w("ไป", "go", "mid")],
+      breakdown: [
+        w("ต่อให้", "even if", "low", true),
+        w("ฝน", "rain", "rising"),
+        w("ตก", "fall / rain", "low"),
+        w("เรา", "we", "mid"),
+        w("ก็", "still", "falling", true),
+        w("จะ", "will", "low"),
+        w("ไป", "go", "mid"),
+      ],
     },
     focus: {
       particle: "ต่อให้...ก็",
@@ -1642,7 +2521,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "บริษัทได้รับรางวัล",
       roman: "borisat dai rap rangwan",
       english: "The company received an award.",
-      breakdown: [w("บริษัท", "company", "low"), w("ได้รับ", "received / was awarded", "falling", true), w("รางวัล", "award", "mid")],
+      breakdown: [
+        w("บริษัท", "company", "low"),
+        w("ได้รับ", "received / was awarded", "falling", true),
+        w("รางวัล", "award", "mid"),
+      ],
     },
     focus: {
       particle: "ได้รับ",
@@ -1660,7 +2543,12 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "ยิ่งฝึกยิ่งคล่อง",
       roman: "ying fuk ying khlong",
       english: "The more you practice, the more fluent you become.",
-      breakdown: [w("ยิ่ง", "the more", "falling", true), w("ฝึก", "practice", "low"), w("ยิ่ง", "the more", "falling", true), w("คล่อง", "fluent", "low")],
+      breakdown: [
+        w("ยิ่ง", "the more", "falling", true),
+        w("ฝึก", "practice", "low"),
+        w("ยิ่ง", "the more", "falling", true),
+        w("คล่อง", "fluent", "low"),
+      ],
     },
     focus: {
       particle: "ยิ่ง...ยิ่ง",
@@ -1678,7 +2566,13 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "พอฝนหยุดก็ออกไป",
       roman: "pho fon yut ko ok pai",
       english: "As soon as the rain stopped, we went out.",
-      breakdown: [w("พอ", "as soon as", "mid", true), w("ฝน", "rain", "rising"), w("หยุด", "stop", "low"), w("ก็", "then", "falling", true), w("ออกไป", "go out", "low")],
+      breakdown: [
+        w("พอ", "as soon as", "mid", true),
+        w("ฝน", "rain", "rising"),
+        w("หยุด", "stop", "low"),
+        w("ก็", "then", "falling", true),
+        w("ออกไป", "go out", "low"),
+      ],
     },
     focus: {
       particle: "พอ...ก็",
@@ -1696,11 +2590,19 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "พูดไปเรื่อยๆเดี๋ยวก็คล่อง",
       roman: "phut pai rueai rueai diao ko khlong",
       english: "Keep speaking and you will get fluent.",
-      breakdown: [w("พูด", "speak", "falling"), w("ไป", "keep going", "mid"), w("เรื่อยๆ", "continuously", "falling", true), w("เดี๋ยว", "soon", "falling"), w("ก็", "then", "falling", true), w("คล่อง", "fluent", "low")],
+      breakdown: [
+        w("พูด", "speak", "falling"),
+        w("ไป", "keep going", "mid"),
+        w("เรื่อยๆ", "continuously", "falling", true),
+        w("เดี๋ยว", "soon", "falling"),
+        w("ก็", "then", "falling", true),
+        w("คล่อง", "fluent", "low"),
+      ],
     },
     focus: {
       particle: "เรื่อยๆ",
-      meaning: "Continuation marker for doing something steadily or continuously.",
+      meaning:
+        "Continuation marker for doing something steadily or continuously.",
     },
   },
   {
@@ -1714,11 +2616,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       thai: "เขาน่าจะถึงแล้ว",
       roman: "khao na cha thueng laeo",
       english: "He should have arrived already.",
-      breakdown: [w("เขา", "he / she", "rising"), w("น่าจะ", "should / probably", "falling", true), w("ถึง", "arrive", "rising"), w("แล้ว", "already", "high", true)],
+      breakdown: [
+        w("เขา", "he / she", "rising"),
+        w("น่าจะ", "should / probably", "falling", true),
+        w("ถึง", "arrive", "rising"),
+        w("แล้ว", "already", "high", true),
+      ],
     },
     focus: {
       particle: "ควรจะ / น่าจะ",
-      meaning: "Expectation and probability markers for advanced stance-taking.",
+      meaning:
+        "Expectation and probability markers for advanced stance-taking.",
     },
   },
 ];
@@ -1742,5 +2650,3 @@ export const grammarPoints: GrammarPoint[] = rawGrammarPoints
     if (a.stageOrder !== b.stageOrder) return a.stageOrder - b.stageOrder;
     return a.lessonOrder - b.lessonOrder;
   });
-
-

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode";
 
 import { API_BASE } from "../config";
+import { getAuthToken } from "./authStorage";
 
 const GUEST_KEY = "pref_track_practice_vocab_guest";
 const USER_KEY_PREFIX = "pref_track_practice_vocab_user_";
@@ -37,7 +38,7 @@ async function writeCachedPreference(token: string | null, enabled: boolean) {
 }
 
 export async function getPracticeWordTrackingEnabled() {
-  const token = await AsyncStorage.getItem("token");
+  const token = await getAuthToken();
   const cached = await readCachedPreference(token);
 
   if (!token) {
@@ -66,7 +67,7 @@ export async function getPracticeWordTrackingEnabled() {
 }
 
 export async function setPracticeWordTrackingEnabled(enabled: boolean) {
-  const token = await AsyncStorage.getItem("token");
+  const token = await getAuthToken();
   await writeCachedPreference(token, enabled);
 
   if (!token) {

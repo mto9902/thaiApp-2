@@ -70,32 +70,11 @@ export function usePremiumAccess() {
 
     try {
       setBusy(true);
-      if (subscription.isPremium) {
-        if (!subscription.isSupported) {
-          Alert.alert(
-            "Available on mobile",
-            "Keystone Access management is available in the iOS and Android app for now.",
-          );
-          return false;
-        }
-
-        if (!subscription.canMakePurchases) {
-          Alert.alert(
-            "Subscriptions aren't configured yet",
-            "Add your RevenueCat mobile API key to enable Keystone Access purchases.",
-          );
-          return false;
-        }
-
-        await subscription.openCustomerCenter();
-        return true;
-      }
-
       return await openPremiumScreen("Keystone Access", redirectTo);
     } finally {
       setBusy(false);
     }
-  }, [openPremiumScreen, router, subscription]);
+  }, [openPremiumScreen, router]);
 
   const restorePremiumAccess = useCallback(async () => {
     const guest = await isGuestUser();

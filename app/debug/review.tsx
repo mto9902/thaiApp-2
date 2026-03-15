@@ -1,8 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
 import { submitVocabAnswer } from "../../src/api/submitVocabAnswer";
 import { API_BASE } from "../../src/config";
+import { getAuthToken } from "../../src/utils/authStorage";
 
 export default function DebugReview() {
   const [question, setQuestion] = useState<any>(null);
@@ -14,7 +14,7 @@ export default function DebugReview() {
   }, []);
 
   async function loadQuestion() {
-    const token = await AsyncStorage.getItem("token");
+    const token = await getAuthToken();
 
     const res = await fetch(`${API_BASE}/vocab/review`, {
       headers: {

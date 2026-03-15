@@ -20,6 +20,7 @@ import Header, { SettingsState } from "../../src/components/Header";
 import VocabSrsInfoSheet from "../../src/components/VocabSrsInfoSheet";
 import { API_BASE } from "../../src/config";
 import { isGuestUser } from "../../src/utils/auth";
+import { getAuthToken } from "../../src/utils/authStorage";
 import {
   MUTED_APP_ACCENTS,
   MUTED_FEEDBACK_ACCENTS,
@@ -245,7 +246,7 @@ export default function ReviewScreen() {
     try {
       clearWaitTimer();
 
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/vocab/review`, {
         headers: { Authorization: `Bearer ${token}` },
       });

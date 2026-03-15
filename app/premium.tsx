@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +20,7 @@ import {
 } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { isGuestUser } from "@/src/utils/auth";
 
@@ -95,7 +97,6 @@ export default function PremiumScreen() {
     currentOffering,
     isPremium,
     offeringsLoading,
-    openCustomerCenter,
     refreshOfferings,
     purchasePackage,
     restorePremiumAccess,
@@ -164,6 +165,40 @@ export default function PremiumScreen() {
 
     router.back();
   }, [redirectTo, router]);
+
+  const handleManageSubscription = useCallback(async () => {
+    const url =
+      Platform.OS === "ios"
+        ? "https://apps.apple.com/account/subscriptions"
+        : Platform.OS === "android"
+          ? "https://play.google.com/store/account/subscriptions"
+          : null;
+
+    if (!url) {
+      Alert.alert(
+        "Available on mobile",
+        "Keystone Access subscription management is available in the iOS and Android app.",
+      );
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert(
+          "Unable to open subscription settings",
+          "Open your device store and manage Keystone Access from your subscriptions page.",
+        );
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Unable to open subscription settings",
+        "Open your device store and manage Keystone Access from your subscriptions page.",
+      );
+    }
+  }, []);
 
   async function handlePurchase() {
     if (!selectedPackage || purchaseBusy || busy) return;
@@ -261,10 +296,14 @@ export default function PremiumScreen() {
             </Text>
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() => void openCustomerCenter()}
+              onPress={() => void handleManageSubscription()}
               activeOpacity={0.82}
             >
-              <Text style={styles.primaryButtonText}>Manage Keystone Access</Text>
+              <Text style={styles.primaryButtonText}>
+                {Platform.OS === "ios"
+                  ? "Manage in App Store"
+                  : "Manage in Play Store"}
+              </Text>
             </TouchableOpacity>
             {redirectTo ? (
               <TouchableOpacity
@@ -323,7 +362,7 @@ export default function PremiumScreen() {
                       isSelected && styles.packageCardSelected,
                     ]}
                     onPress={() => setSelectedPackageId(aPackage.identifier)}
-                    activeOpacity={0.82}
+                    activeOpacity={1}
                   >
                     <View style={styles.packageHeader}>
                       <View style={styles.packageHeaderText}>
@@ -460,7 +499,6 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 18,
     gap: 12,
-    ...sketchShadow(4),
   },
   benefitRow: {
     flexDirection: "row",
@@ -493,11 +531,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
-    ...sketchShadow(4),
   },
   packageCardSelected: {
     borderColor: Sketch.orange,
-    backgroundColor: "rgba(196, 97, 60, 0.05)",
+    borderWidth: 1.5,
+    backgroundColor: "rgba(196, 97, 60, 0.035)",
   },
   packageHeader: {
     flexDirection: "row",
@@ -559,7 +597,6 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
     alignItems: "center",
-    ...sketchShadow(4),
   },
   stateTitle: {
     fontSize: 18,
@@ -578,9 +615,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: Sketch.orange,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(148, 73, 45, 0.35)",
     paddingVertical: 15,
     paddingHorizontal: 18,
-    ...sketchShadow(3),
   },
   primaryButtonDisabled: {
     opacity: 0.6,

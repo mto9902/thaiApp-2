@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -24,6 +23,7 @@ import { isPremiumGrammarPoint } from "../../src/subscription/premium";
 import { useSubscription } from "../../src/subscription/SubscriptionProvider";
 import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 import { isGuestUser } from "../../src/utils/auth";
+import { getAuthToken } from "../../src/utils/authStorage";
 import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 import {
   GrammarProgressData,
@@ -101,7 +101,7 @@ export default function DecksScreen() {
         return;
       }
 
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/bookmarks`, {
         headers: { Authorization: `Bearer ${token}` },
       });

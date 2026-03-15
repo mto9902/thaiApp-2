@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Stack,
@@ -29,6 +28,7 @@ import {
   GrammarProgressData,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+import { getAuthToken } from "../../src/utils/authStorage";
 import { getGrammarCardCopy } from "../../src/utils/grammarCardCopy";
 import { API_BASE } from "../../src/config";
 import { isPremiumGrammarPoint } from "../../src/subscription/premium";
@@ -57,11 +57,11 @@ export default function CSVGrammarIndex() {
     useCallback(() => {
       let isActive = true;
 
-      (async () => {
-        const [nextProgress, token] = await Promise.all([
-          getAllProgress(),
-          AsyncStorage.getItem("token"),
-        ]);
+        (async () => {
+          const [nextProgress, token] = await Promise.all([
+            getAllProgress(),
+            getAuthToken(),
+          ]);
         if (!isActive) return;
         setProgress(nextProgress);
 

@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Stack,
   useFocusEffect,
@@ -30,7 +29,10 @@ import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { isGuestUser } from "../../../src/utils/auth";
+import { getAuthToken } from "../../../src/utils/authStorage";
 import { getToneAccent } from "../../../src/utils/toneAccent";
+
+const CURRENT_GRAMMAR_IDS = new Set(grammarPoints.map((point) => point.id));
 
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
@@ -71,13 +73,19 @@ export default function GrammarDetail() {
     try {
       const guest = await isGuestUser();
       if (guest) return;
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/bookmarks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setBookmarkCount(Array.isArray(data) ? data.length : 0);
-      const exists = data.some((b: any) => b.grammar_id === id);
+      const validBookmarks = Array.isArray(data)
+        ? data.filter(
+            (bookmark: { grammar_id?: string }) =>
+              bookmark.grammar_id && CURRENT_GRAMMAR_IDS.has(bookmark.grammar_id),
+          )
+        : [];
+      setBookmarkCount(validBookmarks.length);
+      const exists = validBookmarks.some((b: any) => b.grammar_id === id);
       setBookmarked(exists);
     } catch (err) {
       console.error(err);
@@ -93,7 +101,7 @@ export default function GrammarDetail() {
 
   async function toggleBookmark() {
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       if (bookmarked) {
         await fetch(`${API_BASE}/bookmark`, {
           method: "DELETE",
@@ -112,7 +120,11 @@ export default function GrammarDetail() {
           });
           const bookmarkData = bookmarkRes.ok ? await bookmarkRes.json() : [];
           const nextBookmarkCount = Array.isArray(bookmarkData)
-            ? bookmarkData.length
+            ? bookmarkData.filter(
+                (bookmark: { grammar_id?: string }) =>
+                  bookmark.grammar_id &&
+                  CURRENT_GRAMMAR_IDS.has(bookmark.grammar_id),
+              ).length
             : bookmarkCount;
           setBookmarkCount(nextBookmarkCount);
 

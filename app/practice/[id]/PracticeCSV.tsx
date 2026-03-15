@@ -37,6 +37,7 @@ import {
   getToneAccent,
   MUTED_FEEDBACK_ACCENTS,
 } from "../../../src/utils/toneAccent";
+import { getAuthToken } from "../../../src/utils/authStorage";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 function toneColor(tone?: string): string {
@@ -114,7 +115,6 @@ type BuilderWord = {
   roman: string;
   color: string;
   rotation: number;
-  isGrammar: boolean;
 };
 
 function buildMatchOptions(
@@ -148,10 +148,7 @@ function computePrefill(
   const total = breakdown.length;
   if (total <= MAX_FREE_TILES) return breakdown.map(() => null);
   const numToPrefill = total - MAX_FREE_TILES;
-  const eligible = breakdown
-    .map((w, i) => ({ i, grammar: !!w.grammar }))
-    .filter((x) => !x.grammar)
-    .map((x) => x.i);
+  const eligible = breakdown.map((_, i) => i);
   const shuffled = [...eligible].sort(() => Math.random() - 0.5);
   const prefillIndices = new Set(shuffled.slice(0, numToPrefill));
   return breakdown.map((w, i) => (prefillIndices.has(i) ? w.thai : null));
@@ -367,7 +364,7 @@ export default function PracticeCSV() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+          Authorization: `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({ words: enriched }),
       });
@@ -447,7 +444,6 @@ export default function PracticeCSV() {
           roman: perWordRoman[i] ?? "",
           color: toneColor(w.tone),
           rotation: Math.random() * 6 - 3,
-          isGrammar: !!w.grammar,
         };
       });
 
@@ -695,15 +691,10 @@ export default function PracticeCSV() {
                     {breakdown.map((w, i) => (
                       <TouchableOpacity
                         key={i}
-                        style={[st.wordTile, w.grammar && st.grammarTile]}
+                        style={st.wordTile}
                         onPress={() => speak(w.thai)}
                         activeOpacity={0.8}
                       >
-                        {w.grammar && (
-                          <View style={st.grammarBadge}>
-                            <Text style={st.grammarBadgeIcon}>*</Text>
-                          </View>
-                        )}
                         <View style={st.wordTileHeader}>
                           <Text style={st.wordTileThai}>{w.thai}</Text>
                           {w.tone && (
@@ -858,18 +849,13 @@ export default function PracticeCSV() {
                   {availableWords.map((word) => (
                     <TouchableOpacity
                       key={word.id}
-                      style={[st.wordTile, word.isGrammar && st.grammarTile]}
+                      style={st.wordTile}
                       onPress={() => {
                         if (autoplayTTS) speak(word.thai);
                         handleWordTap(word);
                       }}
                       activeOpacity={0.8}
                     >
-                      {word.isGrammar && (
-                        <View style={st.grammarBadge}>
-                          <Text style={st.grammarBadgeIcon}>*</Text>
-                        </View>
-                      )}
                       <View style={st.wordTileHeader}>
                         <Text style={st.wordTileThai}>{word.thai}</Text>
                         <View
@@ -1035,18 +1021,10 @@ export default function PracticeCSV() {
                               {opt.breakdown.map((w, wi) => (
                                 <TouchableOpacity
                                   key={wi}
-                                  style={[
-                                    st.matchWordTile,
-                                    w.grammar && st.grammarTile,
-                                  ]}
+                                  style={st.matchWordTile}
                                   onPress={() => speak(w.thai)}
                                   activeOpacity={0.8}
                                 >
-                                  {w.grammar && (
-                                    <View style={st.grammarBadge}>
-                                      <Text style={st.grammarBadgeIcon}>*</Text>
-                                    </View>
-                                  )}
                                   <View style={st.matchWordTileHeader}>
                                     <Text style={st.matchWordTileThai}>{w.thai}</Text>
                                     {w.tone && (
@@ -1245,11 +1223,6 @@ const st = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 22,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   speakerBtn: {
     flexDirection: "row",
@@ -1382,14 +1355,6 @@ const st = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  grammarTile: {
-    borderWidth: 1.5,
-    borderColor: Sketch.inkFaint,
-    borderStyle: "dashed",
-  },
-  grammarBadge: { position: "absolute", top: 4, right: 4 },
-  grammarBadgeIcon: { fontSize: 11, fontWeight: "800", color: Sketch.inkMuted },
-
   toneDot: {
     width: 10,
     height: 10,
@@ -1402,15 +1367,10 @@ const st = StyleSheet.create({
     backgroundColor: Sketch.orange,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    borderColor: "rgba(148, 73, 45, 0.35)",
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
   },
   primaryBtnDisabled: {
     opacity: 0.55,
@@ -1424,8 +1384,6 @@ const st = StyleSheet.create({
   secondaryBtn: {
     backgroundColor: Sketch.paperDark,
     borderColor: Sketch.inkFaint,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
   },
   secondaryBtnText: {
     color: Sketch.inkLight,
@@ -1438,11 +1396,6 @@ const st = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   promptLabel: {
     fontSize: 11,
@@ -1593,11 +1546,6 @@ const st = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     padding: 12,
     gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   matchSentenceButton: {
     flexDirection: "row",

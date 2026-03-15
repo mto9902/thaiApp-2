@@ -19,6 +19,7 @@ export default function RootLayout() {
       <SubscriptionProvider authRefreshKey={pathname}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
           <Stack.Screen
             name="premium"
             options={{ headerShown: false, presentation: 'modal' }}

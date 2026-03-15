@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -19,6 +18,7 @@ import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../src/config";
 import { usePremiumAccess } from "../src/subscription/usePremiumAccess";
 import { clearAuthState } from "../src/utils/auth";
+import { getAuthToken } from "../src/utils/authStorage";
 
 type SettingsProfile = {
   id: number;
@@ -48,7 +48,7 @@ export default function SettingsScreen() {
 
   const loadProfile = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       if (!token) {
         router.replace("/login");
         return;
@@ -105,7 +105,7 @@ export default function SettingsScreen() {
     if (savingName || !hasDraftChanges) return;
     try {
       setSavingName(true);
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       if (!token) return;
 
       const res = await fetch(`${API_BASE}/me`, {
@@ -137,7 +137,7 @@ export default function SettingsScreen() {
 
     try {
       setActionBusy(true);
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       if (!token) return;
 
       if (confirmAction === "reset") {

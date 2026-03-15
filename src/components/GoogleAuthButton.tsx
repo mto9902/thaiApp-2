@@ -1,6 +1,11 @@
 import { Sketch } from "@/constants/theme";
 import TermsAgreement from "@/src/components/TermsAgreement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
@@ -17,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { API_BASE } from "../config";
+import { setAuthToken } from "../utils/authStorage";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -60,27 +66,68 @@ type PendingGoogleConsent = {
   displayName?: string | null;
 };
 
+function getNativeGoogleWebClientId() {
+  return googleClientConfig.webClientId ?? googleClientConfig.clientId ?? null;
+}
+
 function getCurrentPlatformClientId() {
   if (Platform.OS === "android") {
-    return (
-      googleClientConfig.androidClientId ??
-      googleClientConfig.clientId ??
-      null
-    );
+    return getNativeGoogleWebClientId();
   }
 
   if (Platform.OS === "ios") {
-    return googleClientConfig.iosClientId ?? googleClientConfig.clientId ?? null;
+    return getNativeGoogleWebClientId();
   }
 
   return googleClientConfig.webClientId ?? googleClientConfig.clientId ?? null;
 }
 
-function GoogleAuthButtonReady() {
+function useGoogleTokenExchange() {
   const router = useRouter();
+
+  return useCallback(
+    async (idToken: string, acceptedTermsForSignup: boolean) => {
+      const authResponse = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken,
+          acceptedTerms: acceptedTermsForSignup,
+        }),
+      });
+
+      const data = await authResponse.json();
+
+      if (!authResponse.ok) {
+        throw new Error(data.error || "Google sign-in failed");
+      }
+
+      if (data.requiresTerms) {
+        return {
+          requiresTerms: true as const,
+          idToken,
+          email: data.email ?? "",
+          displayName: data.displayName ?? null,
+        };
+      }
+
+      await AsyncStorage.multiRemove(["isGuest"]);
+      await setAuthToken(data.token);
+      router.replace("/(tabs)");
+
+      return {
+        requiresTerms: false as const,
+      };
+    },
+    [router],
+  );
+}
+
+function GoogleAuthButtonWeb() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const exchangeGoogleToken = useGoogleTokenExchange();
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     {
       clientId: googleClientConfig.clientId,
@@ -95,50 +142,6 @@ function GoogleAuthButtonReady() {
       path: redirectPath,
       preferLocalhost: true,
     },
-  );
-
-  const exchangeGoogleToken = useCallback(
-    async (idToken: string, acceptedTermsForSignup: boolean) => {
-      try {
-        const authResponse = await fetch(`${API_BASE}/auth/google`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idToken,
-            acceptedTerms: acceptedTermsForSignup,
-          }),
-        });
-
-        const data = await authResponse.json();
-
-        if (!authResponse.ok) {
-          throw new Error(data.error || "Google sign-in failed");
-        }
-
-        if (data.requiresTerms) {
-          setPendingConsent({
-            idToken,
-            email: data.email ?? "",
-            displayName: data.displayName ?? null,
-          });
-          setAcceptedTerms(false);
-          setIsSubmitting(false);
-          return;
-        }
-
-        setPendingConsent(null);
-        setAcceptedTerms(false);
-        await AsyncStorage.multiRemove(["isGuest"]);
-        await AsyncStorage.setItem("token", data.token);
-        router.replace("/(tabs)");
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Google sign-in failed";
-        Alert.alert("Google sign-in failed", message);
-        setIsSubmitting(false);
-      }
-    },
-    [router],
   );
 
   useEffect(() => {
@@ -169,7 +172,28 @@ function GoogleAuthButtonReady() {
       return;
     }
 
-    void exchangeGoogleToken(idToken, false);
+    void (async () => {
+      try {
+        const result = await exchangeGoogleToken(idToken, false);
+        if (result.requiresTerms) {
+          setPendingConsent({
+            idToken: result.idToken,
+            email: result.email,
+            displayName: result.displayName,
+          });
+          setAcceptedTerms(false);
+        } else {
+          setPendingConsent(null);
+          setAcceptedTerms(false);
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Google sign-in failed";
+        Alert.alert("Google sign-in failed", message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   }, [exchangeGoogleToken, response]);
 
   async function handlePress() {
@@ -202,7 +226,17 @@ function GoogleAuthButtonReady() {
     if (!pendingConsent || !acceptedTerms || isSubmitting) return;
 
     setIsSubmitting(true);
-    await exchangeGoogleToken(pendingConsent.idToken, true);
+    try {
+      await exchangeGoogleToken(pendingConsent.idToken, true);
+      setPendingConsent(null);
+      setAcceptedTerms(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Google sign-in failed";
+      Alert.alert("Google sign-in failed", message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -295,6 +329,220 @@ function GoogleAuthButtonReady() {
   );
 }
 
+function GoogleAuthButtonNative() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [hasPreviousAccount, setHasPreviousAccount] = useState(false);
+  const exchangeGoogleToken = useGoogleTokenExchange();
+  const nativeWebClientId = getNativeGoogleWebClientId();
+
+  useEffect(() => {
+    if (!nativeWebClientId) return;
+
+    GoogleSignin.configure({
+      webClientId: nativeWebClientId,
+      iosClientId: googleClientConfig.iosClientId,
+      profileImageSize: 120,
+    });
+    setHasPreviousAccount(GoogleSignin.hasPreviousSignIn());
+  }, [nativeWebClientId]);
+
+  async function handlePress(forceAccountChooser = false) {
+    if (!nativeWebClientId || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (forceAccountChooser && GoogleSignin.hasPreviousSignIn()) {
+        await GoogleSignin.signOut();
+        setHasPreviousAccount(false);
+      }
+      const signInResult = await GoogleSignin.signIn();
+
+      if (signInResult.type === "cancelled") {
+        setIsSubmitting(false);
+        return;
+      }
+
+      const idToken =
+        signInResult.data.idToken || (await GoogleSignin.getTokens()).idToken;
+
+      if (!idToken) {
+        Alert.alert(
+          "Google sign-in failed",
+          "Google did not return a sign-in token. Please try again.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const result = await exchangeGoogleToken(idToken, false);
+      if (result.requiresTerms) {
+        setPendingConsent({
+          idToken: result.idToken,
+          email: result.email,
+          displayName: result.displayName,
+        });
+        setAcceptedTerms(false);
+        setHasPreviousAccount(true);
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      if (isErrorWithCode(err)) {
+        if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+          setIsSubmitting(false);
+          return;
+        }
+        if (err.code === statusCodes.IN_PROGRESS) {
+          setIsSubmitting(false);
+          return;
+        }
+        if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          Alert.alert(
+            "Google Play Services required",
+            "Update Google Play Services on this device and try again.",
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const message =
+        err instanceof Error ? err.message : "Google sign-in failed";
+      Alert.alert("Google sign-in failed", message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setPendingConsent(null);
+    setAcceptedTerms(false);
+    setHasPreviousAccount(true);
+    setIsSubmitting(false);
+  }
+
+  async function handleConsentContinue() {
+    if (!pendingConsent || !acceptedTerms || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await exchangeGoogleToken(pendingConsent.idToken, true);
+      setPendingConsent(null);
+      setAcceptedTerms(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Google sign-in failed";
+      Alert.alert("Google sign-in failed", message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <Modal
+        visible={pendingConsent !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isSubmitting) {
+            setPendingConsent(null);
+            setAcceptedTerms(false);
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              if (!isSubmitting) {
+                setPendingConsent(null);
+                setAcceptedTerms(false);
+              }
+            }}
+          />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Agree to Continue</Text>
+            <Text style={styles.modalBody}>
+              Before we create your Keystone account with Google, please agree
+              to the Terms and Conditions and Privacy Policy.
+            </Text>
+
+            {pendingConsent ? (
+              <View style={styles.accountCard}>
+                <Text style={styles.accountLabel}>Google account</Text>
+                <Text style={styles.accountName}>
+                  {pendingConsent.displayName?.trim() || pendingConsent.email}
+                </Text>
+                <Text style={styles.accountEmail}>{pendingConsent.email}</Text>
+              </View>
+            ) : null}
+
+            <TermsAgreement
+              accepted={acceptedTerms}
+              onToggle={() => setAcceptedTerms((current) => !current)}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.secondaryButton, styles.modalAction]}
+                onPress={() => {
+                  setPendingConsent(null);
+                  setAcceptedTerms(false);
+                }}
+                activeOpacity={0.82}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.secondaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  styles.modalAction,
+                  (!acceptedTerms || isSubmitting) && styles.primaryButtonDisabled,
+                ]}
+                onPress={handleConsentContinue}
+                activeOpacity={0.82}
+                disabled={!acceptedTerms || isSubmitting}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isSubmitting ? "Creating account..." : "Agree and Continue"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <TouchableOpacity
+        style={[styles.button, isSubmitting && styles.buttonDisabled]}
+        onPress={() => void handlePress()}
+        activeOpacity={0.85}
+        disabled={!nativeWebClientId || isSubmitting}
+      >
+        <Text style={styles.buttonText}>
+          {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
+        </Text>
+      </TouchableOpacity>
+
+      {hasPreviousAccount ? (
+        <TouchableOpacity
+          style={styles.switchAccountButton}
+          onPress={() => void handlePress(true)}
+          activeOpacity={0.8}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.switchAccountText}>
+            Use a different Google account
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </>
+  );
+}
+
 export default function GoogleAuthButton() {
   const hasClientId = !!getCurrentPlatformClientId();
   const isExpoGoNative =
@@ -362,7 +610,11 @@ export default function GoogleAuthButton() {
     );
   }
 
-  return <GoogleAuthButtonReady />;
+  if (Platform.OS === "android" || Platform.OS === "ios") {
+    return <GoogleAuthButtonNative />;
+  }
+
+  return <GoogleAuthButtonWeb />;
 }
 
 const styles = StyleSheet.create({
@@ -381,6 +633,16 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.ink,
     fontSize: 15,
+  },
+  switchAccountButton: {
+    alignSelf: "center",
+    marginTop: 12,
+    paddingVertical: 4,
+  },
+  switchAccountText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.orange,
   },
   modalOverlay: {
     flex: 1,

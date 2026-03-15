@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -20,6 +19,7 @@ import {
   getPracticeWordTrackingEnabled,
   setPracticeWordTrackingEnabled,
 } from "../../src/utils/practiceWordPreference";
+import { getAuthToken } from "../../src/utils/authStorage";
 import { MUTED_APP_ACCENTS, withAlpha } from "../../src/utils/toneAccent";
 
 type VocabStatsData = {
@@ -73,7 +73,7 @@ export default function VocabStatsScreen() {
 
   async function loadData() {
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await getAuthToken();
       const [statsRes, progressRes] = await Promise.all([
         fetch(`${API_BASE}/vocab/stats`, {
           headers: { Authorization: `Bearer ${token}` },

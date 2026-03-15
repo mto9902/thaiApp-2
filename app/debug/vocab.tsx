@@ -1,7 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { SafeAreaView, Text, View } from "react-native";
 import { API_BASE } from "../../src/config";
+import { getAuthToken } from "../../src/utils/authStorage";
 
 export default function DebugVocab() {
   const [words, setWords] = useState<any[]>([]);
@@ -11,7 +11,7 @@ export default function DebugVocab() {
   }, []);
 
   async function loadWords() {
-    const token = await AsyncStorage.getItem("token");
+    const token = await getAuthToken();
 
     const res = await fetch(`${API_BASE}/vocab/today`, {
       headers: {
@@ -26,7 +26,7 @@ export default function DebugVocab() {
   return (
     <SafeAreaView style={{ padding: 20 }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 20 }}>
-        Today's Words
+        Today&apos;s Words
       </Text>
 
       {words.map((w, i) => (
