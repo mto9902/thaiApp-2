@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
+  ListRenderItem,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +15,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
+import {
+  GRAMMAR_STAGE_META,
+  GRAMMAR_STAGES,
+  type GrammarStage,
+} from "../../src/data/grammarStages";
 import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { getAuthToken } from "../../src/utils/authStorage";
 
@@ -41,8 +47,20 @@ export default function AdminDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [search, setSearch] = useState("");
+  const [selectedStage, setSelectedStage] = useState<GrammarStage | "All">(
+    "A1.1",
+  );
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [summaries, setSummaries] = useState<AdminGrammarSummary[]>([]);
+  const deferredSearch = useDeferredValue(search);
+
+  const availableStages = useMemo(
+    () =>
+      GRAMMAR_STAGES.filter((stage) =>
+        grammarPoints.some((point) => point.stage === stage),
+      ),
+    [grammarPoints],
+  );
 
   const loadData = useCallback(async () => {
     try {
@@ -101,11 +119,15 @@ export default function AdminDashboardScreen() {
   );
 
   const filteredPoints = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = deferredSearch.trim().toLowerCase();
+    const basePoints =
+      selectedStage === "All"
+        ? grammarPoints
+        : grammarPoints.filter((point) => point.stage === selectedStage);
 
-    if (!query) return grammarPoints;
+    if (!query) return basePoints;
 
-    return grammarPoints.filter((point) => {
+    return basePoints.filter((point) => {
       const haystack = [
         point.id,
         point.title,
@@ -118,7 +140,37 @@ export default function AdminDashboardScreen() {
 
       return haystack.includes(query);
     });
-  }, [grammarPoints, search]);
+  }, [deferredSearch, grammarPoints, selectedStage]);
+
+  const renderGrammarItem: ListRenderItem<(typeof filteredPoints)[number]> =
+    useCallback(
+      ({ item: point }) => {
+        const summary = summaryById.get(point.id);
+
+        return (
+          <TouchableOpacity
+            style={styles.grammarCard}
+            onPress={() => router.push(`/admin/grammar/${point.id}` as any)}
+            activeOpacity={0.82}
+          >
+            <View style={styles.cardTop}>
+              <Text style={styles.stageTag}>{point.stage}</Text>
+              {summary?.hasOverride ? (
+                <Text style={styles.overrideTag}>Edited</Text>
+              ) : null}
+            </View>
+            <Text style={styles.grammarTitle}>{point.title}</Text>
+            <Text style={styles.grammarMeta}>
+              {point.id} · {summary?.rowCount ?? 0} rows
+            </Text>
+            <Text style={styles.grammarPattern} numberOfLines={2}>
+              {point.pattern}
+            </Text>
+          </TouchableOpacity>
+        );
+      },
+      [router, summaryById],
+    );
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
@@ -154,74 +206,115 @@ export default function AdminDashboardScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView
+        <FlatList
+          data={filteredPoints}
+          keyExtractor={(item) => item.id}
+          renderItem={renderGrammarItem}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sectionLabel}>Overview</Text>
-          <View style={styles.statsGrid}>
-            {[
-              { label: "Users", value: stats?.totalUsers ?? 0 },
-              { label: "Active 7d", value: stats?.activeUsers7d ?? 0 },
-              { label: "Bookmarks", value: stats?.totalBookmarks ?? 0 },
-              { label: "Grammar rounds", value: stats?.grammarRounds ?? 0 },
-              { label: "Vocab cards", value: stats?.vocabCards ?? 0 },
-              { label: "Rows", value: stats?.grammarPracticeRows ?? 0 },
-              { label: "Topics", value: stats?.grammarTopics ?? 0 },
-              { label: "Overrides", value: stats?.overriddenTopics ?? 0 },
-            ].map((item) => (
-              <View key={item.label} style={styles.statCard}>
-                <Text style={styles.statValue}>{item.value}</Text>
-                <Text style={styles.statLabel}>{item.label}</Text>
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={8}
+          removeClippedSubviews
+          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+          ListHeaderComponent={
+            <View style={styles.headerContent}>
+              <Text style={styles.sectionLabel}>Overview</Text>
+              <View style={styles.statsGrid}>
+                {[
+                  { label: "Users", value: stats?.totalUsers ?? 0 },
+                  { label: "Active 7d", value: stats?.activeUsers7d ?? 0 },
+                  { label: "Bookmarks", value: stats?.totalBookmarks ?? 0 },
+                  { label: "Grammar rounds", value: stats?.grammarRounds ?? 0 },
+                  { label: "Vocab cards", value: stats?.vocabCards ?? 0 },
+                  { label: "Rows", value: stats?.grammarPracticeRows ?? 0 },
+                  { label: "Topics", value: stats?.grammarTopics ?? 0 },
+                  { label: "Edited lessons", value: stats?.overriddenTopics ?? 0 },
+                ].map((item) => (
+                  <View key={item.label} style={styles.statCard}>
+                    <Text style={styles.statValue}>{item.value}</Text>
+                    <Text style={styles.statLabel}>{item.label}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>Grammar Editor</Text>
-            <Text style={styles.sectionHint}>
-              {filteredPoints.length} of {grammarPoints.length} topics
-            </Text>
-          </View>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>Grammar Editor</Text>
+                <Text style={styles.sectionHint}>
+                  {filteredPoints.length} of {grammarPoints.length} topics
+                </Text>
+              </View>
 
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search by title, id, stage, or focus"
-            placeholderTextColor={Sketch.inkFaint}
-            style={styles.searchInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search by title, id, stage, or focus"
+                placeholderTextColor={Sketch.inkFaint}
+                style={styles.searchInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-          <View style={styles.list}>
-            {filteredPoints.map((point) => {
-              const summary = summaryById.get(point.id);
-              return (
+              <View style={styles.stageFilterWrap}>
                 <TouchableOpacity
-                  key={point.id}
-                  style={styles.grammarCard}
-                  onPress={() => router.push(`/admin/grammar/${point.id}` as any)}
+                  style={[
+                    styles.stageChip,
+                    selectedStage === "All" && styles.stageChipActive,
+                  ]}
+                  onPress={() => setSelectedStage("All")}
                   activeOpacity={0.82}
                 >
-                  <View style={styles.cardTop}>
-                    <Text style={styles.stageTag}>{point.stage}</Text>
-                    {summary?.hasOverride ? (
-                      <Text style={styles.overrideTag}>Edited</Text>
-                    ) : null}
-                  </View>
-                  <Text style={styles.grammarTitle}>{point.title}</Text>
-                  <Text style={styles.grammarMeta}>
-                    {point.id} · {summary?.rowCount ?? 0} rows
-                  </Text>
-                  <Text style={styles.grammarPattern} numberOfLines={2}>
-                    {point.pattern}
+                  <Text
+                    style={[
+                      styles.stageChipText,
+                      selectedStage === "All" && styles.stageChipTextActive,
+                    ]}
+                  >
+                    All
                   </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
+
+                {availableStages.map((stage) => {
+                  const active = selectedStage === stage;
+                  return (
+                    <TouchableOpacity
+                      key={stage}
+                      style={[styles.stageChip, active && styles.stageChipActive]}
+                      onPress={() => setSelectedStage(stage)}
+                      activeOpacity={0.82}
+                    >
+                      <Text
+                        style={[
+                          styles.stageChipText,
+                          active && styles.stageChipTextActive,
+                        ]}
+                      >
+                        {stage}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.stageChipSubtext,
+                          active && styles.stageChipTextActive,
+                        ]}
+                      >
+                        {GRAMMAR_STAGE_META[stage].shortTitle}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No grammar points found</Text>
+              <Text style={styles.emptyBody}>
+                Try another unit or a broader search.
+              </Text>
+            </View>
+          }
+        />
       )}
     </SafeAreaView>
   );
@@ -280,7 +373,10 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  headerContent: {
     gap: 16,
+    paddingBottom: 16,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -326,8 +422,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Sketch.ink,
   },
-  list: {
-    gap: 12,
+  stageFilterWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  stageChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+    gap: 2,
+  },
+  stageChipActive: {
+    borderColor: Sketch.orange,
+  },
+  stageChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+  },
+  stageChipSubtext: {
+    fontSize: 11,
+    color: Sketch.inkMuted,
+  },
+  stageChipTextActive: {
+    color: Sketch.ink,
   },
   grammarCard: {
     borderWidth: 1,
@@ -335,6 +456,9 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.cardBg,
     padding: 16,
     gap: 8,
+  },
+  itemSeparator: {
+    height: 12,
   },
   cardTop: {
     flexDirection: "row",
@@ -366,5 +490,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: Sketch.inkLight,
+  },
+  emptyState: {
+    paddingVertical: 28,
+    gap: 6,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  emptyBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Sketch.inkMuted,
   },
 });
