@@ -1,4 +1,10 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const ReviewScreen = require("./index.tsx").default;
+import DesktopSidebarShell from "@/src/components/web/DesktopSidebarShell";
+import ReviewDesktopScreen from "@/src/screens/web/ReviewDesktopScreen";
 
-export default ReviewScreen;
+export default function ReviewWebScreen() {
+  return (
+    <DesktopSidebarShell>
+      <ReviewDesktopScreen />
+    </DesktopSidebarShell>
+  );
+}

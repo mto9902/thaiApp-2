@@ -1,4 +1,4 @@
-import { PropsWithChildren, ReactNode } from "react";
+import { PropsWithChildren, ReactNode, RefObject } from "react";
 import {
   ScrollView,
   StyleProp,
@@ -18,6 +18,7 @@ type DesktopPageProps = PropsWithChildren<{
   toolbar?: ReactNode;
   maxWidth?: number;
   contentStyle?: StyleProp<ViewStyle>;
+  scrollRef?: RefObject<ScrollView | null>;
 }>;
 
 type DesktopPanelProps = PropsWithChildren<{
@@ -31,11 +32,13 @@ export function DesktopPage({
   toolbar,
   maxWidth = 1480,
   contentStyle,
+  scrollRef,
   children,
 }: DesktopPageProps) {
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >

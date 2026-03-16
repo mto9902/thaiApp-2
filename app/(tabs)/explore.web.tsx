@@ -322,7 +322,7 @@ export default function ExploreWeb() {
       <DesktopPage
         eyebrow="Bookmarks"
         title="Saved grammar lessons"
-        subtitle="Separate your quick mix actions from the actual bookmark library, so the page reads more like a workspace and less like one long mobile stack."
+        subtitle="Keep saved lessons close, start quick practice, and return to grammar you want to revisit."
       >
         <View style={styles.pageStack}>
         <View style={styles.actionGrid}>
@@ -365,7 +365,7 @@ export default function ExploreWeb() {
             title="Bookmark library"
             caption={
               isGuest
-                ? "Log in to use bookmarks on desktop."
+                ? "Log in to save lessons and practice from bookmarks."
                 : loading
                   ? "Loading your saved lessons."
                   : `${bookmarked.length} saved lessons`
@@ -373,7 +373,9 @@ export default function ExploreWeb() {
           />
 
           {isGuest ? (
-            <Text style={styles.helperText}>Log in to use bookmarks on desktop.</Text>
+            <Text style={styles.helperText}>
+              Log in to save lessons and practice from bookmarks.
+            </Text>
           ) : loading ? (
             <Text style={styles.helperText}>Loading bookmarks...</Text>
           ) : bookmarked.length === 0 ? (

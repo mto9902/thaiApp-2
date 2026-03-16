@@ -94,7 +94,7 @@ export default function GrammarProgressWeb() {
     <DesktopPage
       eyebrow="Grammar"
       title="Your grammar progress"
-      subtitle="A desktop curriculum board with level summaries, unit cards, and a single clear recommendation."
+      subtitle="Follow the lesson path, see what is complete, and continue from the next topic."
     >
       <View style={styles.pageStack}>
         <View style={styles.topRow}>
@@ -155,7 +155,7 @@ export default function GrammarProgressWeb() {
         <DesktopPanel>
           <DesktopSectionTitle
             title="Levels"
-            caption="Each level is split into separate unit cards instead of one long mobile-style accordion."
+            caption="Browse the curriculum by level and open any unit from the lesson path."
           />
           <View style={styles.levelGrid}>
             {levelSections.map((section) => (

@@ -230,7 +230,7 @@ export default function GrammarDetailWeb() {
       <DesktopPage
         eyebrow={grammar.stage}
         title={grammar.title}
-        subtitle="A desktop lesson view with room for pattern notes, explanation, and breakdown reading."
+        subtitle="Study the grammar point, hear the example, and move straight into practice."
         toolbar={
           <TouchableOpacity
             style={styles.topButton}
@@ -247,7 +247,7 @@ export default function GrammarDetailWeb() {
             <DesktopPanel>
               <DesktopSectionTitle
                 title="Concept"
-                caption="Lesson content used on the explanation page."
+                caption="Read the core explanation before moving into the example."
               />
               <Text style={styles.bodyText}>{explanation}</Text>
             </DesktopPanel>

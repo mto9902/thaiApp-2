@@ -1,10 +1,12 @@
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -20,6 +22,11 @@ type Props = {
 };
 
 export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
+  const { width, height } = useWindowDimensions();
+  const isWeb = Platform.OS === "web";
+  const sheetWidth = Math.min(860, width - 48);
+  const sheetMaxHeight = Math.min(height - 56, 760);
+
   return (
     <Modal
       animationType="slide"
@@ -27,26 +34,32 @@ export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
       transparent
       visible={visible}
     >
-      <View style={styles.modalRoot}>
+      <View style={[styles.modalRoot, isWeb && styles.modalRootWeb]}>
         <Pressable onPress={onClose} style={styles.backdrop} />
 
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
+        <View
+          style={[
+            styles.sheet,
+            isWeb && styles.sheetWeb,
+            isWeb && { width: sheetWidth, maxHeight: sheetMaxHeight },
+          ]}
+        >
+          {!isWeb ? <View style={styles.handle} /> : null}
 
           <View style={styles.headerRow}>
             <View style={styles.headerCopy}>
               <Text style={styles.eyebrow}>Vocabulary</Text>
-              <Text style={styles.title}>What is SRS?</Text>
+              <Text style={styles.title}>How vocabulary review works</Text>
               <Text style={styles.subtitle}>
-                SRS is a spaced repetition system that decides when each word
-                should come back.
+                Spaced repetition brings a word back when it is most useful to
+                review, so your queue stays focused instead of overwhelming.
               </Text>
             </View>
 
             <TouchableOpacity
               activeOpacity={0.72}
               onPress={onClose}
-              style={styles.closeButton}
+              style={[styles.closeButton, isWeb && styles.closeButtonWeb]}
             >
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
@@ -56,92 +69,102 @@ export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>How review works</Text>
-              <Text style={styles.body}>
-                New words start with short learning steps, then graduate into
-                longer review intervals. Your answer changes how soon the word
-                returns.
-              </Text>
-              <View style={styles.gradeGrid}>
-                <View
-                  style={[
-                    styles.gradeChip,
-                    {
-                      backgroundColor: MUTED_FEEDBACK_ACCENTS.error,
-                      borderColor: MUTED_FEEDBACK_ACCENTS.error,
-                    },
-                  ]}
-                >
-                  <Text style={styles.gradeLabelOnDark}>Again</Text>
-                  <Text style={styles.gradeTextOnDark}>
-                    Brings the word back soon.
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.gradeChip,
-                    {
-                      backgroundColor: MUTED_APP_ACCENTS.clay,
-                      borderColor: MUTED_APP_ACCENTS.clay,
-                    },
-                  ]}
-                >
-                  <Text style={styles.gradeLabelOnDark}>Hard</Text>
-                  <Text style={styles.gradeTextOnDark}>
-                    Keeps progress slower.
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.gradeChip,
-                    {
-                      backgroundColor: MUTED_FEEDBACK_ACCENTS.success,
-                      borderColor: MUTED_FEEDBACK_ACCENTS.success,
-                    },
-                  ]}
-                >
-                  <Text style={styles.gradeLabelOnDark}>Good</Text>
-                  <Text style={styles.gradeTextOnDark}>
-                    Uses the normal next step.
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.gradeChip,
-                    {
-                      backgroundColor: MUTED_APP_ACCENTS.slate,
-                      borderColor: MUTED_APP_ACCENTS.slate,
-                    },
-                  ]}
-                >
-                  <Text style={styles.gradeLabelOnDark}>Easy</Text>
-                  <Text style={styles.gradeTextOnDark}>
-                    Jumps the word further ahead.
-                  </Text>
+            <View style={[styles.sectionGrid, isWeb && styles.sectionGridWeb]}>
+              <View style={[styles.sectionCard, isWeb && styles.sectionCardWeb]}>
+                <Text style={styles.sectionTitle}>How grading works</Text>
+                <Text style={styles.body}>
+                  New words start with short steps. As you answer correctly, the
+                  interval grows. If a word feels shaky, bring it back sooner.
+                </Text>
+                <View style={[styles.gradeGrid, isWeb && styles.gradeGridWeb]}>
+                  <View
+                    style={[
+                      styles.gradeChip,
+                      isWeb && styles.gradeChipWeb,
+                      {
+                        backgroundColor: MUTED_FEEDBACK_ACCENTS.error,
+                        borderColor: MUTED_FEEDBACK_ACCENTS.error,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.gradeLabelOnDark}>Again</Text>
+                    <Text style={styles.gradeTextOnDark}>
+                      See it again very soon.
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.gradeChip,
+                      isWeb && styles.gradeChipWeb,
+                      {
+                        backgroundColor: MUTED_APP_ACCENTS.clay,
+                        borderColor: MUTED_APP_ACCENTS.clay,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.gradeLabelOnDark}>Hard</Text>
+                    <Text style={styles.gradeTextOnDark}>
+                      Keep the interval short.
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.gradeChip,
+                      isWeb && styles.gradeChipWeb,
+                      {
+                        backgroundColor: MUTED_FEEDBACK_ACCENTS.success,
+                        borderColor: MUTED_FEEDBACK_ACCENTS.success,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.gradeLabelOnDark}>Good</Text>
+                    <Text style={styles.gradeTextOnDark}>
+                      Continue at the normal pace.
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.gradeChip,
+                      isWeb && styles.gradeChipWeb,
+                      {
+                        backgroundColor: MUTED_APP_ACCENTS.slate,
+                        borderColor: MUTED_APP_ACCENTS.slate,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.gradeLabelOnDark}>Easy</Text>
+                    <Text style={styles.gradeTextOnDark}>
+                      Push the word further out.
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Daily new-word limit</Text>
-              <Text style={styles.body}>
-                The current backend limit is 20 new vocabulary words per day.
-                That keeps the queue manageable so the review load does not grow
-                too fast.
-              </Text>
-            </View>
+              <View style={[styles.sectionCard, isWeb && styles.sectionCardWeb]}>
+                <Text style={styles.sectionTitle}>New words per day</Text>
+                <Text style={styles.body}>
+                  New cards are capped each day so your review queue stays
+                  realistic and does not spike too quickly.
+                </Text>
+              </View>
 
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Adding Vocab</Text>
-              <Text style={styles.body}>
-                If `Add Vocabulary` is turned on, words from grammar practice
-                are added to your vocabulary deck automatically.
-              </Text>
-              <Text style={styles.body}>
-                Words you study in grammar and answer correctly are added to SRS
-                for later review, up to the same daily limit.
-              </Text>
+              <View
+                style={[
+                  styles.sectionCard,
+                  isWeb && styles.sectionCardWeb,
+                  isWeb && styles.sectionCardWide,
+                ]}
+              >
+                <Text style={styles.sectionTitle}>Adding vocabulary</Text>
+                <Text style={styles.body}>
+                  If `Add Vocabulary` is on, words from grammar practice can be
+                  added to your review deck automatically.
+                </Text>
+                <Text style={styles.body}>
+                  Correct answers in grammar help build a review queue you can
+                  come back to later.
+                </Text>
+              </View>
             </View>
           </ScrollView>
         </View>
@@ -154,6 +177,11 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: "flex-end",
+  },
+  modalRootWeb: {
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -172,6 +200,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     ...sketchShadow(10),
+  },
+  sheetWeb: {
+    alignSelf: "center",
+    borderRadius: 0,
+    minHeight: 0,
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    justifyContent: "flex-start",
   },
   handle: {
     alignSelf: "center",
@@ -214,11 +250,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Sketch.paperDark,
     borderColor: Sketch.inkFaint,
-    borderRadius: 999,
+    borderRadius: 0,
     borderWidth: 1,
     minWidth: 70,
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  closeButtonWeb: {
+    minWidth: 88,
+    borderRadius: 0,
   },
   closeButtonText: {
     color: Sketch.inkLight,
@@ -226,17 +266,33 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   scrollContent: {
-    gap: 12,
+    gap: 16,
     paddingBottom: 30,
+  },
+  sectionGrid: {
+    gap: 16,
+  },
+  sectionGridWeb: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
   },
   sectionCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     gap: 10,
     padding: 16,
     ...sketchShadow(3),
+  },
+  sectionCardWeb: {
+    width: "48.9%",
+    padding: 20,
+    gap: 12,
+  },
+  sectionCardWide: {
+    width: "100%",
   },
   sectionTitle: {
     color: Sketch.ink,
@@ -251,12 +307,21 @@ const styles = StyleSheet.create({
   gradeGrid: {
     gap: 8,
   },
+  gradeGridWeb: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   gradeChip: {
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     gap: 3,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    width: "100%",
+  },
+  gradeChipWeb: {
+    width: "48.8%",
   },
   gradeLabelOnDark: {
     color: "#FFFFFF",

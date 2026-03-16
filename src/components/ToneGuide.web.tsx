@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import * as Speech from "expo-speech";
+import { useCallback, useMemo } from "react";
 import {
   Modal,
   Pressable,
@@ -12,15 +11,11 @@ import {
 } from "react-native";
 
 import { Sketch } from "@/constants/theme";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { TONES as TONE_DATA, toLegacyTone } from "@/src/data/tones";
 import { getToneAccent, withAlpha } from "@/src/utils/toneAccent";
 
 const TONES = TONE_DATA.map(toLegacyTone);
-
-function speak(text: string) {
-  Speech.stop();
-  Speech.speak(text, { language: "th-TH", rate: 0.75 });
-}
 
 function PitchCurve({ points, color }: { points: number[]; color: string }) {
   const height = 22;
@@ -44,13 +39,19 @@ function PitchCurve({ points, color }: { points: number[]; color: string }) {
   );
 }
 
-function ToneRow({ tone }: { tone: (typeof TONES)[0] }) {
+function ToneRow({
+  tone,
+  onSpeak,
+}: {
+  tone: (typeof TONES)[0];
+  onSpeak: (text: string) => void;
+}) {
   const accent = getToneAccent(tone.name);
 
   return (
     <TouchableOpacity
       activeOpacity={0.82}
-      onPress={() => speak(tone.example.thai)}
+      onPress={() => onSpeak(tone.example.thai)}
       style={styles.toneRow}
     >
       <View style={styles.toneRowTop}>
@@ -96,9 +97,16 @@ type Props = {
 
 export default function ToneGuide({ visible, onClose }: Props) {
   const { width, height } = useWindowDimensions();
+  const { playSentence } = useSentenceAudio();
   const panelWidth = Math.min(960, width - 64);
   const maxHeight = Math.min(height - 64, 760);
   const columns = width >= 1180 ? 2 : 1;
+  const speak = useCallback(
+    (text: string) => {
+      void playSentence(text, { speed: "slow" });
+    },
+    [playSentence],
+  );
 
   const toneRows = useMemo(
     () =>
@@ -107,10 +115,10 @@ export default function ToneGuide({ visible, onClose }: Props) {
           key={tone.name}
           style={[styles.rowColumn, columns > 1 && styles.rowColumnHalf]}
         >
-          <ToneRow tone={tone} />
+          <ToneRow tone={tone} onSpeak={speak} />
         </View>
       )),
-    [columns],
+    [columns, speak],
   );
 
   return (
@@ -137,8 +145,8 @@ export default function ToneGuide({ visible, onClose }: Props) {
               <Text style={styles.eyebrow}>Reference</Text>
               <Text style={styles.title}>Thai tones</Text>
               <Text style={styles.subtitle}>
-                A desktop listening guide with quick tone reminders. Tap any
-                row to hear the example.
+                Hear each tone, compare the pitch shape, and tap any row to
+                listen to the example.
               </Text>
             </View>
 

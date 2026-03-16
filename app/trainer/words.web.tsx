@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +16,7 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { alphabet } from "@/src/data/alphabet";
 import {
   CONSONANT_INFO,
@@ -44,18 +44,10 @@ function parseDifficulty(value?: string | string[]): TrainerDifficulty {
   return "easy";
 }
 
-function speakThai(text: string) {
-  Speech.stop();
-  Speech.speak(text, {
-    language: "th-TH",
-    pitch: 1,
-    rate: 0.8,
-  });
-}
-
 export default function TrainerWordsWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { playSentence } = useSentenceAudio();
   const params = useLocalSearchParams<{
     difficulty?: string;
     consonantGroups?: string;
@@ -127,7 +119,7 @@ export default function TrainerWordsWeb() {
       <DesktopPage
         eyebrow="Trainer"
         title="Practice words"
-        subtitle="A desktop batch view for generated reading words, with the current filter context kept in sight."
+        subtitle="Practice a focused reading batch with your current difficulty and sound filters."
         toolbar={
           <View style={styles.toolbar}>
             <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.82}>
@@ -201,7 +193,7 @@ export default function TrainerWordsWeb() {
                   <TouchableOpacity
                     key={`${word.thai}-${index}`}
                     style={[styles.wordCard, { width: cardWidth }]}
-                    onPress={() => speakThai(word.thai)}
+                    onPress={() => void playSentence(word.thai, { speed: "slow" })}
                     activeOpacity={0.82}
                   >
                     <View style={styles.wordCardHeader}>

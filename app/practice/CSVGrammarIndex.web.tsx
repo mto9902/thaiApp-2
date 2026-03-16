@@ -145,7 +145,7 @@ export default function CSVGrammarIndexWeb() {
             ? stageMeta?.subtitle
             : selectedLevel
               ? `${levelMeta?.title ?? selectedLevel} lesson track`
-              : "Browse the full curriculum and open any grammar lesson from the list."
+              : "Browse the curriculum and open any grammar lesson from the list."
         }
         toolbar={
           <TouchableOpacity
@@ -219,7 +219,7 @@ export default function CSVGrammarIndexWeb() {
           <DesktopPanel>
             <DesktopSectionTitle
               title="Grammar topics"
-              caption="Desktop view keeps the full curriculum visible while giving each lesson more room."
+              caption="Open any lesson in this unit and continue where you left off."
             />
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -233,11 +233,7 @@ export default function CSVGrammarIndexWeb() {
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[
-                      styles.card,
-                      done && styles.cardLearned,
-                      { width: cardWidth },
-                    ]}
+                    style={[styles.card, { width: cardWidth }]}
                     onPress={() => {
                       if (locked) {
                         void ensurePremiumAccess(cardCopy.title, `/practice/${item.id}`);
@@ -412,8 +408,8 @@ const styles = StyleSheet.create({
     minHeight: 282,
   },
   cardLearned: {
-    borderColor: "rgba(57, 97, 146, 0.28)",
-    backgroundColor: "rgba(57, 97, 146, 0.035)",
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
   },
   cardTop: {
     flexDirection: "row",
@@ -434,14 +430,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   doneBadge: {
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Sketch.accent,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
   },
   doneBadgeIcon: {
-    color: "#fff",
+    color: Sketch.accentDark,
   },
   cardTitle: {
     fontSize: 22,

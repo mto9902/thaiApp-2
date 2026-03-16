@@ -27,6 +27,7 @@ import { canAccessApp, isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
 import {
   getAllProgress,
+  GrammarProgressData,
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
 
@@ -56,7 +57,7 @@ function formatReviewDelay(nextDueAt: string): string {
   return `${daysUntilDue}d`;
 }
 
-const HEATMAP_COLORS = ["#E8E8E8", "#D0D0D0", "#B0B0B0", "#888888", "#555555"];
+const HEATMAP_COLORS = ["#E8EDF4", "#B3C1D4", "#627A9D", "#203651", "#050C17"];
 
 type ModuleInfo = {
   stage: GrammarStage;
@@ -70,6 +71,9 @@ export default function HomeScreenWeb() {
   const { grammarPoints } = useGrammarCatalog();
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [isGuest, setIsGuest] = useState(false);
+  const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
+    {},
+  );
   const [moduleProgress, setModuleProgress] = useState<number[]>([]);
   const [overallGrammarProgress, setOverallGrammarProgress] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
@@ -122,6 +126,7 @@ export default function HomeScreenWeb() {
           ? Math.round((totalPracticed / grammarPoints.length) * 100)
           : 0;
 
+      setProgress(allProgress);
       setModuleProgress(nextModuleProgress);
       setOverallGrammarProgress(overallPercent);
     } catch (err) {
@@ -235,6 +240,11 @@ export default function HomeScreenWeb() {
     return cards.slice(0, 4);
   }, [moduleProgress, modules, overallGrammarProgress]);
 
+  const nextLesson = useMemo(
+    () => grammarPoints.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
+    [grammarPoints, progress],
+  );
+
   const heatmapSummary = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -262,8 +272,8 @@ export default function HomeScreenWeb() {
   }, [activityMap]);
 
   function renderHeatmap() {
-    const sq = width >= 1280 ? 14 : 13;
-    const gap = 4;
+    const sq = width >= 1280 ? 15 : 14;
+    const gap = width >= 1280 ? 5 : 4;
     const cell = sq + gap;
     const totalWeeks = 26;
     const dayLabelWidth = 42;
@@ -315,7 +325,11 @@ export default function HomeScreenWeb() {
 
     return (
       <View style={styles.heatmapFrame}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.heatmapScrollContent}
+        >
           <View>
             <View
               style={[
@@ -381,9 +395,9 @@ export default function HomeScreenWeb() {
 
   return (
     <DesktopPage
-      eyebrow="Workspace"
+      eyebrow="Home"
       title="Keystone"
-      subtitle="A desktop study workspace for review, grammar progress, and quick access into the Thai curriculum."
+      subtitle="Pick up your next grammar lesson, review vocabulary, and keep your Thai progress moving."
     >
       <View style={styles.pageStack}>
       <View style={styles.metricStrip}>
@@ -402,15 +416,23 @@ export default function HomeScreenWeb() {
           },
           {
             label: "Bookmarks",
-            value: isGuest ? "--" : "Open",
+            value: "",
             meta: "Saved grammar practice",
             action: () => router.push("/explore" as any),
+            renderValue: (
+              <Ionicons
+                name="bookmark-outline"
+                size={34}
+                color={Sketch.accent}
+              />
+            ),
           },
           {
             label: "Trainer",
-            value: "Aa",
+            value: "",
             meta: "Alphabet and reading drills",
             action: () => router.push("/trainer" as any),
+            renderValue: <Text style={styles.metricThaiGlyph}>ก</Text>,
           },
         ].map((item) => (
           <TouchableOpacity
@@ -419,7 +441,11 @@ export default function HomeScreenWeb() {
             onPress={item.action}
             activeOpacity={0.82}
           >
-            <Text style={styles.metricValue}>{item.value}</Text>
+            {item.renderValue ? (
+              <View style={styles.metricValueWrap}>{item.renderValue}</View>
+            ) : (
+              <Text style={styles.metricValue}>{item.value}</Text>
+            )}
             <Text style={styles.metricLabel}>{item.label}</Text>
             <Text style={styles.metricMeta}>{item.meta}</Text>
           </TouchableOpacity>
@@ -430,15 +456,19 @@ export default function HomeScreenWeb() {
         <DesktopPanel style={styles.focusPanel}>
           <DesktopSectionTitle
             title="Focus"
-            caption="Use the desktop home page as a launchpad instead of a single large hero block."
+            caption="Continue with your next lesson or jump into the grammar path."
           />
           <View style={styles.focusActions}>
             <TouchableOpacity
               style={styles.primaryAction}
-              onPress={() => router.push("/review/" as any)}
+              onPress={() =>
+                nextLesson
+                  ? router.push(`/practice/${nextLesson.id}` as any)
+                  : router.push("/progress" as any)
+              }
               activeOpacity={0.82}
             >
-              <Text style={styles.primaryActionText}>Open Review</Text>
+              <Text style={styles.primaryActionText}>Continue Learning</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryAction}
@@ -477,7 +507,7 @@ export default function HomeScreenWeb() {
             >
               <Text style={styles.emptyProgressTitle}>Begin your grammar journey</Text>
               <Text style={styles.emptyProgressBody}>
-                Explore Thai grammar from A1.1 onward.
+                Start at A1.1 and build through the full curriculum.
               </Text>
             </TouchableOpacity>
           )}
@@ -488,8 +518,8 @@ export default function HomeScreenWeb() {
             title="Activity"
             caption={
               isGuest
-                ? "Log in to track the vocabulary heatmap."
-                : "A 26-week overview of your vocabulary activity."
+                ? "Log in to track your learning activity."
+                : "An overview of your vocabulary activity."
             }
           />
           {renderHeatmap()}
@@ -507,7 +537,7 @@ export default function HomeScreenWeb() {
       <DesktopPanel>
         <DesktopSectionTitle
           title="Explore"
-          caption="Desktop quick links are separated into smaller cards instead of one large block."
+          caption="Open the main learning tools from one place."
         />
         <View style={styles.exploreGrid}>
           {[
@@ -515,7 +545,7 @@ export default function HomeScreenWeb() {
               title: "Alphabet",
               body: "Browse consonants and sound classes.",
               route: "/alphabet/",
-              icon: "text-outline" as const,
+              glyph: "ก",
             },
             {
               title: "Tones",
@@ -536,7 +566,11 @@ export default function HomeScreenWeb() {
               onPress={() => router.push(item.route as any)}
               activeOpacity={0.82}
             >
-              <Ionicons name={item.icon} size={18} color={Sketch.accent} />
+              {"glyph" in item ? (
+                <Text style={styles.exploreThaiGlyph}>{item.glyph}</Text>
+              ) : (
+                <Ionicons name={item.icon} size={18} color={Sketch.accent} />
+              )}
               <Text style={styles.exploreTitle}>{item.title}</Text>
               <Text style={styles.exploreBody}>{item.body}</Text>
             </TouchableOpacity>
@@ -572,6 +606,17 @@ const styles = StyleSheet.create({
     color: Sketch.accent,
     letterSpacing: -0.8,
   },
+  metricValueWrap: {
+    minHeight: 40,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  metricThaiGlyph: {
+    fontSize: 34,
+    lineHeight: 38,
+    fontWeight: "700",
+    color: Sketch.accent,
+  },
   metricLabel: {
     fontSize: 14,
     fontWeight: "700",
@@ -585,13 +630,13 @@ const styles = StyleSheet.create({
   mainGrid: {
     flexDirection: "row",
     gap: 20,
-    alignItems: "flex-start",
+    alignItems: "stretch",
   },
   focusPanel: {
-    flex: 1.18,
+    flex: 1.08,
   },
   activityPanel: {
-    flex: 0.82,
+    flex: 0.92,
   },
   focusActions: {
     flexDirection: "row",
@@ -711,16 +756,22 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   heatmapFrame: {
-    paddingTop: 2,
-    alignSelf: "flex-start",
+    paddingTop: 4,
+    width: "100%",
+    alignItems: "center",
+  },
+  heatmapScrollContent: {
+    minWidth: "100%",
+    alignItems: "center",
   },
   heatmapSummaryRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 12,
+    width: "100%",
+    justifyContent: "space-between",
   },
   heatmapMiniStat: {
-    minWidth: 110,
+    width: "31.8%",
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
@@ -738,6 +789,12 @@ const styles = StyleSheet.create({
   heatmapMiniLabel: {
     fontSize: 12,
     color: Sketch.inkMuted,
+  },
+  exploreThaiGlyph: {
+    fontSize: 22,
+    lineHeight: 24,
+    fontWeight: "700",
+    color: Sketch.accent,
   },
   exploreGrid: {
     flexDirection: "row",

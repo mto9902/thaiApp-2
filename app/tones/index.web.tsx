@@ -1,5 +1,4 @@
 import { Stack, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { Sketch } from "@/constants/theme";
@@ -8,6 +7,7 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import {
   MINIMAL_PAIRS,
   TONE_MARKS,
@@ -19,11 +19,6 @@ import {
   getToneMarkAccent,
   withAlpha,
 } from "@/src/utils/toneAccent";
-
-function speak(text: string) {
-  Speech.stop();
-  Speech.speak(text, { language: "th-TH", rate: 0.75 });
-}
 
 function getToneMarkDisplay(mark: string) {
   return mark ? `ก${mark}` : "ก";
@@ -97,6 +92,11 @@ function ToneCard({ tone }: { tone: ToneData }) {
 
 export default function TonesWeb() {
   const router = useRouter();
+  const { playSentence } = useSentenceAudio();
+
+  function speak(text: string) {
+    void playSentence(text, { speed: "slow" });
+  }
 
   return (
     <>
@@ -104,7 +104,7 @@ export default function TonesWeb() {
       <DesktopPage
         eyebrow="Tones"
         title="Thai tones"
-        subtitle="A desktop reference for the five tones, the written tone marks, and minimal pairs you can play back while studying."
+        subtitle="Study the five tones, hear written tone marks, and compare minimal pairs while you learn."
         toolbar={
           <TouchableOpacity
             style={styles.backButton}

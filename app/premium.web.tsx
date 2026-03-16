@@ -92,11 +92,12 @@ export default function PremiumWebScreen() {
     currentOffering,
     isPremium,
     offeringsLoading,
-    refreshOfferings,
+    refresh,
     restorePremiumAccess,
   } = usePremiumAccess();
 
   const [checkingGuest, setCheckingGuest] = useState(true);
+  const stackHero = width < 1120;
   const columns = width >= 1320 ? 3 : width >= 980 ? 2 : 1;
   const cardWidth =
     columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
@@ -120,8 +121,8 @@ export default function PremiumWebScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void refreshOfferings();
-    }, [refreshOfferings]),
+      void refresh();
+    }, [refresh]),
   );
 
   const sortedPackages = useMemo(() => {
@@ -154,7 +155,7 @@ export default function PremiumWebScreen() {
       <DesktopPage
         eyebrow="Keystone Access"
         title="Continue beyond A1.1"
-        subtitle="Review plans and benefits on desktop, then complete Keystone Access on mobile where purchases are enabled."
+        subtitle="See what Keystone Access unlocks and manage your subscription from the same account."
         toolbar={
           <TouchableOpacity
             style={styles.backButton}
@@ -172,7 +173,7 @@ export default function PremiumWebScreen() {
           </DesktopPanel>
         ) : (
           <View style={styles.pageStack}>
-            <View style={styles.heroGrid}>
+            <View style={[styles.heroGrid, stackHero && styles.heroGridStacked]}>
               <DesktopPanel style={styles.heroPanel}>
                 <DesktopSectionTitle
                   title="What unlocks"
@@ -198,7 +199,7 @@ export default function PremiumWebScreen() {
               <DesktopPanel style={styles.statePanel}>
                 <DesktopSectionTitle
                   title="Purchase status"
-                  caption="Desktop acts as the plan review and account-management view."
+                  caption="Your account status is shared across devices."
                 />
                 {isPremium ? (
                   <>
@@ -223,7 +224,7 @@ export default function PremiumWebScreen() {
                   <>
                     <Text style={styles.stateTitle}>Checkout happens on mobile</Text>
                     <Text style={styles.bodyText}>
-                      Use this page to review plans on desktop, then continue on your phone to complete the purchase.
+                      Use the mobile app to purchase or restore Keystone Access. Once it is active, the same account unlocks lessons here automatically.
                     </Text>
                     <TouchableOpacity
                       style={styles.secondaryButton}
@@ -240,11 +241,11 @@ export default function PremiumWebScreen() {
             <DesktopPanel>
               <DesktopSectionTitle
                 title="Plans"
-                caption="Pricing and plan names still come from RevenueCat even though checkout is mobile-only."
+                caption="Review the available plans and choose the one that fits your study pace."
               />
               {sortedPackages.length === 0 ? (
                 <Text style={styles.bodyText}>
-                  No offering is available yet. Configure packages in RevenueCat and they will appear here automatically.
+                  Plans will appear here once Keystone Access packages are ready.
                 </Text>
               ) : (
                 <View style={styles.planGrid}>
@@ -309,6 +310,9 @@ const styles = StyleSheet.create({
   heroGrid: {
     flexDirection: "row",
     gap: 20,
+  },
+  heroGridStacked: {
+    flexDirection: "column",
   },
   heroPanel: {
     flex: 1.15,

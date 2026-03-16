@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
@@ -8,6 +9,7 @@ import {
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
 import { alphabet } from "@/src/data/alphabet";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 
 const GROUPS = [
   { group: 1, title: "Mid Class" },
@@ -19,6 +21,7 @@ const GROUPS = [
 export default function ConsonantsWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { playSentence } = useSentenceAudio();
   const columns = width >= 1320 ? 4 : width >= 980 ? 2 : 1;
   const cardWidth = columns === 4 ? "23.6%" : columns === 2 ? "48.8%" : "100%";
 
@@ -28,7 +31,7 @@ export default function ConsonantsWeb() {
       <DesktopPage
         eyebrow="Alphabet"
         title="Consonant classes"
-        subtitle="See the four tone classes side by side and open each group as its own lesson board."
+        subtitle="Learn the four consonant classes and open each group for examples and practice."
         toolbar={
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.82}>
             <Text style={styles.backButtonText}>Back</Text>
@@ -38,7 +41,7 @@ export default function ConsonantsWeb() {
         <DesktopPanel>
           <DesktopSectionTitle
             title="Browse groups"
-            caption="Each class affects tone behavior, so it helps to study them as separate visual families."
+            caption="Each class affects tone behavior, so it helps to learn them as separate groups."
           />
           <View style={styles.grid}>
             {GROUPS.map((item) => {
@@ -50,6 +53,23 @@ export default function ConsonantsWeb() {
                   onPress={() => router.push(`/alphabet/${item.group}` as any)}
                   activeOpacity={0.82}
                 >
+                  <TouchableOpacity
+                    style={styles.speakerButton}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      void playSentence(
+                        letters.slice(0, 4).map((entry) => entry.letter).join(" "),
+                        { speed: "slow" },
+                      );
+                    }}
+                    activeOpacity={0.82}
+                  >
+                    <Ionicons
+                      name="volume-medium-outline"
+                      size={16}
+                      color={Sketch.inkMuted}
+                    />
+                  </TouchableOpacity>
                   <Text style={styles.eyebrow}>Group {item.group}</Text>
                   <Text style={styles.cardTitle}>{item.title}</Text>
                   <View style={styles.letterRow}>
@@ -97,6 +117,14 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
     padding: 18,
     gap: 12,
+  },
+  speakerButton: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   eyebrow: {
     fontSize: 12,

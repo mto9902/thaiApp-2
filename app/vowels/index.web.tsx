@@ -31,7 +31,7 @@ export default function VowelsWeb() {
       <DesktopPage
         eyebrow="Vowels"
         title="Vowel placement"
-        subtitle="Study vowel groups by where they sit around the consonant, then open each group as its own lesson board."
+        subtitle="Learn vowel groups by where they sit around the consonant."
         toolbar={
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.82}>
             <Text style={styles.backButtonText}>Back</Text>
@@ -41,7 +41,7 @@ export default function VowelsWeb() {
         <DesktopPanel>
           <DesktopSectionTitle
             title="Browse groups"
-            caption="Seeing these as visual families makes Thai spelling much easier to parse on desktop."
+            caption="Study each placement pattern and open a group for examples and practice."
           />
           <View style={styles.grid}>
             {LESSONS.map((item) => {

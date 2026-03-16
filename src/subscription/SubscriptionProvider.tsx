@@ -18,6 +18,7 @@ import React, {
   useState,
 } from "react";
 import { Platform } from "react-native";
+import { API_BASE } from "../config";
 import { getAuthToken } from "../utils/authStorage";
 
 import {
@@ -89,15 +90,77 @@ export function SubscriptionProvider({
   const canMakePurchases = isNativeMobile && !!apiKey;
   const [loading, setLoading] = useState(canMakePurchases);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [serverHasPremium, setServerHasPremium] = useState(false);
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(
     null,
   );
   const [offeringsLoading, setOfferingsLoading] = useState(canMakePurchases);
 
+  const loadServerPremium = useCallback(async () => {
+    const token = await getAuthToken();
+    if (!token) {
+      setServerHasPremium(false);
+      return false;
+    }
+
+    const res = await fetch(`${API_BASE}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to load subscription status (${res.status})`);
+    }
+
+    const data = await res.json();
+    const hasAccess = Boolean(data?.has_keystone_access);
+    setServerHasPremium(hasAccess);
+    return hasAccess;
+  }, []);
+
+  const syncPremiumToServer = useCallback(async (hasAccess: boolean) => {
+    const token = await getAuthToken();
+    if (!token) {
+      setServerHasPremium(false);
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/me/keystone-access`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ hasAccess }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to sync subscription status (${res.status})`);
+    }
+
+    setServerHasPremium(hasAccess);
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!canMakePurchases || !apiKey) {
-      setCustomerInfo(null);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const storedUser = await getStoredUser();
+        if (!storedUser) {
+          setCustomerInfo(null);
+          setCurrentOffering(null);
+          setServerHasPremium(false);
+          return;
+        }
+        await loadServerPremium();
+      } catch (err) {
+        console.error("Failed to refresh web subscription state:", err);
+        setServerHasPremium(false);
+        setCustomerInfo(null);
+        setCurrentOffering(null);
+      } finally {
+        setLoading(false);
+        setOfferingsLoading(false);
+      }
       return;
     }
 
@@ -128,6 +191,7 @@ export function SubscriptionProvider({
       if (!customerInfoListener) {
         customerInfoListener = (nextCustomerInfo) => {
           setCustomerInfo(nextCustomerInfo);
+          void syncPremiumToServer(hasPremiumEntitlement(nextCustomerInfo));
         };
         Purchases.addCustomerInfoUpdateListener(customerInfoListener);
       }
@@ -135,6 +199,7 @@ export function SubscriptionProvider({
       if (!storedUser) {
         setCustomerInfo(null);
         setCurrentOffering(null);
+        setServerHasPremium(false);
         setOfferingsLoading(false);
         return;
       }
@@ -148,20 +213,44 @@ export function SubscriptionProvider({
         Purchases.getOfferings(),
       ]);
       setCustomerInfo(nextCustomerInfo);
+      await syncPremiumToServer(hasPremiumEntitlement(nextCustomerInfo));
       setCurrentOffering(nextOfferings.current);
     } catch (err) {
       console.error("Failed to refresh subscription state:", err);
       setCustomerInfo(null);
       setCurrentOffering(null);
+      setServerHasPremium(false);
     } finally {
       setLoading(false);
       setOfferingsLoading(false);
     }
-  }, [apiKey, canMakePurchases]);
+  }, [apiKey, canMakePurchases, loadServerPremium, syncPremiumToServer]);
 
   useEffect(() => {
     void refresh();
   }, [authRefreshKey, refresh]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+
+    const refreshOnFocus = () => {
+      void refresh();
+    };
+
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refresh();
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisibility);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisibility);
+    };
+  }, [refresh]);
 
   useEffect(() => {
     return () => {
@@ -177,13 +266,22 @@ export function SubscriptionProvider({
 
     const nextCustomerInfo = await Purchases.getCustomerInfo();
     setCustomerInfo(nextCustomerInfo);
+    await syncPremiumToServer(hasPremiumEntitlement(nextCustomerInfo));
     return nextCustomerInfo;
-  }, [canMakePurchases]);
+  }, [canMakePurchases, syncPremiumToServer]);
 
   const refreshOfferings = useCallback(async () => {
     if (!canMakePurchases || !purchasesConfigured) {
-      setCurrentOffering(null);
-      setOfferingsLoading(false);
+      try {
+        setOfferingsLoading(true);
+        await loadServerPremium();
+      } catch (err) {
+        console.error("Failed to refresh web offerings state:", err);
+        setServerHasPremium(false);
+      } finally {
+        setCurrentOffering(null);
+        setOfferingsLoading(false);
+      }
       return null;
     }
 
@@ -199,7 +297,7 @@ export function SubscriptionProvider({
     } finally {
       setOfferingsLoading(false);
     }
-  }, [canMakePurchases]);
+  }, [canMakePurchases, loadServerPremium]);
 
   const purchasePackage = useCallback(
     async (aPackage: PurchasesPackage) => {
@@ -207,9 +305,12 @@ export function SubscriptionProvider({
 
       const purchaseResult = await Purchases.purchasePackage(aPackage);
       setCustomerInfo(purchaseResult.customerInfo);
+      await syncPremiumToServer(
+        hasPremiumEntitlement(purchaseResult.customerInfo),
+      );
       return hasPremiumEntitlement(purchaseResult.customerInfo);
     },
-    [canMakePurchases],
+    [canMakePurchases, syncPremiumToServer],
   );
 
   const restorePurchases = useCallback(async () => {
@@ -217,8 +318,9 @@ export function SubscriptionProvider({
 
     const nextCustomerInfo = await Purchases.restorePurchases();
     setCustomerInfo(nextCustomerInfo);
+    await syncPremiumToServer(hasPremiumEntitlement(nextCustomerInfo));
     return hasPremiumEntitlement(nextCustomerInfo);
-  }, [canMakePurchases]);
+  }, [canMakePurchases, syncPremiumToServer]);
 
   const openCustomerCenter = useCallback(async () => {
     if (!canMakePurchases || !purchasesConfigured) return;
@@ -231,7 +333,9 @@ export function SubscriptionProvider({
       loading,
       isSupported: isNativeMobile,
       canMakePurchases,
-      isPremium: hasPremiumEntitlement(customerInfo),
+      isPremium: canMakePurchases
+        ? hasPremiumEntitlement(customerInfo)
+        : serverHasPremium,
       entitlementId: PREMIUM_ENTITLEMENT_ID,
       customerInfo,
       currentOffering,
@@ -253,6 +357,7 @@ export function SubscriptionProvider({
       refresh,
       refreshOfferings,
       restorePurchases,
+      serverHasPremium,
     ],
   );
 

@@ -7,22 +7,35 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 
 function EntryCard({
   eyebrow,
   title,
   subtitle,
   footer,
+  onPlay,
   onPress,
 }: {
   eyebrow: string;
   title: string;
   subtitle: string;
   footer: string;
+  onPlay: () => void;
   onPress: () => void;
 }) {
   return (
     <TouchableOpacity style={styles.entryCard} onPress={onPress} activeOpacity={0.82}>
+      <TouchableOpacity
+        style={styles.speakerButton}
+        onPress={(event) => {
+          event.stopPropagation();
+          onPlay();
+        }}
+        activeOpacity={0.82}
+      >
+        <Text style={styles.speakerButtonText}>Play</Text>
+      </TouchableOpacity>
       <Text style={styles.entryEyebrow}>{eyebrow}</Text>
       <Text style={styles.entryTitle}>{title}</Text>
       <Text style={styles.entrySubtitle}>{subtitle}</Text>
@@ -36,6 +49,7 @@ function EntryCard({
 
 export default function AlphabetWeb() {
   const router = useRouter();
+  const { playSentence } = useSentenceAudio();
 
   return (
     <>
@@ -43,7 +57,7 @@ export default function AlphabetWeb() {
       <DesktopPage
         eyebrow="Alphabet"
         title="Thai sound system"
-        subtitle="Use the desktop alphabet area as a clean launchpad for consonants, vowel placement, and reading practice."
+        subtitle="Start with consonants and vowels, then move into reading practice."
         toolbar={
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.82}>
             <Text style={styles.backButtonText}>Back</Text>
@@ -53,7 +67,7 @@ export default function AlphabetWeb() {
         <DesktopPanel>
           <DesktopSectionTitle
             title="Choose an area"
-            caption="Start with the consonant classes or move directly into vowel placement."
+            caption="Choose a section to learn the building blocks of Thai reading."
           />
           <View style={styles.grid}>
             <EntryCard
@@ -61,6 +75,7 @@ export default function AlphabetWeb() {
               title="Consonants"
               subtitle="Learn the four consonant classes and recognize their core sounds."
               footer="Four groups"
+              onPlay={() => void playSentence("พยัญชนะ", { speed: "slow" })}
               onPress={() => router.push("/alphabet/consonants" as any)}
             />
             <EntryCard
@@ -68,6 +83,7 @@ export default function AlphabetWeb() {
               title="Vowels"
               subtitle="Study vowel placement around the consonant and how each pattern sounds."
               footer="Six groups"
+              onPlay={() => void playSentence("สระ", { speed: "slow" })}
               onPress={() => router.push("/vowels/" as any)}
             />
           </View>
@@ -102,6 +118,19 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 12,
     minHeight: 260,
+  },
+  speakerButton: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  speakerButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.ink,
   },
   entryEyebrow: {
     fontSize: 12,

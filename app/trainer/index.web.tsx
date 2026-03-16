@@ -122,7 +122,7 @@ export default function TrainerWeb() {
       <DesktopPage
         eyebrow="Trainer"
         title="Alphabet Trainer"
-        subtitle="Build a focused reading batch with a desktop layout that separates setup, filters, and launch actions."
+        subtitle="Choose the letters, vowels, and difficulty you want, then launch a focused reading batch."
         toolbar={
           <TouchableOpacity
             style={styles.backButton}

@@ -87,6 +87,7 @@ export default function GrammarStatsWebScreen() {
 
   const stageCardWidth =
     width >= 1320 ? "31.8%" : width >= 980 ? "48.8%" : "100%";
+  const compactSummary = width < 1180;
 
   const practicedEntries = Object.entries(progress).filter(([, item]) =>
     isGrammarPracticed(item),
@@ -147,7 +148,7 @@ export default function GrammarStatsWebScreen() {
       <DesktopPage
         eyebrow="Grammar"
         title="Grammar stats"
-        subtitle="A desktop overview of unit coverage, rounds, and accuracy across the curriculum."
+        subtitle="See how much grammar you have practiced and where your strongest progress is."
         toolbar={
           <TouchableOpacity
             style={styles.backButton}
@@ -165,7 +166,7 @@ export default function GrammarStatsWebScreen() {
           </DesktopPanel>
         ) : (
           <View style={styles.pageStack}>
-            <View style={styles.metricStrip}>
+            <View style={[styles.metricStrip, compactSummary && styles.metricStripWrap]}>
               <View style={styles.heroCard}>
                 <Text style={styles.heroLabel}>Topics practiced</Text>
                 <Text style={styles.heroValue}>
@@ -194,7 +195,7 @@ export default function GrammarStatsWebScreen() {
             <DesktopPanel>
               <DesktopSectionTitle
                 title="By unit"
-                caption="Each unit card shows practiced topics, rounds, and accuracy so the curriculum reads clearly on larger screens."
+                caption="Each unit shows your coverage, rounds, and accuracy."
               />
               <View style={styles.grid}>
                 {stageSummaries.map((item, index) => {
@@ -274,6 +275,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
+  metricStripWrap: {
+    flexWrap: "wrap",
+  },
   heroCard: {
     flex: 1.12,
     borderWidth: 1,
@@ -307,6 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
     padding: 20,
     gap: 6,
+    minWidth: 220,
   },
   statValue: {
     fontSize: 32,

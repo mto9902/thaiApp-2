@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
 import { Sketch } from "@/constants/theme";
@@ -9,6 +8,7 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import VowelText from "@/src/components/VowelText";
 import { vowels } from "@/src/data/vowels";
 
@@ -29,15 +29,11 @@ const GROUP_META: Record<number, { badge: string; title: string; description: st
   6: { badge: "Group 6", title: "Around Consonant II", description: "This continues the surrounding patterns and helps longer spellings feel more natural." },
 };
 
-function speak(text: string) {
-  Speech.stop();
-  Speech.speak(text, { language: "th-TH", rate: 0.82 });
-}
-
 export default function VowelGroupWeb() {
   const { group } = useLocalSearchParams<{ group: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { playSentence } = useSentenceAudio();
   const columns = width >= 1400 ? 4 : width >= 1080 ? 3 : width >= 820 ? 2 : 1;
   const cardWidth =
     columns === 4 ? "23.7%" : columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
@@ -57,38 +53,38 @@ export default function VowelGroupWeb() {
         title={groupInfo.title}
         subtitle={groupInfo.description}
         toolbar={
-          <View style={styles.toolbar}>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.82}>
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </TouchableOpacity>
-            {practiceReady ? (
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() =>
-                  router.push({
-                    pathname: "/vowels/practice/[group]",
-                    params: { group },
-                  } as any)
-                }
-                activeOpacity={0.82}
-              >
-                <Text style={styles.primaryButtonText}>Start practice</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.82}>
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </TouchableOpacity>
         }
       >
         <DesktopPanel>
           <DesktopSectionTitle
             title="Patterns"
             caption="Tap any card to hear the vowel example and inspect the written shape."
+            action={
+              practiceReady ? (
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/vowels/practice/[group]",
+                      params: { group },
+                    } as any)
+                  }
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.primaryButtonText}>Start practice</Text>
+                </TouchableOpacity>
+              ) : null
+            }
           />
           <View style={styles.grid}>
             {lessonVowels.map((vowel, index) => (
               <TouchableOpacity
                 key={`${vowel.symbol}-${index}`}
                 style={[styles.card, { width: cardWidth }]}
-                onPress={() => speak(vowel.example)}
+                onPress={() => void playSentence(vowel.example, { speed: "slow" })}
                 activeOpacity={0.82}
               >
                 <View style={styles.cardTop}>

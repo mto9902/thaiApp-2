@@ -942,37 +942,84 @@ export default function PracticeCSV() {
                   ))}
                 </View>
 
-                <TouchableOpacity
-                  style={[
-                    st.primaryBtn,
-                    isDesktopWeb && st.primaryBtnDesktop,
-                    result === "correct" && st.primaryBtnDisabled,
-                  ]}
-                  onPress={checkWordScraps}
-                  activeOpacity={result === "correct" ? 1 : 0.85}
-                  disabled={result === "correct"}
-                >
-                  <Text style={st.primaryBtnText}>Check Answer</Text>
-                </TouchableOpacity>
+                {isDesktopWeb ? (
+                  <View style={st.ctaRowDesktop}>
+                    <TouchableOpacity
+                      style={[
+                        st.primaryBtn,
+                        st.primaryBtnDesktop,
+                        st.ctaButtonDesktop,
+                        result === "correct" && st.primaryBtnDisabled,
+                      ]}
+                      onPress={checkWordScraps}
+                      activeOpacity={result === "correct" ? 1 : 0.85}
+                      disabled={result === "correct"}
+                    >
+                      <Text style={st.primaryBtnText}>Check Answer</Text>
+                    </TouchableOpacity>
 
-                {result !== "correct" && (
-                  <TouchableOpacity
-                    style={[
-                      st.primaryBtn,
-                      st.secondaryBtn,
-                      isDesktopWeb && st.primaryBtnDesktop,
-                    ]}
-                    onPress={() =>
-                      fetchRound(
-                        randomMode(enabledModesRef.current, modeHistoryRef.current),
-                      )
-                    }
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      {"Skip ->"}
-                    </Text>
-                  </TouchableOpacity>
+                    {result !== "correct" ? (
+                      <TouchableOpacity
+                        style={[
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.primaryBtnDesktop,
+                          st.ctaButtonDesktop,
+                        ]}
+                        onPress={() =>
+                          fetchRound(
+                            randomMode(
+                              enabledModesRef.current,
+                              modeHistoryRef.current,
+                            ),
+                          )
+                        }
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          {"Skip ->"}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        st.primaryBtn,
+                        isDesktopWeb && st.primaryBtnDesktop,
+                        result === "correct" && st.primaryBtnDisabled,
+                      ]}
+                      onPress={checkWordScraps}
+                      activeOpacity={result === "correct" ? 1 : 0.85}
+                      disabled={result === "correct"}
+                    >
+                      <Text style={st.primaryBtnText}>Check Answer</Text>
+                    </TouchableOpacity>
+
+                    {result !== "correct" && (
+                      <TouchableOpacity
+                        style={[
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          isDesktopWeb && st.primaryBtnDesktop,
+                        ]}
+                        onPress={() =>
+                          fetchRound(
+                            randomMode(
+                              enabledModesRef.current,
+                              modeHistoryRef.current,
+                            ),
+                          )
+                        }
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          {"Skip ->"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </View>
             )}
@@ -1097,7 +1144,13 @@ export default function PracticeCSV() {
                                       onPress={() => playBreakdownWord(w.thai)}
                                       activeOpacity={0.8}
                                     >
-                                    <View style={st.matchWordTileHeader}>
+                                    <View
+                                      style={[
+                                        st.matchWordTileHeader,
+                                        isDesktopWeb &&
+                                          st.matchWordTileHeaderDesktop,
+                                      ]}
+                                    >
                                       <Text style={st.matchWordTileThai}>{w.thai}</Text>
                                       {w.tone && (
                                         <View
@@ -1127,7 +1180,13 @@ export default function PracticeCSV() {
                                       isDesktopWeb && st.matchWordTileDesktop,
                                     ]}
                                   >
-                                    <View style={st.matchWordTileHeader}>
+                                    <View
+                                      style={[
+                                        st.matchWordTileHeader,
+                                        isDesktopWeb &&
+                                          st.matchWordTileHeaderDesktop,
+                                      ]}
+                                    >
                                       <Text style={st.matchWordTileThai}>{w.thai}</Text>
                                       {w.tone && (
                                         <View
@@ -1429,12 +1488,14 @@ const st = StyleSheet.create({
   tileRowDesktop: {
     width: "100%",
     gap: 12,
+    justifyContent: "center",
   },
   matchTileRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
+    justifyContent: "center",
   },
   wordTile: {
     backgroundColor: Sketch.cardBg,
@@ -1481,12 +1542,16 @@ const st = StyleSheet.create({
     minWidth: 128,
     paddingVertical: 12,
     paddingHorizontal: 16,
+    alignItems: "center",
   },
   matchWordTileHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     alignSelf: "flex-start",
+  },
+  matchWordTileHeaderDesktop: {
+    alignSelf: "center",
   },
   matchWordTileThai: {
     fontSize: 18,
@@ -1629,7 +1694,7 @@ const st = StyleSheet.create({
     gap: 8,
   },
   builderWordsDesktop: {
-    justifyContent: "flex-start",
+    justifyContent: "center",
     alignSelf: "stretch",
   },
   builderChip: {
@@ -1677,6 +1742,19 @@ const st = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: 10 },
   actionRowDesktop: {
     width: "100%",
+    justifyContent: "center",
+  },
+  ctaRowDesktop: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 12,
+    marginTop: 4,
+  },
+  ctaButtonDesktop: {
+    flex: 1,
+    minWidth: 0,
+    marginTop: 0,
   },
   actionBtn: {
     flex: 1,
@@ -1731,32 +1809,36 @@ const st = StyleSheet.create({
   },
   optionCardDesktop: {
     width: "49.1%",
-    minHeight: 148,
+    minHeight: 0,
+    alignSelf: "flex-start",
   },
   matchSentenceButton: {
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 10,
     borderRadius: SketchRadius.control,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    minHeight: 88,
+    minHeight: 0,
   },
   matchSentenceTapArea: {
     flex: 1,
-    gap: 4,
-    justifyContent: "center",
+    gap: 2,
+    justifyContent: "flex-start",
+    alignItems: "center",
   },
   matchSentenceText: {
     fontSize: 20,
     fontWeight: "800",
     color: Sketch.ink,
+    textAlign: "center",
   },
   matchSentenceRoman: {
     fontSize: 12,
     fontWeight: "500",
     color: Sketch.inkMuted,
+    textAlign: "center",
   },
   matchExpandButton: {
     width: 32,
@@ -1773,7 +1855,7 @@ const st = StyleSheet.create({
     backgroundColor: MUTED_FEEDBACK_ACCENTS.selectedTint,
   },
   matchDetailsPanel: {
-    paddingTop: 10,
+    paddingTop: 6,
   },
 
 });

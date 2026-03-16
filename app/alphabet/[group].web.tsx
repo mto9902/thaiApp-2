@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
 import { Sketch } from "@/constants/theme";
@@ -10,6 +9,7 @@ import {
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
 import { alphabet } from "@/src/data/alphabet";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 
 type AlphabetLetter = {
   letter: string;
@@ -43,15 +43,11 @@ const GROUP_META: Record<number, { badge: string; title: string; description: st
   },
 };
 
-function playSound(text: string) {
-  Speech.stop();
-  Speech.speak(text, { language: "th-TH", rate: 0.82 });
-}
-
 export default function AlphabetGroupWeb() {
   const { group } = useLocalSearchParams<{ group: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { playSentence } = useSentenceAudio();
   const columns = width >= 1400 ? 4 : width >= 1080 ? 3 : width >= 820 ? 2 : 1;
   const cardWidth =
     columns === 4 ? "23.7%" : columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
@@ -70,36 +66,36 @@ export default function AlphabetGroupWeb() {
         title={groupInfo.title}
         subtitle={groupInfo.description}
         toolbar={
-          <View style={styles.toolbar}>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.82}>
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() =>
-                router.push({
-                  pathname: "/alphabet/practice/[group]",
-                  params: { group },
-                } as any)
-              }
-              activeOpacity={0.82}
-            >
-              <Text style={styles.primaryButtonText}>Start practice</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.82}>
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </TouchableOpacity>
         }
       >
         <DesktopPanel>
           <DesktopSectionTitle
             title="Letters"
             caption="Tap any card to hear the Thai letter name before moving into practice."
+            action={
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() =>
+                  router.push({
+                    pathname: "/alphabet/practice/[group]",
+                    params: { group },
+                  } as any)
+                }
+                activeOpacity={0.82}
+              >
+                <Text style={styles.primaryButtonText}>Start practice</Text>
+              </TouchableOpacity>
+            }
           />
           <View style={styles.grid}>
             {letters.map((letter) => (
               <TouchableOpacity
                 key={letter.letter}
                 style={[styles.card, { width: cardWidth }]}
-                onPress={() => playSound(letter.name)}
+                onPress={() => void playSentence(letter.name, { speed: "slow" })}
                 activeOpacity={0.82}
               >
                 <View style={styles.cardTop}>
