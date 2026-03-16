@@ -187,21 +187,10 @@ export default function TrainerWordsScreen() {
           <View style={styles.pageIntroTop}>
             <Text style={styles.pageTitle}>Practice These Words</Text>
             <View
-              style={[
-                styles.difficultyBadge,
-                {
-                  backgroundColor: withAlpha(
-                    DIFFICULTY_META[difficulty].color,
-                    "14",
-                  ),
-                },
-              ]}
+              style={styles.difficultyBadge}
             >
               <Text
-                style={[
-                  styles.difficultyBadgeText,
-                  { color: DIFFICULTY_META[difficulty].color },
-                ]}
+                style={styles.difficultyBadgeText}
               >
                 {DIFFICULTY_META[difficulty].label}
               </Text>
@@ -337,12 +326,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: SketchRadius.badge,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   difficultyBadgeText: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.7,
     textTransform: "uppercase",
+    color: Sketch.ink,
   },
   pageSubtitle: {
     fontSize: 13,

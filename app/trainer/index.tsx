@@ -41,7 +41,7 @@ function DifficultyPicker({
             key={level}
             style={[
               styles.difficultyCard,
-              active && styles.selectionCardActive,
+              active && styles.difficultyCardActive,
             ]}
             android_ripple={{ color: "transparent" }}
             onPress={() => onChange(level)}
@@ -49,7 +49,7 @@ function DifficultyPicker({
             <Text
               style={[
                 styles.difficultyTitle,
-                active && styles.selectionTitleActive,
+                active && styles.difficultyTitleActive,
               ]}
             >
               {meta.label}
@@ -213,7 +213,7 @@ export default function TrainerScreen() {
             <Text style={styles.summaryLabel}>vowels</Text>
           </View>
           <View style={styles.summaryPill}>
-            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.sage }]}>
+            <Text style={styles.summaryValue}>
               {DIFFICULTY_META[difficulty].label}
             </Text>
             <Text style={styles.summaryLabel}>difficulty</Text>
@@ -387,9 +387,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     ...sketchShadow(2),
   },
+  difficultyCardActive: {
+    borderColor: Sketch.ink,
+    backgroundColor: Sketch.cardBg,
+  },
   difficultyTitle: {
     fontSize: 17,
     fontWeight: "700",
+    color: Sketch.ink,
+  },
+  difficultyTitleActive: {
     color: Sketch.ink,
   },
   difficultyCaption: {
