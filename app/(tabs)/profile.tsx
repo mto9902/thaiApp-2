@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
@@ -335,7 +335,7 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  scroll: { padding: 20, paddingBottom: 40, gap: 16 },
+  scroll: { padding: 24, paddingBottom: 40, gap: 18 },
   centerWrap: {
     flex: 1,
     justifyContent: "center",
@@ -351,12 +351,13 @@ const styles = StyleSheet.create({
   avatarCircle: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: SketchRadius.card,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     justifyContent: "center",
     alignItems: "center",
+    ...sketchShadow(2),
   },
   avatarText: {
     fontSize: 22,
@@ -387,9 +388,11 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.inkFaint,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   statsGrid: {
     flexDirection: "row",
@@ -398,11 +401,12 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 14,
+    padding: 16,
     alignItems: "center",
+    ...sketchShadow(2),
   },
   wideStatCard: {
     flex: 2,
@@ -427,11 +431,12 @@ const styles = StyleSheet.create({
   },
   premiumCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 16,
     gap: 14,
+    ...sketchShadow(2),
   },
   premiumCardText: {
     gap: 6,
@@ -448,10 +453,11 @@ const styles = StyleSheet.create({
   },
   menuCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 12,
+    borderRadius: SketchRadius.card,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   menuRow: {
     flexDirection: "row",
@@ -476,7 +482,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: Sketch.orange,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     paddingVertical: 14,
     paddingHorizontal: 32,
     marginTop: 8,
@@ -492,11 +498,12 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     paddingVertical: 14,
     alignItems: "center",
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   logoutBtnText: {
     fontSize: 15,

@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import { submitVocabAnswer } from "../../src/api/submitVocabAnswer";
 import Header, { SettingsState } from "../../src/components/Header";
 import VocabSrsInfoSheet from "../../src/components/VocabSrsInfoSheet";
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
   stateCard: {
     width: "100%",
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 24,
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
   stateIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 0,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -795,12 +795,11 @@ const styles = StyleSheet.create({
   primaryCta: {
     marginTop: 6,
     backgroundColor: Sketch.orange,
-    borderRadius: 12,
+    borderRadius: 0,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
-    ...sketchShadow(4),
   },
   primaryCtaText: {
     fontSize: 14,
@@ -817,7 +816,7 @@ const styles = StyleSheet.create({
   summaryCard: {
     width: "100%",
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 24,
@@ -838,7 +837,7 @@ const styles = StyleSheet.create({
     width: "48%",
     flexGrow: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 14,
@@ -869,7 +868,7 @@ const styles = StyleSheet.create({
   queuePill: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 10,
@@ -898,7 +897,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 8,
@@ -923,7 +922,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 8,
@@ -936,7 +935,7 @@ const styles = StyleSheet.create({
   },
   flashcard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 22,
@@ -955,7 +954,7 @@ const styles = StyleSheet.create({
   },
   stateBadge: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 6,
@@ -970,7 +969,7 @@ const styles = StyleSheet.create({
   speakerBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.paperDark,
@@ -1027,7 +1026,7 @@ const styles = StyleSheet.create({
     bottom: 18,
     right: 18,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 6,
@@ -1054,7 +1053,7 @@ const styles = StyleSheet.create({
     width: "48%",
     flexGrow: 1,
     alignItems: "center",
-    borderRadius: 14,
+    borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 10,
   },

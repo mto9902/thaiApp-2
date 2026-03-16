@@ -43,26 +43,34 @@ export const Sketch = {
   advanced: '#8B3A3A',
 };
 
+export const SketchRadius = {
+  card: 0,
+  control: 0,
+  track: 0,
+  badge: 0,
+} as const;
+
 // ── Shadow (subtle, modern) ──────────────────────────────────────────────────
-export const sketchShadow = (size: number = 4): ViewStyle => ({
+export const sketchShadow = (size: number = 2): ViewStyle => ({
   shadowColor: '#000',
-  shadowOffset: { width: 0, height: size / 2 },
-  shadowOpacity: 0.06,
-  shadowRadius: size,
-  elevation: size / 2,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0,
+  shadowRadius: 0,
+  elevation: 0,
 });
 
 // ── Common card style ─────────────────────────────────────────────────────────
 export const sketchCard: ViewStyle = {
   backgroundColor: Sketch.cardBg,
-  borderRadius: 0,
+  borderRadius: SketchRadius.card,
   borderWidth: 1,
   borderColor: Sketch.inkFaint,
+  ...sketchShadow(2),
 };
 
 // ── Button base ──────────────────────────────────────────────────────────────
 export const sketchButton: ViewStyle = {
-  borderRadius: 0,
+  borderRadius: SketchRadius.control,
   borderWidth: 1,
   borderColor: Sketch.inkFaint,
 };
@@ -71,7 +79,7 @@ export const sketchButton: ViewStyle = {
 export const sketchInput: ViewStyle = {
   borderWidth: 1,
   borderColor: Sketch.inkFaint,
-  borderRadius: 0,
+  borderRadius: SketchRadius.control,
   backgroundColor: Sketch.cardBg,
   padding: 14,
 };

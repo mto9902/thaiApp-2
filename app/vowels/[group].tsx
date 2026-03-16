@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import VowelText from "../../src/components/VowelText";
 import { vowels } from "../../src/data/vowels";
@@ -182,13 +182,13 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 24,
+    paddingTop: 14,
     paddingBottom: 28,
   },
   summaryCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
@@ -203,7 +203,8 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontWeight: "600",
-    letterSpacing: 0.2,
+    letterSpacing: 1,
+    textTransform: "uppercase",
     color: ACCENT,
   },
   countPill: {
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     marginTop: 16,
-    borderRadius: 14,
+    borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 16,
     alignItems: "center",
@@ -242,7 +243,6 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     borderWidth: 1,
     borderColor: ACCENT,
-    ...sketchShadow(4),
   },
   primaryButtonText: {
     fontSize: 15,
@@ -272,13 +272,12 @@ const styles = StyleSheet.create({
     width: "48%",
     minHeight: 190,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 16,
     gap: 10,
     marginBottom: 12,
-    ...sketchShadow(4),
   },
   vowelCardTop: {
     flexDirection: "row",
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
   soundBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 0,
     backgroundColor: ACCENT + "12",
   },
   soundBadgeText: {
@@ -300,7 +299,7 @@ const styles = StyleSheet.create({
   speakerButton: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: 0,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,

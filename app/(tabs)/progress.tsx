@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
 import {
   CEFR_LEVELS,
@@ -394,8 +394,8 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
   spacing: {
     height: 20,
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   pageTitle: {
-    fontSize: 26,
+    fontSize: 32,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
@@ -415,10 +415,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 18,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: SketchRadius.card,
+    padding: 20,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   summaryText: {
     flex: 1,
@@ -444,15 +445,11 @@ const styles = StyleSheet.create({
   },
   levelCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
     overflow: "hidden",
+    ...sketchShadow(2),
   },
   levelHeader: {
     padding: 18,
@@ -499,7 +496,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: Sketch.orange,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   levelSubtitle: {
     fontSize: 13,
@@ -523,14 +520,16 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
   },
   levelProgressBar: {
-    height: 6,
+    height: 4,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: SketchRadius.track,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   levelProgressFill: {
     height: "100%",
-    borderRadius: 999,
+    borderRadius: SketchRadius.track,
     backgroundColor: Sketch.orange,
   },
   stageList: {
@@ -540,11 +539,12 @@ const styles = StyleSheet.create({
   },
   stageRow: {
     backgroundColor: Sketch.paper,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     padding: 14,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     gap: 8,
+    ...sketchShadow(2),
   },
   stageRowTop: {
     flexDirection: "row",
@@ -614,14 +614,16 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   stageProgressBar: {
-    height: 5,
+    height: 4,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: SketchRadius.track,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   stageProgressFill: {
     height: "100%",
-    borderRadius: 999,
+    borderRadius: SketchRadius.track,
     backgroundColor: Sketch.orange,
   },
 });

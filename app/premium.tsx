@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   benefitsCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
@@ -514,9 +514,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   sectionHint: {
     fontSize: 12,
@@ -527,7 +529,7 @@ const styles = StyleSheet.create({
   },
   packageCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
@@ -561,7 +563,7 @@ const styles = StyleSheet.create({
   packageBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: 0,
     backgroundColor: "rgba(196, 97, 60, 0.12)",
   },
   packageBadgeText: {
@@ -591,7 +593,7 @@ const styles = StyleSheet.create({
   },
   stateCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 20,
@@ -614,7 +616,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.orange,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: "rgba(148, 73, 45, 0.35)",
     paddingVertical: 15,
@@ -632,7 +634,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 14,

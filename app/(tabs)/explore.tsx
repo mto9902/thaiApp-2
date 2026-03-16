@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
@@ -506,33 +506,34 @@ export default function DecksScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  scroll: { paddingHorizontal: 20, paddingTop: 16 },
+  scroll: { paddingHorizontal: 24, paddingTop: 20 },
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   pageTitle: {
-    fontSize: 26,
+    fontSize: 32,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
   },
   pageSubtitle: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "400",
     color: Sketch.inkMuted,
     marginTop: 2,
+    fontStyle: "italic",
   },
 
   divider: {
     height: 1,
     backgroundColor: Sketch.inkFaint,
-    marginVertical: 20,
+    marginVertical: 24,
   },
 
   spacing: { height: 16 },
   bookmarksGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between",
     alignItems: "stretch",
   },
 
@@ -543,32 +544,29 @@ const styles = StyleSheet.create({
   mixTile: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
     gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
     justifyContent: "space-between",
-    minHeight: 102,
+    minHeight: 110,
+    ...sketchShadow(2),
   },
   mixTileDisabled: {
     opacity: 0.56,
   },
   mixTileTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     color: Sketch.ink,
   },
   mixTileSub: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "400",
     color: Sketch.inkMuted,
+    lineHeight: 19,
   },
 
   modalOverlay: {
@@ -582,16 +580,12 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: Sketch.paper,
-    borderRadius: 20,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 20,
     gap: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 22,
-    elevation: 10,
+    ...sketchShadow(3),
   },
   modalHeader: {
     flexDirection: "row",
@@ -628,7 +622,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    borderRadius: 999,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.cardBg,
@@ -665,20 +659,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.orange,
-    borderRadius: 14,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
     paddingVertical: 13,
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 3,
   },
   modalPrimaryButtonDisabled: {
     opacity: 0.45,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   modalPrimaryButtonText: {
     fontSize: 14,
@@ -687,20 +674,17 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: "48%",
+    width: "47%",
     backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 13,
     gap: 7,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
     justifyContent: "space-between",
     minHeight: 156,
+    marginBottom: 12,
+    ...sketchShadow(2),
   },
   cardTop: {
     flexDirection: "row",
@@ -710,7 +694,7 @@ const styles = StyleSheet.create({
   levelBadge: {
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: SketchRadius.badge,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -742,16 +726,11 @@ const styles = StyleSheet.create({
   practiceBtn: {
     alignItems: "center",
     backgroundColor: Sketch.orange,
-    borderRadius: 12,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
     paddingVertical: 9,
     marginTop: 2,
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 3,
   },
   practiceBtnText: {
     fontSize: 13,
@@ -761,17 +740,12 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     backgroundColor: Sketch.orange,
-    borderRadius: 12,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
     paddingVertical: 12,
     paddingHorizontal: 28,
     marginTop: 8,
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
   },
   primaryBtnText: {
     fontSize: 14,
@@ -788,7 +762,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: SketchRadius.card,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import Header, { SettingsState } from "../../../src/components/Header";
 import { alphabet } from "../../../src/data/alphabet";
 import { MUTED_FEEDBACK_ACCENTS } from "../../../src/utils/toneAccent";
@@ -512,11 +512,12 @@ const styles = StyleSheet.create({
   },
   promptCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
     gap: 6,
+    ...sketchShadow(2),
   },
   promptEyebrow: {
     fontSize: 11,
@@ -538,11 +539,12 @@ const styles = StyleSheet.create({
   },
   studyCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 20,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 22,
     gap: 10,
+    ...sketchShadow(2),
   },
   studyCardTop: {
     flexDirection: "row",
@@ -562,7 +564,7 @@ const styles = StyleSheet.create({
   speakerButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: SketchRadius.control,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -589,7 +591,7 @@ const styles = StyleSheet.create({
   exampleCard: {
     marginTop: 6,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 16,
@@ -614,13 +616,14 @@ const styles = StyleSheet.create({
   },
   exerciseCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 20,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 24,
     paddingHorizontal: 18,
     alignItems: "center",
     gap: 8,
+    ...sketchShadow(2),
   },
   questionLabel: {
     fontSize: 11,
@@ -649,12 +652,13 @@ const styles = StyleSheet.create({
     width: "48%",
     minHeight: 126,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     padding: 16,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    ...sketchShadow(2),
   },
   optionGlyph: {
     fontSize: 44,
@@ -674,7 +678,7 @@ const styles = StyleSheet.create({
   },
   resultBanner: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 12,
@@ -695,7 +699,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   primaryButton: {
-    borderRadius: 14,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",

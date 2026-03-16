@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import {
   MINIMAL_PAIRS,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Sketch.paperDark,
     borderColor: Sketch.inkFaint,
-    borderRadius: 999,
+    borderRadius: 0,
     borderWidth: 1,
     flexDirection: "row",
     gap: 7,
@@ -329,12 +329,11 @@ const styles = StyleSheet.create({
   toneRow: {
     backgroundColor: Sketch.cardBg,
     borderColor: Sketch.inkFaint,
-    borderRadius: 20,
+    borderRadius: 0,
     borderWidth: 1,
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 15,
-    ...sketchShadow(4),
   },
   toneHeader: {
     alignItems: "center",
@@ -374,7 +373,7 @@ const styles = StyleSheet.create({
     width: 78,
   },
   pitchBar: {
-    borderRadius: 999,
+    borderRadius: 0,
     flex: 1,
   },
   toneDescription: {
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
   exampleChip: {
     backgroundColor: Sketch.paperDark,
     borderColor: Sketch.inkFaint,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     minWidth: 92,
     paddingHorizontal: 12,
@@ -417,17 +416,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     backgroundColor: Sketch.cardBg,
     borderColor: Sketch.inkFaint,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     flexDirection: "row",
     gap: 14,
     paddingHorizontal: 15,
     paddingVertical: 14,
-    ...sketchShadow(3),
   },
   toneMarkBadge: {
     alignItems: "center",
-    borderRadius: 14,
+    borderRadius: 0,
     height: 56,
     justifyContent: "center",
     width: 56,
@@ -459,11 +457,10 @@ const styles = StyleSheet.create({
   pairGroup: {
     backgroundColor: Sketch.cardBg,
     borderColor: Sketch.inkFaint,
-    borderRadius: 20,
+    borderRadius: 0,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 15,
-    ...sketchShadow(4),
   },
   pairLabel: {
     color: Sketch.ink,
@@ -485,7 +482,7 @@ const styles = StyleSheet.create({
   pairChip: {
     backgroundColor: Sketch.paperDark,
     borderColor: Sketch.inkFaint,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     minWidth: 96,
     paddingHorizontal: 12,

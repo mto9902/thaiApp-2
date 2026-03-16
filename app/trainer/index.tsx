@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import {
   CONSONANT_INFO,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   summaryPill: {
     flex: 1,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 12,
@@ -380,12 +380,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: 80,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 12,
     justifyContent: "space-between",
-    ...sketchShadow(3),
+    ...sketchShadow(2),
   },
   difficultyTitle: {
     fontSize: 17,
@@ -408,12 +408,12 @@ const styles = StyleSheet.create({
     maxWidth: "48%",
     minHeight: 92,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 12,
     justifyContent: "space-between",
-    ...sketchShadow(3),
+    ...sketchShadow(2),
   },
   selectionCardActive: {
     borderColor: Sketch.orange,
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     backgroundColor: withAlpha(Sketch.orange, "10"),
-    borderRadius: 14,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: withAlpha(Sketch.orange, "30"),
     paddingVertical: 12,
@@ -462,17 +462,15 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: Sketch.orange,
-    borderRadius: 16,
+    borderRadius: SketchRadius.control,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
-    ...sketchShadow(4),
   },
   primaryButtonDisabled: {
     backgroundColor: Sketch.inkFaint,
-    shadowOpacity: 0,
   },
   primaryButtonText: {
     fontSize: 15,

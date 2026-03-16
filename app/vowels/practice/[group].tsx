@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 22,
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   },
   promptCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   studyCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 20,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 22,
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   speakerButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   exerciseCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 20,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 24,
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     width: "48%",
     minHeight: 130,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: 0,
     borderWidth: 1,
     padding: 16,
     alignItems: "center",
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 12,
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
   primaryButton: {
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",

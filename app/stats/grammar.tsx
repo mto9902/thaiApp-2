@@ -232,14 +232,14 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   scroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 32,
     gap: 16,
   },
   heroCard: {
     backgroundColor: withAlpha(MUTED_APP_ACCENTS.stone, "0B"),
-    borderRadius: 16,
+    borderRadius: 0,
     padding: 20,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     width: "48%",
     flexGrow: 1,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: 0,
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   levelCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: 0,
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -351,14 +351,16 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     flex: 1,
-    height: 6,
-    borderRadius: 999,
+    height: 4,
+    borderRadius: 0,
     overflow: "hidden",
     backgroundColor: Sketch.inkFaint,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   progressFill: {
     height: "100%",
-    borderRadius: 999,
+    borderRadius: 0,
     backgroundColor: MUTED_APP_ACCENTS.clay,
   },
   progressPercent: {

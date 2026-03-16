@@ -15,7 +15,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { Sketch, sketchShadow } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
 import {
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   difficultyBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: SketchRadius.badge,
   },
   difficultyBadgeText: {
     fontSize: 11,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   summaryPill: {
     flex: 1,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 12,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 999,
+    borderRadius: SketchRadius.badge,
     backgroundColor: withAlpha(MUTED_APP_ACCENTS.stone, "0D"),
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -393,13 +393,13 @@ const styles = StyleSheet.create({
   },
   stateCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 24,
     alignItems: "center",
     gap: 10,
-    ...sketchShadow(4),
+    ...sketchShadow(2),
   },
   stateTitle: {
     fontSize: 20,
@@ -435,13 +435,13 @@ const styles = StyleSheet.create({
   wordCard: {
     width: "48%",
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 16,
     minHeight: 132,
     gap: 12,
-    ...sketchShadow(3),
+    ...sketchShadow(2),
   },
   wordCardHeader: {
     flexDirection: "row",
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   soundButton: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paperDark,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   moreWordsButton: {
     minHeight: 54,
-    borderRadius: 16,
+    borderRadius: SketchRadius.control,
     backgroundColor: Sketch.orange,
     borderWidth: 1,
     borderColor: Sketch.orangeDark,
@@ -502,11 +502,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
-    ...sketchShadow(4),
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.24,
-    shadowRadius: 10,
   },
   moreWordsText: {
     fontSize: 15,

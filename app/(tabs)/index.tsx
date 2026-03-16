@@ -13,8 +13,7 @@ import { canAccessApp, isGuestUser } from "../../src/utils/auth";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
-import KeystoneLogo from "../../src/components/KeystoneLogo";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { grammarPoints } from "../../src/data/grammar";
 import {
@@ -628,7 +627,7 @@ const styles = StyleSheet.create({
   actionTile: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 0,
+    borderRadius: SketchRadius.card,
     padding: 20,
     alignItems: "center",
     justifyContent: "center",
@@ -636,6 +635,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     minHeight: 140,
+    ...sketchShadow(2),
   },
   actionTileValue: {
     fontSize: 32,
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
   progressPagerButton: {
     width: 32,
     height: 32,
-    borderRadius: 0,
+    borderRadius: SketchRadius.control,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.paperDark,
@@ -713,10 +713,11 @@ const styles = StyleSheet.create({
   },
   heatmapCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 0,
+    borderRadius: SketchRadius.card,
     padding: 20,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   heatmapContainer: {
     marginTop: 0,
@@ -733,10 +734,11 @@ const styles = StyleSheet.create({
   },
   moduleCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 0,
+    borderRadius: SketchRadius.card,
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   moduleCardHeader: {
     marginBottom: 10,
@@ -763,7 +765,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 0,
+    borderRadius: SketchRadius.track,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
@@ -771,7 +773,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: Sketch.accent,
-    borderRadius: 0,
+    borderRadius: SketchRadius.track,
   },
   progressPercent: {
     fontSize: 12,
@@ -785,11 +787,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Sketch.cardBg,
-    borderRadius: 0,
+    borderRadius: SketchRadius.card,
     padding: 20,
     gap: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   startGrammarText: {
     flex: 1,
@@ -813,13 +816,14 @@ const styles = StyleSheet.create({
   quickLinkCard: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 0,
+    borderRadius: SketchRadius.card,
     paddingVertical: 20,
     paddingHorizontal: 14,
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    ...sketchShadow(2),
   },
   quickLinkText: {
     fontSize: 12,

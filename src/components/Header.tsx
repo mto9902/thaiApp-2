@@ -382,16 +382,11 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: 0,
     padding: 24,
     width: "100%",
     maxWidth: 360,
     maxHeight: "85%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 12,
   },
   modalHeader: {
     flexDirection: "row",
@@ -424,7 +419,7 @@ const styles = StyleSheet.create({
   speedPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 0,
     backgroundColor: Sketch.paperDark,
   },
   speedPillActive: {
@@ -463,7 +458,7 @@ const styles = StyleSheet.create({
   exerciseChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: 0,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,

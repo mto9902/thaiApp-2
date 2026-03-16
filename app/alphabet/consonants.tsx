@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import { alphabet } from "../../src/data/alphabet";
 
@@ -101,27 +101,28 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 24,
+    paddingTop: 14,
     paddingBottom: 28,
   },
   introCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
     marginBottom: 14,
+    ...sketchShadow(2),
   },
   introEyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.inkMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
   introTitle: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: "700",
     color: Sketch.ink,
     marginTop: 8,
@@ -135,22 +136,19 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    ...sketchShadow(2),
   },
   eyebrow: {
     fontSize: 12,
     fontWeight: "600",
-    letterSpacing: 0.2,
-    color: Sketch.orange,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: Sketch.inkMuted,
     marginBottom: 10,
   },
   cardTitle: {
@@ -174,7 +172,7 @@ const styles = StyleSheet.create({
     minWidth: 42,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     backgroundColor: Sketch.paperDark,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,

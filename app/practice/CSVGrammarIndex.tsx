@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
 import {
@@ -333,15 +333,17 @@ const styles = StyleSheet.create({
   },
   summaryProgressBar: {
     flex: 1,
-    height: 6,
+    height: 4,
     backgroundColor: Sketch.inkFaint,
-    borderRadius: 3,
+    borderRadius: SketchRadius.track,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   summaryProgressFill: {
     height: "100%",
     backgroundColor: Sketch.orange,
-    borderRadius: 3,
+    borderRadius: SketchRadius.track,
   },
   summaryPercent: {
     fontSize: 13,
@@ -392,23 +394,19 @@ const styles = StyleSheet.create({
   },
   // List
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 24,
+    paddingTop: 12,
   },
   // Cards
   card: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
     gap: 12,
+    ...sketchShadow(2),
   },
   cardTop: {
     flexDirection: "row",
@@ -449,7 +447,7 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paperDark,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 6,
+    borderRadius: SketchRadius.badge,
     alignSelf: "flex-start",
     maxWidth: "100%",
   },
@@ -466,7 +464,7 @@ const styles = StyleSheet.create({
   doneBadge: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: SketchRadius.badge,
     backgroundColor: Sketch.orange,
     alignItems: "center",
     justifyContent: "center",
@@ -488,7 +486,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(196, 97, 60, 0.12)",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: SketchRadius.badge,
   },
   premiumPillText: {
     fontSize: 12,
@@ -499,7 +497,7 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.orange + "12",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: SketchRadius.badge,
   },
   focusParticle: {
     fontSize: 13,

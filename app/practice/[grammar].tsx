@@ -331,12 +331,11 @@ const styles = StyleSheet.create({
   },
 
   englishContainer: {
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: Sketch.paper,
     padding: 15,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: Sketch.inkFaint,
-    borderStyle: "dashed",
     width: "100%",
     alignItems: "center",
     marginBottom: 20,

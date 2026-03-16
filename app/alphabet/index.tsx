@@ -2,7 +2,7 @@ import { Stack, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import Header from "../../src/components/Header";
 
 function EntryCard({
@@ -83,27 +83,28 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 24,
+    paddingTop: 14,
     paddingBottom: 28,
   },
   introCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 20,
     marginBottom: 14,
+    ...sketchShadow(2),
   },
   introEyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.inkMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
   introTitle: {
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: "700",
     color: Sketch.ink,
     marginTop: 8,
@@ -118,26 +119,23 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 18,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 18,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    ...sketchShadow(2),
   },
   entryEyebrow: {
     fontSize: 12,
     fontWeight: "600",
-    letterSpacing: 0.2,
-    color: Sketch.orange,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: Sketch.inkMuted,
     marginBottom: 10,
   },
   entryTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "700",
     color: Sketch.ink,
   },

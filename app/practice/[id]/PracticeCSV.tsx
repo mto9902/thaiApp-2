@@ -19,7 +19,7 @@ import Header, { SettingsState } from "../../../src/components/Header";
 import PremiumGateCard from "../../../src/components/PremiumGateCard";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
-import { Sketch } from "@/constants/theme";
+import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { grammarPoints } from "../../../src/data/grammar";
@@ -37,7 +37,6 @@ import { normalizeThaiTtsText } from "../../../src/utils/thaiSpeech";
 import {
   getToneAccent,
   MUTED_FEEDBACK_ACCENTS,
-  withAlpha,
 } from "../../../src/utils/toneAccent";
 import { getAuthToken } from "../../../src/utils/authStorage";
 
@@ -47,12 +46,12 @@ function toneColor(tone?: string): string {
 }
 
 const MATTE_RESULT_COLORS = {
-  successBg: withAlpha(MUTED_FEEDBACK_ACCENTS.success, "10"),
-  successBorder: withAlpha(MUTED_FEEDBACK_ACCENTS.success, "26"),
-  successText: MUTED_FEEDBACK_ACCENTS.success,
-  errorBg: withAlpha(MUTED_FEEDBACK_ACCENTS.error, "10"),
-  errorBorder: withAlpha(MUTED_FEEDBACK_ACCENTS.error, "26"),
-  errorText: MUTED_FEEDBACK_ACCENTS.error,
+  successBg: "#F4F6F1",
+  successBorder: "#C8D0C0",
+  successText: "#62705A",
+  errorBg: "#F7F2F0",
+  errorBorder: "#D8C5C0",
+  errorText: "#826A66",
 } as const;
 
 type Mode = GrammarExerciseMode;
@@ -1031,13 +1030,6 @@ export default function PracticeCSV() {
                       bgColor = MUTED_FEEDBACK_ACCENTS.selectedTint;
                     }
 
-                    const sentenceBorderColor = isCorrect && matchRevealed
-                      ? MATTE_RESULT_COLORS.successBorder
-                      : isSelected && matchRevealed && !isCorrect
-                        ? MATTE_RESULT_COLORS.errorBorder
-                        : isSelected
-                          ? MUTED_FEEDBACK_ACCENTS.selectedBorder
-                          : Sketch.inkFaint;
                     const sentenceBgColor = isCorrect && matchRevealed
                       ? MATTE_RESULT_COLORS.successBg
                       : isSelected && matchRevealed && !isCorrect
@@ -1063,7 +1055,6 @@ export default function PracticeCSV() {
                           style={[
                             st.matchSentenceButton,
                             {
-                              borderColor: sentenceBorderColor,
                               backgroundColor: sentenceBgColor,
                             },
                           ]}
@@ -1174,30 +1165,6 @@ export default function PracticeCSV() {
                           </View>
                         )}
 
-                        {matchRevealed && isCorrect && (
-                          <View style={st.badge}>
-                            <Text
-                              style={[
-                                st.badgeText,
-                                { color: MATTE_RESULT_COLORS.successText },
-                              ]}
-                            >
-                              Correct
-                            </Text>
-                          </View>
-                        )}
-                        {matchRevealed && isSelected && !isCorrect && (
-                          <View style={[st.badge, st.badgeWrong]}>
-                            <Text
-                              style={[
-                                st.badgeText,
-                                { color: MATTE_RESULT_COLORS.errorText },
-                              ]}
-                            >
-                              Wrong
-                            </Text>
-                          </View>
-                        )}
                       </View>
                     );
                   })}
@@ -1281,7 +1248,7 @@ const st = StyleSheet.create({
   loadingPulse: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: SketchRadius.card,
     backgroundColor: Sketch.inkFaint,
   },
   loadingLabel: { fontSize: 14, color: Sketch.inkMuted, fontWeight: "600" },
@@ -1299,7 +1266,7 @@ const st = StyleSheet.create({
   },
   modeTag: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 999,
+    borderRadius: SketchRadius.badge,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderWidth: 1,
@@ -1340,18 +1307,19 @@ const st = StyleSheet.create({
 
   studyCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 22,
     alignItems: "center",
+    ...sketchShadow(2),
   },
   speakerBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderWidth: 1,
@@ -1380,7 +1348,7 @@ const st = StyleSheet.create({
     width: 40,
     height: 2,
     backgroundColor: Sketch.inkFaint,
-    borderRadius: 1,
+    borderRadius: SketchRadius.track,
     marginBottom: 16,
   },
   studyEnglish: {
@@ -1414,7 +1382,7 @@ const st = StyleSheet.create({
   },
   wordTile: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 10,
@@ -1438,7 +1406,7 @@ const st = StyleSheet.create({
   },
   matchWordTile: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 10,
@@ -1487,9 +1455,9 @@ const st = StyleSheet.create({
 
   primaryBtn: {
     backgroundColor: Sketch.orange,
-    borderRadius: 14,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
-    borderColor: "rgba(148, 73, 45, 0.35)",
+    borderColor: Sketch.orange,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
@@ -1513,11 +1481,12 @@ const st = StyleSheet.create({
 
   promptCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 16,
     paddingHorizontal: 18,
+    ...sketchShadow(2),
   },
   promptLabel: {
     fontSize: 11,
@@ -1536,7 +1505,7 @@ const st = StyleSheet.create({
   progressTrack: {
     height: 6,
     backgroundColor: Sketch.inkFaint,
-    borderRadius: 3,
+    borderRadius: SketchRadius.track,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Sketch.ink,
@@ -1544,20 +1513,19 @@ const st = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: Sketch.orange,
-    borderRadius: 3,
+    borderRadius: SketchRadius.track,
   },
 
   builderZone: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    backgroundColor: Sketch.paperDark,
+    borderRadius: SketchRadius.card,
     minHeight: 80,
     paddingVertical: 16,
     paddingHorizontal: 18,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    borderStyle: "dashed",
+    borderColor: "#D8D8D4",
   },
   builderCorrect: {
     borderColor: MATTE_RESULT_COLORS.successBorder,
@@ -1582,7 +1550,7 @@ const st = StyleSheet.create({
   },
   builderChip: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderWidth: 1.5,
@@ -1594,13 +1562,12 @@ const st = StyleSheet.create({
     color: Sketch.ink,
   },
   builderChipLocked: {
-    backgroundColor: Sketch.inkFaint,
-    borderRadius: 10,
+    backgroundColor: Sketch.paper,
+    borderRadius: SketchRadius.control,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderWidth: 1.5,
-    borderColor: Sketch.inkFaint,
-    borderStyle: "dashed",
+    borderColor: "#D4D4CF",
   },
   builderChipLockedText: {
     fontSize: 22,
@@ -1608,13 +1575,12 @@ const st = StyleSheet.create({
     color: Sketch.inkMuted,
   },
   builderSlotEmpty: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: 10,
+    backgroundColor: Sketch.paper,
+    borderRadius: SketchRadius.control,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderWidth: 1.5,
-    borderColor: Sketch.inkFaint,
-    borderStyle: "dashed",
+    borderColor: "#D4D4CF",
     minWidth: 44,
     alignItems: "center" as const,
   },
@@ -1628,7 +1594,7 @@ const st = StyleSheet.create({
   actionBtn: {
     flex: 1,
     backgroundColor: Sketch.cardBg,
-    borderRadius: 10,
+    borderRadius: SketchRadius.control,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
@@ -1644,7 +1610,7 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: SketchRadius.control,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderWidth: 1,
@@ -1663,18 +1629,18 @@ const st = StyleSheet.create({
   optionsGrid: { gap: 10 },
   optionCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 14,
+    borderRadius: SketchRadius.card,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 12,
     gap: 8,
+    ...sketchShadow(2),
   },
   matchSentenceButton: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: SketchRadius.control,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
@@ -1695,7 +1661,7 @@ const st = StyleSheet.create({
   matchExpandButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: SketchRadius.control,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.cardBg,
@@ -1710,18 +1676,4 @@ const st = StyleSheet.create({
     paddingTop: 2,
   },
 
-  badge: {
-    alignSelf: "flex-start",
-    backgroundColor: MATTE_RESULT_COLORS.successBg,
-    borderRadius: 6,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderWidth: 1.5,
-    borderColor: MATTE_RESULT_COLORS.successBorder,
-  },
-  badgeWrong: {
-    backgroundColor: MATTE_RESULT_COLORS.errorBg,
-    borderColor: MATTE_RESULT_COLORS.errorBorder,
-  },
-  badgeText: { fontSize: 12, fontWeight: "700" },
 });
