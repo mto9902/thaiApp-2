@@ -8,28 +8,31 @@ import { Platform, ViewStyle, TextStyle } from 'react-native';
 // ── Core palette ──────────────────────────────────────────────────────────────
 export const Sketch = {
   // Backgrounds
-  paper: '#FFFFFF',
-  paperDark: '#F5F5F5',
+  paper: '#F9F9F7',          // Warm off-white
+  paperDark: '#FFFFFF',       // Surface white
   cardBg: '#FFFFFF',
 
   // Primary accent
-  orange: '#C4613C',         // terracotta / burnt orange
-  orangeLight: '#D4795A',
-  orangeDark: '#A8502F',
+  accent: '#2E4057',          // Deep indigo
+  accentLight: '#3D5470',
+  accentDark: '#1F2D3F',
+
+  // Legacy orange (for compatibility)
+  orange: '#2E4057',
 
   // Secondary
   yellow: '#E8C547',
   yellowLight: '#F5E6A3',
 
   // Neutrals
-  ink: '#1A1A1A',
+  ink: '#1A1A1A',             // Soft black
   inkLight: '#555555',
-  inkMuted: '#999999',
-  inkFaint: '#E0E0E0',
+  inkMuted: '#737373',
+  inkFaint: '#E5E5E5',
 
   // Functional
   green: '#4CAF50',
-  red: '#E05252',
+  red: '#8B3A3A',             // Error color from design
   blue: '#5B8DB8',
   purple: '#8B6BAE',
   pink: '#D98BAF',
@@ -37,7 +40,7 @@ export const Sketch = {
   // Level colors
   beginner: '#4CAF50',
   intermediate: '#5B8DB8',
-  advanced: '#E05252',
+  advanced: '#8B3A3A',
 };
 
 // ── Shadow (subtle, modern) ──────────────────────────────────────────────────
@@ -52,21 +55,23 @@ export const sketchShadow = (size: number = 4): ViewStyle => ({
 // ── Common card style ─────────────────────────────────────────────────────────
 export const sketchCard: ViewStyle = {
   backgroundColor: Sketch.cardBg,
-  borderRadius: 12,
-  ...sketchShadow(4),
+  borderRadius: 0,
+  borderWidth: 1,
+  borderColor: Sketch.inkFaint,
 };
 
 // ── Button base ──────────────────────────────────────────────────────────────
 export const sketchButton: ViewStyle = {
-  borderRadius: 10,
-  ...sketchShadow(2),
+  borderRadius: 0,
+  borderWidth: 1,
+  borderColor: Sketch.inkFaint,
 };
 
 // ── Input ────────────────────────────────────────────────────────────────────
 export const sketchInput: ViewStyle = {
   borderWidth: 1,
   borderColor: Sketch.inkFaint,
-  borderRadius: 10,
+  borderRadius: 0,
   backgroundColor: Sketch.cardBg,
   padding: 14,
 };

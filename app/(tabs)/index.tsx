@@ -393,11 +393,9 @@ export default function HomeScreen() {
       >
         {/* Branded Header */}
         <View style={styles.brandHeader}>
-          <KeystoneLogo size={44} />
-          <View>
-            <Text style={styles.brandTitle}>Keystone</Text>
-            <Text style={styles.brandSubtitle}>Thai Grammar Blueprint</Text>
-          </View>
+          <Text style={styles.brandTitle}>Keystone</Text>
+          <Text style={styles.brandSubtitle}>Thai Grammar Blueprint</Text>
+          <View style={styles.brandAccentLine} />
         </View>
 
         <View style={styles.spacing} />
@@ -434,7 +432,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/trainer" as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="text-outline" size={22} color={Sketch.orange} />
+            <Ionicons name="text-outline" size={22} color={Sketch.accent} />
             <Text style={styles.actionTileTitle}>Alphabet Trainer</Text>
             <Text style={styles.actionTileLabel}>Consonants & vowels</Text>
           </TouchableOpacity>
@@ -531,7 +529,7 @@ export default function HomeScreen() {
               onPress={() => router.push("/progress" as any)}
               activeOpacity={0.7}
             >
-              <Ionicons name="book-outline" size={28} color={Sketch.orange} />
+              <Ionicons name="book-outline" size={28} color={Sketch.accent} />
               <View style={styles.startGrammarText}>
                 <Text style={styles.startGrammarTitle}>
                   Begin your grammar journey
@@ -573,7 +571,7 @@ export default function HomeScreen() {
                 onPress={() => router.push(item.route as any)}
                 activeOpacity={0.7}
               >
-                <Ionicons name={item.icon} size={24} color={Sketch.orange} />
+                <Ionicons name={item.icon} size={24} color={Sketch.accent} />
                 <Text style={styles.quickLinkText}>{item.label}</Text>
               </TouchableOpacity>
             ))}
@@ -592,67 +590,68 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
   spacing: {
-    height: 24,
+    height: 32,
   },
   // Branded Header
   brandHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingVertical: 12,
+    paddingVertical: 24,
+    paddingBottom: 32,
   },
   brandTitle: {
-    fontSize: 26,
+    fontSize: 32,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
+    marginBottom: 2,
   },
   brandSubtitle: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    marginTop: 1,
+    marginBottom: 16,
+    fontStyle: "italic",
+  },
+  brandAccentLine: {
+    width: 40,
+    height: 2,
+    backgroundColor: Sketch.accent,
   },
   // Action Tiles
   actionRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 16,
   },
   actionTile: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 0,
+    padding: 20,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 8,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    minHeight: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    minHeight: 140,
   },
   actionTileValue: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.accent,
   },
   actionTileTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "600",
     color: Sketch.ink,
   },
   actionTileLabel: {
     fontSize: 12,
     fontWeight: "500",
     color: Sketch.inkMuted,
+    textAlign: "center",
   },
   actionTileMeta: {
     fontSize: 11,
@@ -676,9 +675,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   sectionHint: {
     fontSize: 11,
@@ -691,9 +692,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   progressPagerButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.paperDark,
@@ -701,10 +702,10 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
   },
   progressPagerButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   progressPagerText: {
-    minWidth: 34,
+    minWidth: 40,
     textAlign: "center",
     fontSize: 12,
     fontWeight: "600",
@@ -712,8 +713,8 @@ const styles = StyleSheet.create({
   },
   heatmapCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 0,
+    padding: 20,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
   },
@@ -732,53 +733,50 @@ const styles = StyleSheet.create({
   },
   moduleCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
+    borderRadius: 0,
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
   },
   moduleCardHeader: {
     marginBottom: 10,
   },
   moduleLevel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    color: Sketch.orange,
-    letterSpacing: 1,
+    color: Sketch.inkMuted,
+    letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   moduleTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: Sketch.ink,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   progressContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   progressBar: {
     flex: 1,
-    height: 6,
+    height: 4,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 3,
+    borderRadius: 0,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: Sketch.orange,
-    borderRadius: 3,
+    backgroundColor: Sketch.accent,
+    borderRadius: 0,
   },
   progressPercent: {
     fontSize: 12,
     fontWeight: "600",
-    color: Sketch.inkLight,
+    color: Sketch.inkMuted,
     minWidth: 30,
     textAlign: "right",
   },
@@ -787,23 +785,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Sketch.cardBg,
-    borderRadius: 16,
-    padding: 18,
-    gap: 14,
+    borderRadius: 0,
+    padding: 20,
+    gap: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   startGrammarText: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   startGrammarTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: Sketch.ink,
   },
@@ -820,18 +813,13 @@ const styles = StyleSheet.create({
   quickLinkCard: {
     flex: 1,
     backgroundColor: Sketch.paperDark,
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
+    borderRadius: 0,
+    paddingVertical: 20,
+    paddingHorizontal: 14,
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   quickLinkText: {
     fontSize: 12,
