@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { useEffect, useRef, useState } from "react";
 import { isGuestUser } from "../../../src/utils/auth";
 
@@ -36,7 +35,6 @@ import {
   GrammarExerciseSettings,
 } from "../../../src/utils/grammarExerciseSettings";
 import { getPracticeWordTrackingEnabled } from "../../../src/utils/practiceWordPreference";
-import { normalizeThaiTtsText } from "../../../src/utils/thaiSpeech";
 import {
   getToneAccent,
   MUTED_FEEDBACK_ACCENTS,
@@ -579,26 +577,9 @@ export default function PracticeCSV() {
     setExpandedMatchOption((current) => (current === idx ? null : idx));
   }
 
-  const TTS_RATE: Record<string, number> = {
-    slow: 0.7,
-    normal: 1.0,
-    fast: 1.3,
+  const playBreakdownWord = (text: string) => {
+    void playSentence(text, { speed: ttsSpeed });
   };
-
-  const speakWord = (t: string) => {
-    Speech.stop();
-    Speech.speak(normalizeThaiTtsText(t), {
-      language: "th-TH",
-      rate: TTS_RATE[ttsSpeed] || 0.7,
-    });
-  };
-
-  useEffect(
-    () => () => {
-      Speech.stop();
-    },
-    [],
-  );
 
   const meta = MODE_META[mode];
   const availableWords = words.filter(
@@ -750,7 +731,7 @@ export default function PracticeCSV() {
                         <TouchableOpacity
                           key={i}
                           style={st.wordTile}
-                          onPress={() => speakWord(w.thai)}
+                          onPress={() => playBreakdownWord(w.thai)}
                           activeOpacity={0.8}
                         >
                           <View style={st.wordTileHeader}>
@@ -1102,12 +1083,12 @@ export default function PracticeCSV() {
                             <View style={st.matchTileRow}>
                               {opt.breakdown.map((w, wi) => (
                                 wordBreakdownTTS ? (
-                                  <TouchableOpacity
-                                    key={wi}
-                                    style={st.matchWordTile}
-                                    onPress={() => speakWord(w.thai)}
-                                    activeOpacity={0.8}
-                                  >
+                                    <TouchableOpacity
+                                      key={wi}
+                                      style={st.matchWordTile}
+                                      onPress={() => playBreakdownWord(w.thai)}
+                                      activeOpacity={0.8}
+                                    >
                                     <View style={st.matchWordTileHeader}>
                                       <Text style={st.matchWordTileThai}>{w.thai}</Text>
                                       {w.tone && (

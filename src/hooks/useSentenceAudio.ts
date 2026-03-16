@@ -94,7 +94,26 @@ export function useSentenceAudio() {
         });
 
         if (!response.ok) {
-          throw new Error(`Sentence audio request failed: ${response.status}`);
+          let detail = "";
+
+          try {
+            const errorData = await response.json();
+            if (errorData && typeof errorData.error === "string") {
+              detail = errorData.error;
+            }
+          } catch {
+            try {
+              detail = await response.text();
+            } catch {
+              detail = "";
+            }
+          }
+
+          throw new Error(
+            detail
+              ? `Sentence audio request failed: ${response.status} - ${detail}`
+              : `Sentence audio request failed: ${response.status}`,
+          );
         }
 
         const data = await response.json();

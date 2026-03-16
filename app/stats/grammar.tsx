@@ -1,12 +1,13 @@
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
@@ -60,14 +61,17 @@ const LEVEL_ACCENTS = [
 
 export default function GrammarStatsScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
     {},
   );
 
+  const metricCardWidth = width < 380 ? "100%" : "48%";
+
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   async function loadData() {
@@ -130,11 +134,7 @@ export default function GrammarStatsScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header
-        title="Grammar Stats"
-        onBack={() => router.back()}
-        showSettings={false}
-      />
+      <Header title="Grammar Stats" onBack={() => router.back()} />
 
       {loading ? (
         <View style={styles.loadingWrap}>
@@ -154,19 +154,19 @@ export default function GrammarStatsScreen() {
           </View>
 
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { width: metricCardWidth }]}>
               <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.clay }]}>
                 {totalRounds}
               </Text>
               <Text style={styles.statLabel}>All-time rounds</Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { width: metricCardWidth }]}>
               <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.sage }]}>
                 {percent(totalCorrect, totalAttempts)}%
               </Text>
               <Text style={styles.statLabel}>All-time accuracy</Text>
             </View>
-            <View style={[styles.statCard, styles.wideCard]}>
+            <View style={[styles.statCard, { width: metricCardWidth }]}>
               <Text style={styles.lastPracticedLabel}>Last practiced</Text>
               <Text style={styles.lastPracticedValue}>
                 {timeAgo(lastPracticed)}
@@ -176,47 +176,52 @@ export default function GrammarStatsScreen() {
 
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>By unit</Text>
-            {stageSummaries.map((item, index) => {
-              const accent = LEVEL_ACCENTS[index % LEVEL_ACCENTS.length];
-              const percentage =
-                item.total > 0
-                  ? Math.round((item.practiced / item.total) * 100)
-                  : 0;
+            <View style={styles.levelGrid}>
+              {stageSummaries.map((item, index) => {
+                const accent = LEVEL_ACCENTS[index % LEVEL_ACCENTS.length];
+                const percentage =
+                  item.total > 0
+                    ? Math.round((item.practiced / item.total) * 100)
+                    : 0;
 
-              return (
-                <View key={item.stage} style={styles.levelCard}>
-                  <View style={styles.levelHeader}>
-                    <Text style={[styles.levelTag, { color: accent }]}>
-                      {item.stage}
-                    </Text>
-                    <Text style={[styles.levelRounds, { color: accent }]}>
-                      {item.rounds} rounds
-                    </Text>
-                  </View>
-                  <Text style={styles.levelTitle}>{item.title}</Text>
-                  <View style={styles.progressRow}>
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${percentage}%`,
-                            backgroundColor: accent,
-                          },
-                        ]}
-                      />
+                return (
+                  <View
+                    key={item.stage}
+                    style={[styles.levelCard, { width: metricCardWidth }]}
+                  >
+                    <View style={styles.levelHeader}>
+                      <Text style={[styles.levelTag, { color: accent }]}>
+                        {item.stage}
+                      </Text>
+                      <Text style={[styles.levelRounds, { color: accent }]}>
+                        {item.rounds} rounds
+                      </Text>
                     </View>
-                    <Text style={[styles.progressPercent, { color: accent }]}>
-                      {percentage}%
+                    <Text style={styles.levelTitle}>{item.title}</Text>
+                    <View style={styles.progressRow}>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${percentage}%`,
+                              backgroundColor: accent,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.progressPercent, { color: accent }]}>
+                        {percentage}%
+                      </Text>
+                    </View>
+                    <Text style={styles.levelMeta}>
+                      {item.practiced}/{item.total} topics - {item.accuracy}%
+                      {" "}accuracy
                     </Text>
                   </View>
-                  <Text style={styles.levelMeta}>
-                    {item.practiced}/{item.total} topics practiced •{" "}
-                    {item.accuracy}% accuracy
-                  </Text>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </View>
         </ScrollView>
       )}
@@ -270,16 +275,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   statCard: {
-    width: "48%",
     flexGrow: 1,
     backgroundColor: Sketch.cardBg,
     borderRadius: 0,
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-  },
-  wideCard: {
-    width: "100%",
   },
   statValue: {
     fontSize: 28,
@@ -318,7 +319,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
   },
+  levelGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
   levelCard: {
+    flexGrow: 1,
     backgroundColor: Sketch.paperDark,
     borderRadius: 0,
     padding: 16,

@@ -181,11 +181,10 @@ export default function TrainerScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header
-        title="Alphabet Trainer"
-        onBack={() => router.back()}
-        showSettings={false}
-      />
+        <Header
+          title="Alphabet Trainer"
+          onBack={() => router.back()}
+        />
 
       <ScrollView
         contentContainerStyle={styles.content}

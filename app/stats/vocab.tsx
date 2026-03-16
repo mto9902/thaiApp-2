@@ -7,6 +7,7 @@ import {
   Switch,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,13 +44,15 @@ function StatCard({
   label,
   value,
   accent,
+  width,
 }: {
   label: string;
   value: string | number;
   accent?: string;
+  width?: string | number;
 }) {
   return (
-    <View style={styles.statCard}>
+    <View style={[styles.statCard, width ? { width } : null]}>
       <Text style={[styles.statValue, accent ? { color: accent } : null]}>
         {value}
       </Text>
@@ -58,14 +61,34 @@ function StatCard({
   );
 }
 
+function DetailStatCard({
+  label,
+  value,
+  width,
+}: {
+  label: string;
+  value: string | number;
+  width?: string | number;
+}) {
+  return (
+    <View style={[styles.detailCard, width ? { width } : null]}>
+      <Text style={styles.detailValue}>{value}</Text>
+      <Text style={styles.detailLabel}>{label}</Text>
+    </View>
+  );
+}
+
 export default function VocabStatsScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<VocabStatsData | null>(null);
   const [progress, setProgress] = useState<VocabProgressData | null>(null);
   const [trackPracticeVocab, setTrackPracticeVocab] = useState(true);
   const [savingPreference, setSavingPreference] = useState(false);
   const [showSrsInfo, setShowSrsInfo] = useState(false);
+  const metricCardWidth = width < 380 ? "100%" : "48%";
+  const preferenceStacked = width < 440;
 
   useEffect(() => {
     loadData();
@@ -117,11 +140,10 @@ export default function VocabStatsScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header
-        title="Vocab Stats"
-        onBack={() => router.back()}
-        showSettings={false}
-      />
+        <Header
+          title="Vocab Stats"
+          onBack={() => router.back()}
+        />
 
       {loading ? (
         <View style={styles.loadingWrap}>
@@ -156,24 +178,33 @@ export default function VocabStatsScreen() {
               label="Reviews Due"
               value={stats.reviews_due || 0}
               accent={MUTED_APP_ACCENTS.clay}
+              width={metricCardWidth}
             />
             <StatCard
               label="Mastered"
               value={stats.mastered_words || 0}
               accent={MUTED_APP_ACCENTS.sage}
+              width={metricCardWidth}
             />
             <StatCard
               label="Learned Today"
               value={progress?.words_learned_today || 0}
               accent={MUTED_APP_ACCENTS.slate}
+              width={metricCardWidth}
             />
             <StatCard
               label="Reviews Today"
               value={progress?.reviews_today || 0}
+              width={metricCardWidth}
             />
           </View>
 
-          <View style={styles.preferenceCard}>
+          <View
+            style={[
+              styles.preferenceCard,
+              preferenceStacked && styles.preferenceCardStacked,
+            ]}
+          >
             <View style={styles.preferenceCopy}>
               <Text style={styles.sectionTitle}>Adding Vocab</Text>
               <Text style={styles.preferenceText}>
@@ -188,7 +219,12 @@ export default function VocabStatsScreen() {
                 {trackPracticeVocab ? "Currently on" : "Currently off"}
               </Text>
             </View>
-            <View style={styles.preferenceControl}>
+            <View
+              style={[
+                styles.preferenceControl,
+                preferenceStacked && styles.preferenceControlStacked,
+              ]}
+            >
               {savingPreference ? (
                 <ActivityIndicator
                   size="small"
@@ -210,25 +246,32 @@ export default function VocabStatsScreen() {
 
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Deck State</Text>
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>New</Text>
-              <Text style={styles.rowValue}>{stats.new_words || 0}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>Learning</Text>
-              <Text style={styles.rowValue}>{stats.learning_words || 0}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>In review</Text>
-              <Text style={styles.rowValue}>{stats.reviewing_words || 0}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>Average ease</Text>
-              <Text style={styles.rowValue}>{stats.avg_ease ?? "-"}</Text>
-            </View>
-            <View style={[styles.row, styles.rowLast]}>
-              <Text style={styles.rowLabel}>Total lapses</Text>
-              <Text style={styles.rowValue}>{stats.total_lapses || 0}</Text>
+            <View style={styles.detailGrid}>
+              <DetailStatCard
+                label="New"
+                value={stats.new_words || 0}
+                width={metricCardWidth}
+              />
+              <DetailStatCard
+                label="Learning"
+                value={stats.learning_words || 0}
+                width={metricCardWidth}
+              />
+              <DetailStatCard
+                label="In review"
+                value={stats.reviewing_words || 0}
+                width={metricCardWidth}
+              />
+              <DetailStatCard
+                label="Average ease"
+                value={stats.avg_ease ?? "-"}
+                width={metricCardWidth}
+              />
+              <DetailStatCard
+                label="Total lapses"
+                value={stats.total_lapses || 0}
+                width={metricCardWidth}
+              />
             </View>
           </View>
         </ScrollView>
@@ -321,7 +364,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   statCard: {
-    width: "48%",
     flexGrow: 1,
     backgroundColor: Sketch.cardBg,
     borderRadius: 0,
@@ -371,6 +413,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
+  preferenceCardStacked: {
+    flexDirection: "column",
+  },
+  preferenceControlStacked: {
+    alignItems: "flex-start",
+  },
   sectionCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: 0,
@@ -384,26 +432,27 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
     marginBottom: 10,
   },
-  row: {
+  detailGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
+    flexWrap: "wrap",
+    gap: 12,
   },
-  rowLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
+  detailCard: {
+    flexGrow: 1,
+    backgroundColor: Sketch.paperDark,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 14,
+    gap: 4,
   },
-  rowLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: Sketch.inkLight,
-  },
-  rowValue: {
-    fontSize: 15,
+  detailValue: {
+    fontSize: 22,
     fontWeight: "700",
     color: Sketch.ink,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
   },
 });

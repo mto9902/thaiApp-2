@@ -5,7 +5,6 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import * as Speech from "expo-speech";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -31,19 +30,10 @@ import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { isGuestUser } from "../../../src/utils/auth";
 import { getAuthToken } from "../../../src/utils/authStorage";
-import { normalizeThaiTtsText } from "../../../src/utils/thaiSpeech";
 import { getToneAccent } from "../../../src/utils/toneAccent";
 
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
-}
-
-function speakWord(text: string) {
-  Speech.stop();
-  Speech.speak(normalizeThaiTtsText(text), {
-    language: "th-TH",
-    rate: 0.9,
-  });
 }
 
 function getBreakdownRomanizations(
@@ -97,6 +87,7 @@ export default function GrammarDetail() {
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
   const [wordBreakdownTTS, setWordBreakdownTTS] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState<SettingsState["ttsSpeed"]>("normal");
   const [isGuest, setIsGuest] = useState(false);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
@@ -145,6 +136,7 @@ export default function GrammarDetail() {
 
   function handleSettingsChange(settings: SettingsState) {
     setWordBreakdownTTS(settings.wordBreakdownTTS);
+    setTtsSpeed(settings.ttsSpeed);
   }
 
   async function toggleBookmark() {
@@ -215,7 +207,6 @@ export default function GrammarDetail() {
         <Header
           title={grammar.title}
           onBack={() => router.back()}
-          showSettings={false}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
         />
@@ -233,7 +224,6 @@ export default function GrammarDetail() {
         <Header
           title={grammar.title}
           onBack={() => router.back()}
-          showSettings={false}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
         />
@@ -279,7 +269,6 @@ export default function GrammarDetail() {
       <Header
         title={grammar.title}
         onBack={() => router.back()}
-        showSettings={false}
         showWordBreakdownTtsSetting
         onSettingsChange={handleSettingsChange}
       />
@@ -363,11 +352,11 @@ export default function GrammarDetail() {
               ))}
             </Text>
 
-            <TouchableOpacity
-              style={styles.speakerBtn}
-              onPress={() => void playSentence(example.thai)}
-              activeOpacity={0.7}
-            >
+              <TouchableOpacity
+                style={styles.speakerBtn}
+                onPress={() => void playSentence(example.thai, { speed: ttsSpeed })}
+                activeOpacity={0.7}
+              >
               <Ionicons
                 name="volume-medium-outline"
                 size={18}
@@ -389,7 +378,7 @@ export default function GrammarDetail() {
                   <TouchableOpacity
                     key={index}
                     style={styles.wordTile}
-                    onPress={() => speakWord(item.thai)}
+                    onPress={() => void playSentence(item.thai, { speed: ttsSpeed })}
                     activeOpacity={0.8}
                   >
                     <View style={styles.wordTileHeader}>

@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { submitVocabAnswer } from "../../src/api/submitVocabAnswer";
 import Header, { SettingsState } from "../../src/components/Header";
 import VocabSrsInfoSheet from "../../src/components/VocabSrsInfoSheet";
 import { API_BASE } from "../../src/config";
+import { useSentenceAudio } from "../../src/hooks/useSentenceAudio";
 import { isGuestUser } from "../../src/utils/auth";
 import { getAuthToken } from "../../src/utils/authStorage";
 import {
@@ -111,8 +111,6 @@ function formatStateLabel(state: string): string {
   return "New";
 }
 
-const TTS_RATE: Record<string, number> = { slow: 0.7, normal: 1.0, fast: 1.3 };
-
 function QueuePill({
   label,
   count,
@@ -144,6 +142,7 @@ function QueuePill({
 
 export default function ReviewScreen() {
   const router = useRouter();
+  const { playSentence, stopSentenceAudio } = useSentenceAudio();
 
   const [loading, setLoading] = useState(true);
   const [card, setCard] = useState<ReviewCard | null>(null);
@@ -169,9 +168,8 @@ export default function ReviewScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSrsInfo, setShowSrsInfo] = useState(false);
 
-  function speak(text: string) {
-    Speech.stop();
-    Speech.speak(text, { language: "th-TH", rate: TTS_RATE[ttsSpeed] || 0.7 });
+  function speak(text: string, onDone?: () => void) {
+    void playSentence(text, { onDone, speed: ttsSpeed });
   }
 
   function handleSettingsChange(s: SettingsState) {
@@ -198,6 +196,7 @@ export default function ReviewScreen() {
       const preserveFeedback = options?.preserveFeedback ?? false;
 
       clearWaitTimer();
+      stopSentenceAudio();
 
       if (!preserveFeedback) {
         setFeedbackType(null);
@@ -239,7 +238,7 @@ export default function ReviewScreen() {
       setRevealed(false);
       revealAnim.setValue(0);
     },
-    [clearWaitTimer, feedbackAnim, revealAnim],
+    [clearWaitTimer, feedbackAnim, revealAnim, stopSentenceAudio],
   );
 
   const loadCard = useCallback(async () => {
@@ -300,6 +299,7 @@ export default function ReviewScreen() {
     const correct = grade !== "again";
     sessionAnsweredRef.current = true;
     setIsSubmitting(true);
+    stopSentenceAudio();
 
     try {
       const result: AnswerResult = await submitVocabAnswer(card.thai, grade);
