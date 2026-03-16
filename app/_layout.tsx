@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { GrammarCatalogProvider } from '@/src/grammar/GrammarCatalogProvider';
 import { SubscriptionProvider } from '@/src/subscription/SubscriptionProvider';
 
 export const unstable_settings = {
@@ -17,16 +18,18 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SubscriptionProvider authRefreshKey={pathname}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="premium"
-            options={{ headerShown: false, presentation: 'modal' }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
+        <GrammarCatalogProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="premium"
+              options={{ headerShown: false, presentation: 'modal' }}
+            />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </GrammarCatalogProvider>
       </SubscriptionProvider>
     </ThemeProvider>
   );

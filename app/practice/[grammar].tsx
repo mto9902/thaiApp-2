@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import LessonHeader from "../../src/components/LessonHeader";
 import ToneGuide, { ToneGuideButton } from "../../src/components/ToneGuide";
 import { API_BASE } from "../../src/config";
-import { grammarPoints } from "../../src/data/grammar";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { isGuestUser } from "../../src/utils/auth";
 import { getAuthToken } from "../../src/utils/authStorage";
 import { Sketch, sketchShadow } from "@/constants/theme";
@@ -25,6 +25,7 @@ const BREAKDOWN_COLORS = [Sketch.yellow, Sketch.pink, Sketch.blue, Sketch.green]
 export default function GrammarDetail() {
   const { grammar } = useLocalSearchParams<{ grammar: string }>();
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
 
   const [bookmarked, setBookmarked] = useState(false);
   const [toneGuideVisible, setToneGuideVisible] = useState(false);

@@ -4,12 +4,12 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../../src/components/Header";
-import { grammarPoints } from "../../src/data/grammar";
 import {
   GRAMMAR_STAGE_META,
   GRAMMAR_STAGES,
   GrammarStage,
 } from "../../src/data/grammarStages";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { Sketch, sketchShadow } from "@/constants/theme";
 
 const LEVEL_COLORS = {
@@ -30,7 +30,7 @@ const LEVEL_ICONS = {
   C2: "diamond-outline",
 };
 
-function getStages() {
+function getStages(grammarPoints: { stage: GrammarStage }[]) {
   const stageMap = new Map<GrammarStage, number>();
   for (const point of grammarPoints) {
     stageMap.set(point.stage, (stageMap.get(point.stage) || 0) + 1);
@@ -43,7 +43,8 @@ function getStages() {
 
 export default function GrammarLevels() {
   const router = useRouter();
-  const stages = getStages();
+  const { grammarPoints } = useGrammarCatalog();
+  const stages = getStages(grammarPoints);
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>

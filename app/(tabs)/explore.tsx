@@ -17,7 +17,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
-import { GrammarPoint, grammarPoints } from "../../src/data/grammar";
+import { GrammarPoint } from "../../src/data/grammar";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
 import { isPremiumGrammarPoint } from "../../src/subscription/premium";
 import { useSubscription } from "../../src/subscription/SubscriptionProvider";
@@ -73,6 +74,7 @@ function accuracyLabel(p: GrammarProgressData): string {
 
 export default function DecksScreen() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
 
@@ -90,7 +92,7 @@ export default function DecksScreen() {
   const [pendingProgressMixAction, setPendingProgressMixAction] =
     useState<PendingProgressMixAction | null>(null);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const guest = await isGuestUser();
       setIsGuest(guest);
@@ -128,17 +130,17 @@ export default function DecksScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [grammarPoints]);
 
   useFocusEffect(
     useCallback(() => {
       setShowProgressMixModal(false);
       setPendingProgressMixAction(null);
-      loadData();
+      void loadData();
       return () => {
         setShowProgressMixModal(false);
       };
-    }, []),
+    }, [loadData]),
   );
 
   useEffect(() => {
@@ -162,7 +164,7 @@ export default function DecksScreen() {
 
   function handleRefresh() {
     setRefreshing(true);
-    loadData();
+    void loadData();
   }
 
   function handleQuickMix() {
@@ -187,7 +189,7 @@ export default function DecksScreen() {
 
   const practicedGrammar = useMemo(
     () => grammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
-    [progress],
+    [grammarPoints, progress],
   );
 
   const progressCountsByLevel = useMemo(

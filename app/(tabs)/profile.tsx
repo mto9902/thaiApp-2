@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
-import { grammarPoints } from "../../src/data/grammar";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 import { clearAuthState, isGuestUser } from "../../src/utils/auth";
 import { getAuthToken } from "../../src/utils/authStorage";
@@ -27,6 +27,7 @@ type UserProfile = {
   id: number;
   email: string;
   display_name?: string | null;
+  is_admin?: boolean;
 };
 
 type VocabProgress = {
@@ -40,6 +41,7 @@ type JwtPayload = {
 
 export default function Profile() {
   const tabBarHeight = useBottomTabBarHeight();
+  const { grammarPoints } = useGrammarCatalog();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [progress, setProgress] = useState<VocabProgress | null>(null);
   const [reviewsDue, setReviewsDue] = useState(0);
@@ -56,26 +58,7 @@ export default function Profile() {
     openSubscriptionManager,
   } = usePremiumAccess();
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-
-      (async () => {
-        const guest = await isGuestUser();
-        if (!isActive) return;
-        setIsGuest(guest);
-        if (!guest) {
-          await loadData();
-        }
-      })();
-
-      return () => {
-        isActive = false;
-      };
-    }, []),
-  );
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const token = await getAuthToken();
       if (!token) return;
@@ -117,6 +100,7 @@ export default function Profile() {
         id: meData.id ?? fallbackProfile.id,
         email: meData.email ?? "",
         display_name: meData.display_name ?? null,
+        is_admin: meData.is_admin ?? false,
       });
       setProgress(progressData);
       const validBookmarkCount = Array.isArray(bookmarksData)
@@ -145,7 +129,26 @@ export default function Profile() {
     } catch (err) {
       console.error("Failed to load profile:", err);
     }
-  }
+  }, [grammarPoints]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      (async () => {
+        const guest = await isGuestUser();
+        if (!isActive) return;
+        setIsGuest(guest);
+        if (!guest) {
+          await loadData();
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, [loadData]),
+  );
 
   async function logout() {
     await clearAuthState();
@@ -289,6 +292,15 @@ export default function Profile() {
               route: "/settings",
               icon: "settings-outline",
             },
+            ...(profile?.is_admin
+              ? [
+                  {
+                    label: "Admin Console",
+                    route: "/admin",
+                    icon: "construct-outline",
+                  },
+                ]
+              : []),
             {
               label: "Vocab Stats",
               route: "/stats/vocab",

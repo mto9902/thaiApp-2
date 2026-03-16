@@ -14,7 +14,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
-import { grammarPoints } from "../../src/data/grammar";
 import {
   CEFR_LEVELS,
   CEFR_LEVEL_META,
@@ -23,6 +22,7 @@ import {
 import {
   GRAMMAR_STAGE_META,
 } from "../../src/data/grammarStages";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import {
   getAllProgress,
   GrammarProgressData,
@@ -68,6 +68,7 @@ function ProgressRing({ percent, size = 72, strokeWidth = 6 }: { percent: number
 
 export default function GrammarScreen() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const scrollViewRef = useRef<ScrollView>(null);
   const levelOffsetsRef = useRef<Partial<Record<CefrLevel, number>>>({});
   const hasAutoScrolledRef = useRef(false);
@@ -80,7 +81,7 @@ export default function GrammarScreen() {
   const [focusTick, setFocusTick] = useState(0);
   const stageSummaries = useMemo(
     () => buildStageProgressSummaries(grammarPoints, progress),
-    [progress],
+    [grammarPoints, progress],
   );
   const recommended = useMemo(
     () => getRecommendedGrammarStage(stageSummaries),

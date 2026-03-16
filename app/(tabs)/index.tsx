@@ -15,12 +15,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
-import { grammarPoints } from "../../src/data/grammar";
 import {
   GRAMMAR_STAGE_META,
   GRAMMAR_STAGES,
   GrammarStage,
 } from "../../src/data/grammarStages";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import {
   getAllProgress,
   isGrammarPracticed,
@@ -66,23 +66,26 @@ function formatReviewDelay(nextDueAt: string): string {
   return `${daysUntilDue}d`;
 }
 
-const MODULES: ModuleInfo[] = [
-  ...GRAMMAR_STAGES.filter((stage) =>
-    grammarPoints.some((g) => g.stage === stage),
-  ).map((stage) => ({
-    stage,
-    title: GRAMMAR_STAGE_META[stage].shortTitle,
-    grammarIds: grammarPoints.filter((g) => g.stage === stage).map((g) => g.id),
-  })),
-];
-
 export default function HomeScreen() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
+  const modules = useMemo<ModuleInfo[]>(
+    () => [
+      ...GRAMMAR_STAGES.filter((stage) =>
+        grammarPoints.some((g) => g.stage === stage),
+      ).map((stage) => ({
+        stage,
+        title: GRAMMAR_STAGE_META[stage].shortTitle,
+        grammarIds: grammarPoints
+          .filter((g) => g.stage === stage)
+          .map((g) => g.id),
+      })),
+    ],
+    [grammarPoints],
+  );
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [isGuest, setIsGuest] = useState(false);
-  const [moduleProgress, setModuleProgress] = useState<number[]>(() =>
-    MODULES.map(() => 0),
-  );
+  const [moduleProgress, setModuleProgress] = useState<number[]>([]);
   const [overallGrammarProgress, setOverallGrammarProgress] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [reviewStatusText, setReviewStatusText] = useState("You're caught up");
@@ -99,21 +102,13 @@ export default function HomeScreen() {
     checkAuth();
   }, [checkAuth]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadProgress();
-      loadReviewStatus();
-      loadHeatmap();
-    }, []),
-  );
-
-  async function loadProgress() {
+  const loadProgress = useCallback(async () => {
     try {
       const allProgress = await getAllProgress();
       const totalPracticed = grammarPoints.filter((point) =>
         isGrammarPracticed(allProgress[point.id]),
       ).length;
-      const newModuleProgress = MODULES.map((mod) => {
+      const newModuleProgress = modules.map((mod) => {
         if (mod.grammarIds.length === 0) return 0;
         const practiced = mod.grammarIds.filter((id) =>
           isGrammarPracticed(allProgress[id]),
@@ -130,7 +125,19 @@ export default function HomeScreen() {
     } catch (err) {
       console.error("Failed to load progress:", err);
     }
-  }
+  }, [grammarPoints, modules]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProgress();
+      void loadReviewStatus();
+      void loadHeatmap();
+    }, [loadProgress]),
+  );
+
+  useEffect(() => {
+    setModuleProgress(modules.map(() => 0));
+  }, [modules]);
 
   const progressCards = useMemo(() => {
     const cards: {
@@ -150,7 +157,7 @@ export default function HomeScreen() {
         route: "/progress",
       });
 
-      MODULES.forEach((mod, i) => {
+      modules.forEach((mod, i) => {
         if (moduleProgress[i] === 0) return;
         cards.push({
           key: mod.stage,
@@ -163,7 +170,7 @@ export default function HomeScreen() {
     }
 
     return cards;
-  }, [moduleProgress, overallGrammarProgress]);
+  }, [moduleProgress, modules, overallGrammarProgress]);
 
   const progressPageCount = Math.ceil(progressCards.length / 3);
   const visibleProgressCards = progressCards.slice(

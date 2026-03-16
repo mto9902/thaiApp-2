@@ -11,11 +11,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
-import { grammarPoints } from "../../src/data/grammar";
 import {
   GRAMMAR_STAGE_META,
   GRAMMAR_STAGES,
 } from "../../src/data/grammarStages";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import {
   getAllProgress,
   GrammarProgressData,
@@ -60,6 +60,7 @@ const LEVEL_ACCENTS = [
 
 export default function GrammarStatsScreen() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
     {},

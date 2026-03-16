@@ -16,13 +16,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
-import { grammarPoints } from "../../src/data/grammar";
 import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
 import {
   GRAMMAR_STAGE_META,
   GRAMMAR_STAGES,
   GrammarStage,
 } from "../../src/data/grammarStages";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import {
   getAllProgress,
   GrammarProgressData,
@@ -37,6 +37,7 @@ import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 
 export default function CSVGrammarIndex() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const { level, stage } = useLocalSearchParams<{ level?: string; stage?: string }>();
   const rawLevel = Array.isArray(level) ? level[0] : level;
   const rawStage = Array.isArray(stage) ? stage[0] : stage;
@@ -102,7 +103,7 @@ export default function CSVGrammarIndex() {
     if (selectedStage) return grammarPoints.filter((p) => p.stage === selectedStage);
     if (!selectedLevel) return grammarPoints;
     return grammarPoints.filter((p) => p.level === selectedLevel);
-  }, [selectedLevel, selectedStage]);
+  }, [grammarPoints, selectedLevel, selectedStage]);
   const nextUnlearned = useMemo(
     () =>
       filtered.find((point) => !isGrammarPracticed(progress[point.id])) ??

@@ -22,7 +22,7 @@ import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
-import { grammarPoints } from "../../../src/data/grammar";
+import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { saveRound } from "../../../src/utils/grammarProgress";
@@ -180,6 +180,7 @@ export default function PracticeCSV() {
     source?: string;
   }>();
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const mixSource = Array.isArray(source) ? source[0] : source;
   const hasMixSource = typeof mix === "string" && mix.length > 0;
   const mixParam = typeof mix === "string" ? mix : "";

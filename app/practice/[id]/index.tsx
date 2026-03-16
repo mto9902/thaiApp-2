@@ -6,7 +6,7 @@ import {
   useRouter,
 } from "expo-router";
 import * as Speech from "expo-speech";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Alert,
@@ -24,7 +24,7 @@ import PremiumGateCard from "@/src/components/PremiumGateCard";
 import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
-import { grammarPoints } from "../../../src/data/grammar";
+import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
@@ -32,8 +32,6 @@ import { isGuestUser } from "../../../src/utils/auth";
 import { getAuthToken } from "../../../src/utils/authStorage";
 import { normalizeThaiTtsText } from "../../../src/utils/thaiSpeech";
 import { getToneAccent } from "../../../src/utils/toneAccent";
-
-const CURRENT_GRAMMAR_IDS = new Set(grammarPoints.map((point) => point.id));
 
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
@@ -89,6 +87,7 @@ function getBreakdownRomanizations(
 export default function GrammarDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -99,6 +98,10 @@ export default function GrammarDetail() {
   const [isGuest, setIsGuest] = useState(false);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
+  const currentGrammarIds = useMemo(
+    () => new Set(grammarPoints.map((point) => point.id)),
+    [grammarPoints],
+  );
 
   const grammar = grammarPoints.find((p) => p.id === id);
 
@@ -120,7 +123,7 @@ export default function GrammarDetail() {
       const validBookmarks = Array.isArray(data)
         ? data.filter(
             (bookmark: { grammar_id?: string }) =>
-              bookmark.grammar_id && CURRENT_GRAMMAR_IDS.has(bookmark.grammar_id),
+              bookmark.grammar_id && currentGrammarIds.has(bookmark.grammar_id),
           )
         : [];
       setBookmarkCount(validBookmarks.length);
@@ -129,7 +132,7 @@ export default function GrammarDetail() {
     } catch (err) {
       console.error(err);
     }
-  }, [id]);
+  }, [currentGrammarIds, id]);
 
   useEffect(() => {
     if (id) {
@@ -166,7 +169,7 @@ export default function GrammarDetail() {
             ? bookmarkData.filter(
                 (bookmark: { grammar_id?: string }) =>
                   bookmark.grammar_id &&
-                  CURRENT_GRAMMAR_IDS.has(bookmark.grammar_id),
+                  currentGrammarIds.has(bookmark.grammar_id),
               ).length
             : bookmarkCount;
           setBookmarkCount(nextBookmarkCount);

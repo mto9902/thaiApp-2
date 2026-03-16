@@ -24,6 +24,7 @@ type SettingsProfile = {
   id: number;
   email: string;
   display_name?: string | null;
+  is_admin?: boolean;
 };
 
 type ConfirmAction = "reset" | "delete" | null;
@@ -408,6 +409,25 @@ export default function SettingsScreen() {
             ) : null}
           </View>
         </View>
+
+        {profile?.is_admin ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin</Text>
+            <View style={styles.card}>
+              <Text style={styles.helperText}>
+                Open the curriculum dashboard to review app stats and edit
+                grammar lessons plus practice rows.
+              </Text>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => router.push("/admin" as any)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>Open Admin Console</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Danger Zone</Text>
