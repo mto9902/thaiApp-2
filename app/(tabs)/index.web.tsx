@@ -235,13 +235,39 @@ export default function HomeScreenWeb() {
     return cards.slice(0, 4);
   }, [moduleProgress, modules, overallGrammarProgress]);
 
+  const heatmapSummary = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayKey = localDateKey(today);
+
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    let thisWeek = 0;
+    let activeDays = 0;
+    Object.entries(activityMap).forEach(([key, count]) => {
+      if (count > 0) activeDays += 1;
+      const date = new Date(`${key}T00:00:00`);
+      if (date >= weekStart && date <= today) {
+        thisWeek += count;
+      }
+    });
+
+    return [
+      { label: "Today", value: activityMap[todayKey] || 0 },
+      { label: "This week", value: thisWeek },
+      { label: "Active days", value: activeDays },
+    ];
+  }, [activityMap]);
+
   function renderHeatmap() {
-    const sq = width >= 1280 ? 12 : 11;
-    const gap = 5;
+    const sq = width >= 1280 ? 14 : 13;
+    const gap = 4;
     const cell = sq + gap;
     const totalWeeks = 26;
-    const dayLabelWidth = 38;
-    const monthLabelHeight = 20;
+    const dayLabelWidth = 42;
+    const monthLabelHeight = 22;
     const dayLabels = ["", "Mon", "", "Wed", "", "Fri", ""];
     const monthNames = [
       "Jan",
@@ -376,7 +402,7 @@ export default function HomeScreenWeb() {
           },
           {
             label: "Bookmarks",
-            value: isGuest ? "—" : "Open",
+            value: isGuest ? "--" : "Open",
             meta: "Saved grammar practice",
             action: () => router.push("/explore" as any),
           },
@@ -467,6 +493,14 @@ export default function HomeScreenWeb() {
             }
           />
           {renderHeatmap()}
+          <View style={styles.heatmapSummaryRow}>
+            {heatmapSummary.map((item) => (
+              <View key={item.label} style={styles.heatmapMiniStat}>
+                <Text style={styles.heatmapMiniValue}>{item.value}</Text>
+                <Text style={styles.heatmapMiniLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
         </DesktopPanel>
       </View>
 
@@ -554,10 +588,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   focusPanel: {
-    flex: 1.1,
+    flex: 1.18,
   },
   activityPanel: {
-    flex: 0.95,
+    flex: 0.82,
   },
   focusActions: {
     flexDirection: "row",
@@ -677,8 +711,33 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   heatmapFrame: {
-    paddingTop: 6,
+    paddingTop: 2,
     alignSelf: "flex-start",
+  },
+  heatmapSummaryRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  heatmapMiniStat: {
+    minWidth: 110,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  heatmapMiniValue: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.4,
+  },
+  heatmapMiniLabel: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
   },
   exploreGrid: {
     flexDirection: "row",

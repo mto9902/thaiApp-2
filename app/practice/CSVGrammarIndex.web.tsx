@@ -233,7 +233,11 @@ export default function CSVGrammarIndexWeb() {
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.card, { width: cardWidth }]}
+                    style={[
+                      styles.card,
+                      done && styles.cardLearned,
+                      { width: cardWidth },
+                    ]}
                     onPress={() => {
                       if (locked) {
                         void ensurePremiumAccess(cardCopy.title, `/practice/${item.id}`);
@@ -260,7 +264,13 @@ export default function CSVGrammarIndexWeb() {
                             color={Sketch.accent}
                           />
                         ) : done ? (
-                          <View style={styles.doneDot} />
+                          <View style={styles.doneBadge}>
+                            <Ionicons
+                              name="checkmark"
+                              size={13}
+                              style={styles.doneBadgeIcon}
+                            />
+                          </View>
                         ) : null}
                       </View>
                     </View>
@@ -286,7 +296,7 @@ export default function CSVGrammarIndexWeb() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 30,
+    gap: 34,
   },
   stack: {
     flexDirection: "column",
@@ -390,8 +400,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 18,
-    paddingTop: 4,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
   card: {
     borderWidth: 1,
@@ -399,6 +409,11 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
     padding: 18,
     gap: 12,
+    minHeight: 282,
+  },
+  cardLearned: {
+    borderColor: "rgba(57, 97, 146, 0.28)",
+    backgroundColor: "rgba(57, 97, 146, 0.035)",
   },
   cardTop: {
     flexDirection: "row",
@@ -418,10 +433,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  doneDot: {
-    width: 10,
-    height: 10,
+  doneBadge: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Sketch.accent,
+  },
+  doneBadgeIcon: {
+    color: "#fff",
   },
   cardTitle: {
     fontSize: 22,
@@ -429,6 +449,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.5,
+    minHeight: 56,
   },
   cardPattern: {
     fontSize: 14,
@@ -436,6 +457,7 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
   },
   cardMeaning: {
+    flex: 1,
     minHeight: 44,
     fontSize: 14,
     lineHeight: 22,

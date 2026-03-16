@@ -730,7 +730,7 @@ export default function PracticeCSV() {
                       wordBreakdownTTS ? (
                         <TouchableOpacity
                           key={i}
-                          style={st.wordTile}
+                          style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
                           onPress={() => playBreakdownWord(w.thai)}
                           activeOpacity={0.8}
                         >
@@ -757,7 +757,7 @@ export default function PracticeCSV() {
                       ) : (
                         <View
                           key={i}
-                          style={st.wordTile}
+                          style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
                         >
                           <View style={st.wordTileHeader}>
                             <Text style={st.wordTileThai}>{w.thai}</Text>
@@ -822,7 +822,12 @@ export default function PracticeCSV() {
                       Tap words below to build...
                     </Text>
                   ) : (
-                    <View style={st.builderWords}>
+                    <View
+                      style={[
+                        st.builderWords,
+                        isDesktopWeb && st.builderWordsDesktop,
+                      ]}
+                    >
                       {(() => {
                         const chips: React.ReactNode[] = [];
                         let userIdx = 0;
@@ -899,14 +904,14 @@ export default function PracticeCSV() {
                     onPress={undoLastWord}
                     activeOpacity={0.7}
                   >
-                    <Text style={st.actionBtnText}>← Undo</Text>
+                    <Text style={st.actionBtnText}>Undo</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={st.actionBtn}
                     onPress={resetSentence}
                     activeOpacity={0.7}
                   >
-                    <Text style={st.actionBtnText}>↺ Reset</Text>
+                    <Text style={st.actionBtnText}>Reset</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -915,7 +920,7 @@ export default function PracticeCSV() {
                   {availableWords.map((word) => (
                     <TouchableOpacity
                       key={word.id}
-                      style={st.wordTile}
+                      style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
                       onPress={() => {
                         handleWordTap(word);
                       }}
@@ -965,7 +970,7 @@ export default function PracticeCSV() {
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      Skip →
+                      {"Skip ->"}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1085,7 +1090,10 @@ export default function PracticeCSV() {
                                 wordBreakdownTTS ? (
                                     <TouchableOpacity
                                       key={wi}
-                                      style={st.matchWordTile}
+                                      style={[
+                                        st.matchWordTile,
+                                        isDesktopWeb && st.matchWordTileDesktop,
+                                      ]}
                                       onPress={() => playBreakdownWord(w.thai)}
                                       activeOpacity={0.8}
                                     >
@@ -1114,7 +1122,10 @@ export default function PracticeCSV() {
                                 ) : (
                                   <View
                                     key={wi}
-                                    style={st.matchWordTile}
+                                    style={[
+                                      st.matchWordTile,
+                                      isDesktopWeb && st.matchWordTileDesktop,
+                                    ]}
                                   >
                                     <View style={st.matchWordTileHeader}>
                                       <Text style={st.matchWordTileThai}>{w.thai}</Text>
@@ -1187,7 +1198,7 @@ export default function PracticeCSV() {
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      Continue →
+                      {"Continue ->"}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1207,7 +1218,7 @@ export default function PracticeCSV() {
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      Skip →
+                      {"Skip ->"}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1257,6 +1268,9 @@ const st = StyleSheet.create({
     paddingBottom: 4,
   },
   modeHeaderDesktop: {
+    width: "100%",
+    maxWidth: 980,
+    alignSelf: "center",
     paddingHorizontal: 0,
     paddingTop: 26,
     paddingBottom: 2,
@@ -1308,9 +1322,12 @@ const st = StyleSheet.create({
     gap: 18,
   },
   exerciseWrapDesktop: {
+    width: "100%",
+    maxWidth: 980,
+    alignSelf: "center",
     paddingHorizontal: 0,
     paddingTop: 22,
-    gap: 22,
+    gap: 24,
   },
 
   studyCard: {
@@ -1323,6 +1340,7 @@ const st = StyleSheet.create({
     ...sketchShadow(2),
   },
   studyCardDesktop: {
+    width: "100%",
     padding: 26,
     alignItems: "flex-start",
   },
@@ -1341,7 +1359,7 @@ const st = StyleSheet.create({
   },
   speakerBtnDesktop: {
     alignSelf: "flex-start",
-    marginBottom: 18,
+    marginBottom: 20,
   },
   speakerIcon: { fontSize: 18 }, // kept for safety, unused
   studySentence: {
@@ -1353,11 +1371,11 @@ const st = StyleSheet.create({
     marginBottom: 6,
   },
   studySentenceDesktop: {
-    fontSize: 32,
-    lineHeight: 44,
+    fontSize: 34,
+    lineHeight: 46,
     textAlign: "left",
-    marginBottom: 8,
-    maxWidth: 760,
+    marginBottom: 10,
+    maxWidth: 820,
   },
   studyRoman: {
     fontSize: 13,
@@ -1409,7 +1427,8 @@ const st = StyleSheet.create({
     alignSelf: "flex-start",
   },
   tileRowDesktop: {
-    gap: 10,
+    width: "100%",
+    gap: 12,
   },
   matchTileRow: {
     flexDirection: "row",
@@ -1428,6 +1447,11 @@ const st = StyleSheet.create({
     alignSelf: "flex-start",
     minWidth: 64,
     maxWidth: "100%",
+  },
+  wordTileDesktop: {
+    minWidth: 128,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   wordTileHeader: {
     flexDirection: "row",
@@ -1452,6 +1476,11 @@ const st = StyleSheet.create({
     alignSelf: "flex-start",
     minWidth: 64,
     maxWidth: "100%",
+  },
+  matchWordTileDesktop: {
+    minWidth: 128,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   matchWordTileHeader: {
     flexDirection: "row",
@@ -1531,7 +1560,6 @@ const st = StyleSheet.create({
     ...sketchShadow(2),
   },
   promptCardDesktop: {
-    maxWidth: 860,
     width: "100%",
     paddingVertical: 18,
     paddingHorizontal: 20,
@@ -1576,9 +1604,8 @@ const st = StyleSheet.create({
     borderColor: "#D8D8D4",
   },
   builderZoneDesktop: {
-    maxWidth: 860,
     width: "100%",
-    minHeight: 96,
+    minHeight: 110,
   },
   builderCorrect: {
     borderColor: MATTE_RESULT_COLORS.successBorder,
@@ -1600,6 +1627,10 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 8,
+  },
+  builderWordsDesktop: {
+    justifyContent: "flex-start",
+    alignSelf: "stretch",
   },
   builderChip: {
     backgroundColor: Sketch.paperDark,
@@ -1645,7 +1676,6 @@ const st = StyleSheet.create({
 
   actionRow: { flexDirection: "row", gap: 10 },
   actionRowDesktop: {
-    maxWidth: 560,
     width: "100%",
   },
   actionBtn: {
@@ -1685,9 +1715,10 @@ const st = StyleSheet.create({
 
   optionsGrid: { gap: 10 },
   optionsGridDesktop: {
+    width: "100%",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 16,
   },
   optionCard: {
     backgroundColor: Sketch.cardBg,
@@ -1699,19 +1730,23 @@ const st = StyleSheet.create({
     ...sketchShadow(2),
   },
   optionCardDesktop: {
-    width: "48.8%",
+    width: "49.1%",
+    minHeight: 148,
   },
   matchSentenceButton: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "stretch",
+    justifyContent: "space-between",
     gap: 10,
     borderRadius: SketchRadius.control,
     paddingVertical: 10,
     paddingHorizontal: 12,
+    minHeight: 88,
   },
   matchSentenceTapArea: {
     flex: 1,
     gap: 4,
+    justifyContent: "center",
   },
   matchSentenceText: {
     fontSize: 20,
@@ -1738,7 +1773,7 @@ const st = StyleSheet.create({
     backgroundColor: MUTED_FEEDBACK_ACCENTS.selectedTint,
   },
   matchDetailsPanel: {
-    paddingTop: 2,
+    paddingTop: 10,
   },
 
 });

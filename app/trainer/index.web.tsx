@@ -133,135 +133,137 @@ export default function TrainerWeb() {
           </TouchableOpacity>
         }
       >
-        <View style={styles.summaryStrip}>
-          <View style={styles.summaryCard}>
-            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
-              {consonantCount}
-            </Text>
-            <Text style={styles.summaryLabel}>letters</Text>
+        <View style={styles.pageStack}>
+          <View style={styles.summaryStrip}>
+            <View style={styles.summaryCard}>
+              <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
+                {consonantCount}
+              </Text>
+              <Text style={styles.summaryLabel}>letters</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
+                {vowelCount}
+              </Text>
+              <Text style={styles.summaryLabel}>vowels</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryValue}>{DIFFICULTY_META[difficulty].label}</Text>
+              <Text style={styles.summaryLabel}>difficulty</Text>
+            </View>
           </View>
-          <View style={styles.summaryCard}>
-            <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
-              {vowelCount}
-            </Text>
-            <Text style={styles.summaryLabel}>vowels</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{DIFFICULTY_META[difficulty].label}</Text>
-            <Text style={styles.summaryLabel}>difficulty</Text>
-          </View>
-        </View>
 
-        <View style={styles.mainGrid}>
-          <View style={styles.formColumn}>
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Difficulty"
-                caption="Choose how simple or tricky the word batch should be."
-              />
-              <View style={styles.grid}>
-                {(Object.keys(DIFFICULTY_META) as TrainerDifficulty[]).map((level) => (
-                  <View key={level} style={{ width: cardWidth }}>
-                    <DifficultyCard
-                      level={level}
-                      active={difficulty === level}
-                      onPress={() => setDifficulty(level)}
-                    />
-                  </View>
-                ))}
-              </View>
-            </DesktopPanel>
+          <View style={styles.mainGrid}>
+            <View style={styles.formColumn}>
+              <DesktopPanel>
+                <DesktopSectionTitle
+                  title="Difficulty"
+                  caption="Choose how simple or tricky the word batch should be."
+                />
+                <View style={styles.grid}>
+                  {(Object.keys(DIFFICULTY_META) as TrainerDifficulty[]).map((level) => (
+                    <View key={level} style={{ width: cardWidth }}>
+                      <DifficultyCard
+                        level={level}
+                        active={difficulty === level}
+                        onPress={() => setDifficulty(level)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </DesktopPanel>
 
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Consonant classes"
-                caption={`${consonantCount} letters selected`}
-              />
-              <View style={styles.grid}>
-                {CONSONANT_INFO.map((item) => {
-                  const letters = alphabet
-                    .filter((entry) => entry.group === item.id)
-                    .slice(0, 4)
-                    .map((entry) => entry.letter)
-                    .join(" ");
-                  return (
+              <DesktopPanel>
+                <DesktopSectionTitle
+                  title="Consonant classes"
+                  caption={`${consonantCount} letters selected`}
+                />
+                <View style={styles.grid}>
+                  {CONSONANT_INFO.map((item) => {
+                    const letters = alphabet
+                      .filter((entry) => entry.group === item.id)
+                      .slice(0, 4)
+                      .map((entry) => entry.letter)
+                      .join(" ");
+                    return (
+                      <View key={item.id} style={{ width: cardWidth }}>
+                        <GroupCard
+                          title={item.title}
+                          preview={letters}
+                          active={consonantGroupsSelected.includes(item.id)}
+                          onPress={() =>
+                            toggleSelection(
+                              item.id,
+                              consonantGroupsSelected,
+                              setConsonantGroupsSelected,
+                            )
+                          }
+                        />
+                      </View>
+                    );
+                  })}
+                </View>
+              </DesktopPanel>
+
+              <DesktopPanel>
+                <DesktopSectionTitle
+                  title="Vowel groups"
+                  caption={`${vowelCount} vowels selected`}
+                />
+                <View style={styles.grid}>
+                  {VOWEL_INFO.map((item) => (
                     <View key={item.id} style={{ width: cardWidth }}>
                       <GroupCard
                         title={item.title}
-                        preview={letters}
-                        active={consonantGroupsSelected.includes(item.id)}
+                        preview={item.description}
+                        active={vowelGroupsSelected.includes(item.id)}
                         onPress={() =>
                           toggleSelection(
                             item.id,
-                            consonantGroupsSelected,
-                            setConsonantGroupsSelected,
+                            vowelGroupsSelected,
+                            setVowelGroupsSelected,
                           )
                         }
                       />
                     </View>
-                  );
-                })}
-              </View>
-            </DesktopPanel>
+                  ))}
+                </View>
+              </DesktopPanel>
+            </View>
 
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Vowel groups"
-                caption={`${vowelCount} vowels selected`}
-              />
-              <View style={styles.grid}>
-                {VOWEL_INFO.map((item) => (
-                  <View key={item.id} style={{ width: cardWidth }}>
-                    <GroupCard
-                      title={item.title}
-                      preview={item.description}
-                      active={vowelGroupsSelected.includes(item.id)}
-                      onPress={() =>
-                        toggleSelection(
-                          item.id,
-                          vowelGroupsSelected,
-                          setVowelGroupsSelected,
-                        )
-                      }
-                    />
-                  </View>
-                ))}
-              </View>
-            </DesktopPanel>
-          </View>
-
-          <View style={styles.sideColumn}>
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Current batch"
-                caption="Use the side rail to confirm the setup before opening the next screen."
-              />
-              <View style={styles.batchStat}>
-                <Text style={styles.batchStatLabel}>Difficulty</Text>
-                <Text style={styles.batchStatValue}>{DIFFICULTY_META[difficulty].label}</Text>
-              </View>
-              <View style={styles.batchStat}>
-                <Text style={styles.batchStatLabel}>Consonant classes</Text>
-                <Text style={styles.batchStatValue}>{consonantGroupsSelected.length}</Text>
-              </View>
-              <View style={styles.batchStat}>
-                <Text style={styles.batchStatLabel}>Vowel groups</Text>
-                <Text style={styles.batchStatValue}>{vowelGroupsSelected.length}</Text>
-              </View>
-              {!isValid ? (
-                <Text style={styles.validationText}>
-                  Select at least one consonant class and one vowel group.
-                </Text>
-              ) : null}
-              <TouchableOpacity
-                style={[styles.primaryButton, !isValid && styles.disabledButton]}
-                onPress={openWordsScreen}
-                disabled={!isValid}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.primaryButtonText}>Create Words</Text>
-              </TouchableOpacity>
-            </DesktopPanel>
+            <View style={styles.sideColumn}>
+              <DesktopPanel>
+                <DesktopSectionTitle
+                  title="Current batch"
+                  caption="Use the side rail to confirm the setup before opening the next screen."
+                />
+                <View style={styles.batchStat}>
+                  <Text style={styles.batchStatLabel}>Difficulty</Text>
+                  <Text style={styles.batchStatValue}>{DIFFICULTY_META[difficulty].label}</Text>
+                </View>
+                <View style={styles.batchStat}>
+                  <Text style={styles.batchStatLabel}>Consonant classes</Text>
+                  <Text style={styles.batchStatValue}>{consonantGroupsSelected.length}</Text>
+                </View>
+                <View style={styles.batchStat}>
+                  <Text style={styles.batchStatLabel}>Vowel groups</Text>
+                  <Text style={styles.batchStatValue}>{vowelGroupsSelected.length}</Text>
+                </View>
+                {!isValid ? (
+                  <Text style={styles.validationText}>
+                    Select at least one consonant class and one vowel group.
+                  </Text>
+                ) : null}
+                <TouchableOpacity
+                  style={[styles.primaryButton, !isValid && styles.disabledButton]}
+                  onPress={openWordsScreen}
+                  disabled={!isValid}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.primaryButtonText}>Create Words</Text>
+                </TouchableOpacity>
+              </DesktopPanel>
+            </View>
           </View>
         </View>
       </DesktopPage>
@@ -270,6 +272,9 @@ export default function TrainerWeb() {
 }
 
 const styles = StyleSheet.create({
+  pageStack: {
+    gap: 28,
+  },
   backButton: {
     paddingHorizontal: 16,
     paddingVertical: 12,

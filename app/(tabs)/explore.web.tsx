@@ -403,17 +403,19 @@ export default function ExploreWeb() {
                         <Ionicons name="lock-closed-outline" size={14} color={Sketch.accent} />
                       ) : null}
                     </View>
-                    <Text style={styles.bookmarkTitle}>{cardCopy.title}</Text>
-                    {practiced && p ? (
-                      <>
-                        <Text style={styles.bookmarkMeta}>
-                          {p.rounds} rounds · {accuracyLabel(p)}
-                        </Text>
-                        <Text style={styles.bookmarkMeta}>{timeAgo(p.lastPracticed)}</Text>
-                      </>
-                    ) : (
-                      <Text style={styles.bookmarkMeta}>Not practiced yet</Text>
-                    )}
+                    <View style={styles.bookmarkBody}>
+                      <Text style={styles.bookmarkTitle}>{cardCopy.title}</Text>
+                      {practiced && p ? (
+                        <>
+                          <Text style={styles.bookmarkMeta}>
+                            {p.rounds} rounds - {accuracyLabel(p)}
+                          </Text>
+                          <Text style={styles.bookmarkMeta}>{timeAgo(p.lastPracticed)}</Text>
+                        </>
+                      ) : (
+                        <Text style={styles.bookmarkMeta}>Not practiced yet</Text>
+                      )}
+                    </View>
                     <TouchableOpacity
                       style={styles.innerButton}
                       onPress={() => router.push(`/practice/${item.id}` as any)}
@@ -515,6 +517,11 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
     padding: 18,
+    gap: 12,
+    minHeight: 260,
+  },
+  bookmarkBody: {
+    flex: 1,
     gap: 8,
   },
   bookmarkTop: {
@@ -531,7 +538,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   bookmarkTitle: {
-    fontSize: 24,
+    fontSize: 22,
     lineHeight: 30,
     fontWeight: "700",
     color: Sketch.ink,
@@ -542,7 +549,6 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
   },
   innerButton: {
-    marginTop: 8,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
