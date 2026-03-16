@@ -324,6 +324,7 @@ export default function ExploreWeb() {
         title="Saved grammar lessons"
         subtitle="Separate your quick mix actions from the actual bookmark library, so the page reads more like a workspace and less like one long mobile stack."
       >
+        <View style={styles.pageStack}>
         <View style={styles.actionGrid}>
           <DesktopPanel style={styles.actionPanel}>
             <DesktopSectionTitle
@@ -426,12 +427,16 @@ export default function ExploreWeb() {
             </View>
           )}
         </DesktopPanel>
+        </View>
       </DesktopPage>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  pageStack: {
+    gap: 28,
+  },
   actionGrid: {
     flexDirection: "row",
     gap: 20,

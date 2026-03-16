@@ -236,12 +236,12 @@ export default function HomeScreenWeb() {
   }, [moduleProgress, modules, overallGrammarProgress]);
 
   function renderHeatmap() {
-    const sq = 10;
-    const gap = 4;
+    const sq = width >= 1280 ? 12 : 11;
+    const gap = 5;
     const cell = sq + gap;
     const totalWeeks = 26;
-    const dayLabelWidth = 34;
-    const monthLabelHeight = 18;
+    const dayLabelWidth = 38;
+    const monthLabelHeight = 20;
     const dayLabels = ["", "Mon", "", "Wed", "", "Fri", ""];
     const monthNames = [
       "Jan",
@@ -288,58 +288,68 @@ export default function HomeScreenWeb() {
     }
 
     return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View>
-          <View style={[styles.monthRow, { marginLeft: dayLabelWidth, height: monthLabelHeight }]}>
-            {monthLabels.map((label, index) => (
-              <Text
-                key={`${label.label}-${index}`}
-                style={[styles.monthLabel, { left: label.col * cell }]}
-              >
-                {label.label}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.heatmapBody}>
-            <View style={{ width: dayLabelWidth }}>
-              {dayLabels.map((label, index) => (
-                <View key={`${label}-${index}`} style={{ height: cell, justifyContent: "center" }}>
-                  <Text style={styles.dayLabel}>{label}</Text>
-                </View>
+      <View style={styles.heatmapFrame}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View>
+            <View
+              style={[
+                styles.monthRow,
+                { marginLeft: dayLabelWidth, height: monthLabelHeight },
+              ]}
+            >
+              {monthLabels.map((label, index) => (
+                <Text
+                  key={`${label.label}-${index}`}
+                  style={[styles.monthLabel, { left: label.col * cell }]}
+                >
+                  {label.label}
+                </Text>
               ))}
             </View>
-            <View>
-              {Array.from({ length: 7 }).map((_, dow) => (
-                <View key={dow} style={styles.heatmapRow}>
-                  {Array.from({ length: totalWeeks }).map((_, week) => {
-                    const d = new Date(startSunday);
-                    d.setDate(d.getDate() + week * 7 + dow);
-                    const key = localDateKey(d);
-                    const isFuture = key > todayKey;
-                    const count = activityMap[key] || 0;
-                    const level = isFuture ? 0 : activityToLevel(count);
-                    return (
-                      <View
-                        key={`${week}-${dow}`}
-                        style={[
-                          styles.heatmapCell,
-                          {
-                            width: sq,
-                            height: sq,
-                            backgroundColor: HEATMAP_COLORS[level],
-                            marginRight: gap,
-                            marginBottom: gap,
-                          },
-                        ]}
-                      />
-                    );
-                  })}
-                </View>
-              ))}
+            <View style={styles.heatmapBody}>
+              <View style={{ width: dayLabelWidth }}>
+                {dayLabels.map((label, index) => (
+                  <View
+                    key={`${label}-${index}`}
+                    style={{ height: cell, justifyContent: "center" }}
+                  >
+                    <Text style={styles.dayLabel}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+              <View>
+                {Array.from({ length: 7 }).map((_, dow) => (
+                  <View key={dow} style={styles.heatmapRow}>
+                    {Array.from({ length: totalWeeks }).map((_, week) => {
+                      const d = new Date(startSunday);
+                      d.setDate(d.getDate() + week * 7 + dow);
+                      const key = localDateKey(d);
+                      const isFuture = key > todayKey;
+                      const count = activityMap[key] || 0;
+                      const level = isFuture ? 0 : activityToLevel(count);
+                      return (
+                        <View
+                          key={`${week}-${dow}`}
+                          style={[
+                            styles.heatmapCell,
+                            {
+                              width: sq,
+                              height: sq,
+                              backgroundColor: HEATMAP_COLORS[level],
+                              marginRight: gap,
+                              marginBottom: gap,
+                            },
+                          ]}
+                        />
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -349,6 +359,7 @@ export default function HomeScreenWeb() {
       title="Keystone"
       subtitle="A desktop study workspace for review, grammar progress, and quick access into the Thai curriculum."
     >
+      <View style={styles.pageStack}>
       <View style={styles.metricStrip}>
         {[
           {
@@ -498,11 +509,15 @@ export default function HomeScreenWeb() {
           ))}
         </View>
       </DesktopPanel>
+      </View>
     </DesktopPage>
   );
 }
 
 const styles = StyleSheet.create({
+  pageStack: {
+    gap: 28,
+  },
   metricStrip: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -536,7 +551,7 @@ const styles = StyleSheet.create({
   mainGrid: {
     flexDirection: "row",
     gap: 20,
-    alignItems: "stretch",
+    alignItems: "flex-start",
   },
   focusPanel: {
     flex: 1.1,
@@ -581,6 +596,7 @@ const styles = StyleSheet.create({
   },
   focusProgressList: {
     gap: 12,
+    marginTop: 6,
   },
   focusProgressCard: {
     borderWidth: 1,
@@ -639,6 +655,7 @@ const styles = StyleSheet.create({
   },
   monthRow: {
     position: "relative",
+    marginBottom: 8,
   },
   monthLabel: {
     position: "absolute",
@@ -647,6 +664,7 @@ const styles = StyleSheet.create({
   },
   heatmapBody: {
     flexDirection: "row",
+    alignItems: "flex-start",
   },
   dayLabel: {
     fontSize: 11,
@@ -656,12 +674,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   heatmapCell: {
-    borderRadius: 2,
+    borderRadius: 3,
+  },
+  heatmapFrame: {
+    paddingTop: 6,
+    alignSelf: "flex-start",
   },
   exploreGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 16,
+    marginTop: 4,
   },
   exploreCard: {
     borderWidth: 1,

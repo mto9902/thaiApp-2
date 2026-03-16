@@ -173,6 +173,7 @@ export default function ProfileWeb() {
       title={profileName}
       subtitle={profile?.email || "Loading account details..."}
     >
+      <View style={styles.pageStack}>
       <View style={styles.topGrid}>
         <DesktopPanel style={styles.accountPanel}>
           <DesktopSectionTitle
@@ -306,11 +307,15 @@ export default function ProfileWeb() {
           </TouchableOpacity>
         </DesktopPanel>
       </View>
+      </View>
     </DesktopPage>
   );
 }
 
 const styles = StyleSheet.create({
+  pageStack: {
+    gap: 28,
+  },
   topGrid: {
     flexDirection: "row",
     gap: 20,

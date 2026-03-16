@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -20,24 +19,16 @@ import {
 } from "@/src/components/web/DesktopScaffold";
 import { API_BASE } from "@/src/config";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
+import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "@/src/subscription/premium";
 import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { useSubscription } from "@/src/subscription/SubscriptionProvider";
 import { isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
-import { normalizeThaiTtsText } from "@/src/utils/thaiSpeech";
 import { getToneAccent } from "@/src/utils/toneAccent";
 
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
-}
-
-function speak(text: string) {
-  Speech.stop();
-  Speech.speak(normalizeThaiTtsText(text), {
-    language: "th-TH",
-    rate: 0.9,
-  });
 }
 
 function getBreakdownRomanizations(
@@ -82,6 +73,7 @@ export default function GrammarDetailWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
+  const { playSentence } = useSentenceAudio();
   const { isPremium, loading: premiumLoading } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
   const [bookmarked, setBookmarked] = useState(false);
@@ -266,53 +258,71 @@ export default function GrammarDetailWeb() {
                 caption="Read, hear, and inspect the sentence structure."
                 action={<ToneGuideButton onPress={() => setToneGuideVisible(true)} />}
               />
-              <Text style={styles.thaiText}>
-                {example.breakdown.map((item: any, index: number) => (
-                  <Text key={index} style={{ color: toneColor(item.tone) }}>
-                    {item.thai}
+              <View style={[styles.exampleHero, !isWide && styles.exampleHeroStack]}>
+                <View style={styles.exampleSentencePanel}>
+                  <Text style={styles.thaiText}>
+                    {example.breakdown.map((item: any, index: number) => (
+                      <Text key={index} style={{ color: toneColor(item.tone) }}>
+                        {item.thai}
+                      </Text>
+                    ))}
                   </Text>
-                ))}
-              </Text>
-              <View style={styles.exampleControls}>
-                <TouchableOpacity
-                  style={styles.audioButton}
-                  onPress={() => speak(example.thai)}
-                  activeOpacity={0.82}
+                  <TouchableOpacity
+                    style={styles.audioButton}
+                    onPress={() => void playSentence(example.thai)}
+                    activeOpacity={0.82}
+                  >
+                    <Ionicons
+                      name="volume-medium-outline"
+                      size={18}
+                      color={Sketch.ink}
+                    />
+                    <Text style={styles.audioButtonText}>Play sentence</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View
+                  style={[
+                    styles.exampleMetaRail,
+                    !isWide && styles.exampleMetaRailStack,
+                  ]}
                 >
-                  <Ionicons
-                    name="volume-medium-outline"
-                    size={18}
-                    color={Sketch.ink}
-                  />
-                  <Text style={styles.audioButtonText}>Play sentence</Text>
-                </TouchableOpacity>
-                <Text style={styles.romanText}>{example.roman}</Text>
-              </View>
-              <View style={styles.englishBox}>
-                <Text style={styles.englishText}>{example.english}</Text>
-              </View>
-              <View style={styles.breakdownGrid}>
-                {example.breakdown.map((item: any, index: number) => (
-                  <View key={`${item.thai}-${index}`} style={styles.wordCard}>
-                    <View style={styles.wordCardTop}>
-                      <Text style={styles.wordThai}>{item.thai}</Text>
-                      {item.tone ? (
-                        <View
-                          style={[
-                            styles.toneDot,
-                            { backgroundColor: toneColor(item.tone) },
-                          ]}
-                        />
-                      ) : null}
-                    </View>
-                    <Text style={styles.wordRoman}>
-                      {item.romanization || item.roman || exampleRomanTokens[index]}
-                    </Text>
-                    <Text style={styles.wordEnglish}>
-                      {String(item.english).toUpperCase()}
-                    </Text>
+                  <View style={styles.exampleInfoCard}>
+                    <Text style={styles.exampleInfoLabel}>Romanization</Text>
+                    <Text style={styles.exampleInfoLead}>{example.roman}</Text>
                   </View>
-                ))}
+                  <View style={styles.exampleInfoCard}>
+                    <Text style={styles.exampleInfoLabel}>Meaning</Text>
+                    <Text style={styles.exampleInfoBody}>{example.english}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.breakdownSection}>
+                <Text style={styles.breakdownLabel}>Sentence breakdown</Text>
+                <View style={styles.breakdownGrid}>
+                  {example.breakdown.map((item: any, index: number) => (
+                    <View key={`${item.thai}-${index}`} style={styles.wordCard}>
+                      <View style={styles.wordCardTop}>
+                        <Text style={styles.wordThai}>{item.thai}</Text>
+                        {item.tone ? (
+                          <View
+                            style={[
+                              styles.toneDot,
+                              { backgroundColor: toneColor(item.tone) },
+                            ]}
+                          />
+                        ) : null}
+                      </View>
+                      <Text style={styles.wordRoman}>
+                        {item.romanization || item.roman || exampleRomanTokens[index]}
+                      </Text>
+                      <Text style={styles.wordEnglish}>
+                        {String(item.english).toUpperCase()}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </DesktopPanel>
           </View>
@@ -431,12 +441,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
   },
-  exampleControls: {
+  exampleHero: {
     flexDirection: "row",
+    alignItems: "stretch",
+    gap: 18,
+  },
+  exampleHeroStack: {
+    flexDirection: "column",
+  },
+  exampleSentencePanel: {
+    flex: 1.1,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paperDark,
+    padding: 24,
+    gap: 20,
     justifyContent: "space-between",
-    alignItems: "center",
-    gap: 14,
-    flexWrap: "wrap",
+  },
+  exampleMetaRail: {
+    width: 320,
+    gap: 12,
+  },
+  exampleMetaRailStack: {
+    width: "100%",
   },
   audioButton: {
     flexDirection: "row",
@@ -453,23 +480,40 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
   },
-  romanText: {
-    flex: 1,
-    minWidth: 220,
-    fontSize: 15,
-    color: Sketch.inkMuted,
-    textAlign: "right",
-  },
-  englishBox: {
+  exampleInfoCard: {
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
     padding: 18,
+    gap: 8,
   },
-  englishText: {
+  exampleInfoLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  exampleInfoLead: {
+    fontSize: 22,
+    lineHeight: 32,
+    color: Sketch.ink,
+    fontWeight: "600",
+  },
+  exampleInfoBody: {
     fontSize: 18,
     lineHeight: 28,
     color: Sketch.inkLight,
+  },
+  breakdownSection: {
+    gap: 14,
+  },
+  breakdownLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 1.1,
   },
   breakdownGrid: {
     flexDirection: "row",

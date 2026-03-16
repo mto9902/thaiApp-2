@@ -158,131 +158,136 @@ export default function CSVGrammarIndexWeb() {
           </TouchableOpacity>
         }
       >
-        <View style={[styles.summaryGrid, !isWide && styles.stack]}>
-          <DesktopPanel style={styles.summaryPanel}>
-            <DesktopSectionTitle
-              title="Progress"
-              caption={`${practiced} of ${filtered.length} topics practiced in this view.`}
-            />
-            <View style={styles.summaryMetrics}>
-              <View style={styles.bigMetric}>
-                <Text style={styles.bigMetricValue}>{percentage}%</Text>
-                <Text style={styles.bigMetricLabel}>Completed</Text>
-              </View>
-              <View style={styles.trackWrap}>
-                <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${percentage}%` }]} />
+        <View style={styles.pageStack}>
+          <View style={[styles.summaryGrid, !isWide && styles.stack]}>
+            <DesktopPanel style={styles.summaryPanel}>
+              <DesktopSectionTitle
+                title="Progress"
+                caption={`${practiced} of ${filtered.length} topics practiced in this view.`}
+              />
+              <View style={styles.summaryMetrics}>
+                <View style={styles.bigMetric}>
+                  <Text style={styles.bigMetricValue}>{percentage}%</Text>
+                  <Text style={styles.bigMetricLabel}>Completed</Text>
                 </View>
-                <Text style={styles.trackHint}>
-                  {filtered.length - practiced} topics still open
-                </Text>
+                <View style={styles.trackWrap}>
+                  <View style={styles.track}>
+                    <View style={[styles.fill, { width: `${percentage}%` }]} />
+                  </View>
+                  <Text style={styles.trackHint}>
+                    {filtered.length - practiced} topics still open
+                  </Text>
+                </View>
               </View>
-            </View>
-          </DesktopPanel>
+            </DesktopPanel>
 
-          <DesktopPanel style={styles.summaryPanel}>
-            <DesktopSectionTitle
-              title="Next lesson"
-              caption="Jump to the first unpracticed topic in this view."
-            />
-            {nextUnlearned ? (
-              <TouchableOpacity
-                style={styles.nextCard}
-                onPress={() => {
-                  const cardCopy = getGrammarCardCopy(nextUnlearned);
-                  if (!isPremium && isPremiumGrammarPoint(nextUnlearned)) {
-                    void ensurePremiumAccess(cardCopy.title, `/practice/${nextUnlearned.id}`);
-                    return;
-                  }
-                  router.push(`/practice/${nextUnlearned.id}`);
-                }}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.nextLabel}>Next up</Text>
-                <Text style={styles.nextTitle}>
-                  {getGrammarCardCopy(nextUnlearned).title}
-                </Text>
-                <Text style={styles.nextMeta}>{nextUnlearned.stage}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.nextCard}>
-                <Text style={styles.nextTitle}>All topics practiced here.</Text>
-                <Text style={styles.nextBody}>
-                  Pick another unit or keep reviewing mixed practice.
-                </Text>
-              </View>
-            )}
-          </DesktopPanel>
-        </View>
-
-        <DesktopPanel>
-          <DesktopSectionTitle
-            title="Grammar topics"
-            caption="Desktop view keeps the full curriculum visible while giving each lesson more room."
-          />
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.grid}
-          >
-            {filtered.map((item) => {
-              const done = isGrammarPracticed(progress[item.id]);
-              const bookmarked = bookmarkedIds.has(item.id);
-              const locked = isPremiumGrammarPoint(item) && !isPremium;
-              const cardCopy = getGrammarCardCopy(item);
-              return (
+            <DesktopPanel style={styles.summaryPanel}>
+              <DesktopSectionTitle
+                title="Next lesson"
+                caption="Jump to the first unpracticed topic in this view."
+              />
+              {nextUnlearned ? (
                 <TouchableOpacity
-                  key={item.id}
-                  style={[styles.card, { width: cardWidth }]}
+                  style={styles.nextCard}
                   onPress={() => {
-                    if (locked) {
-                      void ensurePremiumAccess(cardCopy.title, `/practice/${item.id}`);
+                    const cardCopy = getGrammarCardCopy(nextUnlearned);
+                    if (!isPremium && isPremiumGrammarPoint(nextUnlearned)) {
+                      void ensurePremiumAccess(cardCopy.title, `/practice/${nextUnlearned.id}`);
                       return;
                     }
-                    router.push(`/practice/${item.id}`);
+                    router.push(`/practice/${nextUnlearned.id}`);
                   }}
                   activeOpacity={0.82}
                 >
-                  <View style={styles.cardTop}>
-                    <Text style={styles.cardStage}>{item.stage}</Text>
-                    <View style={styles.cardStatusRow}>
-                      {bookmarked ? (
-                        <Ionicons
-                          name="bookmark"
-                          size={14}
-                          color={Sketch.accent}
-                        />
-                      ) : null}
-                      {locked ? (
-                        <Ionicons
-                          name="lock-closed-outline"
-                          size={15}
-                          color={Sketch.accent}
-                        />
-                      ) : done ? (
-                        <View style={styles.doneDot} />
-                      ) : null}
-                    </View>
-                  </View>
-                  <Text style={styles.cardTitle}>{cardCopy.title}</Text>
-                  <Text style={styles.cardPattern}>{cardCopy.pattern}</Text>
-                  <Text style={styles.cardMeaning}>{cardCopy.meaning}</Text>
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardId}>{item.id}</Text>
-                    <Text style={styles.cardLink}>
-                      {locked ? "Unlock" : "Open lesson"}
-                    </Text>
-                  </View>
+                  <Text style={styles.nextLabel}>Next up</Text>
+                  <Text style={styles.nextTitle}>
+                    {getGrammarCardCopy(nextUnlearned).title}
+                  </Text>
+                  <Text style={styles.nextMeta}>{nextUnlearned.stage}</Text>
                 </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </DesktopPanel>
+              ) : (
+                <View style={styles.nextCard}>
+                  <Text style={styles.nextTitle}>All topics practiced here.</Text>
+                  <Text style={styles.nextBody}>
+                    Pick another unit or keep reviewing mixed practice.
+                  </Text>
+                </View>
+              )}
+            </DesktopPanel>
+          </View>
+
+          <DesktopPanel>
+            <DesktopSectionTitle
+              title="Grammar topics"
+              caption="Desktop view keeps the full curriculum visible while giving each lesson more room."
+            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.grid}
+            >
+              {filtered.map((item) => {
+                const done = isGrammarPracticed(progress[item.id]);
+                const bookmarked = bookmarkedIds.has(item.id);
+                const locked = isPremiumGrammarPoint(item) && !isPremium;
+                const cardCopy = getGrammarCardCopy(item);
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.card, { width: cardWidth }]}
+                    onPress={() => {
+                      if (locked) {
+                        void ensurePremiumAccess(cardCopy.title, `/practice/${item.id}`);
+                        return;
+                      }
+                      router.push(`/practice/${item.id}`);
+                    }}
+                    activeOpacity={0.82}
+                  >
+                    <View style={styles.cardTop}>
+                      <Text style={styles.cardStage}>{item.stage}</Text>
+                      <View style={styles.cardStatusRow}>
+                        {bookmarked ? (
+                          <Ionicons
+                            name="bookmark"
+                            size={14}
+                            color={Sketch.accent}
+                          />
+                        ) : null}
+                        {locked ? (
+                          <Ionicons
+                            name="lock-closed-outline"
+                            size={15}
+                            color={Sketch.accent}
+                          />
+                        ) : done ? (
+                          <View style={styles.doneDot} />
+                        ) : null}
+                      </View>
+                    </View>
+                    <Text style={styles.cardTitle}>{cardCopy.title}</Text>
+                    <Text style={styles.cardPattern}>{cardCopy.pattern}</Text>
+                    <Text style={styles.cardMeaning}>{cardCopy.meaning}</Text>
+                    <View style={styles.cardFooter}>
+                      <Text style={styles.cardId}>{item.id}</Text>
+                      <Text style={styles.cardLink}>
+                        {locked ? "Unlock" : "Open lesson"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </DesktopPanel>
+        </View>
       </DesktopPage>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  pageStack: {
+    gap: 30,
+  },
   stack: {
     flexDirection: "column",
   },
@@ -384,7 +389,9 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 18,
+    paddingTop: 4,
+    paddingBottom: 6,
   },
   card: {
     borderWidth: 1,

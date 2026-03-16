@@ -7,10 +7,12 @@ import { isGuestUser } from "../../../src/utils/auth";
 
 import {
   Animated,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,6 +25,7 @@ import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
+import { useSentenceAudio } from "../../../src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { saveRound } from "../../../src/utils/grammarProgress";
@@ -180,7 +183,10 @@ export default function PracticeCSV() {
     source?: string;
   }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
+  const { playSentence } = useSentenceAudio();
+  const isDesktopWeb = Platform.OS === "web" && width >= 1100;
   const mixSource = Array.isArray(source) ? source[0] : source;
   const hasMixSource = typeof mix === "string" && mix.length > 0;
   const mixParam = typeof mix === "string" ? mix : "";
@@ -193,7 +199,6 @@ export default function PracticeCSV() {
   const mixIndexRef = useRef(0);
   const currentGrammarIdRef = useRef<string | null>(null);
   const modeHistoryRef = useRef<Mode[]>([]);
-  const speechCompletionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enabledModesRef = useRef<GrammarExerciseSettings>(
     DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   );
@@ -532,7 +537,7 @@ export default function PracticeCSV() {
       const goNext = () =>
         fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
       if (autoplayTTS) {
-        speak(sentence, goNext);
+        void playSentence(sentence, { onDone: goNext, speed: ttsSpeed });
       } else {
         setTimeout(goNext, 1200);
       }
@@ -548,12 +553,15 @@ export default function PracticeCSV() {
     setResult(ok ? "correct" : "wrong");
     recordRound(ok);
     if (autoplayTTS) {
-      speak(opt.thai, ok
-        ? () =>
-            fetchRound(
-              randomMode(enabledModesRef.current, modeHistoryRef.current),
-            )
-        : undefined);
+      void playSentence(opt.thai, {
+        onDone: ok
+          ? () =>
+              fetchRound(
+                randomMode(enabledModesRef.current, modeHistoryRef.current),
+              )
+          : undefined,
+        speed: ttsSpeed,
+      });
     }
     if (ok) {
       trackWords(breakdown, "matchThai-correct", romanTokens);
@@ -577,43 +585,16 @@ export default function PracticeCSV() {
     fast: 1.3,
   };
 
-  function clearSpeechCompletion() {
-    if (speechCompletionRef.current) {
-      clearTimeout(speechCompletionRef.current);
-      speechCompletionRef.current = null;
-    }
-  }
-
-  function getSpeechFallbackDuration(text: string) {
-    return Math.min(6000, Math.max(1200, text.length * 140));
-  }
-
-  const speak = (t: string, onDone?: () => void) => {
-    const normalized = normalizeThaiTtsText(t);
-    clearSpeechCompletion();
+  const speakWord = (t: string) => {
     Speech.stop();
-    const complete = () => {
-      clearSpeechCompletion();
-      onDone?.();
-    };
-    if (onDone) {
-      speechCompletionRef.current = setTimeout(
-        complete,
-        getSpeechFallbackDuration(normalized),
-      );
-    }
-    Speech.speak(normalized, {
+    Speech.speak(normalizeThaiTtsText(t), {
       language: "th-TH",
       rate: TTS_RATE[ttsSpeed] || 0.7,
-      onDone: onDone ? complete : undefined,
-      onStopped: onDone ? complete : undefined,
-      onError: onDone ? complete : undefined,
     });
   };
 
   useEffect(
     () => () => {
-      clearSpeechCompletion();
       Speech.stop();
     },
     [],
@@ -630,10 +611,12 @@ export default function PracticeCSV() {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Header title="Practice" onBack={() => router.back()} showClose />
-        <View style={st.loadingWrap}>
-          <View style={st.loadingPulse} />
-          <Text style={st.loadingLabel}>Checking Keystone Access...</Text>
+        <View style={[st.pageFrame, isDesktopWeb && st.pageFrameDesktop]}>
+          <Header title="Practice" onBack={() => router.back()} showClose />
+          <View style={st.loadingWrap}>
+            <View style={st.loadingPulse} />
+            <Text style={st.loadingLabel}>Checking Keystone Access...</Text>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -644,26 +627,28 @@ export default function PracticeCSV() {
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView
-          contentContainerStyle={st.scroll}
+          contentContainerStyle={[st.scroll, isDesktopWeb && st.scrollDesktop]}
           showsVerticalScrollIndicator={false}
         >
-          <Header
-            title={
-              hasMixSource
-                ? mixSource === "progress"
-                  ? "Studied Grammar"
-                  : "Quick Practice"
-                : grammarPoint?.title || "Practice"
-            }
-            onBack={() => router.back()}
-            showClose
-          />
-          <View style={st.premiumBlockWrap}>
-            <PremiumGateCard
-              title={premiumBlocked.title}
-              body={premiumBlocked.body}
-              redirectTo={currentPracticeRoute}
+          <View style={[st.pageFrame, isDesktopWeb && st.pageFrameDesktop]}>
+            <Header
+              title={
+                hasMixSource
+                  ? mixSource === "progress"
+                    ? "Studied Grammar"
+                    : "Quick Practice"
+                  : grammarPoint?.title || "Practice"
+              }
+              onBack={() => router.back()}
+              showClose
             />
+            <View style={st.premiumBlockWrap}>
+              <PremiumGateCard
+                title={premiumBlocked.title}
+                body={premiumBlocked.body}
+                redirectTo={currentPracticeRoute}
+              />
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -674,9 +659,10 @@ export default function PracticeCSV() {
     <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
-        contentContainerStyle={st.scroll}
+        contentContainerStyle={[st.scroll, isDesktopWeb && st.scrollDesktop]}
         showsVerticalScrollIndicator={false}
         >
+          <View style={[st.pageFrame, isDesktopWeb && st.pageFrameDesktop]}>
           <Header
             title={
               hasMixSource
@@ -699,7 +685,7 @@ export default function PracticeCSV() {
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
             {/* Mode header */}
-            <View style={st.modeHeader}>
+            <View style={[st.modeHeader, isDesktopWeb && st.modeHeaderDesktop]}>
               <View style={st.modeTagRow}>
                 <View style={st.modeTag}>
                   <Text style={st.modeTagText}>{meta.tag}</Text>
@@ -722,11 +708,11 @@ export default function PracticeCSV() {
 
             {/* ── BREAKDOWN (Study) ── */}
             {mode === "breakdown" && (
-              <View style={st.exerciseWrap}>
-                <View style={st.studyCard}>
+              <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
+                <View style={[st.studyCard, isDesktopWeb && st.studyCardDesktop]}>
                   <TouchableOpacity
-                    style={st.speakerBtn}
-                    onPress={() => speak(sentence)}
+                    style={[st.speakerBtn, isDesktopWeb && st.speakerBtnDesktop]}
+                    onPress={() => void playSentence(sentence, { speed: ttsSpeed })}
                     activeOpacity={0.7}
                   >
                     <Ionicons
@@ -736,7 +722,7 @@ export default function PracticeCSV() {
                     />
                   </TouchableOpacity>
 
-                  <Text style={st.studySentence}>
+                  <Text style={[st.studySentence, isDesktopWeb && st.studySentenceDesktop]}>
                     {breakdown.map((w, i) => (
                       <Text key={i} style={{ color: toneColor(w.tone) }}>
                         {w.thai}
@@ -744,23 +730,27 @@ export default function PracticeCSV() {
                     ))}
                   </Text>
                   {showRoman && (
-                    <Text style={st.studyRoman}>{romanization}</Text>
+                    <Text style={[st.studyRoman, isDesktopWeb && st.studyRomanDesktop]}>
+                      {romanization}
+                    </Text>
                   )}
                   <View style={st.divider} />
                   {showEnglish && (
-                    <Text style={st.studyEnglish}>{translation}</Text>
+                    <Text style={[st.studyEnglish, isDesktopWeb && st.studyEnglishDesktop]}>
+                      {translation}
+                    </Text>
                   )}
                 </View>
 
                 <View style={st.tileSection}>
                   <Text style={st.tileSectionLabel}>WORD BREAKDOWN</Text>
-                  <View style={st.tileRow}>
+                  <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
                     {breakdown.map((w, i) => (
                       wordBreakdownTTS ? (
                         <TouchableOpacity
                           key={i}
                           style={st.wordTile}
-                          onPress={() => speak(w.thai)}
+                          onPress={() => speakWord(w.thai)}
                           activeOpacity={0.8}
                         >
                           <View style={st.wordTileHeader}>
@@ -814,7 +804,7 @@ export default function PracticeCSV() {
                 </View>
 
                 <TouchableOpacity
-                  style={st.primaryBtn}
+                  style={[st.primaryBtn, isDesktopWeb && st.primaryBtnDesktop]}
                   onPress={() => {
                     trackWords(breakdown, "breakdown-next", romanTokens);
                     recordRound(true);
@@ -831,8 +821,8 @@ export default function PracticeCSV() {
 
             {/* ── WORDSCRAPS (Build) ── */}
             {mode === "wordScraps" && (
-              <View style={st.exerciseWrap}>
-                <View style={st.promptCard}>
+              <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
+                <View style={[st.promptCard, isDesktopWeb && st.promptCardDesktop]}>
                   <Text style={st.promptLabel}>TRANSLATE INTO THAI</Text>
                   <Text style={st.promptText}>{translation}</Text>
                 </View>
@@ -840,6 +830,7 @@ export default function PracticeCSV() {
                 <View
                   style={[
                     st.builderZone,
+                    isDesktopWeb && st.builderZoneDesktop,
                     result === "correct" && st.builderCorrect,
                     result === "wrong" && st.builderWrong,
                   ]}
@@ -921,7 +912,7 @@ export default function PracticeCSV() {
                   </View>
                 )}
 
-                <View style={st.actionRow}>
+                <View style={[st.actionRow, isDesktopWeb && st.actionRowDesktop]}>
                   <TouchableOpacity
                     style={st.actionBtn}
                     onPress={undoLastWord}
@@ -939,7 +930,7 @@ export default function PracticeCSV() {
                 </View>
 
                 {/* wordScraps tiles — same style as breakdown word tiles */}
-                <View style={st.tileRow}>
+                <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
                   {availableWords.map((word) => (
                     <TouchableOpacity
                       key={word.id}
@@ -968,6 +959,7 @@ export default function PracticeCSV() {
                 <TouchableOpacity
                   style={[
                     st.primaryBtn,
+                    isDesktopWeb && st.primaryBtnDesktop,
                     result === "correct" && st.primaryBtnDisabled,
                   ]}
                   onPress={checkWordScraps}
@@ -979,7 +971,11 @@ export default function PracticeCSV() {
 
                 {result !== "correct" && (
                   <TouchableOpacity
-                    style={[st.primaryBtn, st.secondaryBtn]}
+                    style={[
+                      st.primaryBtn,
+                      st.secondaryBtn,
+                      isDesktopWeb && st.primaryBtnDesktop,
+                    ]}
                     onPress={() =>
                       fetchRound(
                         randomMode(enabledModesRef.current, modeHistoryRef.current),
@@ -997,13 +993,13 @@ export default function PracticeCSV() {
 
             {/* ── MATCHTHAI ── */}
             {mode === "matchThai" && (
-              <View style={st.exerciseWrap}>
-                <View style={st.promptCard}>
+              <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
+                <View style={[st.promptCard, isDesktopWeb && st.promptCardDesktop]}>
                   <Text style={st.promptLabel}>CHOOSE THE SENTENCE FOR</Text>
                   <Text style={st.promptText}>{translation}</Text>
                 </View>
 
-                <View style={st.optionsGrid}>
+                <View style={[st.optionsGrid, isDesktopWeb && st.optionsGridDesktop]}>
                   {matchOptions.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
                     const isCorrect = opt.isCorrect;
@@ -1049,6 +1045,7 @@ export default function PracticeCSV() {
                         key={idx}
                         style={[
                           st.optionCard,
+                          isDesktopWeb && st.optionCardDesktop,
                           { borderColor, backgroundColor: bgColor },
                         ]}
                       >
@@ -1108,7 +1105,7 @@ export default function PracticeCSV() {
                                   <TouchableOpacity
                                     key={wi}
                                     style={st.matchWordTile}
-                                    onPress={() => speak(w.thai)}
+                                    onPress={() => speakWord(w.thai)}
                                     activeOpacity={0.8}
                                   >
                                     <View style={st.matchWordTileHeader}>
@@ -1196,7 +1193,11 @@ export default function PracticeCSV() {
 
                 {matchRevealed && result === "wrong" && (
                   <TouchableOpacity
-                    style={[st.primaryBtn, st.secondaryBtn]}
+                    style={[
+                      st.primaryBtn,
+                      st.secondaryBtn,
+                      isDesktopWeb && st.primaryBtnDesktop,
+                    ]}
                     onPress={() =>
                       fetchRound(
                         randomMode(enabledModesRef.current, modeHistoryRef.current),
@@ -1212,7 +1213,11 @@ export default function PracticeCSV() {
 
                 {!matchRevealed && (
                   <TouchableOpacity
-                    style={[st.primaryBtn, st.secondaryBtn]}
+                    style={[
+                      st.primaryBtn,
+                      st.secondaryBtn,
+                      isDesktopWeb && st.primaryBtnDesktop,
+                    ]}
                     onPress={() =>
                       fetchRound(
                         randomMode(enabledModesRef.current, modeHistoryRef.current),
@@ -1229,6 +1234,7 @@ export default function PracticeCSV() {
             )}
           </Animated.View>
         )}
+        </View>
       </ScrollView>
 
       <ToneGuide
@@ -1243,6 +1249,16 @@ export default function PracticeCSV() {
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
   scroll: { paddingBottom: 64 },
+  scrollDesktop: { paddingBottom: 88 },
+  pageFrame: {
+    width: "100%",
+  },
+  pageFrameDesktop: {
+    width: "100%",
+    maxWidth: 1180,
+    alignSelf: "center",
+    paddingHorizontal: 12,
+  },
 
   loadingWrap: { alignItems: "center", paddingTop: 120, gap: 14 },
   premiumBlockWrap: { paddingTop: 18 },
@@ -1258,6 +1274,11 @@ const st = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 4,
+  },
+  modeHeaderDesktop: {
+    paddingHorizontal: 0,
+    paddingTop: 26,
+    paddingBottom: 2,
   },
   modeTagRow: {
     flexDirection: "row",
@@ -1305,6 +1326,11 @@ const st = StyleSheet.create({
     paddingTop: 18,
     gap: 18,
   },
+  exerciseWrapDesktop: {
+    paddingHorizontal: 0,
+    paddingTop: 22,
+    gap: 22,
+  },
 
   studyCard: {
     backgroundColor: Sketch.cardBg,
@@ -1314,6 +1340,10 @@ const st = StyleSheet.create({
     padding: 22,
     alignItems: "center",
     ...sketchShadow(2),
+  },
+  studyCardDesktop: {
+    padding: 26,
+    alignItems: "flex-start",
   },
   speakerBtn: {
     flexDirection: "row",
@@ -1328,6 +1358,10 @@ const st = StyleSheet.create({
     marginBottom: 16,
     alignSelf: "center",
   },
+  speakerBtnDesktop: {
+    alignSelf: "flex-start",
+    marginBottom: 18,
+  },
   speakerIcon: { fontSize: 18 }, // kept for safety, unused
   studySentence: {
     fontSize: 24,
@@ -1337,6 +1371,13 @@ const st = StyleSheet.create({
     lineHeight: 34,
     marginBottom: 6,
   },
+  studySentenceDesktop: {
+    fontSize: 32,
+    lineHeight: 44,
+    textAlign: "left",
+    marginBottom: 8,
+    maxWidth: 760,
+  },
   studyRoman: {
     fontSize: 13,
     color: Sketch.inkMuted,
@@ -1344,6 +1385,11 @@ const st = StyleSheet.create({
     fontWeight: "500",
     marginBottom: 16,
     letterSpacing: 0.3,
+  },
+  studyRomanDesktop: {
+    textAlign: "left",
+    fontSize: 15,
+    marginBottom: 18,
   },
   divider: {
     width: 40,
@@ -1358,6 +1404,12 @@ const st = StyleSheet.create({
     color: Sketch.inkLight,
     textAlign: "center",
     lineHeight: 22,
+  },
+  studyEnglishDesktop: {
+    textAlign: "left",
+    fontSize: 16,
+    lineHeight: 26,
+    maxWidth: 780,
   },
 
   tileSection: { gap: 10 },
@@ -1374,6 +1426,9 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
     alignSelf: "flex-start",
+  },
+  tileRowDesktop: {
+    gap: 10,
   },
   matchTileRow: {
     flexDirection: "row",
@@ -1463,6 +1518,11 @@ const st = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
   },
+  primaryBtnDesktop: {
+    alignSelf: "flex-start",
+    minWidth: 240,
+    paddingHorizontal: 28,
+  },
   primaryBtnDisabled: {
     opacity: 0.55,
   },
@@ -1488,6 +1548,12 @@ const st = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 18,
     ...sketchShadow(2),
+  },
+  promptCardDesktop: {
+    maxWidth: 860,
+    width: "100%",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
   promptLabel: {
     fontSize: 11,
@@ -1527,6 +1593,11 @@ const st = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#D8D8D4",
+  },
+  builderZoneDesktop: {
+    maxWidth: 860,
+    width: "100%",
+    minHeight: 96,
   },
   builderCorrect: {
     borderColor: MATTE_RESULT_COLORS.successBorder,
@@ -1592,6 +1663,10 @@ const st = StyleSheet.create({
   },
 
   actionRow: { flexDirection: "row", gap: 10 },
+  actionRowDesktop: {
+    maxWidth: 560,
+    width: "100%",
+  },
   actionBtn: {
     flex: 1,
     backgroundColor: Sketch.cardBg,
@@ -1628,6 +1703,11 @@ const st = StyleSheet.create({
   resultLabel: { fontSize: 13, fontWeight: "600" },
 
   optionsGrid: { gap: 10 },
+  optionsGridDesktop: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
   optionCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: SketchRadius.card,
@@ -1636,6 +1716,9 @@ const st = StyleSheet.create({
     padding: 12,
     gap: 8,
     ...sketchShadow(2),
+  },
+  optionCardDesktop: {
+    width: "48.8%",
   },
   matchSentenceButton: {
     flexDirection: "row",

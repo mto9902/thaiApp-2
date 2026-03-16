@@ -25,6 +25,7 @@ import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
+import { useSentenceAudio } from "../../../src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
@@ -37,7 +38,7 @@ function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
 }
 
-function speak(text: string) {
+function speakWord(text: string) {
   Speech.stop();
   Speech.speak(normalizeThaiTtsText(text), {
     language: "th-TH",
@@ -88,6 +89,7 @@ export default function GrammarDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { grammarPoints } = useGrammarCatalog();
+  const { playSentence } = useSentenceAudio();
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -363,7 +365,7 @@ export default function GrammarDetail() {
 
             <TouchableOpacity
               style={styles.speakerBtn}
-              onPress={() => speak(example.thai)}
+              onPress={() => void playSentence(example.thai)}
               activeOpacity={0.7}
             >
               <Ionicons
@@ -387,7 +389,7 @@ export default function GrammarDetail() {
                   <TouchableOpacity
                     key={index}
                     style={styles.wordTile}
-                    onPress={() => speak(item.thai)}
+                    onPress={() => speakWord(item.thai)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.wordTileHeader}>

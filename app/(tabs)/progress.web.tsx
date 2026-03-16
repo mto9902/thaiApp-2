@@ -96,122 +96,127 @@ export default function GrammarProgressWeb() {
       title="Your grammar progress"
       subtitle="A desktop curriculum board with level summaries, unit cards, and a single clear recommendation."
     >
-      <View style={styles.topRow}>
-        <DesktopPanel style={styles.summaryPanel}>
-          <DesktopSectionTitle
-            title="Overview"
-            caption={`${totalPracticed} of ${totalPoints} grammar topics practiced.`}
-          />
-          <View style={styles.summaryContent}>
-            <Text style={styles.summaryValue}>{overallPercent}%</Text>
-            <View style={styles.summaryTrackWrap}>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${overallPercent}%` }]} />
+      <View style={styles.pageStack}>
+        <View style={styles.topRow}>
+          <DesktopPanel style={styles.summaryPanel}>
+            <DesktopSectionTitle
+              title="Overview"
+              caption={`${totalPracticed} of ${totalPoints} grammar topics practiced.`}
+            />
+            <View style={styles.summaryContent}>
+              <Text style={styles.summaryValue}>{overallPercent}%</Text>
+              <View style={styles.summaryTrackWrap}>
+                <View style={styles.track}>
+                  <View style={[styles.fill, { width: `${overallPercent}%` }]} />
+                </View>
+                <Text style={styles.summaryHint}>
+                  {Math.max(totalPoints - totalPracticed, 0)} topics still open
+                </Text>
               </View>
-              <Text style={styles.summaryHint}>
-                {Math.max(totalPoints - totalPracticed, 0)} topics still open
-              </Text>
             </View>
+          </DesktopPanel>
+
+          <DesktopPanel style={styles.recommendPanel}>
+            <DesktopSectionTitle
+              title="Continue learning"
+              caption="Resume the most relevant unit instead of hunting for where to go next."
+            />
+            {recommended ? (
+              <TouchableOpacity
+                style={styles.recommendCard}
+                onPress={() =>
+                  router.push(`/practice/CSVGrammarIndex?stage=${recommended.stage}` as any)
+                }
+                activeOpacity={0.82}
+              >
+                <Text style={styles.recommendEyebrow}>Recommended</Text>
+                <Text style={styles.recommendTitle}>
+                  {recommended.stage} {GRAMMAR_STAGE_META[recommended.stage].shortTitle}
+                </Text>
+                <Text style={styles.recommendBody}>
+                  {GRAMMAR_STAGE_META[recommended.stage].subtitle}
+                </Text>
+                <View style={styles.openRow}>
+                  <Text style={styles.openText}>Open unit</Text>
+                  <Ionicons name="chevron-forward" size={14} color={Sketch.accent} />
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.recommendCard}>
+                <Text style={styles.recommendTitle}>Everything is completed.</Text>
+                <Text style={styles.recommendBody}>
+                  Use mixed practice or revisit specific units you want to reinforce.
+                </Text>
+              </View>
+            )}
+          </DesktopPanel>
+        </View>
+
+        <DesktopPanel>
+          <DesktopSectionTitle
+            title="Levels"
+            caption="Each level is split into separate unit cards instead of one long mobile-style accordion."
+          />
+          <View style={styles.levelGrid}>
+            {levelSections.map((section) => (
+              <View key={section.level} style={[styles.levelCard, { width: levelCardWidth }]}>
+                <View style={styles.levelTop}>
+                  <View style={styles.levelHeading}>
+                    <Text style={styles.levelName}>{section.level}</Text>
+                    <Text style={styles.levelSubtitle}>{section.meta.subtitle}</Text>
+                  </View>
+                  <Text style={styles.levelPercent}>{section.percentage}%</Text>
+                </View>
+
+                <View style={styles.track}>
+                  <View style={[styles.fill, { width: `${section.percentage}%` }]} />
+                </View>
+                <Text style={styles.levelCount}>
+                  {section.practiced}/{section.total} topics practiced
+                </Text>
+
+                <View style={styles.unitList}>
+                  {section.stages.map((stageSummary) => {
+                    const meta = GRAMMAR_STAGE_META[stageSummary.stage];
+                    const isRecommended = recommended?.stage === stageSummary.stage;
+                    return (
+                      <TouchableOpacity
+                        key={stageSummary.stage}
+                        style={[
+                          styles.unitCard,
+                          isRecommended && styles.unitCardRecommended,
+                        ]}
+                        onPress={() =>
+                          router.push(`/practice/CSVGrammarIndex?stage=${stageSummary.stage}` as any)
+                        }
+                        activeOpacity={0.82}
+                      >
+                        <View style={styles.unitTop}>
+                          <Text style={styles.unitStage}>{stageSummary.stage}</Text>
+                          <Text style={styles.unitPercent}>{stageSummary.percentage}%</Text>
+                        </View>
+                        <Text style={styles.unitTitle}>{meta.shortTitle}</Text>
+                        <Text style={styles.unitBody}>{meta.subtitle}</Text>
+                        <Text style={styles.unitCount}>
+                          {stageSummary.practiced}/{stageSummary.total}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
           </View>
         </DesktopPanel>
-
-        <DesktopPanel style={styles.recommendPanel}>
-          <DesktopSectionTitle
-            title="Continue learning"
-            caption="Resume the most relevant unit instead of hunting for where to go next."
-          />
-          {recommended ? (
-            <TouchableOpacity
-              style={styles.recommendCard}
-              onPress={() =>
-                router.push(`/practice/CSVGrammarIndex?stage=${recommended.stage}` as any)
-              }
-              activeOpacity={0.82}
-            >
-              <Text style={styles.recommendEyebrow}>Recommended</Text>
-              <Text style={styles.recommendTitle}>
-                {recommended.stage} {GRAMMAR_STAGE_META[recommended.stage].shortTitle}
-              </Text>
-              <Text style={styles.recommendBody}>
-                {GRAMMAR_STAGE_META[recommended.stage].subtitle}
-              </Text>
-              <View style={styles.openRow}>
-                <Text style={styles.openText}>Open unit</Text>
-                <Ionicons name="chevron-forward" size={14} color={Sketch.accent} />
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.recommendCard}>
-              <Text style={styles.recommendTitle}>Everything is completed.</Text>
-              <Text style={styles.recommendBody}>
-                Use mixed practice or revisit specific units you want to reinforce.
-              </Text>
-            </View>
-          )}
-        </DesktopPanel>
       </View>
-
-      <DesktopPanel>
-        <DesktopSectionTitle
-          title="Levels"
-          caption="Each level is split into separate unit cards instead of one long mobile-style accordion."
-        />
-        <View style={styles.levelGrid}>
-          {levelSections.map((section) => (
-            <View key={section.level} style={[styles.levelCard, { width: levelCardWidth }]}>
-              <View style={styles.levelTop}>
-                <View style={styles.levelHeading}>
-                  <Text style={styles.levelName}>{section.level}</Text>
-                  <Text style={styles.levelSubtitle}>{section.meta.subtitle}</Text>
-                </View>
-                <Text style={styles.levelPercent}>{section.percentage}%</Text>
-              </View>
-
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${section.percentage}%` }]} />
-              </View>
-              <Text style={styles.levelCount}>
-                {section.practiced}/{section.total} topics practiced
-              </Text>
-
-              <View style={styles.unitList}>
-                {section.stages.map((stageSummary) => {
-                  const meta = GRAMMAR_STAGE_META[stageSummary.stage];
-                  const isRecommended = recommended?.stage === stageSummary.stage;
-                  return (
-                    <TouchableOpacity
-                      key={stageSummary.stage}
-                      style={[
-                        styles.unitCard,
-                        isRecommended && styles.unitCardRecommended,
-                      ]}
-                      onPress={() =>
-                        router.push(`/practice/CSVGrammarIndex?stage=${stageSummary.stage}` as any)
-                      }
-                      activeOpacity={0.82}
-                    >
-                      <View style={styles.unitTop}>
-                        <Text style={styles.unitStage}>{stageSummary.stage}</Text>
-                        <Text style={styles.unitPercent}>{stageSummary.percentage}%</Text>
-                      </View>
-                      <Text style={styles.unitTitle}>{meta.shortTitle}</Text>
-                      <Text style={styles.unitBody}>{meta.subtitle}</Text>
-                      <Text style={styles.unitCount}>
-                        {stageSummary.practiced}/{stageSummary.total}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </View>
-      </DesktopPanel>
     </DesktopPage>
   );
 }
 
 const styles = StyleSheet.create({
+  pageStack: {
+    gap: 28,
+  },
   topRow: {
     flexDirection: "row",
     gap: 20,
