@@ -269,42 +269,84 @@ const heroShowcaseData = {
 
 function setupHeroShowcase() {
   const tabs = Array.from(document.querySelectorAll("[data-hero-language]"));
-  if (tabs.length === 0) return;
+  const wordsEl = document.getElementById("hero-words");
+  const translationEl = document.getElementById("hero-translation");
+  const audioBtn = document.getElementById("hero-audio-btn");
+  const progressBar = document.getElementById("hero-progress");
+  const progressLabel = document.getElementById("hero-progress-label");
 
-  const languageName = document.querySelector('[data-hero-field="languageName"]');
-  const pattern = document.querySelector('[data-hero-field="pattern"]');
-  const sentence = document.querySelector('[data-hero-field="sentence"]');
-  const roman = document.querySelector('[data-hero-field="roman"]');
-  const translation = document.querySelector('[data-hero-field="translation"]');
-  const methodLabel = document.querySelector('[data-hero-field="methodLabel"]');
-  const audio = document.querySelector('[data-hero-field="audio"]');
+  if (!wordsEl || tabs.length === 0) return;
 
-  if (!languageName || !pattern || !sentence || !roman || !translation || !methodLabel || !audio) {
-    return;
-  }
+  let currentLanguage = "thai";
+  let revealedSet = new Set();
 
   function render(language) {
+    currentLanguage = language;
+    revealedSet = new Set();
     const sample = heroShowcaseData[language];
     if (!sample) return;
 
     tabs.forEach((tab) => {
       const isActive = tab.getAttribute("data-hero-language") === language;
       tab.classList.toggle("active", isActive);
-      tab.setAttribute("aria-selected", String(isActive));
-      tab.tabIndex = isActive ? 0 : -1;
     });
 
-    languageName.textContent = sample.languageName;
-    pattern.textContent = sample.pattern;
-    sentence.textContent = sample.sentence;
-    roman.textContent = sample.roman;
-    translation.textContent = sample.translation;
-    methodLabel.textContent = sample.methodLabel;
-    audio.setAttribute("data-audio-text", sample.audioText);
-    audio.setAttribute("data-audio-lang", sample.audioLang);
-    audio.setAttribute("aria-label", `Play ${sample.languageName} sample audio`);
-    audio.setAttribute("title", `Play ${sample.languageName} sample audio`);
+    wordsEl.innerHTML = sample.words
+      .map(
+        (w, i) => `
+        <button class="hero-word" type="button" data-word-index="${i}"
+          data-audio-text="${w.word}" data-audio-lang="${sample.audioLang}">
+          <span class="hero-word-text">${w.word}</span>
+          <div class="hero-word-reveal">
+            <span class="hero-word-roman">${w.roman}</span>
+            <span class="hero-word-meaning">${w.meaning}</span>
+          </div>
+        </button>
+      `,
+      )
+      .join("");
+
+    if (translationEl) {
+      translationEl.textContent = sample.translation;
+      translationEl.classList.remove("revealed");
+    }
+
+    if (audioBtn) {
+      audioBtn.setAttribute("data-audio-text", sample.audioText);
+      audioBtn.setAttribute("data-audio-lang", sample.audioLang);
+    }
+
+    updateProgress(sample);
   }
+
+  function updateProgress(sample) {
+    const total = sample.words.length;
+    const done = revealedSet.size;
+    const ratio = total > 0 ? done / total : 0;
+
+    if (progressBar) {
+      progressBar.style.setProperty("--progress", ratio);
+    }
+    if (progressLabel) {
+      progressLabel.textContent = `${done} / ${total} words`;
+    }
+
+    if (done === total && translationEl) {
+      translationEl.classList.add("revealed");
+    }
+  }
+
+  wordsEl.addEventListener("click", (event) => {
+    const wordBtn = event.target.closest("[data-word-index]");
+    if (!wordBtn) return;
+
+    const index = Number(wordBtn.getAttribute("data-word-index"));
+    wordBtn.classList.add("revealed");
+    revealedSet.add(index);
+
+    const sample = heroShowcaseData[currentLanguage];
+    if (sample) updateProgress(sample);
+  });
 
   tabs.forEach((tab) => {
     tab.setAttribute("role", "tab");
