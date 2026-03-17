@@ -6,7 +6,7 @@
     <title>Keystone Languages</title>
     <meta
       name="description"
-      content="Grammar-first language learning apps for Thai, Japanese, and Korean, built around patterns, example sentences, audio, and structured progression."
+      content="Language learning apps for Thai, Japanese, and Korean, built around patterns, example sentences, audio, and structured progression."
     />
     <meta name="keystone-api-base" content="http://3.0.214.108:3000" />
     <link rel="stylesheet" href="./styles.css" />
@@ -27,15 +27,14 @@
             </span>
           </a>
           <nav class="nav-links">
-            <a href="#products">Products</a>
+            <a href="#products">Courses</a>
             <a href="#sample-practice">Practice</a>
             <a href="#method">Method</a>
-            <a href="#pricing">Pricing</a>
+            <a href="./pricing.html">Pricing</a>
             <a href="#faq">FAQ</a>
-            <a href="./privacy.html">Privacy</a>
           </nav>
           <div class="nav-actions">
-            <a class="button-secondary" href="#products">View Products</a>
+            <a class="button-secondary" href="#products">View Courses</a>
             <a class="button" href="http://localhost:8081">Try App</a>
             <button class="nav-toggle" type="button">Menu</button>
           </div>
@@ -46,7 +45,7 @@
         <section class="hero">
           <div class="container home-hero-grid">
             <div class="hero-copy">
-              <div class="eyebrow">Grammar-first language learning</div>
+              <div class="eyebrow">Language learning through patterns</div>
               <h1>Finally understand how these languages work.</h1>
               <p>
                 Learn through patterns, real sentences, and structured practice
@@ -56,46 +55,27 @@
                 <a class="button" href="http://localhost:8081">Try Free</a>
                 <a class="button-secondary" href="#sample-practice">See How It Works</a>
               </div>
-              <div class="hero-trust-line">No gamification. Just real understanding.</div>
+              <div class="hero-trust-line">No gamification, real understanding.</div>
             </div>
 
             <div class="hero-visual">
-              <div class="hero-interactive">
-                <div class="hero-interactive-header">
-                  <div class="card-kicker">Try it — tap each word</div>
+              <div class="hero-interactive-wrap">
+                <div class="hero-interactive-toolbar">
                   <div class="hero-interactive-tabs" role="tablist" aria-label="Hero language samples">
                     <button class="hero-lang-tab active" type="button" data-hero-language="thai">Thai</button>
                     <button class="hero-lang-tab" type="button" data-hero-language="japanese">Japanese</button>
                     <button class="hero-lang-tab" type="button" data-hero-language="korean">Korean</button>
                   </div>
+                  <div class="hero-exercise-tabs">
+                    <button class="hero-exercise-tab" type="button" data-hero-exercise="breakdown">Breakdown</button>
+                    <button class="hero-exercise-tab" type="button" data-hero-exercise="choose">Choose</button>
+                    <button class="hero-exercise-tab active" type="button" data-hero-exercise="order">Order</button>
+                  </div>
                 </div>
 
-                <div class="hero-interactive-body">
-                  <div class="hero-words" id="hero-words"></div>
-
-                  <div class="hero-translation-row">
-                    <span class="hero-translation-text" id="hero-translation"></span>
-                    <button
-                      class="audio-demo audio-icon-button"
-                      type="button"
-                      aria-label="Play sample audio"
-                      title="Play sample audio"
-                      id="hero-audio-btn"
-                      data-audio-text="ฉันกำลังเรียนภาษาไทย"
-                      data-audio-lang="th-TH"
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 14h4l5 4V6L8 10H4z"></path>
-                        <path d="M16 9a5 5 0 0 1 0 6"></path>
-                        <path d="M18.5 6.5a8.5 8.5 0 0 1 0 11"></path>
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div class="hero-progress-row">
-                    <div class="hero-progress-bar" id="hero-progress"></div>
-                    <span class="hero-progress-label" id="hero-progress-label">0 / 4 words</span>
-                  </div>
+                <div class="hero-interactive">
+                  <div class="hero-interactive-kicker" id="hero-kicker">Drag the words into the right order</div>
+                  <div id="hero-exercise"></div>
                 </div>
               </div>
             </div>
@@ -105,8 +85,8 @@
         <section class="section-spaced" id="products">
           <div class="container">
             <div class="section-header">
-              <div class="eyebrow">Products</div>
-              <h2>Three language products, one consistent learning system.</h2>
+              <div class="eyebrow">Courses</div>
+              <h2>Three language courses, one consistent learning system.</h2>
               <p>
                 Each Keystone app keeps the learning flow familiar while the
                 grammar content, sentence coverage, and examples stay specific
@@ -117,18 +97,20 @@
             <div class="products-grid">
               <article class="product-card">
                 <div class="card-kicker">Keystone Thai</div>
-                <h3>Grammar-led Thai study</h3>
-                <p>Learn Thai through grammar progression, sentence generation, audio examples, and targeted repetition.</p>
+                <div class="product-script">ไทย</div>
+                <h3>Thai course</h3>
+                <p>Learn Thai through grammar progression, example sentences, audio examples, and targeted repetition.</p>
                 <ul class="list">
                   <li>Thai grammar learning</li>
-                  <li>Sentence generation</li>
+                  <li>Example sentence practice</li>
                   <li>Audio examples</li>
                 </ul>
-                <a class="product-link" href="./products/thai.html">Open product &rarr;</a>
+                <a class="product-link" href="./products/thai.html">Open course &rarr;</a>
               </article>
 
               <article class="product-card">
                 <div class="card-kicker">Keystone Japanese</div>
+                <div class="product-script">日本語</div>
                 <h3>Structured JLPT grammar practice</h3>
                 <p>Study Japanese through pattern-based lessons, example sentence practice, and structured progression.</p>
                 <ul class="list">
@@ -136,11 +118,12 @@
                   <li>Example sentence practice</li>
                   <li>Structured learning</li>
                 </ul>
-                <a class="product-link" href="./products/japanese.html">Open product &rarr;</a>
+                <a class="product-link" href="./products/japanese.html">Open course &rarr;</a>
               </article>
 
               <article class="product-card">
                 <div class="card-kicker">Keystone Korean</div>
+                <div class="product-script">한국어</div>
                 <h3>Pattern-focused Korean study</h3>
                 <p>Work through TOPIK grammar with clear translations, example sentences, and a steady curriculum path.</p>
                 <ul class="list">
@@ -148,8 +131,47 @@
                   <li>Pattern-based learning</li>
                   <li>Example sentences</li>
                 </ul>
-                <a class="product-link" href="./products/korean.html">Open product &rarr;</a>
+                <a class="product-link" href="./products/korean.html">Open course &rarr;</a>
               </article>
+            </div>
+
+            <div class="course-range-block">
+              <div class="section-header course-range-header">
+                <div class="eyebrow">Course coverage</div>
+                <h3>See what each course contains.</h3>
+                <p>Each Keystone course follows the same lesson system while covering a different exam or proficiency range.</p>
+              </div>
+              <div class="course-range-grid">
+                <article class="course-range-card">
+                  <strong>Thai</strong>
+                  <div class="course-range-track">
+                    <span class="course-range-pill">A1</span>
+                    <span class="course-range-line"></span>
+                    <span class="course-range-pill">C1</span>
+                  </div>
+                  <p>CEFR-based grammar progression from foundations to advanced structure.</p>
+                </article>
+
+                <article class="course-range-card">
+                  <strong>Japanese</strong>
+                  <div class="course-range-track">
+                    <span class="course-range-pill">N5</span>
+                    <span class="course-range-line"></span>
+                    <span class="course-range-pill">N2</span>
+                  </div>
+                  <p>JLPT grammar coverage designed to move from beginner patterns to higher-level usage.</p>
+                </article>
+
+                <article class="course-range-card">
+                  <strong>Korean</strong>
+                  <div class="course-range-track">
+                    <span class="course-range-pill">TOPIK I</span>
+                    <span class="course-range-line"></span>
+                    <span class="course-range-pill">TOPIK II</span>
+                  </div>
+                  <p>TOPIK-oriented grammar paths that keep beginner and intermediate study connected.</p>
+                </article>
+              </div>
             </div>
           </div>
         </section>
@@ -182,31 +204,59 @@
 
         <section class="section-spaced" id="method">
           <div class="container">
-            <div class="section-header">
-              <div class="eyebrow">How Keystone works</div>
-              <h2>A calm loop built around grammar, pattern recognition, and repetition.</h2>
-            </div>
+            <div class="method-shell">
+              <div class="method-overview">
+                <div class="eyebrow">How Keystone works</div>
+                <h2>One pattern. Multiple examples. Practice that reinforces the same idea.</h2>
+                <p>
+                  Keystone keeps each lesson centered on one structure so the
+                  explanation, examples, audio, and practice all move in the
+                  same direction.
+                </p>
 
-            <div class="work-grid">
-              <div class="work-step">
-                <div class="step-number">1</div>
-                <strong>Choose a grammar structure</strong>
-                <span>Start with one clear pattern instead of a scattered list of phrases.</span>
+                <div class="method-overview-note">
+                  <span class="method-note-label">Lesson flow</span>
+                  <strong>Pattern → examples → audio → practice</strong>
+                  <p>The goal is not to collect random phrases. The goal is to understand one piece of grammar until it feels familiar.</p>
+                </div>
               </div>
-              <div class="work-step">
-                <div class="step-number">2</div>
-                <strong>Generate example sentences</strong>
-                <span>See how that structure appears across multiple useful contexts.</span>
-              </div>
-              <div class="work-step">
-                <div class="step-number">3</div>
-                <strong>Listen and analyze patterns</strong>
-                <span>Use audio, translation, and breakdowns to understand how the sentence is built.</span>
-              </div>
-              <div class="work-step">
-                <div class="step-number">4</div>
-                <strong>Practice repeatedly</strong>
-                <span>Return to the same structure until it becomes easier to recognize and produce.</span>
+
+              <div class="method-flow">
+                <article class="method-step-row">
+                  <div class="method-step-index">01</div>
+                  <div class="method-step-card">
+                    <span class="method-step-kicker">Start</span>
+                    <strong>Choose one grammar structure</strong>
+                    <p>Begin with a single pattern so the lesson stays focused from the very first screen.</p>
+                  </div>
+                </article>
+
+                <article class="method-step-row">
+                  <div class="method-step-index">02</div>
+                  <div class="method-step-card">
+                    <span class="method-step-kicker">See it</span>
+                    <strong>Study the same idea in multiple sentences</strong>
+                    <p>Example sentences show how the pattern works across different meanings and contexts.</p>
+                  </div>
+                </article>
+
+                <article class="method-step-row">
+                  <div class="method-step-index">03</div>
+                  <div class="method-step-card">
+                    <span class="method-step-kicker">Hear it</span>
+                    <strong>Listen while reading the structure</strong>
+                    <p>Audio, translation, and breakdowns keep the grammar connected to real sound and real use.</p>
+                  </div>
+                </article>
+
+                <article class="method-step-row">
+                  <div class="method-step-index">04</div>
+                  <div class="method-step-card">
+                    <span class="method-step-kicker">Repeat it</span>
+                    <strong>Practice until the pattern feels natural</strong>
+                    <p>Exercises return to the same structure so recognition turns into actual understanding.</p>
+                  </div>
+                </article>
               </div>
             </div>
           </div>
@@ -261,48 +311,48 @@
                 </p>
               </div>
               <div class="why-points">
-                <div class="point">Understanding grammar speeds up learning because you can recognize recurring sentence shapes faster.</div>
-                <div class="point">Example sentences reinforce patterns by showing how grammar changes meaning in context.</div>
-                <div class="point">When learners understand structure, they become less dependent on memorizing entire sentences one by one.</div>
+                <div class="why-point-row">
+                  <strong>See patterns faster</strong>
+                  <span>Understanding grammar helps you recognize recurring sentence shapes instead of treating every sentence as completely new.</span>
+                </div>
+                <div class="why-point-row">
+                  <strong>Remember through context</strong>
+                  <span>Example sentences make the pattern memorable because you see how grammar changes meaning in real use.</span>
+                </div>
+                <div class="why-point-row">
+                  <strong>Build beyond memorized phrases</strong>
+                  <span>When the structure is clear, you rely less on memorizing entire sentences one by one.</span>
+                </div>
               </div>
             </div>
 
-            <div class="faq-copy">
+            <div class="why-side-note">
               <div class="card-kicker">Platform principle</div>
-              <h3>Keystone teaches the system underneath the sentence.</h3>
+              <h3>Teach the pattern, then let the examples reinforce it.</h3>
               <p>
-                Instead of chasing random examples, the platform helps learners
-                notice the repeated grammar patterns that make those examples
-                understandable.
+                Keystone keeps each lesson centered on one structure so the
+                examples, audio, and practice all point to the same idea.
               </p>
-            </div>
-          </div>
-        </section>
 
-        <section class="section-spaced">
-          <div class="container">
-            <div class="section-header">
-              <div class="eyebrow">Platform overview</div>
-              <h2>Keystone Languages is one platform with multiple language apps.</h2>
-              <p>
-                Each product has its own curriculum and grammar database, but
-                the learning method stays consistent: pattern selection, example
-                generation, audio, translation, and practice.
-              </p>
-            </div>
+              <div class="why-side-flow" aria-label="Keystone lesson flow">
+                <div class="why-side-step">
+                  <span class="why-side-label">Pattern</span>
+                  <strong>One grammar idea at a time</strong>
+                </div>
+                <div class="why-side-arrow">→</div>
+                <div class="why-side-step">
+                  <span class="why-side-label">Examples</span>
+                  <strong>Real sentences around that pattern</strong>
+                </div>
+                <div class="why-side-arrow">→</div>
+                <div class="why-side-step">
+                  <span class="why-side-label">Practice</span>
+                  <strong>Repeat until the structure feels familiar</strong>
+                </div>
+              </div>
 
-            <div class="platform-grid">
-              <div class="platform-card">
-                <h3>Multiple language apps</h3>
-                <p>Separate products for Thai, Japanese, and Korean under one platform identity.</p>
-              </div>
-              <div class="platform-card">
-                <h3>Shared learning method</h3>
-                <p>The same sequence makes the experience familiar across every language.</p>
-              </div>
-              <div class="platform-card">
-                <h3>Consistent structure</h3>
-                <p>Lessons, examples, translations, and practice follow the same logic across the platform.</p>
+              <div class="why-side-summary">
+                That is why the lesson feels connected instead of random.
               </div>
             </div>
           </div>
@@ -317,59 +367,69 @@
             </div>
 
             <div class="screenshots-grid">
-              <article class="screenshot-card">
+              <article class="screenshot-card" tabindex="0" role="button" aria-label="Open Grammar lesson screenshot">
                 <div class="shot-frame">
-                  <div class="shot-ui">
-                    <div class="shot-bar"></div>
-                    <div class="shot-line"></div>
-                    <div class="shot-line" style="width: 78%;"></div>
-                    <div class="shot-grid"><span></span><span></span><span></span><span></span></div>
-                  </div>
+                  <img
+                    class="shot-image"
+                    src="./assets/screenshots/lesson.png"
+                    alt="Grammar lesson page showing an explanation, pattern, example sentence, and actions."
+                  />
                 </div>
-                <h3>Grammar page</h3>
-                <p>Pattern explanation, key notes, and a focused example sentence.</p>
+                <h3>Grammar lesson</h3>
+                <p>Read the concept, hear the example, and move straight into practice from one focused lesson page.</p>
               </article>
 
-              <article class="screenshot-card">
+              <article class="screenshot-card" tabindex="0" role="button" aria-label="Open Build exercise screenshot">
                 <div class="shot-frame">
-                  <div class="shot-ui">
-                    <div class="shot-bar"></div>
-                    <div class="shot-grid"><span></span><span></span></div>
-                    <div class="shot-line"></div>
-                    <div class="shot-line" style="width: 60%;"></div>
-                  </div>
+                  <img
+                    class="shot-image"
+                    src="./assets/screenshots/exercise.png"
+                    alt="Build exercise screen where the learner arranges Thai words into the correct sentence."
+                  />
                 </div>
-                <h3>Sentence examples</h3>
-                <p>Multiple examples reinforce the same structure across contexts.</p>
+                <h3>Build exercise</h3>
+                <p>Arrange words, check the answer, and reinforce the same structure through focused sentence practice.</p>
               </article>
 
-              <article class="screenshot-card">
+              <article class="screenshot-card" tabindex="0" role="button" aria-label="Open Vocabulary review screenshot">
                 <div class="shot-frame">
-                  <div class="shot-ui">
-                    <div class="shot-bar"></div>
-                    <div class="shot-line" style="width: 42%;"></div>
-                    <div class="shot-grid"><span></span><span></span><span></span><span></span></div>
-                  </div>
+                  <img
+                    class="shot-image"
+                    src="./assets/screenshots/vocab.png"
+                    alt="Vocabulary review screen with Thai audio and spaced repetition answer choices."
+                  />
                 </div>
-                <h3>Audio playback</h3>
-                <p>Listen to the sentence while reviewing the translation and structure.</p>
+                <h3>Vocabulary review</h3>
+                <p>Review words you met in context, hear the Thai audio, and keep them active with spaced repetition.</p>
               </article>
 
-              <article class="screenshot-card">
+              <article class="screenshot-card" tabindex="0" role="button" aria-label="Open Course roadmap screenshot">
                 <div class="shot-frame">
-                  <div class="shot-ui">
-                    <div class="shot-bar"></div>
-                    <div class="shot-line"></div>
-                    <div class="shot-line"></div>
-                    <div class="shot-line" style="width: 54%;"></div>
-                  </div>
+                  <img
+                    class="shot-image"
+                    src="./assets/screenshots/Grammar.png"
+                    alt="Curriculum levels overview showing progress across A1 to C2 grammar levels."
+                  />
                 </div>
-                <h3>Interface flow</h3>
-                <p>A calm interface designed to keep attention on grammar and meaning.</p>
+                <h3>Course roadmap</h3>
+                <p>See the full progression by level and jump into the unit that makes the most sense for your next step.</p>
               </article>
             </div>
           </div>
         </section>
+
+        <div class="lightbox-backdrop" id="screenshot-lightbox" aria-hidden="true">
+          <div class="lightbox-shell" role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
+            <button class="lightbox-close" type="button" aria-label="Close screenshot preview">×</button>
+            <div class="lightbox-image-wrap">
+              <img class="lightbox-image" id="lightbox-image" src="" alt="" />
+            </div>
+            <div class="lightbox-copy">
+              <h3 id="lightbox-title"></h3>
+              <p id="lightbox-description"></p>
+            </div>
+          </div>
+        </div>
 
         <section class="section-spaced" id="pricing">
           <div class="container">
@@ -426,19 +486,19 @@
               <div class="eyebrow">FAQ</div>
               <h2>Questions learners ask before they start.</h2>
               <p>
-                Keystone is designed for people who want a clear, grammar-led
+                Keystone is designed for people who want a clear, structured
                 route into a language, whether they are just starting or trying
                 to organize what they already know.
               </p>
             </div>
 
             <div class="faq-stack">
-              <article class="faq-item active">
+              <article class="faq-item">
                 <button class="faq-trigger" type="button">
                   <span>What languages are supported?</span>
                   <span>+</span>
                 </button>
-                <div class="faq-panel" style="max-height: 120px;">
+                <div class="faq-panel">
                   <p>Keystone Languages currently presents Keystone Thai, Keystone Japanese, and Keystone Korean as core product lines.</p>
                 </div>
               </article>
@@ -465,11 +525,51 @@
 
               <article class="faq-item">
                 <button class="faq-trigger" type="button">
-                  <span>How does sentence generation work?</span>
+                  <span>How do the example sentences work?</span>
                   <span>+</span>
                 </button>
                 <div class="faq-panel">
-                  <p>Keystone builds practice around specific grammar points, then surfaces sentence examples, translations, audio, and repetition around that pattern.</p>
+                  <p>Keystone builds each lesson around one grammar point, then shows multiple example sentences, translations, audio, and practice around that same pattern.</p>
+                </div>
+              </article>
+
+              <article class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span>What does Keystone Access include?</span>
+                  <span>+</span>
+                </button>
+                <div class="faq-panel">
+                  <p>Keystone Access unlocks the full grammar path, broader example coverage, and more practice across the course.</p>
+                </div>
+              </article>
+
+              <article class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span>Can I use the app as a beginner?</span>
+                  <span>+</span>
+                </button>
+                <div class="faq-panel">
+                  <p>Yes. The courses are structured so beginners can start from the earliest level while more experienced learners can use the same system to organize what they already know.</p>
+                </div>
+              </article>
+
+              <article class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span>Is this built for memorizing vocabulary?</span>
+                  <span>+</span>
+                </button>
+                <div class="faq-panel">
+                  <p>Keystone is built around grammar first, but the words you meet inside sentences and context can be added into your vocabulary deck automatically, so you can review them later with the built-in SRS system.</p>
+                </div>
+              </article>
+
+              <article class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span>Do the courses include audio?</span>
+                  <span>+</span>
+                </button>
+                <div class="faq-panel">
+                  <p>Yes. Lessons and practice use audio so you can connect grammar patterns to real pronunciation and listening, not just written explanations.</p>
                 </div>
               </article>
             </div>
@@ -491,7 +591,7 @@
                 <span class="brand-languages">Languages</span>
               </span>
             </div>
-            <p>Grammar-led language learning across Thai, Japanese, and Korean.</p>
+            <p>Language learning across Thai, Japanese, and Korean.</p>
             <p>&copy; 2026 Keystone Languages. All rights reserved.</p>
           </div>
 
@@ -504,7 +604,7 @@
 
           <div class="footer-column">
             <h3>Platform</h3>
-            <a href="#pricing">Pricing</a>
+            <a href="./pricing.html">Pricing</a>
             <a href="#method">How it works</a>
             <a href="#faq">FAQ</a>
             <a href="mailto:hello@keystonelanguages.com">Contact</a>
