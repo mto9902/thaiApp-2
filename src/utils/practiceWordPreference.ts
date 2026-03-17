@@ -12,6 +12,18 @@ type TokenPayload = {
   userId?: number | string;
 };
 
+function isLikelyNetworkError(err: unknown) {
+  if (err instanceof TypeError) {
+    return /network request failed/i.test(err.message);
+  }
+
+  if (err instanceof Error) {
+    return /network request failed/i.test(err.message);
+  }
+
+  return false;
+}
+
 function getPreferenceKey(token: string | null) {
   if (!token) return GUEST_KEY;
 
@@ -61,7 +73,9 @@ export async function getPracticeWordTrackingEnabled() {
     await writeCachedPreference(token, enabled);
     return enabled;
   } catch (err) {
-    console.error("Failed to load practice word preference:", err);
+    if (!isLikelyNetworkError(err)) {
+      console.warn("Failed to load practice word preference:", err);
+    }
     return cached ?? DEFAULT_TRACK_PRACTICE_VOCAB;
   }
 }

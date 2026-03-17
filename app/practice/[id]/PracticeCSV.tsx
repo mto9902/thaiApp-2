@@ -47,12 +47,16 @@ function toneColor(tone?: string): string {
 }
 
 const MATTE_RESULT_COLORS = {
-  successBg: "#F4F6F1",
-  successBorder: "#C8D0C0",
-  successText: "#62705A",
-  errorBg: "#F7F2F0",
-  errorBorder: "#D8C5C0",
-  errorText: "#826A66",
+  successTint: "#EDF2E8",
+  successBg: "#A2B28F",
+  successBorder: "#8FA080",
+  successText: "#32402E",
+  successSubtext: "#40503B",
+  errorTint: "#F5E8E6",
+  errorBg: "#C18B86",
+  errorBorder: "#AF7A76",
+  errorText: "#4E3231",
+  errorSubtext: "#634543",
 } as const;
 
 type Mode = GrammarExerciseMode;
@@ -813,12 +817,24 @@ export default function PracticeCSV() {
                     st.builderZone,
                     isDesktopWeb && st.builderZoneDesktop,
                     result === "correct" && st.builderCorrect,
+                    !isDesktopWeb &&
+                      result === "correct" &&
+                      st.builderCorrectMobile,
                     result === "wrong" && st.builderWrong,
+                    !isDesktopWeb &&
+                      result === "wrong" &&
+                      st.builderWrongMobile,
                   ]}
                 >
                   {builtSentence.length === 0 &&
                   prefilled.every((s) => s === null) ? (
-                    <Text style={st.builderPlaceholder}>
+                    <Text
+                      style={[
+                        st.builderPlaceholder,
+                        result === "correct" && st.builderPlaceholderResultOk,
+                        result === "wrong" && st.builderPlaceholderResultBad,
+                      ]}
+                    >
                       Tap words below to build...
                     </Text>
                   ) : (
@@ -880,6 +896,10 @@ export default function PracticeCSV() {
                     style={[
                       st.resultBanner,
                       result === "correct" ? st.resultOk : st.resultBad,
+                      !isDesktopWeb &&
+                        (result === "correct"
+                          ? st.resultOkMobile
+                          : st.resultBadMobile),
                     ]}
                   >
                     <Text
@@ -1048,10 +1068,14 @@ export default function PracticeCSV() {
                     if (matchRevealed) {
                       if (isCorrect) {
                         borderColor = MATTE_RESULT_COLORS.successBorder;
-                        bgColor = MATTE_RESULT_COLORS.successBg;
+                        if (!isDesktopWeb) {
+                          bgColor = MATTE_RESULT_COLORS.successTint;
+                        }
                       } else if (isSelected && !isCorrect) {
                         borderColor = MATTE_RESULT_COLORS.errorBorder;
-                        bgColor = MATTE_RESULT_COLORS.errorBg;
+                        if (!isDesktopWeb) {
+                          bgColor = MATTE_RESULT_COLORS.errorTint;
+                        }
                       } else {
                         bgColor = Sketch.paperDark;
                       }
@@ -1061,17 +1085,26 @@ export default function PracticeCSV() {
                     }
 
                     const sentenceBgColor = isCorrect && matchRevealed
-                      ? MATTE_RESULT_COLORS.successBg
+                      ? isDesktopWeb
+                        ? Sketch.paperDark
+                        : "transparent"
                       : isSelected && matchRevealed && !isCorrect
-                        ? MATTE_RESULT_COLORS.errorBg
+                        ? isDesktopWeb
+                          ? Sketch.paperDark
+                          : "transparent"
                         : isSelected
                           ? MUTED_FEEDBACK_ACCENTS.selectedTint
                           : Sketch.paperDark;
                     const sentenceTextColor = isCorrect && matchRevealed
-                      ? Sketch.ink
+                      ? MATTE_RESULT_COLORS.successText
                       : isSelected && matchRevealed && !isCorrect
-                        ? Sketch.ink
+                        ? MATTE_RESULT_COLORS.errorText
                         : Sketch.ink;
+                    const sentenceRomanColor = isCorrect && matchRevealed
+                      ? MATTE_RESULT_COLORS.successSubtext
+                      : isSelected && matchRevealed && !isCorrect
+                        ? MATTE_RESULT_COLORS.errorSubtext
+                        : Sketch.inkMuted;
 
                     return (
                       <View
@@ -1091,7 +1124,10 @@ export default function PracticeCSV() {
                           ]}
                         >
                           <TouchableOpacity
-                            style={st.matchSentenceTapArea}
+                            style={[
+                              st.matchSentenceTapArea,
+                              isDesktopWeb && st.matchSentenceTapAreaDesktop,
+                            ]}
                             onPress={() => selectOption(idx)}
                             activeOpacity={matchRevealed ? 1 : 0.85}
                             disabled={matchRevealed}
@@ -1099,13 +1135,20 @@ export default function PracticeCSV() {
                             <Text
                               style={[
                                 st.matchSentenceText,
+                                isDesktopWeb && st.matchSentenceTextDesktop,
                                 { color: sentenceTextColor },
                               ]}
                             >
                               {opt.thai}
                             </Text>
                             {showRoman && opt.romanization ? (
-                              <Text style={st.matchSentenceRoman}>
+                              <Text
+                                style={[
+                                  st.matchSentenceRoman,
+                                  isDesktopWeb && st.matchSentenceRomanDesktop,
+                                  { color: sentenceRomanColor },
+                                ]}
+                              >
                                 {opt.romanization}
                               </Text>
                             ) : null}
@@ -1224,6 +1267,10 @@ export default function PracticeCSV() {
                     style={[
                       st.resultBanner,
                       result === "correct" ? st.resultOk : st.resultBad,
+                      !isDesktopWeb &&
+                        (result === "correct"
+                          ? st.resultOkMobile
+                          : st.resultBadMobile),
                     ]}
                   >
                     <Text
@@ -1675,17 +1722,31 @@ const st = StyleSheet.create({
   builderCorrect: {
     borderColor: MATTE_RESULT_COLORS.successBorder,
     borderStyle: "solid",
-    backgroundColor: MATTE_RESULT_COLORS.successBg,
+    backgroundColor: Sketch.paperDark,
+  },
+  builderCorrectMobile: {
+    backgroundColor: MATTE_RESULT_COLORS.successTint,
   },
   builderWrong: {
     borderColor: MATTE_RESULT_COLORS.errorBorder,
     borderStyle: "solid",
-    backgroundColor: MATTE_RESULT_COLORS.errorBg,
+    backgroundColor: Sketch.paperDark,
+  },
+  builderWrongMobile: {
+    backgroundColor: MATTE_RESULT_COLORS.errorTint,
   },
   builderPlaceholder: {
     fontSize: 14,
     color: Sketch.inkMuted,
     fontWeight: "500",
+  },
+  builderPlaceholderResultOk: {
+    color: MATTE_RESULT_COLORS.successText,
+    fontWeight: "600",
+  },
+  builderPlaceholderResultBad: {
+    color: MATTE_RESULT_COLORS.errorText,
+    fontWeight: "600",
   },
   builderWords: {
     flexDirection: "row",
@@ -1782,14 +1843,20 @@ const st = StyleSheet.create({
     borderColor: Sketch.inkFaint,
   },
   resultOk: {
-    backgroundColor: MATTE_RESULT_COLORS.successBg,
+    backgroundColor: Sketch.cardBg,
     borderColor: MATTE_RESULT_COLORS.successBorder,
   },
+  resultOkMobile: {
+    backgroundColor: MATTE_RESULT_COLORS.successTint,
+  },
   resultBad: {
-    backgroundColor: MATTE_RESULT_COLORS.errorBg,
+    backgroundColor: Sketch.cardBg,
     borderColor: MATTE_RESULT_COLORS.errorBorder,
   },
-  resultLabel: { fontSize: 13, fontWeight: "600" },
+  resultBadMobile: {
+    backgroundColor: MATTE_RESULT_COLORS.errorTint,
+  },
+  resultLabel: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },
 
   optionsGrid: { gap: 10 },
   optionsGridDesktop: {
@@ -1826,18 +1893,30 @@ const st = StyleSheet.create({
     flex: 1,
     gap: 2,
     justifyContent: "flex-start",
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+  },
+  matchSentenceTapAreaDesktop: {
     alignItems: "center",
   },
   matchSentenceText: {
     fontSize: 20,
     fontWeight: "800",
     color: Sketch.ink,
+    textAlign: "left",
+    width: "100%",
+  },
+  matchSentenceTextDesktop: {
     textAlign: "center",
   },
   matchSentenceRoman: {
     fontSize: 12,
     fontWeight: "500",
     color: Sketch.inkMuted,
+    textAlign: "left",
+    width: "100%",
+  },
+  matchSentenceRomanDesktop: {
     textAlign: "center",
   },
   matchExpandButton: {

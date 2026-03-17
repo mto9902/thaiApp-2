@@ -8,6 +8,7 @@
       name="description"
       content="Grammar-first language learning apps for Thai, Japanese, and Korean, built around patterns, example sentences, audio, and structured progression."
     />
+    <meta name="keystone-api-base" content="http://3.0.214.108:3000" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -15,8 +16,15 @@
       <header class="site-header">
         <div class="container nav-row">
           <a class="brand" href="./index.html">
-            <span class="brand-mark">K</span>
-            <span>Keystone Languages</span>
+            <span class="brand-mark" aria-hidden="true">
+              <span class="brand-globe"></span>
+              <span class="brand-k">K</span>
+            </span>
+            <span class="brand-wordmark">
+              <span class="brand-keystone">Keystone</span>
+              <span class="brand-divider" aria-hidden="true"></span>
+              <span class="brand-languages">Languages</span>
+            </span>
           </a>
           <nav class="nav-links">
             <a href="#products">Products</a>
@@ -38,57 +46,55 @@
         <section class="hero">
           <div class="container home-hero-grid">
             <div class="hero-copy">
-              <div class="eyebrow">Grammar-first language apps</div>
-              <h1>Grammar-first apps for Thai, Japanese, and Korean.</h1>
+              <div class="eyebrow">Grammar-first language learning</div>
+              <h1>Finally understand how these languages work.</h1>
               <p>
-                Study one pattern at a time with clear example sentences,
-                translations, audio, and exercises that reinforce how the
-                structure works.
+                Learn through patterns, real sentences, and structured practice
+                that actually sticks.
               </p>
               <div class="hero-actions">
-                <a class="button" href="#products">View Products</a>
-                <a class="button-secondary" href="http://localhost:8081">Try App</a>
+                <a class="button" href="http://localhost:8081">Try Free</a>
+                <a class="button-secondary" href="#sample-practice">See How It Works</a>
               </div>
+              <div class="hero-trust-line">No gamification. Just real understanding.</div>
             </div>
 
             <div class="hero-visual">
-              <div class="hero-board hero-board-compact">
-                <div class="browser-chrome">
-                  <div class="chrome-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+              <div class="hero-interactive">
+                <div class="hero-interactive-header">
+                  <div class="card-kicker">Try it — tap each word</div>
+                  <div class="hero-interactive-tabs" role="tablist" aria-label="Hero language samples">
+                    <button class="hero-lang-tab active" type="button" data-hero-language="thai">Thai</button>
+                    <button class="hero-lang-tab" type="button" data-hero-language="japanese">Japanese</button>
+                    <button class="hero-lang-tab" type="button" data-hero-language="korean">Korean</button>
                   </div>
-                  <div class="chrome-pill"></div>
                 </div>
 
-                <div class="hero-preview-card">
-                  <div class="preview-top">
-                    <div>
-                      <div class="card-kicker">Lesson preview</div>
-                      <h3>One pattern, one sentence, one clear explanation.</h3>
-                    </div>
+                <div class="hero-interactive-body">
+                  <div class="hero-words" id="hero-words"></div>
+
+                  <div class="hero-translation-row">
+                    <span class="hero-translation-text" id="hero-translation"></span>
                     <button
-                      class="audio-demo"
+                      class="audio-demo audio-icon-button"
                       type="button"
+                      aria-label="Play sample audio"
+                      title="Play sample audio"
+                      id="hero-audio-btn"
                       data-audio-text="ฉันกำลังเรียนภาษาไทย"
                       data-audio-lang="th-TH"
                     >
-                      Play audio
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 14h4l5 4V6L8 10H4z"></path>
+                        <path d="M16 9a5 5 0 0 1 0 6"></path>
+                        <path d="M18.5 6.5a8.5 8.5 0 0 1 0 11"></path>
+                      </svg>
                     </button>
                   </div>
 
-                  <div class="preview-mode-row">
-                    <span class="preview-mode active">Study</span>
-                    <span class="preview-mode">Choose</span>
-                    <span class="preview-mode">Build</span>
-                  </div>
-
-                  <div class="sentence-card">
-                    <div class="card-kicker">Keystone Thai · ongoing action</div>
-                    <div class="thai">ฉันกำลังเรียนภาษาไทย</div>
-                    <div class="roman">chan kamlang rian phasa thai</div>
-                    <div class="translation">I am studying Thai.</div>
+                  <div class="hero-progress-row">
+                    <div class="hero-progress-bar" id="hero-progress"></div>
+                    <span class="hero-progress-label" id="hero-progress-label">0 / 4 words</span>
                   </div>
                 </div>
               </div>
@@ -371,9 +377,9 @@
               <div class="eyebrow">Pricing</div>
               <h2>Start free, then unlock the full grammar path.</h2>
               <p>
-                Explore the platform at no cost, then move to Pro when you want
-                the full curriculum, more example coverage, and more audio-rich
-                practice across the product.
+                Explore the platform at no cost, then move to Keystone Access
+                when you want the full curriculum, more example coverage, and
+                more audio-rich practice across the product.
               </p>
             </div>
 
@@ -391,9 +397,9 @@
               </article>
 
               <article class="price-card featured">
-                <div class="card-kicker">Pro</div>
+                <div class="card-kicker">Keystone Access</div>
                 <h3>Unlock the full platform</h3>
-                <div class="price">$9 <small>/ month</small></div>
+                <div class="price">$11.99 <small>/ month</small></div>
                 <ul class="list">
                   <li>Full grammar progression</li>
                   <li>Unlimited sentence examples</li>
@@ -406,9 +412,9 @@
             <div class="pricing-note">
               <div class="card-kicker">Best for consistent study</div>
               <p>
-                Pro is designed for learners who want a smoother path through
-                the curriculum, broader sentence coverage, and more practice for
-                every grammar point.
+                Keystone Access is designed for learners who want a smoother
+                path through the curriculum, broader sentence coverage, and more
+                practice for every grammar point.
               </p>
             </div>
           </div>
@@ -475,8 +481,15 @@
         <div class="container footer-grid">
           <div class="footer-brand">
             <div class="brand">
-              <span class="brand-mark">K</span>
-              <span>Keystone Languages</span>
+              <span class="brand-mark" aria-hidden="true">
+                <span class="brand-globe"></span>
+                <span class="brand-k">K</span>
+              </span>
+              <span class="brand-wordmark">
+                <span class="brand-keystone">Keystone</span>
+                <span class="brand-divider" aria-hidden="true"></span>
+                <span class="brand-languages">Languages</span>
+              </span>
             </div>
             <p>Grammar-led language learning across Thai, Japanese, and Korean.</p>
             <p>&copy; 2026 Keystone Languages. All rights reserved.</p>

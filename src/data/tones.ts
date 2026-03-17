@@ -37,11 +37,7 @@ export const TONES: ToneData[] = [
     color: "#42A5F5",
     symbol: "—",
     description: "Flat, steady pitch. No rise or fall.",
-    examples: [
-      { thai: "มา", rom: "maa", english: "come" },
-      { thai: "กา", rom: "gaa", english: "crow" },
-      { thai: "จาน", rom: "jaan", english: "plate" },
-    ],
+    examples: [{ thai: "มา", rom: "maa", english: "come" }],
     pitchPoints: [0.5, 0.5, 0.5, 0.5, 0.5],
   },
   {
@@ -49,12 +45,8 @@ export const TONES: ToneData[] = [
     thai: "เอก",
     color: "#AB47BC",
     symbol: "↓",
-    description: "Starts low, stays flat below mid level.",
-    examples: [
-      { thai: "ไม่", rom: "mài", english: "not" },
-      { thai: "เก่า", rom: "gào", english: "old" },
-      { thai: "ก่อน", rom: "gòn", english: "before" },
-    ],
+    description: "Clearly drops low and stays there.",
+    examples: [{ thai: "หมา", rom: "màa", english: "dog" }],
     pitchPoints: [0.2, 0.2, 0.2, 0.2, 0.2],
   },
   {
@@ -62,12 +54,8 @@ export const TONES: ToneData[] = [
     thai: "โท",
     color: "#FF4081",
     symbol: "↘",
-    description: "Starts high, falls sharply to low.",
-    examples: [
-      { thai: "ไม้", rom: "máai", english: "wood" },
-      { thai: "ให้", rom: "hâi", english: "give" },
-      { thai: "ได้", rom: "dâai", english: "can/get" },
-    ],
+    description: "Starts high, then falls sharply to low.",
+    examples: [{ thai: "ม้า", rom: "máa", english: "horse" }],
     pitchPoints: [0.9, 0.8, 0.6, 0.35, 0.15],
   },
   {
@@ -75,12 +63,8 @@ export const TONES: ToneData[] = [
     thai: "ตรี",
     color: "#FF9800",
     symbol: "↑",
-    description: "Starts mid-high, rises slightly then levels off high.",
-    examples: [
-      { thai: "น้ำ", rom: "náam", english: "water" },
-      { thai: "ร้อน", rom: "rón", english: "hot" },
-      { thai: "สี่", rom: "sìi", english: "four" },
-    ],
+    description: "Rises slightly and stays high.",
+    examples: [{ thai: "มั้ย", rom: "máy", english: "question particle" }],
     pitchPoints: [0.65, 0.7, 0.78, 0.85, 0.9],
   },
   {
@@ -88,12 +72,8 @@ export const TONES: ToneData[] = [
     thai: "จัตวา",
     color: "#66BB6A",
     symbol: "↗",
-    description: "Starts low, dips, then rises to high.",
-    examples: [
-      { thai: "ฉัน", rom: "chǎn", english: "I (female)" },
-      { thai: "สาม", rom: "sǎam", english: "three" },
-      { thai: "หมา", rom: "mǎa", english: "dog" },
-    ],
+    description: "Starts low, then rises clearly to high.",
+    examples: [{ thai: "หมี", rom: "mǐi", english: "bear" }],
     pitchPoints: [0.4, 0.25, 0.2, 0.55, 0.88],
   },
 ];
