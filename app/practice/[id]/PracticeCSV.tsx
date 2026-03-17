@@ -1488,7 +1488,7 @@ const st = StyleSheet.create({
   tileRowDesktop: {
     width: "100%",
     gap: 12,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   matchTileRow: {
     flexDirection: "row",
@@ -1694,7 +1694,7 @@ const st = StyleSheet.create({
     gap: 8,
   },
   builderWordsDesktop: {
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignSelf: "stretch",
   },
   builderChip: {

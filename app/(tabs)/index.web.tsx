@@ -57,7 +57,7 @@ function formatReviewDelay(nextDueAt: string): string {
   return `${daysUntilDue}d`;
 }
 
-const HEATMAP_COLORS = ["#E8EDF4", "#B3C1D4", "#627A9D", "#203651", "#050C17"];
+const HEATMAP_COLORS = ["#E8E8E8", "#D0D0D0", "#B0B0B0", "#888888", "#555555"];
 
 type ModuleInfo = {
   stage: GrammarStage;
@@ -272,9 +272,6 @@ export default function HomeScreenWeb() {
   }, [activityMap]);
 
   function renderHeatmap() {
-    const sq = width >= 1280 ? 15 : 14;
-    const gap = width >= 1280 ? 5 : 4;
-    const cell = sq + gap;
     const totalWeeks = 26;
     const dayLabelWidth = 42;
     const monthLabelHeight = 22;
@@ -293,6 +290,23 @@ export default function HomeScreenWeb() {
       "Nov",
       "Dec",
     ];
+    const estimatedPanelWidth =
+      width >= 1500
+        ? Math.floor((width - 420) * 0.34)
+        : width >= 1180
+          ? Math.floor((width - 360) * 0.42)
+          : Math.floor(width - 180);
+    const heatmapViewportWidth = Math.max(
+      320,
+      Math.min(estimatedPanelWidth, 760),
+    );
+    const cell = Math.max(
+      12,
+      Math.min(19, Math.floor((heatmapViewportWidth - dayLabelWidth) / totalWeeks)),
+    );
+    const gap = cell >= 17 ? 5 : cell >= 14 ? 4 : 3;
+    const sq = Math.max(8, cell - gap);
+    const heatmapCanvasWidth = dayLabelWidth + totalWeeks * cell;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -328,7 +342,10 @@ export default function HomeScreenWeb() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.heatmapScrollContent}
+          contentContainerStyle={[
+            styles.heatmapScrollContent,
+            { minWidth: heatmapCanvasWidth },
+          ]}
         >
           <View>
             <View
@@ -523,9 +540,20 @@ export default function HomeScreenWeb() {
             }
           />
           {renderHeatmap()}
-          <View style={styles.heatmapSummaryRow}>
+          <View
+            style={[
+              styles.heatmapSummaryRow,
+              width < 1180 && styles.heatmapSummaryRowCompact,
+            ]}
+          >
             {heatmapSummary.map((item) => (
-              <View key={item.label} style={styles.heatmapMiniStat}>
+              <View
+                key={item.label}
+                style={[
+                  styles.heatmapMiniStat,
+                  width < 1180 && styles.heatmapMiniStatCompact,
+                ]}
+              >
                 <Text style={styles.heatmapMiniValue}>{item.value}</Text>
                 <Text style={styles.heatmapMiniLabel}>{item.label}</Text>
               </View>
@@ -761,23 +789,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heatmapScrollContent: {
-    minWidth: "100%",
     alignItems: "center",
+    justifyContent: "center",
   },
   heatmapSummaryRow: {
     flexDirection: "row",
     gap: 12,
     width: "100%",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+  },
+  heatmapSummaryRowCompact: {
+    gap: 10,
   },
   heatmapMiniStat: {
-    width: "31.8%",
+    flex: 1,
+    minWidth: 160,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
     paddingVertical: 10,
     paddingHorizontal: 12,
     gap: 2,
+  },
+  heatmapMiniStatCompact: {
+    minWidth: 148,
   },
   heatmapMiniValue: {
     fontSize: 22,

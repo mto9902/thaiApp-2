@@ -124,6 +124,14 @@ export function SubscriptionProvider({
       return;
     }
 
+    if (!hasAccess) {
+      // The app cannot authoritatively revoke access because premium can
+      // come from another provider (for example, web billing). In that case
+      // the backend remains the shared source of truth.
+      await loadServerPremium();
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/me/keystone-access`, {
       method: "POST",
       headers: {
@@ -134,11 +142,25 @@ export function SubscriptionProvider({
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to sync subscription status (${res.status})`);
+      const syncUnavailable = res.status === 404 || res.status === 405;
+      if (syncUnavailable) {
+        // Keep the local entitlement state usable even if the backend
+        // has not deployed the subscription sync endpoint yet.
+        setServerHasPremium(hasAccess);
+        return;
+      }
+
+      const errorText = await res.text().catch(() => "");
+      console.warn(
+        "Failed to sync subscription status:",
+        errorText || `HTTP ${res.status}`,
+      );
+      setServerHasPremium(hasAccess);
+      return;
     }
 
     setServerHasPremium(hasAccess);
-  }, []);
+  }, [loadServerPremium]);
 
   const refresh = useCallback(async () => {
     if (!canMakePurchases || !apiKey) {
@@ -333,9 +355,7 @@ export function SubscriptionProvider({
       loading,
       isSupported: isNativeMobile,
       canMakePurchases,
-      isPremium: canMakePurchases
-        ? hasPremiumEntitlement(customerInfo)
-        : serverHasPremium,
+      isPremium: serverHasPremium || hasPremiumEntitlement(customerInfo),
       entitlementId: PREMIUM_ENTITLEMENT_ID,
       customerInfo,
       currentOffering,

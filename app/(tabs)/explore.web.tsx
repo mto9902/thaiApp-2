@@ -401,7 +401,7 @@ export default function ExploreWeb() {
                   >
                     <View style={styles.bookmarkTop}>
                       <Text style={styles.bookmarkStage}>{item.stage}</Text>
-                      {isPremiumGrammarPoint(item) ? (
+                      {!isPremium && isPremiumGrammarPoint(item) ? (
                         <Ionicons name="lock-closed-outline" size={14} color={Sketch.accent} />
                       ) : null}
                     </View>
