@@ -25,6 +25,12 @@ export default function RootLayout() {
         <GrammarCatalogProvider>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="register" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="forgot-password"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
             <Stack.Screen
               name="premium"

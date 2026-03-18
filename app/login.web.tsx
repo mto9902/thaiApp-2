@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +20,8 @@ export default function LoginWeb() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleGuest() {
     await clearAuthToken();
@@ -27,25 +30,37 @@ export default function LoginWeb() {
   }
 
   async function handleLogin() {
-    const res = await fetch(`${API_BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email.toLowerCase().trim(),
-        password,
-      }),
-    });
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
 
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          password,
+        }),
+      });
 
-    if (!res.ok) {
-      alert(data.error || "Login failed");
-      return;
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      await AsyncStorage.multiRemove(["isGuest"]);
+      await setAuthToken(data.token);
+      router.replace("/(tabs)");
+    } catch {
+      setError(
+        "We could not reach the server. If you are using the hosted web app, make sure the API is available on the same HTTPS domain or set EXPO_PUBLIC_API_BASE.",
+      );
+    } finally {
+      setSubmitting(false);
     }
-
-    await AsyncStorage.multiRemove(["isGuest"]);
-    await setAuthToken(data.token);
-    router.replace("/(tabs)");
   }
 
   return (
@@ -102,8 +117,26 @@ export default function LoginWeb() {
               autoComplete="password"
             />
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
-              <Text style={styles.primaryButtonText}>Log In</Text>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <TouchableOpacity
+              style={[styles.forgotWrap, submitting && styles.disabledAction]}
+              onPress={() => router.push("/forgot-password")}
+              disabled={submitting}
+            >
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryButton, submitting && styles.disabledAction]}
+              onPress={handleLogin}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Log In</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -221,6 +254,21 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
     color: Sketch.ink,
   },
+  errorText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Sketch.red,
+    marginTop: -4,
+  },
+  forgotWrap: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+  },
+  forgotText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.accent,
+  },
   primaryButton: {
     backgroundColor: Sketch.accent,
     paddingVertical: 16,
@@ -228,6 +276,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: Sketch.accent,
+  },
+  disabledAction: {
+    opacity: 0.55,
   },
   primaryButtonText: {
     color: "#fff",

@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +20,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleGuest() {
     await clearAuthToken();
@@ -27,6 +29,8 @@ export default function Login() {
   }
 
   async function handleLogin() {
+    if (submitting) return;
+    setSubmitting(true);
     const res = await fetch(`${API_BASE}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -40,6 +44,7 @@ export default function Login() {
 
     if (!res.ok) {
       alert(data.error || "Login failed");
+      setSubmitting(false);
       return;
     }
 
@@ -83,8 +88,20 @@ export default function Login() {
             autoComplete="password"
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Log In</Text>
+          <TouchableOpacity
+            style={[styles.forgotWrap, submitting && styles.disabledLinkWrap]}
+            onPress={() => router.push("/forgot-password")}
+            disabled={submitting}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={submitting}>
+            {submitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Log In</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push("/register")}>
@@ -171,6 +188,18 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.orange,
     fontSize: 15,
+  },
+  forgotWrap: {
+    alignSelf: "flex-end",
+    marginBottom: 10,
+  },
+  disabledLinkWrap: {
+    opacity: 0.45,
+  },
+  forgotText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.orange,
   },
 
   divider: {
