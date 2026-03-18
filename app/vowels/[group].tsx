@@ -92,7 +92,7 @@ export default function VowelLesson() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header title={groupInfo.title} onBack={() => router.back()} />
+      <Header title={groupInfo.title} onBack={() => router.back()} showBrandMark={false} />
 
       <ScrollView
         contentContainerStyle={styles.scroll}

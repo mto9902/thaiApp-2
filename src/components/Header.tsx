@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -24,6 +23,7 @@ import {
   getPracticeWordTrackingEnabled,
   setPracticeWordTrackingEnabled,
 } from "../utils/practiceWordPreference";
+import AccentSwitch from "./AccentSwitch";
 import BrandMark from "./BrandMark";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
@@ -47,6 +47,7 @@ type HeaderProps = {
   onBack?: () => void;
   showClose?: boolean;
   showSettings?: boolean;
+  showBrandMark?: boolean;
   showWordBreakdownTtsSetting?: boolean;
   onSettingsChange?: (settings: SettingsState) => void;
 };
@@ -56,6 +57,7 @@ export default function Header({
   onBack,
   showClose,
   showSettings = true,
+  showBrandMark = true,
   showWordBreakdownTtsSetting = false,
   onSettingsChange,
 }: HeaderProps) {
@@ -180,7 +182,7 @@ export default function Header({
       </TouchableOpacity>
 
       <View style={styles.titleWrap}>
-        <BrandMark size={24} />
+        {showBrandMark ? <BrandMark size={24} /> : null}
         <Text numberOfLines={1} style={styles.titleText}>
           {title || "Lesson"}
         </Text>
@@ -220,11 +222,9 @@ export default function Header({
                   <Text style={styles.settingLabel}>Romanization</Text>
                   <Text style={styles.settingDesc}>Show phonetic transcription</Text>
                 </View>
-                <Switch
+                <AccentSwitch
                   value={settings.showRoman}
                   onValueChange={(v) => updateSetting("showRoman", v)}
-                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                  thumbColor="white"
                 />
               </View>
 
@@ -233,11 +233,9 @@ export default function Header({
                   <Text style={styles.settingLabel}>English Translation</Text>
                   <Text style={styles.settingDesc}>Show English meaning</Text>
                 </View>
-                <Switch
+                <AccentSwitch
                   value={settings.showEnglish}
                   onValueChange={(v) => updateSetting("showEnglish", v)}
-                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                  thumbColor="white"
                 />
               </View>
 
@@ -246,11 +244,9 @@ export default function Header({
                   <Text style={styles.settingLabel}>Autoplay Audio</Text>
                   <Text style={styles.settingDesc}>Auto-speak Thai sentences</Text>
                 </View>
-                <Switch
+                <AccentSwitch
                   value={settings.autoplayTTS}
                   onValueChange={(v) => updateSetting("autoplayTTS", v)}
-                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                  thumbColor="white"
                 />
               </View>
 
@@ -262,11 +258,9 @@ export default function Header({
                       Experimental word-by-word audio for grammar breakdown cards. Some voices may sound off.
                     </Text>
                   </View>
-                  <Switch
+                  <AccentSwitch
                     value={settings.wordBreakdownTTS}
                     onValueChange={(v) => updateSetting("wordBreakdownTTS", v)}
-                    trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                    thumbColor="white"
                   />
                 </View>
               ) : null}
@@ -278,11 +272,9 @@ export default function Header({
                     Add words from grammar practice to your review deck
                   </Text>
                 </View>
-                <Switch
+                <AccentSwitch
                   value={settings.autoAddPracticeVocab}
                   onValueChange={(v) => void updateSetting("autoAddPracticeVocab", v)}
-                  trackColor={{ false: Sketch.inkFaint, true: Sketch.orange }}
-                  thumbColor="white"
                 />
               </View>
 

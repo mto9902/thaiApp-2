@@ -206,7 +206,7 @@ export default function GrammarDetail() {
 
         <TouchableOpacity
           style={styles.ctaButton}
-          onPress={() => router.push(`/practice/PracticeCSV?grammar=${grammar}`)}
+          onPress={() => router.push(`/practice/${grammar}/exercises`)}
         >
           <Text style={styles.ctaText}>START PRACTICE</Text>
           <Ionicons name="flash" size={22} color={Sketch.cardBg} />

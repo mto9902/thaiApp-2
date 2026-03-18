@@ -490,7 +490,7 @@ export default function GrammarDetailWeb() {
                 />
                 <TouchableOpacity
                   style={styles.primaryButton}
-                  onPress={() => router.push(`/practice/${id}/PracticeCSV`)}
+            onPress={() => router.push(`/practice/${id}/exercises`)}
                   activeOpacity={0.82}
                 >
                   <Text style={styles.primaryButtonText}>Start practice</Text>

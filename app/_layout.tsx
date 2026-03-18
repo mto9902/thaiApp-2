@@ -14,10 +14,14 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
+  const isAuthPath =
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname.startsWith('/auth/');
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <SubscriptionProvider authRefreshKey={pathname}>
+      <SubscriptionProvider authRefreshKey={isAuthPath ? 'auth' : 'app'}>
         <GrammarCatalogProvider>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

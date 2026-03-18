@@ -69,7 +69,7 @@ export default function VowelHome() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header title="Thai Vowels" onBack={() => router.back()} />
+      <Header title="Thai Vowels" onBack={() => router.back()} showBrandMark={false} />
 
       <ScrollView
         contentContainerStyle={styles.scroll}

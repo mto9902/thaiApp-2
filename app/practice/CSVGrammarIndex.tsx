@@ -35,7 +35,7 @@ import { isPremiumGrammarPoint } from "../../src/subscription/premium";
 import { useSubscription } from "../../src/subscription/SubscriptionProvider";
 import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
 
-export default function CSVGrammarIndex() {
+export default function GrammarTopicsScreen() {
   const router = useRouter();
   const { grammarPoints } = useGrammarCatalog();
   const { level, stage } = useLocalSearchParams<{ level?: string; stage?: string }>();
@@ -87,7 +87,7 @@ export default function CSVGrammarIndex() {
             ),
           );
         } catch (err) {
-          console.error("[CSVGrammarIndex] load bookmarks failed:", err);
+          console.error("[GrammarTopicsScreen] load bookmarks failed:", err);
           if (!isActive) return;
           setBookmarkedIds(new Set());
         }

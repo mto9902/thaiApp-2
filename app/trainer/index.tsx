@@ -184,6 +184,7 @@ export default function TrainerScreen() {
         <Header
           title="Alphabet Trainer"
           onBack={() => router.back()}
+          showBrandMark={false}
         />
 
       <ScrollView

@@ -173,6 +173,7 @@ export default function TrainerWordsScreen() {
       <Header
         title="Practice Words"
         onBack={() => router.back()}
+        showBrandMark={false}
         onSettingsChange={(settings) => setTtsSpeed(settings.ttsSpeed)}
       />
 

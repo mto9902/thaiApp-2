@@ -170,7 +170,7 @@ export default function GrammarScreen() {
   };
 
   const openStage = (stage: string) => {
-    router.push(`/practice/CSVGrammarIndex?stage=${stage}` as any);
+              router.push(`/practice/topics?stage=${stage}` as any);
   };
 
   const clearAutoScrollTimeout = useCallback(() => {

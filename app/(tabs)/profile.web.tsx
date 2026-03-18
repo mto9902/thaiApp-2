@@ -160,10 +160,6 @@ export default function ProfileWeb() {
     );
   }
 
-  const avatarLabel =
-    profile?.display_name?.trim()?.[0]?.toUpperCase() ||
-    profile?.email?.trim()?.[0]?.toUpperCase() ||
-    (profile?.id ? String(profile.id) : "…");
   const profileName =
     profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
 
@@ -180,15 +176,10 @@ export default function ProfileWeb() {
             title="Account"
             caption={profile?.is_admin ? "Admin access enabled for this account." : "Standard user account."}
           />
-          <View style={styles.accountRow}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{avatarLabel}</Text>
-            </View>
-            <View style={styles.accountText}>
-              <Text style={styles.accountName}>{profileName}</Text>
-              <Text style={styles.accountEmail}>{profile?.email}</Text>
-              <Text style={styles.accountMeta}>User ID {profile?.id}</Text>
-            </View>
+          <View style={styles.accountText}>
+            <Text style={styles.accountName}>{profileName}</Text>
+            <Text style={styles.accountEmail}>{profile?.email}</Text>
+            <Text style={styles.accountMeta}>User ID {profile?.id}</Text>
           </View>
         </DesktopPanel>
 
@@ -341,27 +332,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 240,
   },
-  accountRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-  },
-  avatarCircle: {
-    width: 96,
-    height: 96,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
   accountText: {
-    flex: 1,
     gap: 4,
   },
   accountName: {

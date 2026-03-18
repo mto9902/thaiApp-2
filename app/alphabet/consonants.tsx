@@ -66,7 +66,7 @@ export default function ConsonantsScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header title="Consonants" onBack={() => router.back()} />
+      <Header title="Consonants" onBack={() => router.back()} showBrandMark={false} />
 
       <ScrollView
         contentContainerStyle={styles.scroll}

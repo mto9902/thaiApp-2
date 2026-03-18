@@ -87,6 +87,16 @@ export default function AlphabetWeb() {
               onPress={() => router.push("/vowels/" as any)}
             />
           </View>
+          <View style={styles.trainerRow}>
+            <EntryCard
+              eyebrow="Custom batch"
+              title="Alphabet Trainer"
+              subtitle="Mix consonants and vowels into a focused reading batch and practice real word shapes."
+              footer="Reading practice"
+              onPlay={() => void playSentence("ฝึกอ่าน", { speed: "slow" })}
+              onPress={() => router.push("/trainer" as any)}
+            />
+          </View>
         </DesktopPanel>
       </DesktopPage>
     </>
@@ -109,6 +119,9 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     gap: 20,
+  },
+  trainerRow: {
+    marginTop: 20,
   },
   entryCard: {
     flex: 1,

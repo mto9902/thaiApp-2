@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,7 +17,6 @@ import {
 } from "@/src/components/web/DesktopScaffold";
 import { API_BASE } from "@/src/config";
 import { GrammarPoint } from "@/src/data/grammar";
-import { CEFR_LEVELS, CefrLevel } from "@/src/data/grammarLevels";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { isPremiumGrammarPoint } from "@/src/subscription/premium";
 import { useSubscription } from "@/src/subscription/SubscriptionProvider";
@@ -32,17 +29,6 @@ import {
   getAllProgress,
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
-
-const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
-  (level) => level !== "C2",
-) as readonly CefrLevel[];
-const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
-
-type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
-
-type PendingProgressMixAction =
-  | { type: "premium"; label: string; route: string }
-  | { type: "practice"; route: string };
 
 function shuffleIds(ids: string[]) {
   return [...ids].sort(() => Math.random() - 0.5);
@@ -78,12 +64,6 @@ export default function ExploreWeb() {
   );
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
-  const [showProgressMixModal, setShowProgressMixModal] = useState(false);
-  const [selectedProgressLevels, setSelectedProgressLevels] = useState<
-    ProgressFilterLevel[]
-  >(["All"]);
-  const [pendingProgressMixAction, setPendingProgressMixAction] =
-    useState<PendingProgressMixAction | null>(null);
 
   const columns = width >= 1440 ? 4 : width >= 1120 ? 3 : width >= 820 ? 2 : 1;
   const cardWidth =
@@ -128,32 +108,15 @@ export default function ExploreWeb() {
 
   useFocusEffect(
     useCallback(() => {
-      setShowProgressMixModal(false);
-      setPendingProgressMixAction(null);
       void loadData();
-      return () => {
-        setShowProgressMixModal(false);
-      };
     }, [loadData]),
   );
-
-  useEffect(() => {
-    if (showProgressMixModal || !pendingProgressMixAction) return;
-
-    const action = pendingProgressMixAction;
-    setPendingProgressMixAction(null);
-    if (action.type === "premium") {
-      void ensurePremiumAccess(action.label, action.route);
-      return;
-    }
-    router.push(action.route as any);
-  }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
 
   function handleQuickPractice() {
     if (bookmarked.length === 0) return;
 
     const shuffled = shuffleIds(bookmarked.map((g) => g.id));
-    const practiceRoute = `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=bookmarks`;
+    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=bookmarks`;
 
     if (!isPremium && bookmarked.some((point) => isPremiumGrammarPoint(point))) {
       void ensurePremiumAccess(
@@ -166,199 +129,28 @@ export default function ExploreWeb() {
     router.push(practiceRoute as any);
   }
 
-  const practicedGrammar = useMemo(
-    () => grammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
-    [grammarPoints, progress],
-  );
-
-  const progressCountsByLevel = useMemo(
-    () =>
-      CEFR_LEVELS.reduce(
-        (acc, level) => {
-          acc[level] = practicedGrammar.filter((point) => point.level === level).length;
-          return acc;
-        },
-        {} as Record<CefrLevel, number>,
-      ),
-    [practicedGrammar],
-  );
-
-  const filteredProgressGrammar = useMemo(() => {
-    if (selectedProgressLevels.includes("All")) return practicedGrammar;
-    return practicedGrammar.filter((point) =>
-      selectedProgressLevels.includes(point.level),
-    );
-  }, [practicedGrammar, selectedProgressLevels]);
-
-  function toggleProgressLevel(level: ProgressFilterLevel) {
-    if (level === "All") {
-      setSelectedProgressLevels(["All"]);
-      return;
-    }
-
-    setSelectedProgressLevels((current) => {
-      const withoutAll = current.filter(
-        (value): value is CefrLevel => value !== "All",
-      );
-
-      if (withoutAll.includes(level)) {
-        const next = withoutAll.filter((value) => value !== level);
-        return next.length > 0 ? next : ["All"];
-      }
-
-      return [...withoutAll, level];
-    });
-  }
-
-  function handleStartProgressMix() {
-    if (filteredProgressGrammar.length === 0) return;
-
-    const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
-    const practiceRoute = `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=progress`;
-
-    if (
-      !isPremium &&
-      filteredProgressGrammar.some((point) => isPremiumGrammarPoint(point))
-    ) {
-      setShowProgressMixModal(false);
-      setPendingProgressMixAction({
-        type: "premium",
-        label: "the studied grammar in this mix",
-        route: practiceRoute,
-      });
-      return;
-    }
-
-    setShowProgressMixModal(false);
-    setPendingProgressMixAction({ type: "practice", route: practiceRoute });
-  }
-
   return (
     <>
-      <Modal
-        visible={showProgressMixModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowProgressMixModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={styles.modalBackdrop}
-            onPress={() => setShowProgressMixModal(false)}
-          />
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeading}>
-                <Text style={styles.modalTitle}>Studied Grammar</Text>
-                <Text style={styles.modalSubtitle}>
-                  Practice grammar points you have already studied.
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowProgressMixModal(false)}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.filterWrap}>
-              {PROGRESS_FILTER_LEVELS.map((level) => {
-                const count =
-                  level === "All"
-                    ? practicedGrammar.length
-                    : progressCountsByLevel[level];
-                const isSelected = selectedProgressLevels.includes(level);
-                const isDisabled = count === 0;
-                return (
-                  <TouchableOpacity
-                    key={level}
-                    style={[
-                      styles.filterChip,
-                      isSelected && styles.filterChipActive,
-                      isDisabled && styles.filterChipDisabled,
-                    ]}
-                    onPress={() => toggleProgressLevel(level)}
-                    disabled={isDisabled}
-                    activeOpacity={0.82}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        isSelected && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {level}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.filterChipCount,
-                        isSelected && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {count}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                filteredProgressGrammar.length === 0 && styles.disabledButton,
-              ]}
-              onPress={handleStartProgressMix}
-              disabled={filteredProgressGrammar.length === 0}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.primaryButtonText}>Practice</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       <DesktopPage
         eyebrow="Bookmarks"
         title="Saved grammar lessons"
         subtitle="Keep saved lessons close, start quick practice, and return to grammar you want to revisit."
       >
         <View style={styles.pageStack}>
-        <View style={styles.actionGrid}>
-          <DesktopPanel style={styles.actionPanel}>
-            <DesktopSectionTitle
-              title="Quick Practice"
-              caption="Practice grammar points using your saved bookmarks."
-            />
-            <TouchableOpacity
-              style={[styles.primaryButton, bookmarked.length === 0 && styles.disabledButton]}
-              onPress={handleQuickPractice}
-              disabled={bookmarked.length === 0}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.primaryButtonText}>Practice bookmarks</Text>
-            </TouchableOpacity>
-          </DesktopPanel>
-
-          <DesktopPanel style={styles.actionPanel}>
-            <DesktopSectionTitle
-              title="Studied Grammar"
-              caption="Create a mixed set from grammar you have already practiced."
-            />
-            <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                practicedGrammar.length === 0 && styles.disabledSecondaryButton,
-              ]}
-              onPress={() => setShowProgressMixModal(true)}
-              disabled={practicedGrammar.length === 0}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.secondaryButtonText}>Open mix filters</Text>
-            </TouchableOpacity>
-          </DesktopPanel>
-        </View>
+        <DesktopPanel style={styles.actionPanel}>
+          <DesktopSectionTitle
+            title="Quick Practice"
+            caption="Practice grammar points using your saved bookmarks."
+          />
+          <TouchableOpacity
+            style={[styles.primaryButton, bookmarked.length === 0 && styles.disabledButton]}
+            onPress={handleQuickPractice}
+            disabled={bookmarked.length === 0}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.primaryButtonText}>Practice bookmarks</Text>
+          </TouchableOpacity>
+        </DesktopPanel>
 
         <DesktopPanel>
           <DesktopSectionTitle

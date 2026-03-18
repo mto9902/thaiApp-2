@@ -61,7 +61,7 @@ export default function GrammarLevels() {
               { backgroundColor: LEVEL_COLORS[GRAMMAR_STAGE_META[item.stage].level] || Sketch.blue },
             ]}
             onPress={() =>
-              router.push(`/practice/CSVGrammarIndex?stage=${item.stage}`)
+              router.push(`/practice/topics?stage=${item.stage}`)
             }
           >
               <View style={styles.cardHeader}>

@@ -310,6 +310,7 @@ export default function GrammarDetail() {
         <Header
           title={headerTitle}
           onBack={() => router.back()}
+          showBrandMark={false}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
         />
@@ -327,6 +328,7 @@ export default function GrammarDetail() {
         <Header
           title={headerTitle}
           onBack={() => router.back()}
+          showBrandMark={false}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
         />
@@ -389,6 +391,7 @@ export default function GrammarDetail() {
       <Header
         title={headerTitle}
         onBack={() => router.back()}
+        showBrandMark={false}
         showWordBreakdownTtsSetting
         onSettingsChange={handleSettingsChange}
       />
@@ -557,7 +560,7 @@ export default function GrammarDetail() {
         {/* CTA */}
         <TouchableOpacity
           style={styles.ctaButton}
-          onPress={() => router.push(`/practice/${id}/PracticeCSV`)}
+          onPress={() => router.push(`/practice/${id}/exercises`)}
           activeOpacity={0.85}
         >
           <Text style={styles.ctaText}>Start Practice</Text>

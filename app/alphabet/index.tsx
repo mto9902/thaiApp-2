@@ -42,21 +42,12 @@ export default function AlphabetScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Header title="Alphabet" onBack={() => router.back()} />
+      <Header title="Alphabet" onBack={() => router.back()} showBrandMark={false} />
 
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.introCard}>
-          <Text style={styles.introEyebrow}>Foundations</Text>
-          <Text style={styles.introTitle}>Build your Thai sound system.</Text>
-          <Text style={styles.introSubtitle}>
-            Start with consonant classes, then layer in vowel groups and sound
-            patterns.
-          </Text>
-        </View>
-
         <EntryCard
           eyebrow="44 letters"
           title="Consonants"
@@ -72,6 +63,14 @@ export default function AlphabetScreen() {
           footer="Six groups"
           onPress={() => router.push("/vowels/" as any)}
         />
+
+        <EntryCard
+          eyebrow="Custom batch"
+          title="Alphabet Trainer"
+          subtitle="Mix consonants and vowels into a focused reading batch and practice real word shapes."
+          footer="Reading practice"
+          onPress={() => router.push("/trainer" as any)}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -84,38 +83,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 14,
+    paddingTop: 18,
     paddingBottom: 28,
-  },
-  introCard: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: SketchRadius.card,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    padding: 20,
-    marginBottom: 14,
-    ...sketchShadow(2),
-  },
-  introEyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  introTitle: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: Sketch.ink,
-    marginTop: 8,
-    lineHeight: 32,
-  },
-  introSubtitle: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: Sketch.inkMuted,
-    marginTop: 8,
-    lineHeight: 20,
   },
   entryCard: {
     backgroundColor: Sketch.cardBg,

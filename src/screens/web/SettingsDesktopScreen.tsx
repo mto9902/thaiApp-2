@@ -7,7 +7,6 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -16,6 +15,7 @@ import {
 } from "react-native";
 
 import { Sketch } from "@/constants/theme";
+import AccentSwitch from "@/src/components/AccentSwitch";
 import {
   DesktopPage,
   DesktopPanel,
@@ -538,11 +538,9 @@ export default function SettingsWebScreen() {
                       Show phonetic transcription under Thai text.
                     </Text>
                   </View>
-                  <Switch
+                  <AccentSwitch
                     value={settings.showRoman}
                     onValueChange={(value) => void updateSetting("showRoman", value)}
-                    trackColor={{ false: Sketch.inkFaint, true: Sketch.accent }}
-                    thumbColor="#fff"
                   />
                 </View>
 
@@ -553,11 +551,9 @@ export default function SettingsWebScreen() {
                       Keep English visible on lessons and review cards.
                     </Text>
                   </View>
-                  <Switch
+                  <AccentSwitch
                     value={settings.showEnglish}
                     onValueChange={(value) => void updateSetting("showEnglish", value)}
-                    trackColor={{ false: Sketch.inkFaint, true: Sketch.accent }}
-                    thumbColor="#fff"
                   />
                 </View>
 
@@ -568,11 +564,9 @@ export default function SettingsWebScreen() {
                       Automatically play Thai sentence audio after reveal.
                     </Text>
                   </View>
-                  <Switch
+                  <AccentSwitch
                     value={settings.autoplayTTS}
                     onValueChange={(value) => void updateSetting("autoplayTTS", value)}
-                    trackColor={{ false: Sketch.inkFaint, true: Sketch.accent }}
-                    thumbColor="#fff"
                   />
                 </View>
 
@@ -583,13 +577,11 @@ export default function SettingsWebScreen() {
                       Experimental word-by-word audio for grammar breakdown cards.
                     </Text>
                   </View>
-                  <Switch
+                  <AccentSwitch
                     value={settings.wordBreakdownTTS}
                     onValueChange={(value) =>
                       void updateSetting("wordBreakdownTTS", value)
                     }
-                    trackColor={{ false: Sketch.inkFaint, true: Sketch.accent }}
-                    thumbColor="#fff"
                   />
                 </View>
 
@@ -600,13 +592,11 @@ export default function SettingsWebScreen() {
                       Add words from grammar practice into your review deck.
                     </Text>
                   </View>
-                  <Switch
+                  <AccentSwitch
                     value={settings.autoAddPracticeVocab}
                     onValueChange={(value) =>
                       void updateSetting("autoAddPracticeVocab", value)
                     }
-                    trackColor={{ false: Sketch.inkFaint, true: Sketch.accent }}
-                    thumbColor="#fff"
                   />
                 </View>
 

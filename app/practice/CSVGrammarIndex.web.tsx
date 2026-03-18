@@ -35,7 +35,7 @@ import {
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
 
-export default function CSVGrammarIndexWeb() {
+export default function GrammarTopicsScreenWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
@@ -93,7 +93,7 @@ export default function CSVGrammarIndexWeb() {
             ),
           );
         } catch (err) {
-          console.error("[CSVGrammarIndex] load bookmarks failed:", err);
+          console.error("[GrammarTopicsScreenWeb] load bookmarks failed:", err);
           if (!active) return;
           setBookmarkedIds(new Set());
         }

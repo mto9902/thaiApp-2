@@ -15,9 +15,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { Platform } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import { API_BASE } from "../config";
 import { getAuthToken } from "../utils/authStorage";
 
@@ -52,6 +53,7 @@ const SubscriptionContext = createContext<SubscriptionContextValue | null>(null)
 const isNativeMobile = Platform.OS === "ios" || Platform.OS === "android";
 let purchasesConfigured = false;
 let configuredAppUserId: string | null = null;
+let configuredEmail: string | null = null;
 let customerInfoListener: CustomerInfoUpdateListener | null = null;
 
 function hasPremiumEntitlement(customerInfo: CustomerInfo | null): boolean {
@@ -86,6 +88,7 @@ export function SubscriptionProvider({
   authRefreshKey,
   children,
 }: SubscriptionProviderProps) {
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const apiKey = getRevenueCatApiKeyForCurrentPlatform();
   const canMakePurchases = isNativeMobile && !!apiKey;
   const [loading, setLoading] = useState(canMakePurchases);
@@ -204,10 +207,12 @@ export function SubscriptionProvider({
         if (configuredAppUserId !== storedUser.appUserId) {
           await Purchases.logIn(storedUser.appUserId);
           configuredAppUserId = storedUser.appUserId;
+          configuredEmail = null;
         }
       } else if (configuredAppUserId !== null) {
         await Purchases.logOut();
         configuredAppUserId = null;
+        configuredEmail = null;
       }
 
       if (!customerInfoListener) {
@@ -226,8 +231,9 @@ export function SubscriptionProvider({
         return;
       }
 
-      if (storedUser.email) {
+      if (storedUser.email && configuredEmail !== storedUser.email) {
         await Purchases.setEmail(storedUser.email);
+        configuredEmail = storedUser.email;
       }
 
       const [nextCustomerInfo, nextOfferings] = await Promise.all([
@@ -271,6 +277,26 @@ export function SubscriptionProvider({
     return () => {
       window.removeEventListener("focus", refreshOnFocus);
       document.removeEventListener("visibilitychange", refreshOnVisibility);
+    };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!isNativeMobile) return;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+
+      const wasBackgrounded =
+        previousState === "background" || previousState === "inactive";
+
+      if (wasBackgrounded && nextState === "active") {
+        void refresh();
+      }
+    });
+
+    return () => {
+      subscription.remove();
     };
   }, [refresh]);
 

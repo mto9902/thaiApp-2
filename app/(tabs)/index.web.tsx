@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,7 +24,11 @@ import {
   GRAMMAR_STAGES,
   GrammarStage,
 } from "@/src/data/grammarStages";
+import { CEFR_LEVELS, CefrLevel } from "@/src/data/grammarLevels";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
+import { isPremiumGrammarPoint } from "@/src/subscription/premium";
+import { useSubscription } from "@/src/subscription/SubscriptionProvider";
+import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { canAccessApp, isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
 import {
@@ -59,16 +65,32 @@ function formatReviewDelay(nextDueAt: string): string {
 
 const HEATMAP_COLORS = ["#E8E8E8", "#D0D0D0", "#B0B0B0", "#888888", "#555555"];
 
+const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
+  (level) => level !== "C2",
+) as readonly CefrLevel[];
+const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
+
+type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
+type PendingProgressMixAction =
+  | { type: "premium"; label: string; route: string }
+  | { type: "practice"; route: string };
+
 type ModuleInfo = {
   stage: GrammarStage;
   title: string;
   grammarIds: string[];
 };
 
+function shuffleIds(ids: string[]) {
+  return [...ids].sort(() => Math.random() - 0.5);
+}
+
 export default function HomeScreenWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
+  const { isPremium } = useSubscription();
+  const { ensurePremiumAccess } = usePremiumAccess();
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [isGuest, setIsGuest] = useState(false);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
@@ -78,6 +100,12 @@ export default function HomeScreenWeb() {
   const [overallGrammarProgress, setOverallGrammarProgress] = useState(0);
   const [reviewsDue, setReviewsDue] = useState(0);
   const [reviewStatusText, setReviewStatusText] = useState("You're caught up");
+  const [showProgressMixModal, setShowProgressMixModal] = useState(false);
+  const [selectedProgressLevels, setSelectedProgressLevels] = useState<
+    ProgressFilterLevel[]
+  >(["All"]);
+  const [pendingProgressMixAction, setPendingProgressMixAction] =
+    useState<PendingProgressMixAction | null>(null);
 
   const modules = useMemo<ModuleInfo[]>(
     () =>
@@ -232,7 +260,7 @@ export default function HomeScreenWeb() {
           label: mod.stage,
           title: mod.title,
           percent: moduleProgress[index],
-          route: `/practice/CSVGrammarIndex?stage=${mod.stage}`,
+        route: `/practice/topics?stage=${mod.stage}`,
         });
       });
     }
@@ -244,6 +272,134 @@ export default function HomeScreenWeb() {
     () => grammarPoints.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
     [grammarPoints, progress],
   );
+  const firstLesson = grammarPoints[0] ?? null;
+
+  const practicedGrammar = useMemo(
+    () => grammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
+    [grammarPoints, progress],
+  );
+  const heroCard = useMemo(() => {
+    if (!isGuest && reviewsDue > 0) {
+      return {
+        label: "Today",
+        title: "Review before your next lesson",
+        subtitle:
+          reviewsDue === 1
+            ? "You have 1 card ready. A quick review keeps recent words active."
+            : `You have ${reviewsDue} cards ready. A quick review keeps recent words active.`,
+        actionLabel: "Start review",
+        action: () => router.push("/review/" as any),
+      };
+    }
+
+    if (practicedGrammar.length === 0) {
+      return {
+        label: "Start",
+        title: "Begin your first topic",
+        subtitle: firstLesson
+          ? `${firstLesson.stage} · ${firstLesson.title}`
+          : "Start with the first grammar lesson and build from there.",
+        actionLabel: "Start topic",
+        action: () =>
+          router.push(
+            (firstLesson ? `/practice/${firstLesson.id}` : "/progress") as any,
+          ),
+      };
+    }
+
+    if (nextLesson) {
+      return {
+        label: "Continue",
+        title: nextLesson.title,
+        subtitle: `${nextLesson.stage} · Pick up where your current path continues.`,
+        actionLabel: "Resume topic",
+        action: () => router.push(`/practice/${nextLesson.id}` as any),
+      };
+    }
+
+    return {
+      label: "Continue",
+      title: "Keep your grammar active",
+      subtitle:
+        "You have completed every topic so far. Revisit studied grammar or review vocabulary.",
+      actionLabel: "View progress",
+      action: () => router.push("/progress" as any),
+    };
+  }, [firstLesson, isGuest, nextLesson, practicedGrammar.length, reviewsDue, router]);
+
+  const progressCountsByLevel = useMemo(
+    () =>
+      CEFR_LEVELS.reduce(
+        (acc, level) => {
+          acc[level] = practicedGrammar.filter((point) => point.level === level).length;
+          return acc;
+        },
+        {} as Record<CefrLevel, number>,
+      ),
+    [practicedGrammar],
+  );
+
+  const filteredProgressGrammar = useMemo(() => {
+    if (selectedProgressLevels.includes("All")) return practicedGrammar;
+    return practicedGrammar.filter((point) =>
+      selectedProgressLevels.includes(point.level),
+    );
+  }, [practicedGrammar, selectedProgressLevels]);
+
+  useEffect(() => {
+    if (showProgressMixModal || !pendingProgressMixAction) return;
+
+    const action = pendingProgressMixAction;
+    setPendingProgressMixAction(null);
+    if (action.type === "premium") {
+      void ensurePremiumAccess(action.label, action.route);
+      return;
+    }
+    router.push(action.route as any);
+  }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
+
+  function toggleProgressLevel(level: ProgressFilterLevel) {
+    if (level === "All") {
+      setSelectedProgressLevels(["All"]);
+      return;
+    }
+
+    setSelectedProgressLevels((current) => {
+      const withoutAll = current.filter(
+        (value): value is CefrLevel => value !== "All",
+      );
+
+      if (withoutAll.includes(level)) {
+        const next = withoutAll.filter((value) => value !== level);
+        return next.length > 0 ? next : ["All"];
+      }
+
+      return [...withoutAll, level];
+    });
+  }
+
+  function handleStartProgressMix() {
+    if (filteredProgressGrammar.length === 0) return;
+
+    const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
+    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=progress`;
+
+    if (
+      !isPremium &&
+      filteredProgressGrammar.some((point) => isPremiumGrammarPoint(point))
+    ) {
+      setShowProgressMixModal(false);
+      setPendingProgressMixAction({
+        type: "premium",
+        label: "the studied grammar in this mix",
+        route: practiceRoute,
+      });
+      return;
+    }
+
+    setShowProgressMixModal(false);
+    setPendingProgressMixAction({ type: "practice", route: practiceRoute });
+  }
 
   const heatmapSummary = useMemo(() => {
     const today = new Date();
@@ -411,12 +567,121 @@ export default function HomeScreenWeb() {
   }
 
   return (
-    <DesktopPage
-      eyebrow="Home"
-      title="Keystone"
-      subtitle="Pick up your next grammar lesson, review vocabulary, and keep your Thai progress moving."
-    >
-      <View style={styles.pageStack}>
+    <>
+      <Modal
+        visible={showProgressMixModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProgressMixModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setShowProgressMixModal(false)}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeading}>
+                <Text style={styles.modalTitle}>Studied Grammar</Text>
+                <Text style={styles.modalSubtitle}>
+                  Practice grammar points you have already studied.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowProgressMixModal(false)}
+                activeOpacity={0.82}
+              >
+                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterWrap}>
+              {PROGRESS_FILTER_LEVELS.map((level) => {
+                const count =
+                  level === "All"
+                    ? practicedGrammar.length
+                    : progressCountsByLevel[level];
+                const isSelected = selectedProgressLevels.includes(level);
+                const isDisabled = count === 0;
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.filterChip,
+                      isSelected && styles.filterChipActive,
+                      isDisabled && styles.filterChipDisabled,
+                    ]}
+                    onPress={() => toggleProgressLevel(level)}
+                    disabled={isDisabled}
+                    activeOpacity={0.82}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        isSelected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {level}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.filterChipCount,
+                        isSelected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                filteredProgressGrammar.length === 0 && styles.disabledButton,
+              ]}
+              onPress={handleStartProgressMix}
+              disabled={filteredProgressGrammar.length === 0}
+              activeOpacity={0.82}
+            >
+              <Text style={styles.primaryButtonText}>Practice</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <DesktopPage
+        eyebrow="Home"
+        title="Keystone"
+        subtitle="Pick up your next grammar lesson, review vocabulary, and keep your Thai progress moving."
+      >
+        <View style={styles.pageStack}>
+      <DesktopPanel style={styles.heroPanel}>
+        <View style={styles.heroPromptBlock}>
+          <Text style={styles.heroThaiPrompt}>วันนี้เรียนอะไรดี</Text>
+          <Text style={styles.heroPromptTranslation}>
+            What should we study today?
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.heroActionCard}
+          onPress={heroCard.action}
+          activeOpacity={0.82}
+        >
+          <View style={styles.heroActionCopy}>
+            <Text style={styles.heroActionLabel}>{heroCard.label}</Text>
+            <Text style={styles.heroActionTitle}>{heroCard.title}</Text>
+            <Text style={styles.heroActionSubtitle}>{heroCard.subtitle}</Text>
+          </View>
+          <View style={styles.heroActionFooter}>
+            <Text style={styles.heroActionButtonText}>{heroCard.actionLabel}</Text>
+            <Ionicons name="arrow-forward" size={16} color={Sketch.paperDark} />
+          </View>
+        </TouchableOpacity>
+      </DesktopPanel>
+
       <View style={styles.metricStrip}>
         {[
           {
@@ -493,6 +758,21 @@ export default function HomeScreenWeb() {
               activeOpacity={0.82}
             >
               <Text style={styles.secondaryActionText}>View Grammar Units</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.secondaryAction,
+                practicedGrammar.length === 0 && styles.disabledSecondaryAction,
+              ]}
+              onPress={() => {
+                if (practicedGrammar.length === 0) return;
+                setSelectedProgressLevels(["All"]);
+                setShowProgressMixModal(true);
+              }}
+              activeOpacity={0.82}
+              disabled={practicedGrammar.length === 0}
+            >
+              <Text style={styles.secondaryActionText}>Studied Grammar</Text>
             </TouchableOpacity>
           </View>
 
@@ -576,6 +856,12 @@ export default function HomeScreenWeb() {
               glyph: "ก",
             },
             {
+              title: "Numbers",
+              body: "Learn digits, Thai numerals, and real-life number usage.",
+              route: "/numbers/",
+              glyph: "๑",
+            },
+            {
               title: "Tones",
               body: "Use the tone reference and listening guide.",
               route: "/tones/",
@@ -590,7 +876,7 @@ export default function HomeScreenWeb() {
           ].map((item) => (
             <TouchableOpacity
               key={item.title}
-              style={[styles.exploreCard, { width: width >= 1180 ? "31.8%" : "100%" }]}
+              style={[styles.exploreCard, { width: width >= 1180 ? "48.8%" : "100%" }]}
               onPress={() => router.push(item.route as any)}
               activeOpacity={0.82}
             >
@@ -605,14 +891,79 @@ export default function HomeScreenWeb() {
           ))}
         </View>
       </DesktopPanel>
-      </View>
-    </DesktopPage>
+        </View>
+      </DesktopPage>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   pageStack: {
     gap: 28,
+  },
+  heroPanel: {
+    gap: 18,
+  },
+  heroPromptBlock: {
+    gap: 4,
+  },
+  heroThaiPrompt: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "700",
+    color: Sketch.accent,
+    letterSpacing: -0.2,
+  },
+  heroPromptTranslation: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Sketch.inkMuted,
+  },
+  heroActionCard: {
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+    padding: 20,
+    gap: 16,
+  },
+  heroActionCopy: {
+    gap: 8,
+  },
+  heroActionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  heroActionTitle: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.8,
+  },
+  heroActionSubtitle: {
+    maxWidth: 620,
+    fontSize: 15,
+    lineHeight: 24,
+    color: Sketch.inkMuted,
+  },
+  heroActionFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.accent,
+  },
+  heroActionButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.paperDark,
   },
   metricStrip: {
     flexDirection: "row",
@@ -700,6 +1051,90 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: Sketch.ink,
+  },
+  disabledSecondaryAction: {
+    opacity: 0.45,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.28)",
+    justifyContent: "center",
+    padding: 28,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    maxWidth: 760,
+    width: "100%",
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+    padding: 24,
+    gap: 18,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  modalHeading: {
+    flex: 1,
+    gap: 6,
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Sketch.ink,
+    letterSpacing: -0.6,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: Sketch.inkMuted,
+  },
+  modalCloseButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+  },
+  filterWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  filterChip: {
+    minWidth: 86,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+    gap: 2,
+  },
+  filterChipActive: {
+    borderColor: Sketch.accent,
+  },
+  filterChipDisabled: {
+    opacity: 0.45,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  filterChipCount: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
+  },
+  filterChipTextActive: {
+    color: Sketch.accent,
   },
   focusProgressList: {
     gap: 12,

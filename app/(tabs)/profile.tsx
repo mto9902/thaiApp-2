@@ -175,10 +175,6 @@ export default function Profile() {
     );
   }
 
-  const avatarLabel =
-    profile?.display_name?.trim()?.[0]?.toUpperCase() ||
-    profile?.email?.trim()?.[0]?.toUpperCase() ||
-    (profile?.id ? String(profile.id) : "...");
   const profileName =
     profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
 
@@ -191,12 +187,9 @@ export default function Profile() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{avatarLabel}</Text>
-          </View>
-          <Text style={styles.profileName}>{profileName}</Text>
-          <Text style={styles.profileEmail}>
+        <View style={styles.accountHeader}>
+          <Text style={styles.accountName}>{profileName}</Text>
+          <Text style={styles.accountEmail}>
             {profile?.email || "Loading email..."}
           </Text>
         </View>
@@ -355,11 +348,6 @@ const styles = StyleSheet.create({
     padding: 30,
     gap: 12,
   },
-  profileHeader: {
-    alignItems: "center",
-    paddingTop: 16,
-    gap: 8,
-  },
   avatarCircle: {
     width: 72,
     height: 72,
@@ -371,17 +359,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...sketchShadow(2),
   },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: Sketch.ink,
+  accountHeader: {
+    paddingTop: 12,
+    gap: 4,
   },
-  profileName: {
+  accountName: {
     fontSize: 22,
     fontWeight: "600",
     color: Sketch.ink,
   },
-  profileEmail: {
+  accountEmail: {
     fontSize: 14,
     fontWeight: "400",
     color: Sketch.inkMuted,

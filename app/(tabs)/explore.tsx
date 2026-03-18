@@ -1,11 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
-  Modal,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,7 +16,6 @@ import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import { GrammarPoint } from "../../src/data/grammar";
 import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
-import { CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
 import { isPremiumGrammarPoint } from "../../src/subscription/premium";
 import { useSubscription } from "../../src/subscription/SubscriptionProvider";
 import { usePremiumAccess } from "../../src/subscription/usePremiumAccess";
@@ -31,25 +27,6 @@ import {
   getAllProgress,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
-
-const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
-  (level) => level !== "C2",
-) as readonly CefrLevel[];
-
-const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
-
-type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
-
-type PendingProgressMixAction =
-  | {
-      type: "premium";
-      label: string;
-      route: string;
-    }
-  | {
-      type: "practice";
-      route: string;
-    };
 
 function shuffleIds(ids: string[]) {
   return [...ids].sort(() => Math.random() - 0.5);
@@ -85,12 +62,6 @@ export default function DecksScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
-  const [showProgressMixModal, setShowProgressMixModal] = useState(false);
-  const [selectedProgressLevels, setSelectedProgressLevels] = useState<
-    ProgressFilterLevel[]
-  >(["All"]);
-  const [pendingProgressMixAction, setPendingProgressMixAction] =
-    useState<PendingProgressMixAction | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -134,33 +105,9 @@ export default function DecksScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setShowProgressMixModal(false);
-      setPendingProgressMixAction(null);
       void loadData();
-      return () => {
-        setShowProgressMixModal(false);
-      };
     }, [loadData]),
   );
-
-  useEffect(() => {
-    if (showProgressMixModal || !pendingProgressMixAction) return;
-
-    const action = pendingProgressMixAction;
-    const task = InteractionManager.runAfterInteractions(() => {
-      setPendingProgressMixAction(null);
-      if (action.type === "premium") {
-        void ensurePremiumAccess(action.label, action.route);
-        return;
-      }
-
-      router.push(action.route);
-    });
-
-    return () => {
-      task.cancel();
-    };
-  }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
 
   function handleRefresh() {
     setRefreshing(true);
@@ -173,7 +120,7 @@ export default function DecksScreen() {
     }
 
     const shuffled = shuffleIds(bookmarked.map((g) => g.id));
-    const practiceRoute = `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=bookmarks`;
+    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=bookmarks`;
 
     if (!isPremium && bookmarked.some((point) => isPremiumGrammarPoint(point))) {
       void ensurePremiumAccess(
@@ -187,74 +134,6 @@ export default function DecksScreen() {
     );
   }
 
-  const practicedGrammar = useMemo(
-    () => grammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
-    [grammarPoints, progress],
-  );
-
-  const progressCountsByLevel = useMemo(
-    () =>
-      CEFR_LEVELS.reduce(
-        (acc, level) => {
-          acc[level] = practicedGrammar.filter(
-            (point) => point.level === level,
-          ).length;
-          return acc;
-        },
-        {} as Record<CefrLevel, number>,
-      ),
-    [practicedGrammar],
-  );
-
-  const filteredProgressGrammar = useMemo(() => {
-    if (selectedProgressLevels.includes("All")) return practicedGrammar;
-    return practicedGrammar.filter(
-      (point) => selectedProgressLevels.includes(point.level),
-    );
-  }, [practicedGrammar, selectedProgressLevels]);
-
-  function toggleProgressLevel(level: ProgressFilterLevel) {
-    if (level === "All") {
-      setSelectedProgressLevels(["All"]);
-      return;
-    }
-
-    setSelectedProgressLevels((current) => {
-      const withoutAll = current.filter(
-        (value): value is CefrLevel => value !== "All",
-      );
-
-      if (withoutAll.includes(level)) {
-        const next = withoutAll.filter((value) => value !== level);
-        return next.length > 0 ? next : ["All"];
-      }
-
-      return [...withoutAll, level];
-    });
-  }
-
-  function handleStartProgressMix() {
-    if (filteredProgressGrammar.length === 0) {
-      return;
-    }
-    const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
-    const practiceRoute = `/practice/${shuffled[0]}/PracticeCSV?mix=${shuffled.join(",")}&source=progress`;
-
-    if (
-      !isPremium &&
-      filteredProgressGrammar.some((point) => isPremiumGrammarPoint(point))
-    ) {
-      setShowProgressMixModal(false);
-      setPendingProgressMixAction({
-        type: "premium",
-        label: "the studied grammar in this mix",
-        route: practiceRoute,
-      });
-      return;
-    }
-    setShowProgressMixModal(false);
-    setPendingProgressMixAction({ type: "practice", route: practiceRoute });
-  }
 
   function renderEmpty() {
     return (
@@ -317,99 +196,6 @@ export default function DecksScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
-      <Modal
-        visible={showProgressMixModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowProgressMixModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={styles.modalBackdrop}
-            onPress={() => setShowProgressMixModal(false)}
-          />
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeading}>
-                <Text style={styles.modalTitle}>Studied Grammar</Text>
-                <Text style={styles.modalSubtitle}>
-                  Practice grammar points you have already studied.
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowProgressMixModal(false)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.filterWrap}>
-              {PROGRESS_FILTER_LEVELS.map((level) => {
-                const count =
-                  level === "All"
-                    ? practicedGrammar.length
-                    : progressCountsByLevel[level];
-                const isSelected = selectedProgressLevels.includes(level);
-                const isDisabled = count === 0;
-
-                return (
-                  <TouchableOpacity
-                    key={level}
-                    style={[
-                      styles.filterChip,
-                      isSelected && styles.filterChipActive,
-                      isDisabled && styles.filterChipDisabled,
-                    ]}
-                    onPress={() => {
-                      if (isDisabled) return;
-                      toggleProgressLevel(level);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        isSelected && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {level}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.filterChipCount,
-                        isSelected && styles.filterChipCountActive,
-                      ]}
-                    >
-                      {count}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={styles.modalSummaryText}>
-              {filteredProgressGrammar.length} practiced topic
-              {filteredProgressGrammar.length === 1 ? "" : "s"} ready
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.modalPrimaryButton,
-                filteredProgressGrammar.length === 0 &&
-                  styles.modalPrimaryButtonDisabled,
-              ]}
-              onPress={handleStartProgressMix}
-              activeOpacity={0.82}
-              disabled={filteredProgressGrammar.length === 0}
-            >
-              <Text style={styles.modalPrimaryButtonText}>Practice</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={Sketch.inkMuted} />
@@ -453,43 +239,21 @@ export default function DecksScreen() {
             renderEmpty()
           ) : (
             <>
-              <View style={styles.mixRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.mixTile,
-                    bookmarked.length === 0 && styles.mixTileDisabled,
-                  ]}
-                  onPress={handleQuickMix}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.mixTileTitle}>Quick Practice</Text>
-                  <Text style={styles.mixTileSub}>
-                    {bookmarked.length > 0
-                      ? "Practice grammar points using bookmarks"
-                      : "Save grammar points to practice them here"}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.mixTile,
-                    practicedGrammar.length === 0 && styles.mixTileDisabled,
-                  ]}
-                  onPress={() => {
-                    if (practicedGrammar.length === 0) return;
-                    setSelectedProgressLevels(["All"]);
-                    setShowProgressMixModal(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.mixTileTitle}>Studied Grammar</Text>
-                  <Text style={styles.mixTileSub}>
-                    {practicedGrammar.length > 0
-                      ? "Practice grammar points you have already studied"
-                      : "Practice grammar first"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[
+                  styles.mixTile,
+                  bookmarked.length === 0 && styles.mixTileDisabled,
+                ]}
+                onPress={handleQuickMix}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.mixTileTitle}>Quick Practice</Text>
+                <Text style={styles.mixTileSub}>
+                  {bookmarked.length > 0
+                    ? "Practice grammar points using bookmarks"
+                    : "Save grammar points to practice them here"}
+                </Text>
+              </TouchableOpacity>
 
               <View style={styles.spacing} />
 
@@ -551,8 +315,8 @@ const styles = StyleSheet.create({
     borderColor: Sketch.inkFaint,
     paddingVertical: 18,
     paddingHorizontal: 18,
-    gap: 10,
-    justifyContent: "space-between",
+    gap: 8,
+    justifyContent: "center",
     minHeight: 110,
     ...sketchShadow(2),
   },
@@ -560,15 +324,16 @@ const styles = StyleSheet.create({
     opacity: 0.56,
   },
   mixTileTitle: {
-    fontSize: 16,
+    fontSize: 19,
+    lineHeight: 24,
     fontWeight: "600",
     color: Sketch.ink,
   },
   mixTileSub: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "400",
     color: Sketch.inkMuted,
-    lineHeight: 19,
+    lineHeight: 20,
   },
 
   modalOverlay: {

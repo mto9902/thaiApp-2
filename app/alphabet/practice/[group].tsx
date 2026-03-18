@@ -228,6 +228,7 @@ export default function AlphabetPractice() {
       <Header
         title="Alphabet Practice"
         onBack={() => router.back()}
+        showBrandMark={false}
         showClose
         onSettingsChange={(settings) => {
           setAutoplayTTS(settings.autoplayTTS);

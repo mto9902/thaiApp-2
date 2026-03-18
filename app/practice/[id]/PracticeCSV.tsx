@@ -216,7 +216,7 @@ function getBreakdownRomanizations(
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export default function PracticeCSV() {
+export default function GrammarExercisesScreen() {
   const { id, mix, source } = useLocalSearchParams<{
     id: string;
     mix?: string;
@@ -231,8 +231,8 @@ export default function PracticeCSV() {
   const hasMixSource = typeof mix === "string" && mix.length > 0;
   const mixParam = typeof mix === "string" ? mix : "";
   const currentPracticeRoute = hasMixSource
-    ? `/practice/${id}/PracticeCSV?mix=${mixParam}${mixSource ? `&source=${mixSource}` : ""}`
-    : `/practice/${id}/PracticeCSV`;
+    ? `/practice/${id}/exercises?mix=${mixParam}${mixSource ? `&source=${mixSource}` : ""}`
+    : `/practice/${id}/exercises`;
 
   const roundRef = useRef(0);
   const mixIdsRef = useRef<string[]>([]);
@@ -635,7 +635,12 @@ export default function PracticeCSV() {
       <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={[st.pageFrame, isDesktopWeb && st.pageFrameDesktop]}>
-          <Header title="Practice" onBack={() => router.back()} showClose />
+          <Header
+            title="Practice"
+            onBack={() => router.back()}
+            showBrandMark={false}
+            showClose
+          />
           <View style={st.loadingWrap}>
             <View style={st.loadingPulse} />
             <Text style={st.loadingLabel}>Checking Keystone Access...</Text>
@@ -663,6 +668,7 @@ export default function PracticeCSV() {
                   : getPracticeHeaderTitle(grammarPoint)
               }
               onBack={() => router.back()}
+              showBrandMark={false}
               showClose
             />
             <View style={st.premiumBlockWrap}>
@@ -695,6 +701,7 @@ export default function PracticeCSV() {
                 : getPracticeHeaderTitle(grammarPoint)
             }
             onBack={() => router.back()}
+            showBrandMark={false}
             showClose
             showWordBreakdownTtsSetting
             onSettingsChange={handleSettingsChange}

@@ -125,7 +125,7 @@ export default function GrammarProgressWeb() {
               <TouchableOpacity
                 style={styles.recommendCard}
                 onPress={() =>
-                  router.push(`/practice/CSVGrammarIndex?stage=${recommended.stage}` as any)
+                      router.push(`/practice/topics?stage=${recommended.stage}` as any)
                 }
                 activeOpacity={0.82}
               >
@@ -187,7 +187,7 @@ export default function GrammarProgressWeb() {
                           isRecommended && styles.unitCardRecommended,
                         ]}
                         onPress={() =>
-                          router.push(`/practice/CSVGrammarIndex?stage=${stageSummary.stage}` as any)
+                    router.push(`/practice/topics?stage=${stageSummary.stage}` as any)
                         }
                         activeOpacity={0.82}
                       >
