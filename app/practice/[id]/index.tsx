@@ -19,10 +19,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
 import PremiumGateCard from "@/src/components/PremiumGateCard";
 import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
+import { GRAMMAR_STAGE_BY_ID } from "../../../src/data/grammarStages";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
 import { useSentenceAudio } from "../../../src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
@@ -53,25 +55,95 @@ function getBreakdownRomanizations(
     return breakdown.map((_, index) => tokens[index] ?? "");
   }
 
-  let cursor = 0;
-  return breakdown.map((item, index) => {
+   if (!hasExplicitRomanization) {
+     return breakdown.map(() => "");
+   }
+
+  return breakdown.map((item) => {
     const explicitRomanization = item.romanization || item.roman;
     if (explicitRomanization) {
-      cursor += explicitRomanization.split(/\s+/).filter(Boolean).length;
       return explicitRomanization;
     }
 
-    if (index === breakdown.length - 1) {
-      const remaining = tokens.slice(cursor).join(" ");
-      cursor = tokens.length;
-      return remaining;
+    return "";
+  });
+}
+
+function getSentenceRomanization(
+  romanization: string,
+  breakdown: { romanization?: string; roman?: string }[],
+) {
+  const explicitRomanization = breakdown.map(
+    (item) => item.romanization || item.roman || "",
+  );
+
+  if (explicitRomanization.length > 0 && explicitRomanization.every(Boolean)) {
+    return explicitRomanization.join(" ");
+  }
+
+  return romanization;
+}
+
+function getKeyForms(
+  focusParticle: string | undefined,
+  focusRomanization: string | undefined,
+  breakdown: { thai: string; grammar?: boolean; romanization?: string; roman?: string }[],
+  romanizations: string[],
+) {
+  const focusForms = (focusParticle || "")
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const focusRomanForms = (focusRomanization || "")
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (focusForms.length > 0) {
+    return focusForms.map((form, index) => {
+      const explicitFocusRomanization =
+        focusRomanForms.length === focusForms.length
+          ? focusRomanForms[index]
+          : focusRomanForms.length === 1
+            ? focusRomanForms[0]
+            : "";
+
+      const matchIndex = breakdown.findIndex((item) => item.thai.trim() === form);
+      if (matchIndex === -1) {
+        return explicitFocusRomanization
+          ? `${form} (${explicitFocusRomanization})`
+          : form;
+      }
+
+      const match = breakdown[matchIndex];
+      const romanization =
+        explicitFocusRomanization ||
+        match.romanization ||
+        match.roman ||
+        romanizations[matchIndex] ||
+        "";
+
+      return romanization ? `${form} (${romanization})` : form;
+    });
+  }
+
+  const seen = new Set<string>();
+
+  return breakdown.flatMap((item, index) => {
+    if (!item.grammar) {
+      return [];
     }
 
-    const nextToken = tokens[cursor] ?? "";
-    if (nextToken) {
-      cursor += 1;
+    const romanization = romanizations[index] || "";
+    const key = `${item.thai}|${romanization}`;
+    if (seen.has(key)) {
+      return [];
     }
-    return nextToken;
+
+    seen.add(key);
+    return [
+      romanization ? `${item.thai} (${romanization})` : item.thai,
+    ];
   });
 }
 
@@ -89,6 +161,7 @@ export default function GrammarDetail() {
   const [wordBreakdownTTS, setWordBreakdownTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<SettingsState["ttsSpeed"]>("normal");
   const [isGuest, setIsGuest] = useState(false);
+  const [previewExample, setPreviewExample] = useState<PracticePreview | null>(null);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
   const currentGrammarIds = useMemo(
@@ -133,6 +206,31 @@ export default function GrammarDetail() {
       checkBookmark();
     }
   }, [checkBookmark, id]);
+
+  useEffect(() => {
+    if (!grammar?.id) {
+      setPreviewExample(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void getPracticePreview(grammar.id)
+      .then((data) => {
+        if (!cancelled) {
+          setPreviewExample(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewExample(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [grammar?.id]);
 
   function handleSettingsChange(settings: SettingsState) {
     setWordBreakdownTTS(settings.wordBreakdownTTS);
@@ -199,13 +297,18 @@ export default function GrammarDetail() {
   }
 
   const isLocked = isPremiumGrammarPoint(grammar) && !isPremium;
+  const stageMeta = GRAMMAR_STAGE_BY_ID[grammar.id];
+  const headerTitle =
+    typeof stageMeta?.lessonOrder === "number"
+      ? `Topic ${String(stageMeta.lessonOrder + 1).padStart(2, "0")}`
+      : "Topic";
 
   if (isLocked && premiumLoading) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <Header
-          title={grammar.title}
+          title={headerTitle}
           onBack={() => router.back()}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
@@ -222,7 +325,7 @@ export default function GrammarDetail() {
       <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <Header
-          title={grammar.title}
+          title={headerTitle}
           onBack={() => router.back()}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
@@ -249,7 +352,14 @@ export default function GrammarDetail() {
 
   const explanation = grammar.explanation || "No explanation provided yet.";
   const pattern = grammar.pattern || "PATTERN + HERE";
-  const example = grammar.example || {
+  const example = previewExample
+    ? {
+        thai: previewExample.thai,
+        roman: previewExample.romanization,
+        english: previewExample.english,
+        breakdown: previewExample.breakdown,
+      }
+    : grammar.example || {
     thai: "ตัวอย่างประโยค",
     roman: "tua-yang prayok",
     english: "Example sentence",
@@ -262,12 +372,22 @@ export default function GrammarDetail() {
     example.roman || "",
     example.breakdown,
   );
+  const exampleDisplayRomanization = getSentenceRomanization(
+    example.roman || "",
+    example.breakdown,
+  );
+  const keyForms = getKeyForms(
+    grammar.focus?.particle,
+    grammar.focus?.romanization,
+    example.breakdown,
+    exampleRomanTokens,
+  );
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       <Header
-        title={grammar.title}
+        title={headerTitle}
         onBack={() => router.back()}
         showWordBreakdownTtsSetting
         onSettingsChange={handleSettingsChange}
@@ -286,6 +406,12 @@ export default function GrammarDetail() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>CONCEPT</Text>
           <View style={styles.card}>
+            {keyForms.length > 0 ? (
+              <View style={styles.keyFormBlock}>
+                <Text style={styles.keyFormLabel}>KEY FORM</Text>
+                <Text style={styles.keyFormText}>{keyForms.join(" / ")}</Text>
+              </View>
+            ) : null}
             <Text style={styles.explanation}>{explanation}</Text>
           </View>
         </View>
@@ -366,7 +492,7 @@ export default function GrammarDetail() {
             </TouchableOpacity>
 
             <View style={styles.divider} />
-            <Text style={styles.romanText}>{example.roman}</Text>
+            <Text style={styles.romanText}>{exampleDisplayRomanization}</Text>
 
             <View style={styles.englishContainer}>
               <Text style={styles.englishText}>{example.english}</Text>
@@ -508,6 +634,25 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     lineHeight: 24,
     color: Sketch.ink,
+  },
+  keyFormBlock: {
+    marginBottom: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Sketch.inkFaint,
+  },
+  keyFormLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  keyFormText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: Sketch.ink,
+    lineHeight: 22,
   },
 
   // Pattern

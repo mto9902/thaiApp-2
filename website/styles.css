@@ -335,19 +335,22 @@ button:disabled {
 }
 
 .brand-mark {
-  position: relative;
   width: 46px;
   height: 46px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   border-radius: 12px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 38% 34%, rgba(132, 189, 255, 0.42) 0, rgba(132, 189, 255, 0.42) 18%, transparent 18.5%),
-    radial-gradient(circle at 64% 60%, rgba(98, 164, 242, 0.24) 0, rgba(98, 164, 242, 0.24) 19%, transparent 19.5%),
-    linear-gradient(145deg, #295992 0%, #20385c 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .brand-globe {
@@ -2630,7 +2633,7 @@ button:disabled {
 .footer-brand .brand-mark {
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 0;
 }
 
 .footer-brand .brand-k {

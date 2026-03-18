@@ -24,6 +24,7 @@ import {
   getPracticeWordTrackingEnabled,
   setPracticeWordTrackingEnabled,
 } from "../utils/practiceWordPreference";
+import BrandMark from "./BrandMark";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
@@ -178,7 +179,12 @@ export default function Header({
         <Ionicons name={showClose ? "close" : "arrow-back"} size={22} color={Sketch.ink} />
       </TouchableOpacity>
 
-      <Text style={styles.titleText}>{title || "Lesson"}</Text>
+      <View style={styles.titleWrap}>
+        <BrandMark size={24} />
+        <Text numberOfLines={1} style={styles.titleText}>
+          {title || "Lesson"}
+        </Text>
+      </View>
 
       {showSettings ? (
         <TouchableOpacity style={styles.iconButton} onPress={() => setModalVisible(true)}>
@@ -361,16 +367,31 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 12,
+    gap: 10,
   },
 
   iconButton: {
-    padding: 8,
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  titleWrap: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   },
 
   titleText: {
     fontWeight: "600",
     fontSize: 17,
     color: Sketch.ink,
+    flexShrink: 1,
+    textAlign: "center",
   },
 
   backdrop: {

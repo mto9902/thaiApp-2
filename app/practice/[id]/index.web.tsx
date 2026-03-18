@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { Sketch } from "@/constants/theme";
+import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
 import ToneGuide, { ToneGuideButton } from "@/src/components/ToneGuide";
 import {
   DesktopPage,
@@ -48,23 +49,95 @@ function getBreakdownRomanizations(
     return breakdown.map((_, index) => tokens[index] ?? "");
   }
 
-  let cursor = 0;
-  return breakdown.map((item, index) => {
+  if (!hasExplicitRomanization) {
+    return breakdown.map(() => "");
+  }
+
+  return breakdown.map((item) => {
     const explicitRomanization = item.romanization || item.roman;
     if (explicitRomanization) {
-      cursor += explicitRomanization.split(/\s+/).filter(Boolean).length;
       return explicitRomanization;
     }
 
-    if (index === breakdown.length - 1) {
-      const remaining = tokens.slice(cursor).join(" ");
-      cursor = tokens.length;
-      return remaining;
+    return "";
+  });
+}
+
+function getSentenceRomanization(
+  romanization: string,
+  breakdown: { romanization?: string; roman?: string }[],
+) {
+  const explicitRomanization = breakdown.map(
+    (item) => item.romanization || item.roman || "",
+  );
+
+  if (explicitRomanization.length > 0 && explicitRomanization.every(Boolean)) {
+    return explicitRomanization.join(" ");
+  }
+
+  return romanization;
+}
+
+function getKeyForms(
+  focusParticle: string | undefined,
+  focusRomanization: string | undefined,
+  breakdown: { thai: string; grammar?: boolean; romanization?: string; roman?: string }[],
+  romanizations: string[],
+) {
+  const focusForms = (focusParticle || "")
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const focusRomanForms = (focusRomanization || "")
+    .split("/")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (focusForms.length > 0) {
+    return focusForms.map((form, index) => {
+      const explicitFocusRomanization =
+        focusRomanForms.length === focusForms.length
+          ? focusRomanForms[index]
+          : focusRomanForms.length === 1
+            ? focusRomanForms[0]
+            : "";
+
+      const matchIndex = breakdown.findIndex((item) => item.thai.trim() === form);
+      if (matchIndex === -1) {
+        return explicitFocusRomanization
+          ? `${form} (${explicitFocusRomanization})`
+          : form;
+      }
+
+      const match = breakdown[matchIndex];
+      const romanization =
+        explicitFocusRomanization ||
+        match.romanization ||
+        match.roman ||
+        romanizations[matchIndex] ||
+        "";
+
+      return romanization ? `${form} (${romanization})` : form;
+    });
+  }
+
+  const seen = new Set<string>();
+
+  return breakdown.flatMap((item, index) => {
+    if (!item.grammar) {
+      return [];
     }
 
-    const nextToken = tokens[cursor] ?? "";
-    if (nextToken) cursor += 1;
-    return nextToken;
+    const romanization = romanizations[index] || "";
+    const key = `${item.thai}|${romanization}`;
+    if (seen.has(key)) {
+      return [];
+    }
+
+    seen.add(key);
+    return [
+      romanization ? `${item.thai} (${romanization})` : item.thai,
+    ];
   });
 }
 
@@ -80,6 +153,7 @@ export default function GrammarDetailWeb() {
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [previewExample, setPreviewExample] = useState<PracticePreview | null>(null);
 
   const grammar = grammarPoints.find((point) => point.id === id);
   const currentGrammarIds = useMemo(
@@ -117,6 +191,31 @@ export default function GrammarDetailWeb() {
       void checkBookmark();
     }
   }, [checkBookmark, id]);
+
+  useEffect(() => {
+    if (!grammar?.id) {
+      setPreviewExample(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void getPracticePreview(grammar.id)
+      .then((data) => {
+        if (!cancelled) {
+          setPreviewExample(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewExample(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [grammar?.id]);
 
   async function toggleBookmark() {
     try {
@@ -218,10 +317,27 @@ export default function GrammarDetailWeb() {
   }
 
   const explanation = grammar.explanation || "No explanation provided yet.";
-  const example = grammar.example;
+  const example = previewExample
+    ? {
+        thai: previewExample.thai,
+        roman: previewExample.romanization,
+        english: previewExample.english,
+        breakdown: previewExample.breakdown,
+      }
+    : grammar.example;
   const exampleRomanTokens = getBreakdownRomanizations(
     example.roman || "",
     example.breakdown,
+  );
+  const exampleDisplayRomanization = getSentenceRomanization(
+    example.roman || "",
+    example.breakdown,
+  );
+  const keyForms = getKeyForms(
+    grammar.focus?.particle,
+    grammar.focus?.romanization,
+    example.breakdown,
+    exampleRomanTokens,
   );
 
   return (
@@ -249,6 +365,12 @@ export default function GrammarDetailWeb() {
                 title="Concept"
                 caption="Read the core explanation before moving into the example."
               />
+              {keyForms.length > 0 ? (
+                <View style={styles.keyFormBlock}>
+                  <Text style={styles.keyFormLabel}>Key form</Text>
+                  <Text style={styles.keyFormText}>{keyForms.join(" / ")}</Text>
+                </View>
+              ) : null}
               <Text style={styles.bodyText}>{explanation}</Text>
             </DesktopPanel>
 
@@ -289,7 +411,9 @@ export default function GrammarDetailWeb() {
                 >
                   <View style={styles.exampleInfoCard}>
                     <Text style={styles.exampleInfoLabel}>Romanization</Text>
-                    <Text style={styles.exampleInfoLead}>{example.roman}</Text>
+                    <Text style={styles.exampleInfoLead}>
+                      {exampleDisplayRomanization}
+                    </Text>
                   </View>
                   <View style={styles.exampleInfoCard}>
                     <Text style={styles.exampleInfoLabel}>Meaning</Text>
@@ -433,6 +557,25 @@ const styles = StyleSheet.create({
   bodyText: {
     fontSize: 16,
     lineHeight: 28,
+    color: Sketch.ink,
+  },
+  keyFormBlock: {
+    marginBottom: 18,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: Sketch.inkFaint,
+  },
+  keyFormLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: Sketch.inkMuted,
+    marginBottom: 8,
+  },
+  keyFormText: {
+    fontSize: 16,
+    lineHeight: 26,
     color: Sketch.ink,
   },
   thaiText: {

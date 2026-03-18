@@ -1,4 +1,8 @@
 import { b2GrammarPoints } from "./grammarB2";
+import {
+  GRAMMAR_EXPLANATION_OVERRIDES,
+  GRAMMAR_FOCUS_ROMANIZATION_OVERRIDES,
+} from "./grammarContentOverrides";
 import { CefrLevel } from "./grammarLevels";
 import { GRAMMAR_STAGE_BY_ID, GrammarStage } from "./grammarStages";
 
@@ -31,6 +35,7 @@ export interface GrammarPoint {
   focus: {
     particle: string;
     meaning: string;
+    romanization?: string;
   };
 }
 
@@ -788,7 +793,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Completed Action with แล้ว",
     level: "A2",
     explanation:
-      "แล้ว marks completion, change, or already. It helps learners distinguish finished actions from present states in a natural Thai way.",
+      "`แล้ว` is placed after the action to show that it is finished or already true. Use it when you want to say something has already happened, is complete, or has changed.",
     pattern: "CLAUSE + แล้ว",
     example: {
       thai: "ฉันกินข้าวแล้ว",
@@ -804,6 +809,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "แล้ว",
       meaning: "Completion marker for actions or changes of state.",
+      romanization: "láeo",
     },
   },
   {
@@ -811,7 +817,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Recent Past with เพิ่ง",
     level: "A2",
     explanation:
-      "เพิ่ง lets speakers say that something just happened. It is common in everyday updates, excuses, and simple conversation.",
+      "`เพิ่ง` means just recently. Put it before the verb when you want to say that something happened a short time ago.",
     pattern: "SUBJECT + เพิ่ง + VERB",
     example: {
       thai: "ฉันเพิ่งกินข้าว",
@@ -827,6 +833,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "เพิ่ง",
       meaning: "Marker for something that happened only a short time ago.",
+      romanization: "phêng",
     },
   },
   {
@@ -834,7 +841,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Duration with เป็นเวลา / มานาน",
     level: "A2",
     explanation:
-      "A2 learners need to describe how long something has lasted. Thai often does this with เป็นเวลา for set duration and มานาน for a long period up to now.",
+      "`เป็นเวลา` is used with a specific length of time, while `มานานแล้ว` shows that something has been true or happening for a long time. Use these when you want to say how long an action or situation has lasted.",
     pattern: "VERB + เป็นเวลา + DURATION / VERB + มานานแล้ว",
     example: {
       thai: "เขาอยู่ที่นี่มานานแล้ว",
@@ -852,6 +859,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "เป็นเวลา / มานาน",
       meaning:
         "Common duration frames for fixed time and long-lasting situations.",
+      romanization: "pen welaa / maa naan",
     },
   },
   {
@@ -859,7 +867,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Knowing with รู้ / รู้จัก",
     level: "A2",
     explanation:
-      "Thai separates knowing information from being familiar with a person or place. This distinction appears often once learners begin giving more precise personal details.",
+      "`รู้` is for knowing a fact, answer, or piece of information. `รู้จัก` is for being familiar with a person, place, or thing. Thai keeps these two ideas separate, so choose the one that matches what kind of knowing you mean.",
     pattern: "รู้ + FACT / รู้จัก + PERSON OR PLACE",
     example: {
       thai: "ฉันรู้จักเขาแต่ไม่รู้ชื่อ",
@@ -879,6 +887,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "รู้ / รู้จัก",
       meaning:
         "รู้ is for facts or information, while รู้จัก is for familiarity with people or places.",
+      romanization: "rúu / rúujàk",
     },
   },
   {
@@ -886,7 +895,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Female Politeness with คะ / ค่ะ",
     level: "A2",
     explanation:
-      "Female speakers usually use คะ with questions and ค่ะ with statements or responses. This tonal contrast matters for natural, polite speech.",
+      "Use `คะ` at the end of a question when a female speaker is asking something. Use `ค่ะ` at the end of a statement, answer, or polite reply. A simple way to remember it is: if you are asking, use `คะ`; if you are answering or saying something, use `ค่ะ`.",
     pattern: "QUESTION + คะ / STATEMENT + ค่ะ",
     example: {
       thai: "วันนี้ว่างไหมคะ",
@@ -903,6 +912,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "คะ / ค่ะ",
       meaning:
         "Female politeness particles differ by function and tone in questions versus statements.",
+      romanization: "khá / khâ",
     },
   },
   {
@@ -910,7 +920,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Frequency with บ่อย / เสมอ / บางครั้ง",
     level: "A2",
     explanation:
-      "Frequency adverbs help learners move from isolated actions to routine and habit. They are essential for describing everyday life more fully.",
+      "These words tell you how often something happens. Use them to talk about habits and routines, from often to always to sometimes.",
     pattern: "SUBJECT + VERB + บ่อย / เสมอ / บางครั้ง",
     example: {
       thai: "ฉันไปยิมบ่อย",
@@ -926,6 +936,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "บ่อย / เสมอ / บางครั้ง",
       meaning: "Common adverbs for often, always, and sometimes.",
+      romanization: "bòi / samǒe / baang khráng",
     },
   },
   {
@@ -933,7 +944,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Preference with ชอบ",
     level: "A2",
     explanation:
-      "ชอบ expresses liking or enjoying something. It is a practical structure for speaking about tastes, habits, and opinions.",
+      "`ชอบ` means to like or enjoy something. Use it for food, activities, music, places, and habits when you want to talk about personal taste.",
     pattern: "SUBJECT + ชอบ + NOUN / VERB",
     example: {
       thai: "น้องชอบกาแฟ",
@@ -948,6 +959,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ชอบ",
       meaning: "Preference verb meaning like or enjoy.",
+      romanization: "chôop",
     },
   },
   {
@@ -955,7 +967,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Learned Skills with เป็น",
     level: "A2",
     explanation:
-      "After action verbs, เป็น can show that someone knows how to do a learned skill. This is common with swimming, driving, cooking, and similar abilities.",
+      "After an action verb, `เป็น` can mean know how to rather than simply to be. Use it after skills like swimming, cooking, or driving to say someone has learned how to do that action.",
     pattern: "SUBJECT + VERB + เป็น",
     example: {
       thai: "พี่ว่ายน้ำเป็น",
@@ -970,6 +982,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "เป็น",
       meaning: "Post-verb marker for learned skill or know how to.",
+      romanization: "pen",
     },
   },
   {
@@ -995,6 +1008,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "ไหว / ไม่ไหว",
       meaning:
         "Marker for whether someone can physically or mentally handle something.",
+      romanization: "wǎi / mâi wǎi",
     },
   },
   {
@@ -1002,7 +1016,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Permission and Possibility with ได้",
     level: "A2",
     explanation:
-      "Besides basic ability, ได้ can show that something is allowed or possible in a situation. This gives learners a more flexible use of a very common word.",
+      "After a verb, `ได้` can mean that something is allowed, possible, or available in the situation. It is one of the most common Thai words, so context matters.",
     pattern: "VERB + ได้",
     example: {
       thai: "ที่นี่ถ่ายรูปได้",
@@ -1018,6 +1032,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "ได้",
       meaning:
         "Can mark permission, opportunity, or possibility depending on context.",
+      romanization: "dâi",
     },
   },
   {
@@ -1025,7 +1040,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Comparatives with กว่า",
     level: "A2",
     explanation:
-      "กว่า is the main way to compare two things in Thai. It belongs in A2 because learners quickly need to talk about bigger, smaller, better, and cheaper.",
+      "`กว่า` is the main Thai word for comparing two things. Put it after the adjective to say one thing is bigger, better, cheaper, or more something than another.",
     pattern: "X + ADJECTIVE + กว่า + Y",
     example: {
       thai: "ห้องนี้ใหญ่กว่าห้องนั้น",
@@ -1043,6 +1058,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "กว่า",
       meaning: "Core Thai marker for comparison between two things.",
+      romanization: "kwàa",
     },
   },
   {
@@ -1050,7 +1066,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Superlatives with ที่สุด",
     level: "A2",
     explanation:
-      "ที่สุด marks the strongest point in a comparison. Learners use it to say which thing is the most, best, or least in a set.",
+      "`ที่สุด` marks the strongest point in a group: the most, the best, the biggest, the cheapest. Add it after the describing word when you want to point to the extreme end of a comparison.",
     pattern: "ADJECTIVE + ที่สุด",
     example: {
       thai: "ร้านนี้ถูกที่สุด",
@@ -1066,6 +1082,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ที่สุด",
       meaning: "Superlative marker meaning the most or the -est.",
+      romanization: "thîi-sùt",
     },
   },
   {
@@ -1073,7 +1090,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Quantifiers with ทุก / บาง / หลาย",
     level: "A2",
     explanation:
-      "Quantifiers let learners talk about groups, patterns, and exceptions. They are essential once conversation moves beyond single objects and people.",
+      "`ทุก`, `บาง`, and `หลาย` help you talk about groups instead of single things. Use them for ideas like every, some, and many.",
     pattern: "ทุก / บาง / หลาย + NOUN OR CLASSIFIER",
     example: {
       thai: "นักเรียนหลายคนมาแล้ว",
@@ -1090,6 +1107,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ทุก / บาง / หลาย",
       meaning: "Quantifiers for every, some, and many.",
+      romanization: "thúk / baang / lǎai",
     },
   },
   {
@@ -1097,7 +1115,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Sequencing with หลังจากนั้น / ต่อมา",
     level: "A2",
     explanation:
-      "These linkers help learners connect events into a simple sequence. They are important for narration, instructions, and describing routines.",
+      "`หลังจากนั้น` and `ต่อมา` move the story forward. Use them when you want to say after that or then and keep events in order.",
     pattern: "CLAUSE + หลังจากนั้น / ต่อมา + CLAUSE",
     example: {
       thai: "กินข้าวแล้ว หลังจากนั้นเราไปตลาด",
@@ -1116,6 +1134,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "หลังจากนั้น / ต่อมา",
       meaning: "Sequence markers meaning after that and later on.",
+      romanization: "lǎngjàak nán / tòo-maa",
     },
   },
   {
@@ -1123,7 +1142,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Necessity with ต้อง",
     level: "A2",
     explanation:
-      "ต้อง marks necessity, obligation, or something that has to happen. It is common in daily planning, responsibilities, and routine expectations.",
+      "`ต้อง` means must, have to, or need to. Use it before the verb when something is necessary, required, or unavoidable.",
     pattern: "SUBJECT + ต้อง + VERB",
     example: {
       thai: "เราต้องตื่นเช้า",
@@ -1139,6 +1158,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ต้อง",
       meaning: "Obligation or necessity marker before the verb.",
+      romanization: "tông",
     },
   },
   {
@@ -1146,7 +1166,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Advice and Expectation with ควร / น่าจะ",
     level: "A2",
     explanation:
-      "ควร gives advice, while น่าจะ often expresses what someone should probably do or what is likely. Both are useful once learners begin guiding, suggesting, and estimating.",
+      "`ควร` gives direct advice and means should. `น่าจะ` is softer and is used for expectation, likelihood, or a guess about what is probably true. Use `ควร` to guide someone clearly. Use `น่าจะ` when you want to sound less direct or talk about what is likely.",
     pattern: "SUBJECT + ควร / น่าจะ + VERB",
     example: {
       thai: "คุณควรพักก่อน",
@@ -1162,6 +1182,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ควร / น่าจะ",
       meaning: "Common markers for advice, expectation, and likely judgment.",
+      romanization: "khuan / nâa-jà",
     },
   },
   {
@@ -1169,7 +1190,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Descriptive Prefix น่า-",
     level: "A2",
     explanation:
-      "The prefix น่า often creates meanings such as interesting, lovable, or worrying. It lets learners express reactions and evaluations more naturally.",
+      "The prefix `น่า-` adds the idea worthy of or likely to make you feel something. That is why it can create meanings like interesting, lovable, scary, or worrying.",
     pattern: "น่า + ADJECTIVE / VERB",
     example: {
       thai: "หนังเรื่องนี้น่าสนใจ",
@@ -1186,6 +1207,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "น่า-",
       meaning:
         "Prefix that adds a sense of worthiness, appeal, or expected reaction.",
+      romanization: "nâa-",
     },
   },
   {
@@ -1193,7 +1215,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Feelings with รู้สึก",
     level: "A2",
     explanation:
-      "รู้สึก helps learners talk about inner states instead of only describing outside facts. It is important for personal conversation and simple self-expression.",
+      "`รู้สึก` is the common way to talk about how you feel inside. Use it when you want to describe emotions, impressions, or physical states such as feeling tired, happy, or strange.",
     pattern: "SUBJECT + รู้สึก + ADJECTIVE",
     example: {
       thai: "ฉันรู้สึกเหนื่อย",
@@ -1208,6 +1230,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "รู้สึก",
       meaning: "Common verb for expressing an internal feeling or impression.",
+      romanization: "rúusùek",
     },
   },
   {
@@ -1215,7 +1238,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Trying Something with ลอง...ดู",
     level: "A2",
     explanation:
-      "ลอง frames an action as an experiment, suggestion, or gentle instruction. It appears often in recommendations and spoken interaction.",
+      "`ลอง...ดู` makes an action sound like trying it out, giving it a go, or making a gentle suggestion. It is very common when offering advice or asking someone to test something.",
     pattern: "ลอง + VERB + ดู",
     example: {
       thai: "ลองชิมดู",
@@ -1230,6 +1253,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ลอง...ดู",
       meaning: "Pattern for trying something out to see the result.",
+      romanization: "lông...duu",
     },
   },
   {
@@ -1237,7 +1261,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Resultative Verbs with ออก / สำเร็จ",
     level: "A2",
     explanation:
-      "Resultative complements show whether an action works or reaches a successful result. This is common in practical, everyday Thai.",
+      "These result words show what happened after the action: whether something came out, worked, or was successfully completed. They help Thai sound more precise and natural.",
     pattern: "VERB + ออก / VERB + สำเร็จ",
     example: {
       thai: "เขาทำงานสำเร็จแล้ว",
@@ -1254,6 +1278,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       particle: "ออก / สำเร็จ",
       meaning:
         "Result markers showing whether an action works or is successfully completed.",
+      romanization: "òok / sǎmrèt",
     },
   },
   {
@@ -1261,7 +1286,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Relative Clauses with ที่",
     level: "A2",
     explanation:
-      "ที่ links a noun to extra information about it. This helps learners connect short ideas into more natural, compact sentences.",
+      "`ที่` adds extra information to a noun, like the person who..., the book that..., or the place where.... It lets you combine short ideas into one more natural sentence.",
     pattern: "NOUN + ที่ + CLAUSE",
     example: {
       thai: "หนังสือที่ฉันซื้อแพง",
@@ -1278,6 +1303,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ที่",
       meaning: "Flexible linker used for relative clauses in Thai.",
+      romanization: "thîi",
     },
   },
   {
@@ -1285,7 +1311,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Passive with ถูก / โดน",
     level: "A2",
     explanation:
-      "ถูก and โดน describe things that happen to someone, often with an unwanted effect. Learners meet this often in daily talk about minor problems and events.",
+      "`ถูก` and `โดน` show that something happened to the subject. They are often used when the experience affects the person, especially when it feels unwanted, unexpected, or significant.",
     pattern: "SUBJECT + ถูก / โดน + ACTION",
     example: {
       thai: "เขาโดนครูเรียก",
@@ -1301,6 +1327,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ถูก / โดน",
       meaning: "Passive markers that foreground the affected person.",
+      romanization: "thùuk / doon",
     },
   },
   {
@@ -1308,7 +1335,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Quotes and Thoughts with ว่า",
     level: "A2",
     explanation:
-      "ว่า introduces what someone says, thinks, knows, or hears. It is a core bridge from simple statements to reported ideas.",
+      "`ว่า` introduces what someone says, thinks, knows, or hears. It works like that in sentences such as He said that... or I think that....",
     pattern: "VERB + ว่า + CLAUSE",
     example: {
       thai: "เขาบอกว่าจะมา",
@@ -1325,6 +1352,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ว่า",
       meaning: "Clause introducer for reported speech and thought.",
+      romanization: "wâa",
     },
   },
   {
@@ -1332,7 +1360,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Conditionals with ถ้า...จะ",
     level: "A2",
     explanation:
-      "A2 learners need a simple if-then frame for planning and everyday possibility. Thai commonly uses ถ้า with จะ for this pattern.",
+      "`ถ้า...จะ` is the basic Thai if-then pattern. Use `ถ้า` for the condition and `จะ` for the result you expect to happen.",
     pattern: "ถ้า + CONDITION, SUBJECT + จะ + RESULT",
     example: {
       thai: "ถ้าฝนตกฉันจะอยู่บ้าน",
@@ -1351,6 +1379,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ถ้า...จะ",
       meaning: "Core spoken frame for if-then meaning.",
+      romanization: "thâa...jà",
     },
   },
   {
@@ -1358,7 +1387,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Change of State with ขึ้น / ลง",
     level: "A2",
     explanation:
-      "ขึ้น and ลง show that something increases or decreases. They are useful for weather, prices, emotions, speed, and many everyday changes.",
+      "`ขึ้น` shows increase or movement upward, while `ลง` shows decrease or movement downward. Thai also uses them after adjectives and verbs to show that something has become more or less.",
     pattern: "ADJECTIVE / VERB + ขึ้น / ลง",
     example: {
       thai: "อากาศเย็นลงแล้ว",
@@ -1374,6 +1403,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ขึ้น / ลง",
       meaning: "Common markers showing an upward or downward change.",
+      romanization: "khûen / long",
     },
   },
   {
@@ -1381,7 +1411,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     title: "Purpose with เพื่อ / ให้",
     level: "A2",
     explanation:
-      "Purpose markers help learners explain why they do something. เพื่อ and ให้ are common ways to show intended result or goal in everyday Thai.",
+      "`เพื่อ` and `ให้` help you say the purpose of an action. Use them for meanings like in order to and so that when you explain the goal behind what someone does.",
     pattern: "CLAUSE + เพื่อ / ให้ + PURPOSE",
     example: {
       thai: "ฉันพูดช้าๆเพื่อให้ทุกคนเข้าใจ",
@@ -1399,6 +1429,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "เพื่อ / ให้",
       meaning: "Purpose markers for in order to and so that.",
+      romanization: "phûea / hâi",
     },
   },
 
@@ -2642,6 +2673,14 @@ export const grammarPoints: GrammarPoint[] = rawGrammarPoints
 
     return {
       ...point,
+      explanation:
+        GRAMMAR_EXPLANATION_OVERRIDES[point.id] ?? point.explanation,
+      focus: {
+        ...point.focus,
+        romanization:
+          point.focus.romanization ??
+          GRAMMAR_FOCUS_ROMANIZATION_OVERRIDES[point.id],
+      },
       stage: stageConfig.stage,
       stageOrder: stageConfig.stageOrder,
       lessonOrder: stageConfig.lessonOrder,

@@ -51,6 +51,7 @@ type Draft = {
 };
 
 type BulkMode = "rows" | "thai" | "romanization" | "english";
+type RowsViewMode = "cards" | "table";
 
 const BULK_LABELS: Record<BulkMode, string> = {
   rows: "Rows TSV",
@@ -152,6 +153,21 @@ function applyColumn(
   return next;
 }
 
+function summarizeBreakdown(breakdownText: string) {
+  try {
+    const parsed = JSON.parse(breakdownText);
+    if (!Array.isArray(parsed) || parsed.length === 0) return "No breakdown";
+    const tokens = parsed
+      .map((item) => (item && typeof item === "object" ? item.thai : ""))
+      .filter((value) => typeof value === "string" && value.trim().length > 0)
+      .slice(0, 4);
+    if (tokens.length === 0) return `${parsed.length} item${parsed.length === 1 ? "" : "s"}`;
+    return `${tokens.join(" | ")}${parsed.length > tokens.length ? " ..." : ""}`;
+  } catch {
+    return "Invalid JSON";
+  }
+}
+
 export default function AdminGrammarEditorWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -171,6 +187,7 @@ export default function AdminGrammarEditorWeb() {
   const [bulkVisible, setBulkVisible] = useState(false);
   const [bulkMode, setBulkMode] = useState<BulkMode>("rows");
   const [bulkText, setBulkText] = useState("");
+  const [rowsViewMode, setRowsViewMode] = useState<RowsViewMode>("cards");
 
   const isWide = width >= 1180;
   const isMedium = width >= 940;
@@ -546,9 +563,30 @@ export default function AdminGrammarEditorWeb() {
             <DesktopPanel>
               <DesktopSectionTitle
                 title="Practice rows"
-                caption={`${rows.length} rows loaded. Use a compact list on desktop and open one at a time to edit it.`}
+                caption={
+                  rowsViewMode === "cards"
+                    ? `${rows.length} rows loaded. Use a compact list on desktop and open one at a time to edit it.`
+                    : `${rows.length} rows loaded. Spreadsheet view shows every row in one place.`
+                }
                 action={
                   <View style={styles.toolbar}>
+                    <View style={styles.viewToggle}>
+                      {(["cards", "table"] as const).map((mode) => {
+                        const active = rowsViewMode === mode;
+                        return (
+                          <TouchableOpacity
+                            key={mode}
+                            style={[styles.viewToggleButton, active && styles.viewToggleButtonActive]}
+                            onPress={() => setRowsViewMode(mode)}
+                            activeOpacity={0.82}
+                          >
+                            <Text style={[styles.viewToggleText, active && styles.viewToggleTextActive]}>
+                              {mode === "cards" ? "Cards" : "Table"}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                     <TouchableOpacity style={styles.secondaryButton} onPress={openBulkTools} activeOpacity={0.82}>
                       <Text style={styles.secondaryButtonText}>Bulk tools</Text>
                     </TouchableOpacity>
@@ -558,24 +596,51 @@ export default function AdminGrammarEditorWeb() {
                   </View>
                 }
               />
-              <View style={styles.rowGrid}>
-                {shownRows.map((row, index) => (
-                  <TouchableOpacity key={row.key} style={[styles.rowCard, isMedium ? { width: "31.8%" } : { width: "100%" }]} onPress={() => openEditRow(row)} activeOpacity={0.82}>
-                    <View style={styles.rowCardTop}>
-                      <Text style={styles.rowIndex}>Row {index + 1}</Text>
-                      <Text style={styles.rowDifficulty}>{row.difficulty}</Text>
+              {rowsViewMode === "cards" ? (
+                <>
+                  <View style={styles.rowGrid}>
+                    {shownRows.map((row, index) => (
+                      <TouchableOpacity key={row.key} style={[styles.rowCard, isMedium ? { width: "31.8%" } : { width: "100%" }]} onPress={() => openEditRow(row)} activeOpacity={0.82}>
+                        <View style={styles.rowCardTop}>
+                          <Text style={styles.rowIndex}>Row {index + 1}</Text>
+                          <Text style={styles.rowDifficulty}>{row.difficulty}</Text>
+                        </View>
+                        <Text style={styles.rowThai} numberOfLines={1}>{row.thai || "Untitled row"}</Text>
+                        <Text style={styles.rowEnglish} numberOfLines={1}>{row.english || "No English gloss yet"}</Text>
+                        <Text style={styles.rowRoman} numberOfLines={1}>{row.romanization || "No romanization yet"}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {rows.length > visibleRows ? (
+                    <TouchableOpacity style={styles.secondaryButton} onPress={() => setVisibleRows((current) => Math.min(rows.length, current + 20))} activeOpacity={0.82}>
+                      <Text style={styles.secondaryButtonText}>Show 20 more rows</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableScrollContent}>
+                  <View style={styles.table}>
+                    <View style={[styles.tableRow, styles.tableHeaderRow]}>
+                      <Text style={[styles.tableCell, styles.tableCellIndex, styles.tableHeaderText]}>#</Text>
+                      <Text style={[styles.tableCell, styles.tableCellThai, styles.tableHeaderText]}>Thai</Text>
+                      <Text style={[styles.tableCell, styles.tableCellRoman, styles.tableHeaderText]}>Romanization</Text>
+                      <Text style={[styles.tableCell, styles.tableCellEnglish, styles.tableHeaderText]}>English</Text>
+                      <Text style={[styles.tableCell, styles.tableCellDifficulty, styles.tableHeaderText]}>Difficulty</Text>
+                      <Text style={[styles.tableCell, styles.tableCellBreakdown, styles.tableHeaderText]}>Breakdown</Text>
                     </View>
-                    <Text style={styles.rowThai} numberOfLines={1}>{row.thai || "Untitled row"}</Text>
-                    <Text style={styles.rowEnglish} numberOfLines={1}>{row.english || "No English gloss yet"}</Text>
-                    <Text style={styles.rowRoman} numberOfLines={1}>{row.romanization || "No romanization yet"}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {rows.length > visibleRows ? (
-                <TouchableOpacity style={styles.secondaryButton} onPress={() => setVisibleRows((current) => Math.min(rows.length, current + 20))} activeOpacity={0.82}>
-                  <Text style={styles.secondaryButtonText}>Show 20 more rows</Text>
-                </TouchableOpacity>
-              ) : null}
+                    {rows.map((row, index) => (
+                      <TouchableOpacity key={row.key} style={styles.tableRow} onPress={() => openEditRow(row)} activeOpacity={0.82}>
+                        <Text style={[styles.tableCell, styles.tableCellIndex]}>{index + 1}</Text>
+                        <Text style={[styles.tableCell, styles.tableCellThai]}>{row.thai || "-"}</Text>
+                        <Text style={[styles.tableCell, styles.tableCellRoman]}>{row.romanization || "-"}</Text>
+                        <Text style={[styles.tableCell, styles.tableCellEnglish]}>{row.english || "-"}</Text>
+                        <Text style={[styles.tableCell, styles.tableCellDifficulty]}>{row.difficulty}</Text>
+                        <Text style={[styles.tableCell, styles.tableCellBreakdown]}>{summarizeBreakdown(row.breakdownText)}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
             </DesktopPanel>
           </View>
         )}
@@ -606,6 +671,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+  },
+  viewToggle: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+  },
+  viewToggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  viewToggleButtonActive: {
+    backgroundColor: Sketch.cardBg,
+  },
+  viewToggleText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+  },
+  viewToggleTextActive: {
+    color: Sketch.ink,
   },
   toolbar: {
     flexDirection: "row",
@@ -758,6 +844,64 @@ const styles = StyleSheet.create({
   },
   rowRoman: {
     fontSize: 12,
+    color: Sketch.inkMuted,
+  },
+  tableScrollContent: {
+    paddingBottom: 4,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+    minWidth: 1120,
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+  },
+  tableHeaderRow: {
+    borderTopWidth: 0,
+    backgroundColor: Sketch.cardBg,
+  },
+  tableCell: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Sketch.ink,
+    borderLeftWidth: 1,
+    borderLeftColor: Sketch.inkFaint,
+  },
+  tableHeaderText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  tableCellIndex: {
+    width: 56,
+    borderLeftWidth: 0,
+  },
+  tableCellThai: {
+    width: 230,
+    fontWeight: "700",
+  },
+  tableCellRoman: {
+    width: 240,
+    color: Sketch.inkMuted,
+  },
+  tableCellEnglish: {
+    width: 300,
+    color: Sketch.inkLight,
+  },
+  tableCellDifficulty: {
+    width: 110,
+    textTransform: "uppercase",
+  },
+  tableCellBreakdown: {
+    width: 280,
     color: Sketch.inkMuted,
   },
   overlay: {

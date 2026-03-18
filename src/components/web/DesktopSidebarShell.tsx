@@ -5,6 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import BrandMark from "@/src/components/BrandMark";
 import { canAccessApp } from "@/src/utils/auth";
 
 type NavItem = {
@@ -90,8 +91,13 @@ export default function DesktopSidebarShell({
       <View style={styles.shell}>
         <View style={styles.sidebar}>
           <View style={styles.brandBlock}>
-            <Text style={styles.brandEyebrow}>Keystone Thai</Text>
-            <Text style={styles.brandTitle}>Study</Text>
+            <View style={styles.brandRow}>
+              <BrandMark size={42} />
+              <View style={styles.brandTitleWrap}>
+                <Text style={styles.brandEyebrow}>Keystone</Text>
+                <Text style={styles.brandTitle}>Languages</Text>
+              </View>
+            </View>
             <Text style={styles.brandBody}>
               Practice grammar, review vocabulary, and manage your learning in one place.
             </Text>
@@ -153,10 +159,19 @@ const styles = StyleSheet.create({
     gap: 28,
   },
   brandBlock: {
-    gap: 6,
+    gap: 10,
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: Sketch.inkFaint,
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  brandTitleWrap: {
+    flex: 1,
+    gap: 2,
   },
   brandEyebrow: {
     fontSize: 12,
@@ -166,11 +181,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   brandTitle: {
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -0.7,
+    letterSpacing: -0.4,
   },
   brandBody: {
     fontSize: 13,

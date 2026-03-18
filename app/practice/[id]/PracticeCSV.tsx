@@ -99,6 +99,24 @@ const MODE_META: Record<Mode, { tag: string; title: string }> = {
   matchThai: { tag: "MATCH", title: "Choose the correct sentence" },
 };
 
+function getPracticeHeaderTitle(grammarPoint: {
+  title?: string;
+  focus?: { particle?: string };
+  pattern?: string;
+} | null) {
+  const focusParticle = grammarPoint?.focus?.particle?.trim();
+  if (focusParticle && focusParticle.length <= 32) {
+    return focusParticle;
+  }
+
+  const pattern = grammarPoint?.pattern?.trim();
+  if (pattern && pattern.length <= 32) {
+    return pattern;
+  }
+
+  return grammarPoint?.title || "Practice";
+}
+
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
 const PREF_AUTOPLAY_TTS = "pref_autoplay_tts";
@@ -112,6 +130,8 @@ interface SentenceData {
     english: string;
     tone?: string;
     grammar?: boolean;
+    romanization?: string;
+    roman?: string;
   }[];
 }
 
@@ -169,12 +189,30 @@ function computePrefill(
   return breakdown.map((w, i) => (prefillIndices.has(i) ? w.thai : null));
 }
 
-function splitRomanization(
+function getBreakdownRomanizations(
   romanization: string,
-  breakdownLength: number,
+  breakdown: { romanization?: string; roman?: string }[],
 ): string[] {
-  const tokens = romanization.split(/\s+/);
-  return Array.from({ length: breakdownLength }, (_, i) => tokens[i] ?? "");
+  const tokens = romanization.split(/\s+/).filter(Boolean);
+  if (!tokens.length) {
+    return breakdown.map((item) => item.romanization || item.roman || "");
+  }
+
+  const hasExplicitRomanization = breakdown.some(
+    (item) => item.romanization || item.roman,
+  );
+
+  if (!hasExplicitRomanization && tokens.length === breakdown.length) {
+    return breakdown.map((_, index) => tokens[index] ?? "");
+  }
+
+  if (!hasExplicitRomanization) {
+    return breakdown.map(() => "");
+  }
+
+  return breakdown.map(
+    (item) => item.romanization || item.roman || "",
+  );
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -441,9 +479,9 @@ export default function PracticeCSV() {
       setGrammarPoint(gobj);
       setBreakdown(main.breakdown);
 
-      const perWordRoman = splitRomanization(
+      const perWordRoman = getBreakdownRomanizations(
         main.romanization,
-        main.breakdown.length,
+        main.breakdown,
       );
       setRomanTokens(perWordRoman);
 
@@ -622,7 +660,7 @@ export default function PracticeCSV() {
                   ? mixSource === "progress"
                     ? "Studied Grammar"
                     : "Quick Practice"
-                  : grammarPoint?.title || "Practice"
+                  : getPracticeHeaderTitle(grammarPoint)
               }
               onBack={() => router.back()}
               showClose
@@ -654,7 +692,7 @@ export default function PracticeCSV() {
                 ? mixSource === "progress"
                   ? "Studied Grammar"
                   : "Quick Practice"
-                : grammarPoint?.title || "Practice"
+                : getPracticeHeaderTitle(grammarPoint)
             }
             onBack={() => router.back()}
             showClose
@@ -1057,9 +1095,9 @@ export default function PracticeCSV() {
                     const isSelected = selectedOption === idx;
                     const isCorrect = opt.isCorrect;
                     const isExpanded = expandedMatchOption === idx;
-                    const optRomanTokens = splitRomanization(
+                    const optRomanTokens = getBreakdownRomanizations(
                       opt.romanization,
-                      opt.breakdown.length,
+                      opt.breakdown,
                     );
 
                     let borderColor = Sketch.inkFaint;

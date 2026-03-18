@@ -26,6 +26,7 @@ type RawGrammarPointLike = {
   focus: {
     particle: string;
     meaning: string;
+    romanization?: string;
   };
 };
 
