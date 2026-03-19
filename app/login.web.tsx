@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import GoogleAuthButton from "@/src/components/GoogleAuthButton";
+import AuthShell from "@/src/components/web/AuthShell";
 import { API_BASE } from "@/src/config";
 import { clearAuthToken, setAuthToken } from "@/src/utils/authStorage";
 
@@ -56,7 +57,7 @@ export default function LoginWeb() {
       router.replace("/(tabs)");
     } catch {
       setError(
-        "We could not reach the server. If you are using the hosted web app, make sure the API is available on the same HTTPS domain or set EXPO_PUBLIC_API_BASE.",
+        "We could not reach the server right now. Please try again in a moment.",
       );
     } finally {
       setSubmitting(false);
@@ -64,102 +65,104 @@ export default function LoginWeb() {
   }
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safe}>
-      <View style={styles.shell}>
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Keystone Thai</Text>
-          <Text style={styles.title}>Sign in</Text>
-          <Text style={styles.subtitle}>
-            Log in to continue grammar, vocabulary review, bookmarks, and your saved progress.
-          </Text>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+      <AuthShell
+        pageEyebrow="Keystone Thai"
+        pageTitle="Grammar that stays connected."
+        pageSubtitle="Come back to the same lesson flow, the same review tools, and the same progress across web and mobile."
+        rightEyebrow="Sign in"
+        rightTitle="Welcome back"
+        rightSubtitle="Use your email or Google account to continue where you left off."
+        footerNote="No gamification, real understanding."
+        secondaryActionLabel="Create account"
+        onSecondaryActionPress={() => router.push("/register")}
+        features={[
+          {
+            eyebrow: "Study",
+            title: "Pick up the next topic quickly",
+            body: "Open a lesson, hear the example, and move straight into practice without re-learning the interface.",
+          },
+          {
+            eyebrow: "Sync",
+            title: "Keep progress across devices",
+            body: "Grammar progress, bookmarks, review cards, and Keystone Access stay tied to your account.",
+          },
+          {
+            eyebrow: "Review",
+            title: "Return to saved words and lessons",
+            body: "Your vocabulary review and bookmarked grammar stay available when you switch between web and mobile.",
+          },
+          {
+            eyebrow: "Free start",
+            title: "Browse first, unlock more when ready",
+            body: "Start with the open lessons, then move into the full path only when you want deeper study.",
+          },
+        ]}
+      >
+        <View style={styles.form}>
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor={Sketch.inkMuted}
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            autoComplete="email"
+            textContentType="emailAddress"
+            keyboardType="email-address"
+          />
 
-          <View style={styles.heroCard}>
-            <Text style={styles.heroCardTitle}>What carries across devices</Text>
-            <Text style={styles.heroCardBody}>
-              Grammar progress, vocabulary review, saved lessons, activity heatmap,
-              and your Keystone Access status.
-            </Text>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor={Sketch.inkMuted}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            textContentType="password"
+            autoComplete="password"
+          />
+
+          <TouchableOpacity
+            style={[styles.inlineLinkWrap, submitting && styles.disabledAction]}
+            onPress={() => router.push("/forgot-password")}
+            disabled={submitting}
+          >
+            <Text style={styles.inlineLinkText}>Forgot password?</Text>
+          </TouchableOpacity>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={[styles.primaryButton, submitting && styles.disabledAction]}
+            onPress={handleLogin}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Log in</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
           </View>
+
+          <GoogleAuthButton />
+
+          <TouchableOpacity style={styles.ghostButton} onPress={handleGuest}>
+            <Text style={styles.ghostButtonText}>Continue as guest</Text>
+          </TouchableOpacity>
         </View>
-
-        <View style={styles.formPanel}>
-          <Text style={styles.formTitle}>Welcome back</Text>
-          <Text style={styles.formBody}>
-            Use email or Google to get back into your lessons.
-          </Text>
-
-          <View style={styles.form}>
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor={Sketch.inkMuted}
-              value={email}
-              onChangeText={setEmail}
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-              spellCheck={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              keyboardType="email-address"
-            />
-
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor={Sketch.inkMuted}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-              spellCheck={false}
-              textContentType="password"
-              autoComplete="password"
-            />
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={[styles.forgotWrap, submitting && styles.disabledAction]}
-              onPress={() => router.push("/forgot-password")}
-              disabled={submitting}
-            >
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.primaryButton, submitting && styles.disabledAction]}
-              onPress={handleLogin}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Log In</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.secondaryLink}
-              onPress={() => router.push("/register")}
-            >
-              <Text style={styles.secondaryLinkText}>Create account</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <GoogleAuthButton />
-
-            <TouchableOpacity style={styles.ghostButton} onPress={handleGuest}>
-              <Text style={styles.ghostButtonText}>Continue as Guest</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      </AuthShell>
     </SafeAreaView>
   );
 }
@@ -168,79 +171,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: Sketch.paper,
-  },
-  shell: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  hero: {
-    flex: 1.05,
-    paddingHorizontal: 56,
-    paddingVertical: 56,
-    justifyContent: "center",
-    borderRightWidth: 1,
-    borderRightColor: Sketch.inkFaint,
-    gap: 18,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  title: {
-    fontSize: 52,
-    lineHeight: 56,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -1.5,
-  },
-  subtitle: {
-    maxWidth: 520,
-    fontSize: 18,
-    lineHeight: 30,
-    color: Sketch.inkLight,
-  },
-  heroCard: {
-    marginTop: 10,
-    maxWidth: 420,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-    padding: 22,
-    gap: 8,
-  },
-  heroCardTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  heroCardBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkMuted,
-  },
-  formPanel: {
-    width: 480,
-    paddingHorizontal: 48,
-    paddingVertical: 56,
-    justifyContent: "center",
-    gap: 12,
-  },
-  formTitle: {
-    fontSize: 34,
-    lineHeight: 38,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.8,
-  },
-  formBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkMuted,
-    marginBottom: 10,
   },
   form: {
     gap: 12,
@@ -254,20 +184,20 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
     color: Sketch.ink,
   },
-  errorText: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: Sketch.red,
-    marginTop: -4,
-  },
-  forgotWrap: {
+  inlineLinkWrap: {
     alignSelf: "flex-end",
-    marginTop: -4,
+    marginTop: -2,
   },
-  forgotText: {
+  inlineLinkText: {
     fontSize: 13,
     fontWeight: "700",
     color: Sketch.accent,
+  },
+  errorText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Sketch.red,
+    marginTop: -2,
   },
   primaryButton: {
     backgroundColor: Sketch.accent,
@@ -276,6 +206,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: Sketch.accent,
+    marginTop: 4,
   },
   disabledAction: {
     opacity: 0.55,
@@ -285,19 +216,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
-  secondaryLink: {
-    paddingVertical: 6,
-  },
-  secondaryLinkText: {
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "700",
-    color: Sketch.accent,
-  },
   divider: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    marginVertical: 4,
   },
   dividerLine: {
     flex: 1,
