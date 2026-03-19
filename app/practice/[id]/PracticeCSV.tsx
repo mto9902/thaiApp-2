@@ -988,6 +988,9 @@ export default function GrammarExercisesScreen() {
                       style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
                       onPress={() => {
                         handleWordTap(word);
+                        if (autoplayTTS) {
+                          playBreakdownWord(word.thai);
+                        }
                       }}
                       activeOpacity={0.8}
                     >

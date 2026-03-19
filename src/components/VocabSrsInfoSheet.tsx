@@ -204,6 +204,10 @@ const styles = StyleSheet.create({
   sheetWeb: {
     alignSelf: "center",
     borderRadius: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     minHeight: 0,
     paddingHorizontal: 28,
     paddingTop: 24,
@@ -276,6 +280,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 16,
+    alignItems: "flex-start",
   },
   sectionCard: {
     backgroundColor: Sketch.cardBg,
@@ -290,6 +295,7 @@ const styles = StyleSheet.create({
     width: "48.9%",
     padding: 20,
     gap: 12,
+    alignSelf: "flex-start",
   },
   sectionCardWide: {
     width: "100%",
@@ -321,7 +327,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   gradeChipWeb: {
-    width: "48.8%",
+    width: "100%",
   },
   gradeLabelOnDark: {
     color: "#FFFFFF",

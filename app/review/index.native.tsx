@@ -18,9 +18,11 @@ import { submitVocabAnswer } from "../../src/api/submitVocabAnswer";
 import Header, { SettingsState } from "../../src/components/Header";
 import VocabSrsInfoSheet from "../../src/components/VocabSrsInfoSheet";
 import { API_BASE } from "../../src/config";
+import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { useSentenceAudio } from "../../src/hooks/useSentenceAudio";
 import { isGuestUser } from "../../src/utils/auth";
 import { getAuthToken } from "../../src/utils/authStorage";
+import { getAllProgress, isGrammarPracticed } from "../../src/utils/grammarProgress";
 import {
   MUTED_APP_ACCENTS,
   MUTED_FEEDBACK_ACCENTS,
@@ -105,7 +107,7 @@ function formatInterval(days: number): string {
 }
 
 function formatStateLabel(state: string): string {
-  if (state === "relearning") return "Relearning";
+  if (state === "relearning") return "Learning";
   if (state === "review") return "Review";
   if (state === "learning") return "Learning";
   return "New";
@@ -142,6 +144,7 @@ function QueuePill({
 
 export default function ReviewScreen() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const { playSentence, stopSentenceAudio } = useSentenceAudio();
 
   const [loading, setLoading] = useState(true);
@@ -154,6 +157,11 @@ export default function ReviewScreen() {
   const [streak, setStreak] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [waitingMs, setWaitingMs] = useState(0);
+  const [nextGrammarPoint, setNextGrammarPoint] = useState<{
+    id: string;
+    title: string;
+    stage: string;
+  } | null>(null);
 
   const revealAnim = useRef(new Animated.Value(0)).current;
   const feedbackAnim = useRef(new Animated.Value(0)).current;
@@ -260,6 +268,39 @@ export default function ReviewScreen() {
   useEffect(() => {
     loadCardRef.current = loadCard;
   }, [loadCard]);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const allProgress = await getAllProgress();
+        const nextPoint =
+          grammarPoints.find((point) => !isGrammarPracticed(allProgress[point.id])) ??
+          null;
+
+        if (!active) return;
+
+        setNextGrammarPoint(
+          nextPoint
+            ? {
+                id: nextPoint.id,
+                title: nextPoint.title,
+                stage: nextPoint.stage,
+              }
+            : null,
+        );
+      } catch {
+        if (active) {
+          setNextGrammarPoint(null);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [grammarPoints]);
 
   const init = useCallback(async () => {
     const guest = await isGuestUser();
@@ -464,9 +505,21 @@ export default function ReviewScreen() {
             </Text>
             <TouchableOpacity
               style={styles.primaryCta}
-              onPress={() => router.back()}
+              onPress={() =>
+                router.push(
+                  (nextGrammarPoint
+                    ? `/practice/${nextGrammarPoint.id}`
+                    : "/progress") as any,
+                )
+              }
             >
-              <Text style={styles.primaryCtaText}>Back to home</Text>
+              <Text style={styles.primaryCtaText}>Continue learning grammar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryCta}
+              onPress={() => router.replace("/(tabs)" as any)}
+            >
+              <Text style={styles.secondaryCtaText}>Back to home</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -521,9 +574,21 @@ export default function ReviewScreen() {
             </Text>
             <TouchableOpacity
               style={styles.primaryCta}
-              onPress={() => router.back()}
+              onPress={() =>
+                router.push(
+                  (nextGrammarPoint
+                    ? `/practice/${nextGrammarPoint.id}`
+                    : "/progress") as any,
+                )
+              }
             >
-              <Text style={styles.primaryCtaText}>Back to home</Text>
+              <Text style={styles.primaryCtaText}>Continue learning grammar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryCta}
+              onPress={() => router.replace("/(tabs)" as any)}
+            >
+              <Text style={styles.secondaryCtaText}>Back to home</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -533,12 +598,6 @@ export default function ReviewScreen() {
 
   const { newCount = 0, learningCount = 0, reviewCount = 0 } = card.counts ?? {};
   const currentState = card.state ?? "new";
-  const currentStateAccent =
-    currentState === "review"
-      ? MUTED_APP_ACCENTS.sage
-      : currentState === "learning" || currentState === "relearning"
-        ? MUTED_APP_ACCENTS.clay
-        : MUTED_APP_ACCENTS.slate;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
@@ -616,18 +675,8 @@ export default function ReviewScreen() {
           activeOpacity={revealed ? 1 : 0.9}
         >
           <View style={styles.flashcardTop}>
-            <View
-              style={[
-                styles.stateBadge,
-                {
-                  backgroundColor: withAlpha(currentStateAccent, "10"),
-                  borderColor: withAlpha(currentStateAccent, "30"),
-                },
-              ]}
-            >
-              <Text
-                style={[styles.stateBadgeText, { color: currentStateAccent }]}
-              >
+            <View style={styles.stateBadge}>
+              <Text style={styles.stateBadgeText}>
                 {formatStateLabel(currentState)}
               </Text>
             </View>
@@ -861,6 +910,21 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     textAlign: "center",
   },
+  secondaryCta: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.paper,
+    borderRadius: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+  },
+  secondaryCtaText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
   queueRow: {
     flexDirection: "row",
     gap: 10,
@@ -953,7 +1017,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   stateBadge: {
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: Sketch.paper,
     borderRadius: 0,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,

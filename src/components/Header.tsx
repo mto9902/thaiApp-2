@@ -57,7 +57,7 @@ export default function Header({
   onBack,
   showClose,
   showSettings = true,
-  showBrandMark = true,
+  showBrandMark = false,
   showWordBreakdownTtsSetting = false,
   onSettingsChange,
 }: HeaderProps) {

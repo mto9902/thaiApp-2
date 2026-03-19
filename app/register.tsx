@@ -2,7 +2,7 @@ import { Sketch } from "@/constants/theme";
 import TermsAgreement from "@/src/components/TermsAgreement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Alert,
   StyleSheet,
@@ -25,6 +25,7 @@ function isValidPassword(password: string): boolean {
 
 export default function Register() {
   const router = useRouter();
+  const passwordInputRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,12 +98,15 @@ export default function Register() {
             inputMode="email"
             keyboardType="email-address"
             nativeID="register-email"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
           />
           {email.trim().length > 0 && !isValidEmail(email.toLowerCase().trim()) ? (
             <Text style={styles.validationText}>Enter a valid email address.</Text>
           ) : null}
 
           <TextInput
+            ref={passwordInputRef}
             placeholder="Password"
             placeholderTextColor={Sketch.inkMuted}
             secureTextEntry
@@ -115,6 +119,8 @@ export default function Register() {
             autoComplete="new-password"
             textContentType="newPassword"
             nativeID="register-password"
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
           />
           <Text style={styles.helperText}>
             Use at least 8 characters, including uppercase, lowercase, and a number.

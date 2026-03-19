@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -19,6 +19,7 @@ import { clearAuthToken, setAuthToken } from "@/src/utils/authStorage";
 
 export default function LoginWeb() {
   const router = useRouter();
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -112,9 +113,12 @@ export default function LoginWeb() {
             autoComplete="email"
             textContentType="emailAddress"
             keyboardType="email-address"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
           />
 
           <TextInput
+            ref={passwordInputRef}
             placeholder="Password"
             placeholderTextColor={Sketch.inkMuted}
             secureTextEntry
@@ -126,6 +130,8 @@ export default function LoginWeb() {
             spellCheck={false}
             textContentType="password"
             autoComplete="password"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
 
           <TouchableOpacity

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -20,6 +20,7 @@ function isValidEmail(email: string): boolean {
 
 export default function ForgotPasswordWeb() {
   const router = useRouter();
+  const emailInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -97,6 +98,7 @@ export default function ForgotPasswordWeb() {
           {!submitted ? (
             <>
               <TextInput
+                ref={emailInputRef}
                 placeholder="Email"
                 placeholderTextColor={Sketch.inkMuted}
                 value={email}
@@ -108,6 +110,8 @@ export default function ForgotPasswordWeb() {
                 autoComplete="email"
                 textContentType="emailAddress"
                 keyboardType="email-address"
+                returnKeyType="send"
+                onSubmitEditing={handleSubmit}
               />
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}

@@ -21,13 +21,14 @@ import {
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
 import { API_BASE } from "@/src/config";
+import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
+import { getAllProgress, isGrammarPracticed } from "@/src/utils/grammarProgress";
 import {
   MUTED_APP_ACCENTS,
   MUTED_FEEDBACK_ACCENTS,
-  withAlpha,
 } from "@/src/utils/toneAccent";
 
 const PREF_ROMANIZATION = "pref_show_romanization";
@@ -87,7 +88,7 @@ function formatInterval(days: number): string {
 }
 
 function formatStateLabel(state: string) {
-  if (state === "relearning") return "Relearning";
+  if (state === "relearning") return "Learning";
   if (state === "review") return "Review";
   if (state === "learning") return "Learning";
   return "New";
@@ -102,6 +103,7 @@ function timeUntil(nextDueAt: string) {
 
 export default function ReviewWebScreen() {
   const router = useRouter();
+  const { grammarPoints } = useGrammarCatalog();
   const { playSentence, stopSentenceAudio } = useSentenceAudio();
   const [loading, setLoading] = useState(true);
   const [card, setCard] = useState<ReviewCard | null>(null);
@@ -121,6 +123,11 @@ export default function ReviewWebScreen() {
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSrsInfo, setShowSrsInfo] = useState(false);
+  const [nextGrammarPoint, setNextGrammarPoint] = useState<{
+    id: string;
+    title: string;
+    stage: string;
+  } | null>(null);
 
   const revealAnim = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView | null>(null);
@@ -214,6 +221,39 @@ export default function ReviewWebScreen() {
   }, [loadCard]);
 
   useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const allProgress = await getAllProgress();
+        const nextPoint =
+          grammarPoints.find((point) => !isGrammarPracticed(allProgress[point.id])) ??
+          null;
+
+        if (!active) return;
+
+        setNextGrammarPoint(
+          nextPoint
+            ? {
+                id: nextPoint.id,
+                title: nextPoint.title,
+                stage: nextPoint.stage,
+              }
+            : null,
+        );
+      } catch {
+        if (active) {
+          setNextGrammarPoint(null);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [grammarPoints]);
+
+  useEffect(() => {
     void loadPrefs();
     (async () => {
       const guest = await isGuestUser();
@@ -277,12 +317,6 @@ export default function ReviewWebScreen() {
     reviewCount: 0,
   };
   const currentState = card?.state ?? "new";
-  const currentStateAccent =
-    currentState === "review"
-      ? MUTED_APP_ACCENTS.sage
-      : currentState === "learning" || currentState === "relearning"
-        ? MUTED_APP_ACCENTS.clay
-        : MUTED_APP_ACCENTS.slate;
   const ratingOptions = [
     {
       grade: "again" as const,
@@ -378,6 +412,28 @@ export default function ReviewWebScreen() {
                 <Text style={styles.summaryLabel}>Promoted</Text>
               </View>
             </View>
+            <View style={styles.summaryActionRow}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() =>
+                  router.push(
+                    (nextGrammarPoint
+                      ? `/practice/${nextGrammarPoint.id}`
+                      : "/progress") as any,
+                  )
+                }
+                activeOpacity={0.82}
+            >
+              <Text style={styles.primaryButtonText}>Continue learning grammar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+                onPress={() => router.replace("/(tabs)" as any)}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.secondaryButtonText}>Back home</Text>
+              </TouchableOpacity>
+            </View>
           </DesktopPanel>
         ) : !card && waitingPayload ? (
           <DesktopPanel style={styles.statePanel}>
@@ -392,6 +448,26 @@ export default function ReviewWebScreen() {
             <Text style={styles.stateBody}>
               There are no review cards waiting for you right now.
             </Text>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() =>
+                router.push(
+                  (nextGrammarPoint
+                    ? `/practice/${nextGrammarPoint.id}`
+                    : "/progress") as any,
+                )
+              }
+              activeOpacity={0.82}
+            >
+              <Text style={styles.primaryButtonText}>Continue learning grammar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.replace("/(tabs)" as any)}
+              activeOpacity={0.82}
+            >
+              <Text style={styles.secondaryButtonText}>Back home</Text>
+            </TouchableOpacity>
           </DesktopPanel>
         ) : (
           <View style={styles.mainGrid}>
@@ -403,18 +479,8 @@ export default function ReviewWebScreen() {
                 />
                 <View style={styles.cardShell}>
                   <View style={styles.cardTop}>
-                    <View
-                      style={[
-                        styles.stateBadge,
-                        {
-                          backgroundColor: withAlpha(currentStateAccent, "10"),
-                          borderColor: withAlpha(currentStateAccent, "30"),
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.stateBadgeText, { color: currentStateAccent }]}
-                      >
+                    <View style={styles.stateBadge}>
+                      <Text style={styles.stateBadgeText}>
                         {formatStateLabel(currentState)}
                       </Text>
                     </View>
@@ -642,11 +708,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
   },
   stateBadgeText: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.7,
+    color: Sketch.inkMuted,
   },
   speakerButton: {
     width: 42,
@@ -810,6 +879,11 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 13,
     color: Sketch.inkMuted,
+  },
+  summaryActionRow: {
+    marginTop: 16,
+    flexDirection: "row",
+    gap: 12,
   },
   primaryButton: {
     alignItems: "center",
