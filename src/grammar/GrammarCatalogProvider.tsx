@@ -62,6 +62,10 @@ export function GrammarCatalogProvider({ children }: PropsWithChildren) {
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/grammar/overrides`);
+      if (res.status === 404) {
+        setOverrides({});
+        return;
+      }
       if (!res.ok) {
         throw new Error(`Failed to fetch grammar overrides (${res.status})`);
       }
@@ -71,7 +75,7 @@ export function GrammarCatalogProvider({ children }: PropsWithChildren) {
         setOverrides(data as GrammarOverrideMap);
       }
     } catch (err) {
-      console.error("[GrammarCatalog] failed to refresh overrides:", err);
+      console.warn("[GrammarCatalog] using bundled grammar because overrides could not be loaded:", err);
     }
   }, []);
 

@@ -105,6 +105,9 @@ async function getAllServerProgress(
     headers: authHeaders(token),
   });
 
+  if (res.status === 404) {
+    return {};
+  }
   if (!res.ok) {
     throw new Error(`Failed to fetch grammar progress (${res.status})`);
   }

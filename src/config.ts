@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 const DEFAULT_REMOTE_API_BASE = "http://3.0.214.108:3000";
 
 function isLocalHostname(hostname: string) {
@@ -10,7 +12,7 @@ function resolveApiBase() {
     return explicitApiBase;
   }
 
-  if (typeof window === "undefined") {
+  if (Platform.OS !== "web" || typeof window === "undefined") {
     return DEFAULT_REMOTE_API_BASE;
   }
 
