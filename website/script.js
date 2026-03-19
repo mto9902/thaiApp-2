@@ -615,10 +615,11 @@ function setupHeroShowcase() {
   function refreshOrderSlots() {
     const slotsEl = document.getElementById("hero-order-slots");
     if (!slotsEl) return;
+    const prevCount = slotsEl.querySelectorAll(".hero-order-slot").length;
     slotsEl.innerHTML = orderSelected
       .map(
         (s, i) =>
-          `<button class="hero-order-slot" type="button" data-slot-index="${i}">${s.word}</button>`,
+          `<button class="hero-order-slot${i >= prevCount ? " hero-order-slot-new" : ""}" type="button" data-slot-index="${i}">${s.word}</button>`,
       )
       .join("");
   }
@@ -649,9 +650,27 @@ function setupHeroShowcase() {
     const kicker = document.getElementById("hero-kicker");
     if (kicker) kicker.textContent = kickerText[exerciseType] || "";
 
-    if (exerciseType === "breakdown") renderBreakdown();
-    else if (exerciseType === "choose") renderChoose();
-    else if (exerciseType === "order") renderOrder();
+    const doRender = () => {
+      if (exerciseType === "breakdown") renderBreakdown();
+      else if (exerciseType === "choose") renderChoose();
+      else if (exerciseType === "order") renderOrder();
+    };
+
+    // Crossfade transition between exercise states
+    exerciseEl.style.opacity = "0";
+    exerciseEl.style.transform = "translateY(6px)";
+    exerciseEl.style.transition = "opacity 100ms ease, transform 100ms ease";
+
+    setTimeout(() => {
+      doRender();
+      exerciseEl.style.transition = "";
+      exerciseEl.style.opacity = "";
+      exerciseEl.style.transform = "";
+      exerciseEl.classList.remove("is-entering");
+      // force reflow so animation re-triggers
+      void exerciseEl.offsetWidth;
+      exerciseEl.classList.add("is-entering");
+    }, 110);
   }
 
   exerciseEl.addEventListener("click", (e) => {
@@ -733,7 +752,7 @@ function setupPracticeDemo() {
     state.language = language;
     state.stageIndex = 0;
     resetStageState();
-    render();
+    render(true);
 
     if (window.matchMedia("(max-width: 820px)").matches) {
       window.requestAnimationFrame(() => {
@@ -749,7 +768,7 @@ function setupPracticeDemo() {
     state.stageIndex =
       (state.stageIndex + 1) % demoData[state.language].stages.length;
     resetStageState();
-    render();
+    render(true);
   }
 
   function queueAdvance() {
@@ -989,7 +1008,7 @@ function setupPracticeDemo() {
     `;
   }
 
-  function render() {
+  function render(animate = false) {
     tabs.forEach((tab) => {
       tab.classList.toggle(
         "active",
@@ -997,19 +1016,30 @@ function setupPracticeDemo() {
       );
     });
 
-    const stage = getStage();
+    const doRender = () => {
+      const stage = getStage();
+      if (stage.type === "study") root.innerHTML = renderStudyStage(stage);
+      else if (stage.type === "choose") root.innerHTML = renderChooseStage(stage);
+      else root.innerHTML = renderBuildStage(stage);
+    };
 
-    if (stage.type === "study") {
-      root.innerHTML = renderStudyStage(stage);
+    if (animate) {
+      root.style.opacity = "0";
+      root.style.transform = "translateY(6px)";
+      root.style.transition = "opacity 90ms ease, transform 90ms ease";
+      setTimeout(() => {
+        doRender();
+        root.style.transition = "";
+        root.style.opacity = "";
+        root.style.transform = "";
+        root.classList.remove("demo-stage-enter");
+        void root.offsetWidth;
+        root.classList.add("demo-stage-enter");
+      }, 100);
       return;
     }
 
-    if (stage.type === "choose") {
-      root.innerHTML = renderChooseStage(stage);
-      return;
-    }
-
-    root.innerHTML = renderBuildStage(stage);
+    doRender();
   }
 
   tabs.forEach((tab) => {
@@ -1326,6 +1356,77 @@ function setupScreenshotLightbox() {
   });
 }
 
+function setupScrollHeader() {
+  const header = document.querySelector(".site-header");
+  if (!header) return;
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        header.classList.toggle("is-scrolled", window.scrollY > 24);
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
+function setupScrollReveals() {
+  const obs = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          obs.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.08, rootMargin: "0px 0px -24px 0px" },
+  );
+
+  // Section-level reveals
+  [
+    "#products .section-header",
+    "#sample-practice .section-header",
+    "#method .method-overview",
+    "#faq .faq-header",
+    ".course-range-block .section-header",
+    ".why-copy .section-header",
+    ".why-side-note",
+    ".pricing-note",
+  ].forEach((sel) => {
+    document.querySelectorAll(sel).forEach((el) => {
+      el.classList.add("reveal");
+      obs.observe(el);
+    });
+  });
+
+  // Staggered card reveals
+  document
+    .querySelectorAll(
+      ".products-grid .product-card, .feature-grid .feature-card, .screenshots-grid .screenshot-card, .home-pricing-grid .price-card, .course-range-grid .course-range-card",
+    )
+    .forEach((el, i) => {
+      el.classList.add("reveal");
+      el.style.transitionDelay = `${(i % 4) * 75}ms`;
+      obs.observe(el);
+    });
+
+  // Method steps
+  document.querySelectorAll(".method-step-row").forEach((el, i) => {
+    el.classList.add("reveal");
+    el.style.transitionDelay = `${i * 90}ms`;
+    obs.observe(el);
+  });
+
+  // Why points
+  document.querySelectorAll(".why-point-row").forEach((el, i) => {
+    el.classList.add("reveal");
+    el.style.transitionDelay = `${i * 80}ms`;
+    obs.observe(el);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   setupHomepageLoadPosition();
   setupHeroShowcase();
@@ -1334,4 +1435,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAudioDemo();
   setupNav();
   setupScreenshotLightbox();
+  setupScrollHeader();
+  setupScrollReveals();
 });

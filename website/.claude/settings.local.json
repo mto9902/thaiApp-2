@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where npx:*)",
+      "Bash(curl -s http://localhost:8090/)",
+      "Bash(curl -s http://localhost:8090/styles.css)",
+      "Bash(node --check \"C:/Users/Lux/thai-generator/thaiApp-2/website/script.js\")"
+    ]
+  }
+}
