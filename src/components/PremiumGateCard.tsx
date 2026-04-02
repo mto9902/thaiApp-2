@@ -17,19 +17,22 @@ export default function PremiumGateCard({
 }: PremiumGateCardProps) {
   const {
     busy,
+    billingProvider,
     isSupported,
     canMakePurchases,
     openSubscriptionManager,
     restorePremiumAccess,
   } = usePremiumAccess();
 
-  const primaryLabel = !isSupported
-    ? "Available on mobile"
-    : !canMakePurchases
-      ? "Set up subscriptions"
-      : busy
-        ? "Loading..."
-        : "Unlock Keystone Access";
+  const primaryLabel = busy
+    ? "Loading..."
+    : billingProvider === "paddle"
+      ? "Unlock Keystone Access"
+      : !isSupported
+        ? "Available on mobile"
+        : !canMakePurchases
+          ? "Set up subscriptions"
+          : "Unlock Keystone Access";
 
   return (
     <View style={styles.card}>

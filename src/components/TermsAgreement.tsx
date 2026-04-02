@@ -1,6 +1,7 @@
 import { Sketch } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { Alert, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { openPrivacyPolicy, openTermsOfService } from "@/src/utils/legalLinks";
 
 type TermsAgreementProps = {
   accepted: boolean;
@@ -8,45 +9,38 @@ type TermsAgreementProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-function openPlaceholderLink(label: string) {
-  Alert.alert(
-    `${label} link`,
-    `Add your ${label.toLowerCase()} URL here later.`,
-  );
-}
-
 export default function TermsAgreement({
   accepted,
   onToggle,
   style,
 }: TermsAgreementProps) {
   return (
-    <TouchableOpacity
-      style={[styles.row, style]}
-      onPress={onToggle}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
+    <View style={[styles.row, style]}>
+      <TouchableOpacity
+        style={[styles.checkbox, accepted && styles.checkboxChecked]}
+        onPress={onToggle}
+        activeOpacity={0.8}
+      >
         {accepted ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-      </View>
+      </TouchableOpacity>
       <Text style={styles.text}>
         I agree to the{" "}
         <Text
           style={styles.link}
-          onPress={() => openPlaceholderLink("Terms and Conditions")}
+          onPress={() => void openTermsOfService()}
         >
           Terms and Conditions
         </Text>{" "}
         and{" "}
         <Text
           style={styles.link}
-          onPress={() => openPlaceholderLink("Privacy Policy")}
+          onPress={() => void openPrivacyPolicy()}
         >
           Privacy Policy
         </Text>
         .
       </Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 

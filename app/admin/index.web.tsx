@@ -80,7 +80,10 @@ export default function AdminDashboardWeb() {
         return;
       }
 
-      const [dashboardRes, listRes] = await Promise.all([
+      const [meRes, dashboardRes, listRes] = await Promise.all([
+        fetch(`${API_BASE}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
         fetch(`${API_BASE}/admin/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -88,6 +91,12 @@ export default function AdminDashboardWeb() {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
+
+      const meData = meRes.ok ? await meRes.json() : null;
+      if (meData?.is_admin !== true && meData?.can_review_content === true) {
+        router.replace("/content-review" as any);
+        return;
+      }
 
       if (dashboardRes.status === 403 || listRes.status === 403) {
         setAccessDenied(true);
@@ -152,6 +161,13 @@ export default function AdminDashboardWeb() {
         subtitle="Desktop editing and curriculum oversight for lesson content, practice rows, and the most important app-wide counts."
         toolbar={
           <View style={styles.toolbar}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push("/content-review" as any)}
+              activeOpacity={0.82}
+            >
+              <Text style={styles.secondaryButtonText}>Review Queue</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => router.back()}

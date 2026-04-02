@@ -1,0 +1,93 @@
+
+> thaiapp@1.0.0 web
+> expo start --web
+
+env: load .env.local .env
+env: export EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID EXPO_PUBLIC_GOOGLE_WEB_REDIRECT_URI EXPO_PUBLIC_API_BASE EXPO_PUBLIC_RC_ANDROID_API_KEY EXPO_PUBLIC_RC_IOS_API_KEY EXPO_PUBLIC_RC_ENTITLEMENT_ID EXPO_PUBLIC_PADDLE_CLIENT_TOKEN EXPO_PUBLIC_PADDLE_ENV EXPO_PUBLIC_PADDLE_MONTHLY_PRICE_ID EXPO_PUBLIC_PADDLE_YEARLY_PRICE_ID EXPO_PUBLIC_BASE_PATH
+Starting project at C:\Users\Lux\thai-generator\thaiApp-2
+React Compiler enabled
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ node_modules\expo-router\node\render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 1195ms node_modules\expo-router\node\render.js (995 modules)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1400/1400)
+Web Bundled 2792ms node_modules\expo-router\entry.js (1400 modules)
+Web Bundled 394ms node_modules\expo-router\entry.js (1246 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 32ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 399ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 44ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 29ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 321ms node_modules\expo-router\entry.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 22ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 350ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 39ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+λ Bundled 27ms node_modules\expo-router\node\render.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 297ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 21ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 290ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 61ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 37ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 446ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 50ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 28ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 382ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 43ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 26ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 331ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 47ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 153ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 200ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web Bundled 47ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 42ms node_modules\expo-router\node\render.js (1 module)
+Web platform detected. Using RevenueCat in Browser Mode.
+Web platform detected. Using RevenueCat in Preview API Mode.
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 825ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 46ms node_modules\expo-router\entry.js (1 module)

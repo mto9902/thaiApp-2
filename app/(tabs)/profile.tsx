@@ -22,12 +22,14 @@ import {
   getAllProgress,
   isGrammarPracticed,
 } from "../../src/utils/grammarProgress";
+import { getProfileDisplayName } from "../../src/utils/profileName";
 
 type UserProfile = {
   id: number;
   email: string;
   display_name?: string | null;
   is_admin?: boolean;
+  can_review_content?: boolean;
 };
 
 type VocabProgress = {
@@ -101,6 +103,7 @@ export default function Profile() {
         email: meData.email ?? "",
         display_name: meData.display_name ?? null,
         is_admin: meData.is_admin ?? false,
+        can_review_content: meData.can_review_content ?? false,
       });
       setProgress(progressData);
       const validBookmarkCount = Array.isArray(bookmarksData)
@@ -175,8 +178,7 @@ export default function Profile() {
     );
   }
 
-  const profileName =
-    profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
+  const profileName = getProfileDisplayName(profile);
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
@@ -285,6 +287,15 @@ export default function Profile() {
               route: "/settings",
               icon: "settings-outline",
             },
+            ...(profile?.can_review_content
+              ? [
+                  {
+                    label: "Content Review",
+                    route: "/content-review",
+                    icon: "reader-outline",
+                  },
+                ]
+              : []),
             ...(profile?.is_admin
               ? [
                   {

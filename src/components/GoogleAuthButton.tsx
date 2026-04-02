@@ -66,6 +66,10 @@ type PendingGoogleConsent = {
   displayName?: string | null;
 };
 
+type GoogleAuthButtonProps = {
+  redirectTo?: string | null;
+};
+
 function getNativeGoogleWebClientId() {
   return googleClientConfig.webClientId ?? googleClientConfig.clientId ?? null;
 }
@@ -82,7 +86,7 @@ function getCurrentPlatformClientId() {
   return googleClientConfig.webClientId ?? googleClientConfig.clientId ?? null;
 }
 
-function useGoogleTokenExchange() {
+function useGoogleTokenExchange(redirectTo?: string | null) {
   const router = useRouter();
 
   return useCallback(
@@ -113,21 +117,21 @@ function useGoogleTokenExchange() {
 
       await AsyncStorage.multiRemove(["isGuest"]);
       await setAuthToken(data.token);
-      router.replace("/(tabs)");
+      router.replace((redirectTo || "/(tabs)") as any);
 
       return {
         requiresTerms: false as const,
       };
     },
-    [router],
+    [redirectTo, router],
   );
 }
 
-function GoogleAuthButtonWeb() {
+function GoogleAuthButtonWeb({ redirectTo }: GoogleAuthButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const exchangeGoogleToken = useGoogleTokenExchange();
+  const exchangeGoogleToken = useGoogleTokenExchange(redirectTo);
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     {
       clientId: googleClientConfig.clientId,
@@ -156,12 +160,18 @@ function GoogleAuthButtonWeb() {
       return;
     }
 
-    const idToken =
-      response?.params?.id_token ?? response?.authentication?.idToken ?? "";
-
     if (response?.type !== "success") {
       return;
     }
+
+    const idToken =
+      ("params" in response && typeof response.params?.id_token === "string"
+        ? response.params.id_token
+        : "") ||
+      ("authentication" in response &&
+      typeof response.authentication?.idToken === "string"
+        ? response.authentication.idToken
+        : "");
 
     if (!idToken) {
       setIsSubmitting(false);
@@ -329,12 +339,12 @@ function GoogleAuthButtonWeb() {
   );
 }
 
-function GoogleAuthButtonNative() {
+function GoogleAuthButtonNative({ redirectTo }: GoogleAuthButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [hasPreviousAccount, setHasPreviousAccount] = useState(false);
-  const exchangeGoogleToken = useGoogleTokenExchange();
+  const exchangeGoogleToken = useGoogleTokenExchange(redirectTo);
   const nativeWebClientId = getNativeGoogleWebClientId();
 
   useEffect(() => {
@@ -543,7 +553,9 @@ function GoogleAuthButtonNative() {
   );
 }
 
-export default function GoogleAuthButton() {
+export default function GoogleAuthButton({
+  redirectTo = null,
+}: GoogleAuthButtonProps) {
   const hasClientId = !!getCurrentPlatformClientId();
   const isExpoGoNative =
     Platform.OS !== "web" &&
@@ -611,10 +623,10 @@ export default function GoogleAuthButton() {
   }
 
   if (Platform.OS === "android" || Platform.OS === "ios") {
-    return <GoogleAuthButtonNative />;
+    return <GoogleAuthButtonNative redirectTo={redirectTo} />;
   }
 
-  return <GoogleAuthButtonWeb />;
+  return <GoogleAuthButtonWeb redirectTo={redirectTo} />;
 }
 
 const styles = StyleSheet.create({

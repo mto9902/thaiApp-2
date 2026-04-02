@@ -17,6 +17,17 @@ export function usePremiumAccess() {
     ) => {
       const guest = await isGuestUser();
       if (guest) {
+        const params = new URLSearchParams();
+        const intendedRoute = (() => {
+          const routeParams = new URLSearchParams();
+          if (label) routeParams.set("label", label);
+          if (redirectTo) routeParams.set("redirectTo", redirectTo);
+          return routeParams.size > 0
+            ? `/premium?${routeParams.toString()}`
+            : "/premium";
+        })();
+        params.set("redirectTo", intendedRoute);
+
         Alert.alert(
           "Log in to unlock Keystone Access",
           `Create or log in to a Keystone account to unlock ${label}.`,
@@ -24,7 +35,7 @@ export function usePremiumAccess() {
             { text: "Not now", style: "cancel" },
             {
               text: "Log in",
-              onPress: () => router.push("/login"),
+              onPress: () => router.push(`/login?${params.toString()}` as any),
             },
           ],
         );
@@ -51,30 +62,17 @@ export function usePremiumAccess() {
     [openPremiumScreen, subscription.isPremium],
   );
 
-  const openSubscriptionManager = useCallback(async (redirectTo?: string | null) => {
-    const guest = await isGuestUser();
-      if (guest) {
-        Alert.alert(
-        "Log in to manage Keystone Access",
-        "Use your Keystone account to subscribe or restore purchases.",
-        [
-          { text: "Not now", style: "cancel" },
-          {
-            text: "Log in",
-            onPress: () => router.push("/login"),
-          },
-        ],
-      );
-      return false;
-    }
-
-    try {
-      setBusy(true);
-      return await openPremiumScreen("Keystone Access", redirectTo);
-    } finally {
-      setBusy(false);
-    }
-  }, [openPremiumScreen, router]);
+  const openSubscriptionManager = useCallback(
+    async (redirectTo?: string | null) => {
+      try {
+        setBusy(true);
+        return await openPremiumScreen("Keystone Access", redirectTo);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [openPremiumScreen],
+  );
 
   const restorePremiumAccess = useCallback(async () => {
     const guest = await isGuestUser();

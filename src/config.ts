@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-const DEFAULT_REMOTE_API_BASE = "http://3.0.214.108:3000";
+const DEFAULT_REMOTE_API_BASE = "https://api.keystonelanguages.com";
 
 function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";

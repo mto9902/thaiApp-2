@@ -94,8 +94,8 @@ export default function GrammarDetail() {
     roman: "tua-yang prayok",
     english: "Example sentence",
     breakdown: [
-      { thai: "ตัวอย่าง", english: "example", tone: "mid" },
-      { thai: "ประโยค", english: "sentence", tone: "mid" },
+      { thai: "ตัวอย่าง", english: "example", tones: ["mid"] },
+      { thai: "ประโยค", english: "sentence", tones: ["mid"] },
     ],
   };
   const focus = grammarPoint.focus || {

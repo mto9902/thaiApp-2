@@ -7,6 +7,23 @@ export const MUTED_APP_ACCENTS = {
   sand: "#D7CCBF",
 } as const;
 
+export type ToneName = "mid" | "low" | "falling" | "high" | "rising";
+
+const VALID_TONE_NAMES: ToneName[] = [
+  "mid",
+  "low",
+  "falling",
+  "high",
+  "rising",
+];
+
+export function isToneName(value: unknown): value is ToneName {
+  return (
+    typeof value === "string" &&
+    VALID_TONE_NAMES.includes(value.trim().toLowerCase() as ToneName)
+  );
+}
+
 const MUTED_TONE_ACCENTS = {
   mid: MUTED_APP_ACCENTS.stone,
   low: "#8A5B41",

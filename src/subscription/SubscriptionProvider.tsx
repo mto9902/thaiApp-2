@@ -26,6 +26,13 @@ import {
   getRevenueCatApiKeyForCurrentPlatform,
   PREMIUM_ENTITLEMENT_ID,
 } from "./premium";
+import {
+  getPaddlePublicCheckoutConfig,
+  openPaddleCheckout,
+  type WebCheckoutPlan,
+} from "./paddleWeb";
+
+type BillingProvider = "revenuecat" | "paddle" | null;
 
 type JwtPayload = {
   userId?: number;
@@ -36,6 +43,8 @@ type SubscriptionContextValue = {
   loading: boolean;
   isSupported: boolean;
   canMakePurchases: boolean;
+  billingProvider: BillingProvider;
+  webCheckoutReady: boolean;
   isPremium: boolean;
   entitlementId: string;
   customerInfo: CustomerInfo | null;
@@ -43,6 +52,10 @@ type SubscriptionContextValue = {
   offeringsLoading: boolean;
   refresh: () => Promise<void>;
   refreshOfferings: () => Promise<PurchasesOffering | null>;
+  startWebCheckout: (
+    plan: WebCheckoutPlan,
+    options?: { redirectTo?: string | null },
+  ) => Promise<boolean>;
   purchasePackage: (aPackage: PurchasesPackage) => Promise<boolean>;
   restorePurchases: () => Promise<boolean>;
   openCustomerCenter: () => Promise<void>;
@@ -90,7 +103,20 @@ export function SubscriptionProvider({
 }: SubscriptionProviderProps) {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const apiKey = getRevenueCatApiKeyForCurrentPlatform();
+  const paddlePublicConfig = getPaddlePublicCheckoutConfig();
+  if (__DEV__ && isNativeMobile) {
+    console.log(
+      "[RevenueCat debug] runtime key suffix:",
+      apiKey ? apiKey.slice(-6) : "<null>",
+    );
+  }
   const canMakePurchases = isNativeMobile && !!apiKey;
+  const webCheckoutReady = Platform.OS === "web" && paddlePublicConfig.isReady;
+  const billingProvider: BillingProvider = canMakePurchases
+    ? "revenuecat"
+    : webCheckoutReady
+      ? "paddle"
+      : null;
   const [loading, setLoading] = useState(canMakePurchases);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [serverHasPremium, setServerHasPremium] = useState(false);
@@ -361,6 +387,45 @@ export function SubscriptionProvider({
     [canMakePurchases, syncPremiumToServer],
   );
 
+  const startWebCheckout = useCallback(
+    async (
+      plan: WebCheckoutPlan,
+      options?: { redirectTo?: string | null },
+    ) => {
+      if (Platform.OS !== "web" || !webCheckoutReady) {
+        return false;
+      }
+
+      const storedUser = await getStoredUser();
+      if (!storedUser) {
+        return false;
+      }
+
+      const successUrl =
+        typeof window !== "undefined"
+          ? (() => {
+              const url = new URL("/premium", window.location.origin);
+              url.searchParams.set("checkout", "success");
+              url.searchParams.set("plan", plan);
+              if (options?.redirectTo) {
+                url.searchParams.set("redirectTo", options.redirectTo);
+              }
+              return url.toString();
+            })()
+          : null;
+
+      await openPaddleCheckout({
+        plan,
+        email: storedUser.email,
+        userId: storedUser.appUserId,
+        successUrl,
+      });
+
+      return true;
+    },
+    [webCheckoutReady],
+  );
+
   const restorePurchases = useCallback(async () => {
     if (!canMakePurchases || !purchasesConfigured) return false;
 
@@ -371,9 +436,36 @@ export function SubscriptionProvider({
   }, [canMakePurchases, syncPremiumToServer]);
 
   const openCustomerCenter = useCallback(async () => {
-    if (!canMakePurchases || !purchasesConfigured) return;
-    await RevenueCatUI.presentCustomerCenter();
-    await refreshCustomerInfo();
+    if (canMakePurchases && purchasesConfigured) {
+      await RevenueCatUI.presentCustomerCenter();
+      await refreshCustomerInfo();
+      return;
+    }
+
+    if (Platform.OS !== "web") {
+      return;
+    }
+
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error("Log in to manage billing");
+    }
+
+    const res = await fetch(`${API_BASE}/billing/paddle/portal`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.url) {
+      throw new Error(data?.error || "Billing management is not available yet");
+    }
+
+    if (typeof window !== "undefined") {
+      window.location.assign(data.url);
+    }
   }, [canMakePurchases, refreshCustomerInfo]);
 
   const value = useMemo<SubscriptionContextValue>(
@@ -381,6 +473,8 @@ export function SubscriptionProvider({
       loading,
       isSupported: isNativeMobile,
       canMakePurchases,
+      billingProvider,
+      webCheckoutReady,
       isPremium: serverHasPremium || hasPremiumEntitlement(customerInfo),
       entitlementId: PREMIUM_ENTITLEMENT_ID,
       customerInfo,
@@ -388,11 +482,13 @@ export function SubscriptionProvider({
       offeringsLoading,
       refresh,
       refreshOfferings,
+      startWebCheckout,
       purchasePackage,
       restorePurchases,
       openCustomerCenter,
     }),
     [
+      billingProvider,
       canMakePurchases,
       customerInfo,
       currentOffering,
@@ -403,7 +499,9 @@ export function SubscriptionProvider({
       refresh,
       refreshOfferings,
       restorePurchases,
+      startWebCheckout,
       serverHasPremium,
+      webCheckoutReady,
     ],
   );
 

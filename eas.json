@@ -2,11 +2,39 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "64944496837-qqtu7htq2m9ic5c6m261uve7513ghc09.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "64944496837-8d9c9n458ikd8prtt9dlb5lip3im0svp.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_BASE": "https://api.keystonelanguages.com",
+        "EXPO_PUBLIC_RC_ANDROID_API_KEY": "goog_EhEeBoKbgJltzLJKxAkGLBZJOUK",
+        "EXPO_PUBLIC_RC_IOS_API_KEY": "test_jwEaNmicoKMZCUZJNNivrDNKKIU",
+        "EXPO_PUBLIC_RC_ENTITLEMENT_ID": "Keystone Access",
+        "EXPO_PUBLIC_BASE_PATH": "/app"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "64944496837-qqtu7htq2m9ic5c6m261uve7513ghc09.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "64944496837-8d9c9n458ikd8prtt9dlb5lip3im0svp.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_BASE": "https://api.keystonelanguages.com",
+        "EXPO_PUBLIC_RC_ANDROID_API_KEY": "goog_EhEeBoKbgJltzLJKxAkGLBZJOUK",
+        "EXPO_PUBLIC_RC_IOS_API_KEY": "test_jwEaNmicoKMZCUZJNNivrDNKKIU",
+        "EXPO_PUBLIC_RC_ENTITLEMENT_ID": "Keystone Access",
+        "EXPO_PUBLIC_BASE_PATH": "/app"
+      }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "64944496837-qqtu7htq2m9ic5c6m261uve7513ghc09.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "64944496837-8d9c9n458ikd8prtt9dlb5lip3im0svp.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_BASE": "https://api.keystonelanguages.com",
+        "EXPO_PUBLIC_RC_ANDROID_API_KEY": "goog_EhEeBoKbgJltzLJKxAkGLBZJOUK",
+        "EXPO_PUBLIC_RC_IOS_API_KEY": "test_jwEaNmicoKMZCUZJNNivrDNKKIU",
+        "EXPO_PUBLIC_RC_ENTITLEMENT_ID": "Keystone Access",
+        "EXPO_PUBLIC_BASE_PATH": "/app"
+      }
+    }
   }
 }

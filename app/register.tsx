@@ -1,7 +1,7 @@
 import { Sketch } from "@/constants/theme";
 import TermsAgreement from "@/src/components/TermsAgreement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Alert,
@@ -25,6 +25,10 @@ function isValidPassword(password: string): boolean {
 
 export default function Register() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ redirectTo?: string }>();
+  const redirectTo = Array.isArray(params.redirectTo)
+    ? params.redirectTo[0]
+    : params.redirectTo;
   const passwordInputRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState("");
@@ -74,7 +78,7 @@ export default function Register() {
 
     await AsyncStorage.multiRemove(["isGuest"]);
     await setAuthToken(data.token);
-    router.replace("/(tabs)");
+    router.replace((redirectTo || "/(tabs)") as any);
   }
 
   return (
@@ -144,7 +148,15 @@ export default function Register() {
             <Text style={styles.buttonText}>Create Account</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(
+                (redirectTo
+                  ? `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+                  : "/login") as any,
+              )
+            }
+          >
             <Text style={styles.linkText}>Back to Login</Text>
           </TouchableOpacity>
         </View>

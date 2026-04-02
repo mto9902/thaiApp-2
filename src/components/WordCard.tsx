@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Sketch } from "@/constants/theme";
+import ToneDots from "./ToneDots";
+import { ToneName } from "@/src/utils/toneAccent";
 
 interface WordCardProps {
   thai: string;
@@ -10,6 +12,7 @@ interface WordCardProps {
   rotation?: number;
   isGrammar?: boolean;
   toneColor?: string;
+  tones?: ToneName[];
   onPress?: () => void;
 }
 
@@ -21,6 +24,7 @@ export default function WordCard({
   rotation = 0,
   isGrammar = false,
   toneColor,
+  tones,
   onPress,
 }: WordCardProps) {
   return (
@@ -33,9 +37,11 @@ export default function WordCard({
       onPress={onPress}
       activeOpacity={0.8}
     >
-      {toneColor && (
+      {tones && tones.length > 0 ? (
+        <ToneDots tones={tones} style={styles.toneDots} />
+      ) : toneColor ? (
         <View style={[styles.toneDot, { backgroundColor: toneColor }]} />
-      )}
+      ) : null}
       {isGrammar && (
         <View style={styles.grammarBadge}>
           <Text style={styles.grammarBadgeIcon}>*</Text>
@@ -90,6 +96,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.4)",
+  },
+  toneDots: {
+    position: "absolute",
+    top: 6,
+    right: 6,
   },
 
   thaiText: {

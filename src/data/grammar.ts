@@ -5,13 +5,13 @@ import {
 } from "./grammarContentOverrides";
 import { CefrLevel } from "./grammarLevels";
 import { GRAMMAR_STAGE_BY_ID, GrammarStage } from "./grammarStages";
-
-export type ToneName = "mid" | "low" | "falling" | "high" | "rising";
+import { ToneName } from "../utils/toneAccent";
 
 export interface WordBreakdown {
   thai: string;
   english: string;
-  tone: ToneName;
+  tone?: ToneName;
+  tones?: ToneName[];
   grammar?: boolean;
   romanization?: string;
 }
@@ -46,8 +46,8 @@ function w(
   grammar = false,
 ): WordBreakdown {
   return grammar
-    ? { thai, english, tone, grammar: true }
-    : { thai, english, tone };
+    ? { thai, english, tones: [tone], grammar: true }
+    : { thai, english, tones: [tone] };
 }
 
 type RawGrammarPoint = Omit<

@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header, { SettingsState } from "../../../src/components/Header";
 import PremiumGateCard from "../../../src/components/PremiumGateCard";
+import ToneDots from "../../../src/components/ToneDots";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
@@ -34,6 +35,10 @@ import {
   GrammarExerciseMode,
   GrammarExerciseSettings,
 } from "../../../src/utils/grammarExerciseSettings";
+import {
+  getBreakdownTones,
+  getPrimaryBreakdownTone,
+} from "../../../src/utils/breakdownTones";
 import { getPracticeWordTrackingEnabled } from "../../../src/utils/practiceWordPreference";
 import {
   getToneAccent,
@@ -44,6 +49,11 @@ import { getAuthToken } from "../../../src/utils/authStorage";
 // ── Constants ──────────────────────────────────────────────────────────────────
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
+}
+
+function getBreakdownTextColor(item: { tone?: string; tones?: string[] }): string {
+  const primaryTone = getPrimaryBreakdownTone(item);
+  return primaryTone ? toneColor(primaryTone) : Sketch.ink;
 }
 
 const MATTE_RESULT_COLORS = {
@@ -129,6 +139,7 @@ interface SentenceData {
     thai: string;
     english: string;
     tone?: string;
+    tones?: string[];
     grammar?: boolean;
     romanization?: string;
     roman?: string;
@@ -148,7 +159,7 @@ type BuilderWord = {
   thai: string;
   english: string;
   roman: string;
-  color: string;
+  tones: ReturnType<typeof getBreakdownTones>;
   rotation: number;
 };
 
@@ -278,6 +289,7 @@ export default function GrammarExercisesScreen() {
     body: string;
   } | null>(null);
   const { isPremium, loading: premiumLoading } = useSubscription();
+  const canPlayBreakdownTiles = isDesktopWeb || wordBreakdownTTS;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
@@ -501,7 +513,7 @@ export default function GrammarExercisesScreen() {
           thai: w.thai,
           english: w.english.toUpperCase(),
           roman: perWordRoman[i] ?? "",
-          color: toneColor(w.tone),
+          tones: getBreakdownTones(w),
           rotation: Math.random() * 6 - 3,
         };
       });
@@ -754,7 +766,7 @@ export default function GrammarExercisesScreen() {
 
                   <Text style={[st.studySentence, isDesktopWeb && st.studySentenceDesktop]}>
                     {breakdown.map((w, i) => (
-                      <Text key={i} style={{ color: toneColor(w.tone) }}>
+                      <Text key={i} style={{ color: getBreakdownTextColor(w) }}>
                         {w.thai}
                       </Text>
                     ))}
@@ -776,7 +788,7 @@ export default function GrammarExercisesScreen() {
                   <Text style={st.tileSectionLabel}>WORD BREAKDOWN</Text>
                   <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
                     {breakdown.map((w, i) => (
-                      wordBreakdownTTS ? (
+                      canPlayBreakdownTiles ? (
                         <TouchableOpacity
                           key={i}
                           style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
@@ -785,14 +797,10 @@ export default function GrammarExercisesScreen() {
                         >
                           <View style={st.wordTileHeader}>
                             <Text style={st.wordTileThai}>{w.thai}</Text>
-                            {w.tone && (
-                              <View
-                                style={[
-                                  st.toneDot,
-                                  { backgroundColor: toneColor(w.tone) },
-                                ]}
-                              />
-                            )}
+                            <ToneDots
+                              tones={getBreakdownTones(w)}
+                              style={st.toneDots}
+                            />
                           </View>
                           {showRoman && romanTokens[i] ? (
                             <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
@@ -810,14 +818,10 @@ export default function GrammarExercisesScreen() {
                         >
                           <View style={st.wordTileHeader}>
                             <Text style={st.wordTileThai}>{w.thai}</Text>
-                            {w.tone && (
-                              <View
-                                style={[
-                                  st.toneDot,
-                                  { backgroundColor: toneColor(w.tone) },
-                                ]}
-                              />
-                            )}
+                            <ToneDots
+                              tones={getBreakdownTones(w)}
+                              style={st.toneDots}
+                            />
                           </View>
                           {showRoman && romanTokens[i] ? (
                             <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
@@ -996,9 +1000,7 @@ export default function GrammarExercisesScreen() {
                     >
                       <View style={st.wordTileHeader}>
                         <Text style={st.wordTileThai}>{word.thai}</Text>
-                        <View
-                          style={[st.toneDot, { backgroundColor: word.color }]}
-                        />
+                        <ToneDots tones={word.tones} style={st.toneDots} />
                       </View>
                       {showRoman && word.roman ? (
                         <Text style={st.wordTileRoman}>{word.roman}</Text>
@@ -1045,7 +1047,7 @@ export default function GrammarExercisesScreen() {
                         activeOpacity={0.85}
                       >
                         <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                          {"Skip ->"}
+                          Skip
                         </Text>
                       </TouchableOpacity>
                     ) : null}
@@ -1083,7 +1085,7 @@ export default function GrammarExercisesScreen() {
                         activeOpacity={0.85}
                       >
                         <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                          {"Skip ->"}
+                          Skip
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1224,8 +1226,8 @@ export default function GrammarExercisesScreen() {
                         {isExpanded && (
                           <View style={st.matchDetailsPanel}>
                             <View style={st.matchTileRow}>
-                              {opt.breakdown.map((w, wi) => (
-                                wordBreakdownTTS ? (
+                                {opt.breakdown.map((w, wi) => (
+                                  canPlayBreakdownTiles ? (
                                     <TouchableOpacity
                                       key={wi}
                                       style={[
@@ -1243,14 +1245,10 @@ export default function GrammarExercisesScreen() {
                                       ]}
                                     >
                                       <Text style={st.matchWordTileThai}>{w.thai}</Text>
-                                      {w.tone && (
-                                        <View
-                                          style={[
-                                            st.toneDot,
-                                            { backgroundColor: toneColor(w.tone) },
-                                          ]}
-                                        />
-                                      )}
+                                      <ToneDots
+                                        tones={getBreakdownTones(w)}
+                                        style={st.toneDots}
+                                      />
                                     </View>
                                     {showRoman && optRomanTokens[wi] ? (
                                       <Text style={st.wordTileRoman}>
@@ -1279,14 +1277,10 @@ export default function GrammarExercisesScreen() {
                                       ]}
                                     >
                                       <Text style={st.matchWordTileThai}>{w.thai}</Text>
-                                      {w.tone && (
-                                        <View
-                                          style={[
-                                            st.toneDot,
-                                            { backgroundColor: toneColor(w.tone) },
-                                          ]}
-                                        />
-                                      )}
+                                      <ToneDots
+                                        tones={getBreakdownTones(w)}
+                                        style={st.toneDots}
+                                      />
                                     </View>
                                     {showRoman && optRomanTokens[wi] ? (
                                       <Text style={st.wordTileRoman}>
@@ -1372,7 +1366,7 @@ export default function GrammarExercisesScreen() {
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      {"Skip ->"}
+                      Skip
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1608,6 +1602,7 @@ const st = StyleSheet.create({
     minWidth: 128,
     paddingVertical: 12,
     paddingHorizontal: 16,
+    cursor: "pointer",
   },
   wordTileHeader: {
     flexDirection: "row",
@@ -1638,6 +1633,7 @@ const st = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: "center",
+    cursor: "pointer",
   },
   matchWordTileHeader: {
     flexDirection: "row",
@@ -1678,6 +1674,9 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.2)",
   },
+  toneDots: {
+    marginLeft: 2,
+  },
 
   primaryBtn: {
     backgroundColor: Sketch.orange,
@@ -1709,7 +1708,6 @@ const st = StyleSheet.create({
   secondaryBtnText: {
     color: Sketch.inkLight,
   },
-
   promptCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: SketchRadius.card,

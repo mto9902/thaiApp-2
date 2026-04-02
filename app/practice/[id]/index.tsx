@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Sketch } from "@/constants/theme";
 import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
 import PremiumGateCard from "@/src/components/PremiumGateCard";
+import ToneDots from "@/src/components/ToneDots";
 import Header, { SettingsState } from "../../../src/components/Header";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
@@ -32,10 +33,19 @@ import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
 import { isGuestUser } from "../../../src/utils/auth";
 import { getAuthToken } from "../../../src/utils/authStorage";
+import {
+  getBreakdownTones,
+  getPrimaryBreakdownTone,
+} from "../../../src/utils/breakdownTones";
 import { getToneAccent } from "../../../src/utils/toneAccent";
 
 function toneColor(tone?: string): string {
   return tone ? getToneAccent(tone) : Sketch.inkMuted;
+}
+
+function getBreakdownTextColor(item: { tone?: string; tones?: string[] }): string {
+  const primaryTone = getPrimaryBreakdownTone(item);
+  return primaryTone ? toneColor(primaryTone) : Sketch.ink;
 }
 
 function getBreakdownRomanizations(
@@ -366,8 +376,8 @@ export default function GrammarDetail() {
     roman: "tua-yang prayok",
     english: "Example sentence",
     breakdown: [
-      { thai: "ตัวอย่าง", english: "example", tone: "mid" },
-      { thai: "ประโยค", english: "sentence", tone: "mid" },
+      { thai: "ตัวอย่าง", english: "example", tones: ["mid"] },
+      { thai: "ประโยค", english: "sentence", tones: ["mid"] },
     ],
   };
   const exampleRomanTokens = getBreakdownRomanizations(
@@ -475,7 +485,7 @@ export default function GrammarDetail() {
 
             <Text style={styles.thaiText}>
               {example.breakdown.map((item: any, index: number) => (
-                <Text key={index} style={{ color: toneColor(item.tone) }}>
+                <Text key={index} style={{ color: getBreakdownTextColor(item) }}>
                   {item.thai}
                 </Text>
               ))}
@@ -512,14 +522,10 @@ export default function GrammarDetail() {
                   >
                     <View style={styles.wordTileHeader}>
                       <Text style={styles.wordTileThai}>{item.thai}</Text>
-                      {item.tone && (
-                        <View
-                          style={[
-                            styles.toneDot,
-                            { backgroundColor: toneColor(item.tone) },
-                          ]}
-                        />
-                      )}
+                      <ToneDots
+                        tones={getBreakdownTones(item)}
+                        style={styles.toneDots}
+                      />
                     </View>
                     <Text style={styles.wordTileRoman}>
                       {item.romanization || item.roman || exampleRomanTokens[index]}
@@ -535,14 +541,10 @@ export default function GrammarDetail() {
                   >
                     <View style={styles.wordTileHeader}>
                       <Text style={styles.wordTileThai}>{item.thai}</Text>
-                      {item.tone && (
-                        <View
-                          style={[
-                            styles.toneDot,
-                            { backgroundColor: toneColor(item.tone) },
-                          ]}
-                        />
-                      )}
+                      <ToneDots
+                        tones={getBreakdownTones(item)}
+                        style={styles.toneDots}
+                      />
                     </View>
                     <Text style={styles.wordTileRoman}>
                       {item.romanization || item.roman || exampleRomanTokens[index]}
@@ -834,6 +836,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.15)",
+  },
+  toneDots: {
+    marginLeft: 2,
   },
 
   // CTA

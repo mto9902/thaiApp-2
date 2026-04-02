@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { canAccessApp, isGuestUser } from "../../src/utils/auth";
@@ -97,6 +98,7 @@ function formatReviewDelay(nextDueAt: string): string {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
@@ -428,11 +430,21 @@ export default function HomeScreen() {
   }
 
   function renderHeatmap() {
-    const SQ = 11;
-    const GAP = 2;
+    const TOTAL_WEEKS = 26;
+    const cardInnerWidth = Math.max(280, Math.min(width - 88, 920));
+    const DAY_LABEL_W = width >= 900 ? 42 : width >= 680 ? 34 : 28;
+    const MONTH_LABEL_H = width >= 900 ? 22 : width >= 680 ? 18 : 16;
+    const cell = Math.max(
+      13,
+      Math.min(
+        width >= 900 ? 22 : width >= 680 ? 18 : 13,
+        Math.floor((cardInnerWidth - DAY_LABEL_W) / TOTAL_WEEKS),
+      ),
+    );
+    const GAP = cell >= 18 ? 4 : cell >= 15 ? 3 : 2;
+    const SQ = Math.max(10, cell - GAP);
     const CELL = SQ + GAP;
-    const DAY_LABEL_W = 28;
-    const MONTH_LABEL_H = 16;
+    const heatmapCanvasWidth = DAY_LABEL_W + TOTAL_WEEKS * CELL;
     const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
     const MONTH_NAMES = [
       "Jan",
@@ -451,7 +463,6 @@ export default function HomeScreen() {
     // Fixed 26-week grid (like GitHub contributions).
     // Start = Sunday of the week containing earliest activity, or 26 weeks back.
     // Grid always extends forward to fill 26 columns total.
-    const TOTAL_WEEKS = 26;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -489,8 +500,16 @@ export default function HomeScreen() {
 
     return (
       <View style={styles.heatmapContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            minWidth: Math.max(cardInnerWidth, heatmapCanvasWidth),
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <View style={{ width: heatmapCanvasWidth }}>
             {/* Month labels */}
             <View
               style={{
@@ -505,7 +524,7 @@ export default function HomeScreen() {
                   style={{
                     position: "absolute",
                     left: ml.col * CELL,
-                    fontSize: 10,
+                    fontSize: width >= 900 ? 11 : 10,
                     color: Sketch.inkMuted,
                     fontWeight: "500",
                   }}
@@ -525,7 +544,7 @@ export default function HomeScreen() {
                   >
                     <Text
                       style={{
-                        fontSize: 9,
+                        fontSize: width >= 900 ? 10 : 9,
                         color: Sketch.inkMuted,
                         fontWeight: "500",
                       }}
@@ -1231,10 +1250,10 @@ const styles = StyleSheet.create({
   quickLinks: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between",
   },
   quickLinkCard: {
-    width: "31.6%",
+    width: "31%",
     backgroundColor: Sketch.paperDark,
     borderRadius: SketchRadius.card,
     paddingVertical: 20,

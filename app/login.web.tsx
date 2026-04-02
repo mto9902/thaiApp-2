@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +19,10 @@ import { clearAuthToken, setAuthToken } from "@/src/utils/authStorage";
 
 export default function LoginWeb() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ redirectTo?: string }>();
+  const redirectTo = Array.isArray(params.redirectTo)
+    ? params.redirectTo[0]
+    : params.redirectTo;
   const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +59,7 @@ export default function LoginWeb() {
 
       await AsyncStorage.multiRemove(["isGuest"]);
       await setAuthToken(data.token);
-      router.replace("/(tabs)");
+      router.replace((redirectTo || "/(tabs)") as any);
     } catch {
       setError(
         "We could not reach the server right now. Please try again in a moment.",
@@ -76,7 +80,13 @@ export default function LoginWeb() {
         rightSubtitle="Use your email or Google account to continue where you left off."
         footerNote="No gamification, real understanding."
         secondaryActionLabel="Create account"
-        onSecondaryActionPress={() => router.push("/register")}
+        onSecondaryActionPress={() =>
+          router.push(
+            (redirectTo
+              ? `/register?redirectTo=${encodeURIComponent(redirectTo)}`
+              : "/register") as any,
+          )
+        }
         features={[
           {
             eyebrow: "Study",
@@ -162,7 +172,7 @@ export default function LoginWeb() {
             <View style={styles.dividerLine} />
           </View>
 
-          <GoogleAuthButton />
+          <GoogleAuthButton redirectTo={redirectTo} />
 
           <TouchableOpacity style={styles.ghostButton} onPress={handleGuest}>
             <Text style={styles.ghostButtonText}>Continue as guest</Text>

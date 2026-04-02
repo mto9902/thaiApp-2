@@ -9,9 +9,17 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "backfill:lesson-example-romanization": "node ./scripts/backfillGrammarExampleOverrides.mjs"
+    "backfill:lesson-example-romanization": "node ./scripts/backfillGrammarExampleOverrides.mjs",
+    "browser:open": "powershell -ExecutionPolicy Bypass -File ./scripts/browser/openAutomationChrome.ps1",
+    "browser:gmail:open": "powershell -ExecutionPolicy Bypass -File ./scripts/browser/openAutomationChrome.ps1",
+    "browser:gmail:recent": "node ./scripts/browser/getGmailMessages.mjs",
+    "browser:gmail:today": "node ./scripts/browser/getGmailMessages.mjs --today"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/lora": "^0.4.2",
+    "@expo-google-fonts/noto-sans-jp": "^0.4.3",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.2",

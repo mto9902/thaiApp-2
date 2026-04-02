@@ -1,11 +1,11 @@
 import { CefrLevel } from "./grammarLevels";
-
-type ToneName = "mid" | "low" | "falling" | "high" | "rising";
+import { ToneName } from "../utils/toneAccent";
 
 type WordBreakdown = {
   thai: string;
   english: string;
-  tone: ToneName;
+  tone?: ToneName;
+  tones?: ToneName[];
   grammar?: boolean;
   romanization?: string;
 };
@@ -110,8 +110,8 @@ function w(
 ): WordBreakdown {
   const romanization = B2_BREAKDOWN_ROMANIZATION[thai];
   const base = romanization
-    ? { thai, english, tone, romanization }
-    : { thai, english, tone };
+    ? { thai, english, tones: [tone], romanization }
+    : { thai, english, tones: [tone] };
   return grammar ? { ...base, grammar: true } : base;
 }
 

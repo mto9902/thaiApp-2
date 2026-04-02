@@ -8,6 +8,7 @@ export type PracticePreview = {
     thai: string;
     english: string;
     tone?: string;
+    tones?: string[];
     grammar?: boolean;
     romanization?: string;
     roman?: string;

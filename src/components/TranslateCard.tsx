@@ -65,7 +65,7 @@ export default function TranslateCard({
 
         <View style={styles.divider} />
 
-        <Text style={styles.romanizationText}>"{romanization}"</Text>
+        <Text style={styles.romanizationText}>&quot;{romanization}&quot;</Text>
 
         {english && (
           <View style={styles.englishContainer}>

@@ -1,7 +1,7 @@
 import { Sketch } from "@/constants/theme";
 import GoogleAuthButton from "@/src/components/GoogleAuthButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +17,10 @@ import { clearAuthToken, setAuthToken } from "../src/utils/authStorage";
 
 export default function Login() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ redirectTo?: string }>();
+  const redirectTo = Array.isArray(params.redirectTo)
+    ? params.redirectTo[0]
+    : params.redirectTo;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,7 +54,7 @@ export default function Login() {
 
     await AsyncStorage.multiRemove(["isGuest"]);
     await setAuthToken(data.token);
-    router.replace("/(tabs)");
+    router.replace((redirectTo || "/(tabs)") as any);
   }
 
   return (
@@ -104,7 +108,15 @@ export default function Login() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push("/register")}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(
+                (redirectTo
+                  ? `/register?redirectTo=${encodeURIComponent(redirectTo)}`
+                  : "/register") as any,
+              )
+            }
+          >
             <Text style={styles.linkText}>Create account</Text>
           </TouchableOpacity>
 
@@ -114,7 +126,7 @@ export default function Login() {
             <View style={styles.dividerLine} />
           </View>
 
-          <GoogleAuthButton />
+          <GoogleAuthButton redirectTo={redirectTo} />
 
           <TouchableOpacity style={styles.guestButton} onPress={handleGuest}>
             <Text style={styles.guestButtonText}>Continue as Guest</Text>

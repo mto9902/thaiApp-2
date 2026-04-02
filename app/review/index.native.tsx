@@ -129,11 +129,6 @@ function QueuePill({
       style={[
         styles.queuePill,
         active && styles.queuePillActive,
-        active && {
-          backgroundColor: withAlpha(color, "10"),
-          borderColor: withAlpha(color, "30"),
-        },
-        { borderColor: active ? withAlpha(color, "30") : Sketch.inkFaint },
       ]}
     >
       <Text style={[styles.queueCount, { color }]}>{count}</Text>
@@ -934,6 +929,7 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paperDark,
     borderRadius: 0,
     borderWidth: 1,
+    borderColor: Sketch.inkFaint,
     paddingVertical: 12,
     paddingHorizontal: 10,
     alignItems: "center",

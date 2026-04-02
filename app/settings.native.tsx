@@ -17,6 +17,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "../src/config";
 import { usePremiumAccess } from "../src/subscription/usePremiumAccess";
+import {
+  openPrivacyPolicy,
+  openTermsOfService,
+} from "../src/utils/legalLinks";
+import {
+  getEmailLocalPart,
+  getProfileDisplayName,
+} from "../src/utils/profileName";
 import { clearAuthState } from "../src/utils/auth";
 import { getAuthToken } from "../src/utils/authStorage";
 
@@ -25,6 +33,7 @@ type SettingsProfile = {
   email: string;
   display_name?: string | null;
   is_admin?: boolean;
+  can_review_content?: boolean;
 };
 
 type ConfirmAction = "reset" | "delete" | null;
@@ -77,7 +86,7 @@ export default function SettingsScreen() {
     loadProfile();
   }, [loadProfile]);
 
-  const displayName = profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
+  const displayName = getProfileDisplayName(profile);
   const hasDraftChanges =
     draftDisplayName.trim() !== (profile?.display_name?.trim() || "");
 
@@ -220,7 +229,7 @@ export default function SettingsScreen() {
             <TextInput
               value={draftDisplayName}
               onChangeText={setDraftDisplayName}
-              placeholder={`User #${profile?.id || ""}`}
+              placeholder={getEmailLocalPart(profile?.email) || "Display name"}
               placeholderTextColor={Sketch.inkFaint}
               style={styles.input}
               maxLength={40}
@@ -409,6 +418,52 @@ export default function SettingsScreen() {
             ) : null}
           </View>
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Legal</Text>
+          <View style={styles.card}>
+            <Text style={styles.helperText}>
+              Review the Keystone Languages terms and privacy policy on the
+              website. The privacy policy also explains account deletion and
+              how learning data is handled.
+            </Text>
+            <View style={styles.legalButtonStack}>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => void openTermsOfService()}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>Open Terms of Service</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => void openPrivacyPolicy()}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>Open Privacy Policy</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {profile?.can_review_content ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Content Review</Text>
+            <View style={styles.card}>
+              <Text style={styles.helperText}>
+                Review lesson content, sentence rows, tone confidence, comments,
+                and assignments before anything is published to learners.
+              </Text>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => router.push("/content-review" as any)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>Open Review Queue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         {profile?.is_admin ? (
           <View style={styles.section}>
@@ -612,6 +667,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: Sketch.ink,
+  },
+  legalButtonStack: {
+    gap: 10,
   },
   dangerBtn: {
     alignItems: "center",

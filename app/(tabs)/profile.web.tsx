@@ -22,6 +22,7 @@ type UserProfile = {
   email: string;
   display_name?: string | null;
   is_admin?: boolean;
+  can_review_content?: boolean;
 };
 
 type VocabProgress = {
@@ -45,6 +46,7 @@ export default function ProfileWeb() {
 
   const {
     busy: premiumBusy,
+    billingProvider,
     isPremium,
     isSupported,
     canMakePurchases,
@@ -92,6 +94,7 @@ export default function ProfileWeb() {
         email: meData.email ?? "",
         display_name: meData.display_name ?? null,
         is_admin: meData.is_admin ?? false,
+        can_review_content: meData.can_review_content ?? false,
       });
       setProgress(progressData);
 
@@ -186,16 +189,24 @@ export default function ProfileWeb() {
         <DesktopPanel style={styles.accessPanel}>
           <DesktopSectionTitle
             title="Keystone Access"
-            caption={isPremium ? "Subscription active." : "Unlock A1.2 and above on mobile."}
+            caption={
+              isPremium
+                ? "Subscription active."
+                : billingProvider === "paddle"
+                  ? "Checkout is available on web."
+                  : "Manage access from one place."
+            }
           />
           <Text style={styles.accessBody}>
             {isPremium
               ? "Manage your subscription and keep access to the full Keystone Access path."
-              : isSupported
-                ? canMakePurchases
-                  ? "Keystone Access opens the A1.2 to C2 curriculum and higher-level practice on mobile."
-                  : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
-                : "Keystone Access checkout is available in the mobile app for now."}
+              : billingProvider === "paddle"
+                ? "Keystone Access opens the A1.2 to C2 curriculum, higher-level practice, and unlimited bookmarks. Choose a web plan here, then keep the same account unlocked on mobile."
+                : isSupported
+                  ? canMakePurchases
+                    ? "Keystone Access opens the A1.2 to C2 curriculum and higher-level practice on mobile."
+                    : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
+                  : "Paddle web checkout is not configured for this build yet."}
           </Text>
           <TouchableOpacity
             style={[styles.primaryButton, premiumBusy && styles.disabledButton]}
@@ -208,9 +219,10 @@ export default function ProfileWeb() {
                 ? "Loading..."
                 : isPremium
                   ? "Manage Keystone Access"
-                  : isSupported && canMakePurchases
+                  : billingProvider === "paddle" ||
+                      (isSupported && canMakePurchases)
                     ? "Unlock Keystone Access"
-                    : "Keystone Access on mobile"}
+                    : "Keystone Access unavailable"}
             </Text>
           </TouchableOpacity>
         </DesktopPanel>
@@ -272,6 +284,9 @@ export default function ProfileWeb() {
           <View style={styles.linkList}>
             {[
               { label: "Settings", route: "/settings", icon: "settings-outline" },
+              ...(profile?.can_review_content
+                ? [{ label: "Content Review", route: "/content-review", icon: "reader-outline" }]
+                : []),
               ...(profile?.is_admin
                 ? [{ label: "Admin Console", route: "/admin", icon: "construct-outline" }]
                 : []),

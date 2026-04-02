@@ -23,6 +23,14 @@ import {
 } from "@/src/components/web/DesktopScaffold";
 import { API_BASE } from "@/src/config";
 import {
+  openPrivacyPolicy,
+  openTermsOfService,
+} from "@/src/utils/legalLinks";
+import {
+  getEmailLocalPart,
+  getProfileDisplayName,
+} from "@/src/utils/profileName";
+import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   getGrammarExerciseSettings,
   GRAMMAR_EXERCISE_LABELS,
@@ -43,6 +51,7 @@ type SettingsProfile = {
   email: string;
   display_name?: string | null;
   is_admin?: boolean;
+  can_review_content?: boolean;
 };
 
 type ConfirmAction = "reset" | "delete" | null;
@@ -84,6 +93,7 @@ export default function SettingsWebScreen() {
   });
   const {
     busy: premiumBusy,
+    billingProvider,
     isPremium,
     isSupported,
     canMakePurchases,
@@ -150,8 +160,7 @@ export default function SettingsWebScreen() {
     void loadProfile();
   }, [loadProfile]);
 
-  const displayName =
-    profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
+  const displayName = getProfileDisplayName(profile);
   const hasDraftChanges =
     draftDisplayName.trim() !== (profile?.display_name?.trim() || "");
   const isStacked = width < 1180;
@@ -333,7 +342,7 @@ export default function SettingsWebScreen() {
             <TextInput
               value={draftDisplayName}
               onChangeText={setDraftDisplayName}
-              placeholder={`User #${profile?.id || ""}`}
+              placeholder={getEmailLocalPart(profile?.email) || "Display name"}
               placeholderTextColor={Sketch.inkFaint}
               style={styles.input}
               maxLength={40}
@@ -482,17 +491,23 @@ export default function SettingsWebScreen() {
                 <DesktopSectionTitle
                   title="Keystone Access"
                   caption={
-                    isPremium ? "Subscription active." : "Manage access from one place."
+                    isPremium
+                      ? "Subscription active."
+                      : billingProvider === "paddle"
+                        ? "Checkout is available on web."
+                        : "Manage access from one place."
                   }
                 />
                 <Text style={styles.bodyText}>
                   {isPremium
                     ? "Your account has the full A1.2 to C2 Keystone Access path. Use the button below to manage the subscription."
-                    : isSupported
-                      ? canMakePurchases
-                        ? "Keystone Access unlocks A1.2 and above, higher-level mixed practice, and unlimited bookmarks."
-                        : "Use the mobile app to purchase or restore Keystone Access, then keep learning here with the same account."
-                      : "Use the mobile app to purchase or restore Keystone Access, then keep learning here with the same account."}
+                    : billingProvider === "paddle"
+                      ? "Keystone Access unlocks A1.2 and above, higher-level mixed practice, and unlimited bookmarks. Choose monthly or yearly on web, then keep the same account unlocked on mobile."
+                      : isSupported
+                        ? canMakePurchases
+                          ? "Keystone Access unlocks A1.2 and above, higher-level mixed practice, and unlimited bookmarks."
+                          : "Use the mobile app to purchase or restore Keystone Access, then keep learning here with the same account."
+                        : "Paddle web checkout is not configured for this build yet."}
                 </Text>
                 <TouchableOpacity
                   style={[
@@ -508,9 +523,10 @@ export default function SettingsWebScreen() {
                       ? "Loading..."
                       : isPremium
                         ? "Manage Keystone Access"
-                        : isSupported && canMakePurchases
+                        : billingProvider === "paddle" ||
+                            (isSupported && canMakePurchases)
                           ? "Unlock Keystone Access"
-                          : "View Keystone Access"}
+                          : "Keystone Access unavailable"}
                   </Text>
                 </TouchableOpacity>
                 {isSupported && canMakePurchases ? (
@@ -666,6 +682,22 @@ export default function SettingsWebScreen() {
               </View>
             </DesktopPanel>
 
+            {profile?.can_review_content ? (
+              <DesktopPanel>
+                <DesktopSectionTitle
+                  title="Content Review"
+                  caption="Review lesson content, sentence rows, tone confidence, comments, and assignees before publishing."
+                />
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={() => router.push("/content-review" as any)}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.secondaryButtonText}>Open Review Queue</Text>
+                </TouchableOpacity>
+              </DesktopPanel>
+            ) : null}
+
             {profile?.is_admin ? (
               <DesktopPanel>
                 <DesktopSectionTitle
@@ -681,6 +713,34 @@ export default function SettingsWebScreen() {
                 </TouchableOpacity>
               </DesktopPanel>
             ) : null}
+
+            <DesktopPanel>
+              <DesktopSectionTitle
+                title="Legal"
+                caption="Keep the website terms and privacy policy reachable from inside the app."
+              />
+              <Text style={styles.bodyText}>
+                Review the Keystone Languages terms and privacy policy. The
+                privacy policy also explains account deletion and how learning
+                data is handled.
+              </Text>
+              <View style={styles.legalButtonStack}>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={() => void openTermsOfService()}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.secondaryButtonText}>Open Terms of Service</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={() => void openPrivacyPolicy()}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.secondaryButtonText}>Open Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
+            </DesktopPanel>
 
             <View style={[styles.dangerGrid, isStacked && styles.stackGrid]}>
               <DesktopPanel style={styles.dangerPanel}>
@@ -949,6 +1009,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: Sketch.ink,
+  },
+  legalButtonStack: {
+    gap: 12,
   },
   dangerButton: {
     alignItems: "center",
