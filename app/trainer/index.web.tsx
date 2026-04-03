@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -23,7 +23,6 @@ import {
 } from "@/src/data/trainerOptions";
 import { alphabet } from "@/src/data/alphabet";
 import { vowels } from "@/src/data/vowels";
-import { MUTED_APP_ACCENTS } from "@/src/utils/toneAccent";
 
 function DifficultyCard({
   level,
@@ -136,13 +135,13 @@ export default function TrainerWeb() {
         <View style={styles.pageStack}>
           <View style={styles.summaryStrip}>
             <View style={styles.summaryCard}>
-              <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
+              <Text style={styles.summaryValue}>
                 {consonantCount}
               </Text>
               <Text style={styles.summaryLabel}>letters</Text>
             </View>
             <View style={styles.summaryCard}>
-              <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
+              <Text style={styles.summaryValue}>
                 {vowelCount}
               </Text>
               <Text style={styles.summaryLabel}>vowels</Text>
@@ -278,14 +277,15 @@ const styles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   summaryStrip: {
     flexDirection: "row",
@@ -293,9 +293,10 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 18,
     gap: 4,
   },
@@ -303,12 +304,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 32,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   summaryLabel: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   mainGrid: {
     flexDirection: "row",
@@ -329,62 +330,66 @@ const styles = StyleSheet.create({
   },
   selectionCard: {
     minHeight: 120,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 16,
     gap: 10,
     justifyContent: "space-between",
   },
   selectionCardActive: {
-    borderColor: Sketch.ink,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.background,
   },
   selectionTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   selectionDescription: {
     fontSize: 13,
     lineHeight: 21,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   groupPreview: {
     fontSize: 24,
     lineHeight: 32,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   batchStat: {
     gap: 4,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
+    borderBottomColor: AppSketch.border,
   },
   batchStatLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   batchStatValue: {
     fontSize: 20,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   validationText: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   primaryButton: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,

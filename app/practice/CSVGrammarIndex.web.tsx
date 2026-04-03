@@ -10,7 +10,12 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import {
+  AppRadius,
+  AppSketch,
+  AppTypography,
+  appShadow,
+} from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -125,6 +130,7 @@ export default function GrammarTopicsScreenWeb() {
   ).length;
   const percentage =
     filtered.length > 0 ? Math.round((practiced / filtered.length) * 100) : 0;
+  const remaining = Math.max(filtered.length - practiced, 0);
 
   const levelMeta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
   const stageMeta = selectedStage ? GRAMMAR_STAGE_META[selectedStage] : null;
@@ -136,6 +142,7 @@ export default function GrammarTopicsScreenWeb() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        density="compact"
         eyebrow={selectedStage ? selectedStage : selectedLevel ? selectedLevel : "Grammar"}
         title={
           selectedStage
@@ -157,14 +164,14 @@ export default function GrammarTopicsScreenWeb() {
             onPress={() => router.back()}
             activeOpacity={0.82}
           >
-            <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
             <Text style={styles.topButtonText}>Back</Text>
           </TouchableOpacity>
         }
       >
         <View style={styles.pageStack}>
           <View style={[styles.summaryGrid, !isWide && styles.stack]}>
-            <DesktopPanel style={styles.summaryPanel}>
+            <DesktopPanel style={[styles.summaryPanel, styles.progressPanel]}>
               <DesktopSectionTitle
                 title="Progress"
                 caption={`${practiced} of ${filtered.length} topics practiced in this view.`}
@@ -178,14 +185,22 @@ export default function GrammarTopicsScreenWeb() {
                   <View style={styles.track}>
                     <View style={[styles.fill, { width: `${percentage}%` }]} />
                   </View>
+                  <View style={styles.progressMetaRow}>
+                    <View style={styles.metaChip}>
+                      <Text style={styles.metaChipText}>{practiced} practiced</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                      <Text style={styles.metaChipText}>{remaining} still open</Text>
+                    </View>
+                  </View>
                   <Text style={styles.trackHint}>
-                    {filtered.length - practiced} topics still open
+                    Keep moving through the unit one topic at a time.
                   </Text>
                 </View>
               </View>
             </DesktopPanel>
 
-            <DesktopPanel style={styles.summaryPanel}>
+            <DesktopPanel style={[styles.summaryPanel, styles.nextPanel]}>
               <DesktopSectionTitle
                 title="Next lesson"
                 caption="Jump to the first unpracticed topic in this view."
@@ -203,11 +218,26 @@ export default function GrammarTopicsScreenWeb() {
                   }}
                   activeOpacity={0.82}
                 >
-                  <Text style={styles.nextLabel}>Next up</Text>
+                  <View style={styles.nextHeaderRow}>
+                    <Text style={styles.nextLabel}>Next up</Text>
+                    <View style={styles.stagePill}>
+                      <Text style={styles.stagePillText}>{nextUnlearned.stage}</Text>
+                    </View>
+                  </View>
                   <Text style={styles.nextTitle}>
                     {getGrammarCardCopy(nextUnlearned).title}
                   </Text>
-                  <Text style={styles.nextMeta}>{nextUnlearned.stage}</Text>
+                  <Text style={styles.nextBody}>
+                    Open the next unpracticed lesson and continue from where you left off.
+                  </Text>
+                  <View style={styles.nextFooterRow}>
+                    <Text style={styles.nextMeta}>Continue lesson</Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={AppSketch.primary}
+                    />
+                  </View>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.nextCard}>
@@ -248,40 +278,48 @@ export default function GrammarTopicsScreenWeb() {
                     activeOpacity={0.82}
                   >
                     <View style={styles.cardTop}>
-                      <Text style={styles.cardStage}>{item.stage}</Text>
-                      <View style={styles.cardStatusRow}>
-                        {bookmarked ? (
-                          <Ionicons
-                            name="bookmark"
-                            size={14}
-                            color={Sketch.accent}
-                          />
-                        ) : null}
-                        {locked ? (
+                      <View style={styles.stagePill}>
+                        <Text style={styles.stagePillText}>{item.stage}</Text>
+                      </View>
+                      {locked ? (
+                        <View style={styles.statusPill}>
                           <Ionicons
                             name="lock-closed-outline"
-                            size={15}
-                            color={Sketch.accent}
+                            size={13}
+                            color={AppSketch.primary}
                           />
-                        ) : done ? (
-                          <View style={styles.doneBadge}>
-                            <Ionicons
-                              name="checkmark"
-                              size={13}
-                              style={styles.doneBadgeIcon}
-                            />
-                          </View>
-                        ) : null}
-                      </View>
+                          <Text style={styles.statusPillText}>Access</Text>
+                        </View>
+                      ) : done ? (
+                        <View style={styles.statusPill}>
+                          <Ionicons
+                            name="checkmark"
+                            size={13}
+                            color={AppSketch.primary}
+                          />
+                          <Text style={styles.statusPillText}>Practiced</Text>
+                        </View>
+                      ) : bookmarked ? (
+                        <View style={styles.statusPill}>
+                          <Ionicons
+                            name="bookmark"
+                            size={13}
+                            color={AppSketch.primary}
+                          />
+                          <Text style={styles.statusPillText}>Saved</Text>
+                        </View>
+                      ) : null}
                     </View>
                     <Text style={styles.cardTitle}>{cardCopy.title}</Text>
                     <Text style={styles.cardPattern}>{cardCopy.pattern}</Text>
                     <Text style={styles.cardMeaning}>{cardCopy.meaning}</Text>
                     <View style={styles.cardFooter}>
                       <Text style={styles.cardId}>{item.id}</Text>
-                      <Text style={styles.cardLink}>
+                      <View style={styles.cardLinkPill}>
+                        <Text style={styles.cardLink}>
                         {locked ? "Unlock" : "Open lesson"}
-                      </Text>
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 );
@@ -296,7 +334,7 @@ export default function GrammarTopicsScreenWeb() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 34,
+    gap: 28,
   },
   stack: {
     flexDirection: "column",
@@ -308,93 +346,129 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   topButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.ink,
+    ...AppTypography.label,
+    color: AppSketch.ink,
   },
   summaryGrid: {
     flexDirection: "row",
-    gap: 20,
+    gap: 18,
   },
   summaryPanel: {
     flex: 1,
-    minHeight: 210,
+    minHeight: 208,
+  },
+  progressPanel: {
+    flex: 1.12,
+  },
+  nextPanel: {
+    flex: 0.88,
   },
   summaryMetrics: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 24,
+    gap: 28,
   },
   bigMetric: {
-    minWidth: 130,
-    gap: 4,
+    minWidth: 126,
+    gap: 6,
   },
   bigMetricValue: {
-    fontSize: 46,
-    lineHeight: 48,
+    fontSize: 52,
+    lineHeight: 54,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.primary,
     letterSpacing: -1.2,
   },
   bigMetricLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   trackWrap: {
     flex: 1,
-    gap: 10,
+    gap: 12,
   },
   track: {
-    height: 8,
-    backgroundColor: Sketch.inkFaint,
+    height: 10,
+    backgroundColor: AppSketch.borderLight,
+    borderRadius: AppRadius.full,
+    overflow: "hidden",
   },
   fill: {
     height: "100%",
-    backgroundColor: Sketch.accent,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
+  },
+  progressMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  metaChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.surface,
+  },
+  metaChipText: {
+    ...AppTypography.caption,
+    color: AppSketch.inkSecondary,
   },
   trackHint: {
-    fontSize: 14,
-    color: Sketch.inkMuted,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
   },
   nextCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
     padding: 18,
-    gap: 8,
-    minHeight: 120,
+    gap: 10,
+    minHeight: 138,
     justifyContent: "center",
   },
+  nextHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
   nextLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1.1,
   },
   nextTitle: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   nextMeta: {
-    fontSize: 14,
-    color: Sketch.accent,
+    ...AppTypography.label,
+    color: AppSketch.primary,
     fontWeight: "700",
   },
   nextBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkMuted,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
+  },
+  nextFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
   },
   grid: {
     flexDirection: "row",
@@ -405,15 +479,13 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.lg,
     padding: 18,
-    gap: 12,
-    minHeight: 282,
-  },
-  cardLearned: {
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    gap: 14,
+    minHeight: 260,
+    ...appShadow("sm"),
   },
   cardTop: {
     flexDirection: "row",
@@ -421,67 +493,76 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  cardStage: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+  stagePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.surface,
   },
-  cardStatusRow: {
+  stagePillText: {
+    ...AppTypography.caption,
+    color: AppSketch.inkSecondary,
+  },
+  statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  doneBadge: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.surface,
   },
-  doneBadgeIcon: {
-    color: Sketch.accentDark,
+  statusPillText: {
+    ...AppTypography.caption,
+    color: AppSketch.primary,
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: 21,
     lineHeight: 28,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.5,
-    minHeight: 56,
+    minHeight: 54,
   },
   cardPattern: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: Sketch.ink,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkSecondary,
+    minHeight: 42,
   },
   cardMeaning: {
     flex: 1,
-    minHeight: 44,
-    fontSize: 14,
-    lineHeight: 22,
-    color: Sketch.inkMuted,
+    minHeight: 40,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
   },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 12,
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
   },
   cardId: {
     flex: 1,
-    fontSize: 12,
-    color: Sketch.inkMuted,
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
+  },
+  cardLinkPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.surface,
   },
   cardLink: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.accent,
+    ...AppTypography.labelSmall,
+    color: AppSketch.primary,
   },
 });

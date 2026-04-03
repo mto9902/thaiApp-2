@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -45,7 +45,7 @@ function ReferenceCard({
           onPress={handleSpeakerPress}
           activeOpacity={0.82}
         >
-          <Ionicons name="volume-medium-outline" size={18} color={Sketch.accent} />
+          <Ionicons name="volume-medium-outline" size={18} color={AppSketch.primary} />
         </TouchableOpacity>
       </View>
       <Text style={styles.referenceThai}>{item.thai}</Text>
@@ -135,15 +135,16 @@ export default function NumbersWeb() {
 const styles = StyleSheet.create({
   backButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   introPanel: {
     flexDirection: "row",
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   introEyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     letterSpacing: 1.1,
     textTransform: "uppercase",
   },
@@ -166,14 +167,14 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 40,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.8,
   },
   introBody: {
     maxWidth: 820,
     fontSize: 16,
     lineHeight: 26,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   launchButton: {
     minWidth: 220,
@@ -181,9 +182,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 18,
     paddingVertical: 16,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   launchButtonText: {
     fontSize: 14,
@@ -198,11 +201,13 @@ const styles = StyleSheet.create({
   referenceCard: {
     width: "31.8%",
     minHeight: 236,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 8,
+    ...appShadow("sm"),
   },
   referenceTop: {
     flexDirection: "row",
@@ -217,20 +222,21 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   referenceThaiNumeral: {
     fontSize: 24,
     lineHeight: 28,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
   playButton: {
     width: 40,
     height: 40,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -238,22 +244,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   referenceRomanization: {
     fontSize: 14,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   referenceEnglish: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
   },
   referenceContext: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.inkMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
@@ -271,13 +277,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   ctaBody: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   secondaryButton: {
     minWidth: 220,
@@ -285,13 +291,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 18,
     paddingVertical: 16,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
 });

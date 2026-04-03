@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
 import ToneGuide, { ToneGuideButton } from "@/src/components/ToneGuide";
 import {
@@ -29,7 +29,7 @@ import { getAuthToken } from "@/src/utils/authStorage";
 import { getToneAccent } from "@/src/utils/toneAccent";
 
 function toneColor(tone?: string): string {
-  return tone ? getToneAccent(tone) : Sketch.inkMuted;
+  return tone ? getToneAccent(tone) : AppSketch.inkMuted;
 }
 
 function getBreakdownRomanizations(
@@ -284,7 +284,7 @@ export default function GrammarDetailWeb() {
               onPress={() => router.back()}
               activeOpacity={0.82}
             >
-              <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
               <Text style={styles.topButtonText}>Back</Text>
             </TouchableOpacity>
           }
@@ -353,7 +353,7 @@ export default function GrammarDetailWeb() {
             onPress={() => router.back()}
             activeOpacity={0.82}
           >
-            <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
             <Text style={styles.topButtonText}>Back</Text>
           </TouchableOpacity>
         }
@@ -397,7 +397,7 @@ export default function GrammarDetailWeb() {
                     <Ionicons
                       name="volume-medium-outline"
                       size={18}
-                      color={Sketch.ink}
+                      color={AppSketch.ink}
                     />
                     <Text style={styles.audioButtonText}>Play sentence</Text>
                   </TouchableOpacity>
@@ -503,7 +503,7 @@ export default function GrammarDetailWeb() {
                   <Ionicons
                     name={bookmarked ? "bookmark" : "bookmark-outline"}
                     size={16}
-                    color={bookmarked ? Sketch.accent : Sketch.inkMuted}
+                    color={bookmarked ? AppSketch.primary : AppSketch.inkMuted}
                   />
                   <Text style={styles.secondaryButtonText}>
                     {isGuest ? "Log in to save" : bookmarked ? "Saved" : "Save lesson"}
@@ -546,43 +546,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
+    borderRadius: AppRadius.md,
   },
   topButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   bodyText: {
     fontSize: 16,
     lineHeight: 28,
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   keyFormBlock: {
     marginBottom: 18,
     paddingBottom: 18,
     borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
+    borderBottomColor: AppSketch.border,
   },
   keyFormLabel: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     marginBottom: 8,
   },
   keyFormText: {
     fontSize: 16,
     lineHeight: 26,
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   thaiText: {
     fontSize: 42,
     lineHeight: 56,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   exampleHero: {
     flexDirection: "row",
@@ -595,11 +596,12 @@ const styles = StyleSheet.create({
   exampleSentencePanel: {
     flex: 1.1,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paperDark,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 24,
     gap: 20,
     justifyContent: "space-between",
+    borderRadius: AppRadius.lg,
   },
   exampleMetaRail: {
     width: 320,
@@ -615,38 +617,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   audioButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   exampleInfoCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 8,
+    borderRadius: AppRadius.md,
   },
   exampleInfoLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   exampleInfoLead: {
     fontSize: 22,
     lineHeight: 32,
-    color: Sketch.ink,
+    color: AppSketch.ink,
     fontWeight: "600",
   },
   exampleInfoBody: {
     fontSize: 18,
     lineHeight: 28,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   breakdownSection: {
     gap: 14,
@@ -654,7 +658,7 @@ const styles = StyleSheet.create({
   breakdownLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1.1,
   },
@@ -667,10 +671,11 @@ const styles = StyleSheet.create({
     minWidth: 164,
     maxWidth: 240,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 14,
     gap: 6,
+    borderRadius: AppRadius.md,
   },
   wordCardTop: {
     flexDirection: "row",
@@ -680,16 +685,16 @@ const styles = StyleSheet.create({
   wordThai: {
     fontSize: 24,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   wordRoman: {
     fontSize: 12,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   wordEnglish: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
     letterSpacing: 0.6,
   },
   toneDot: {
@@ -700,30 +705,30 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 38,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   sideMetaBlock: {
     paddingTop: 6,
     gap: 6,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
   },
   sideMetaLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   sideMetaValue: {
     fontSize: 20,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   sideMetaBody: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   primaryButton: {
     alignItems: "center",
@@ -731,8 +736,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.md,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,
@@ -747,12 +754,13 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   secondaryButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
 });

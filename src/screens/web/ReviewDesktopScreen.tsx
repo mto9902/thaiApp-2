@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import { submitVocabAnswer } from "@/src/api/submitVocabAnswer";
 import VocabSrsInfoSheet from "@/src/components/VocabSrsInfoSheet";
 import {
@@ -360,7 +360,7 @@ export default function ReviewWebScreen() {
               onPress={() => router.back()}
               activeOpacity={0.82}
             >
-              <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
               <Text style={styles.toolbarButtonText}>Back</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -368,7 +368,7 @@ export default function ReviewWebScreen() {
               onPress={() => router.push("/settings" as any)}
               activeOpacity={0.82}
             >
-              <Ionicons name="settings-outline" size={18} color={Sketch.ink} />
+              <Ionicons name="settings-outline" size={18} color={AppSketch.ink} />
               <Text style={styles.toolbarButtonText}>Settings</Text>
             </TouchableOpacity>
           </View>
@@ -376,7 +376,7 @@ export default function ReviewWebScreen() {
       >
         {loading ? (
           <DesktopPanel style={styles.statePanel}>
-            <ActivityIndicator size="large" color={Sketch.inkMuted} />
+            <ActivityIndicator size="large" color={AppSketch.inkMuted} />
           </DesktopPanel>
         ) : isGuest ? (
           <DesktopPanel style={styles.statePanel}>
@@ -493,7 +493,7 @@ export default function ReviewWebScreen() {
                       <Ionicons
                         name="volume-medium-outline"
                         size={18}
-                        color={Sketch.ink}
+                        color={AppSketch.ink}
                       />
                     </TouchableOpacity>
                   </View>
@@ -562,13 +562,17 @@ export default function ReviewWebScreen() {
                         {ratingOptions.map((item) => (
                           <TouchableOpacity
                             key={item.grade}
-                            style={[styles.rateButton, { backgroundColor: item.color }]}
+                            style={[styles.rateButton, { borderColor: item.color }]}
                             onPress={() => void handleRate(item.grade)}
                             activeOpacity={0.82}
                             disabled={isSubmitting}
                           >
-                            <Text style={styles.rateLabel}>{item.label}</Text>
-                            <Text style={styles.rateInterval}>{item.interval}</Text>
+                            <Text style={[styles.rateLabel, { color: item.color }]}>
+                              {item.label}
+                            </Text>
+                            <Text style={[styles.rateInterval, { color: item.color }]}>
+                              {item.interval}
+                            </Text>
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -656,13 +660,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   toolbarButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   statePanel: {
     minHeight: 280,
@@ -673,14 +678,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     textAlign: "center",
   },
   stateBody: {
     maxWidth: 520,
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textAlign: "center",
   },
   mainGrid: {
@@ -709,14 +714,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   stateBadgeText: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.7,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   speakerButton: {
     width: 42,
@@ -724,35 +730,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   flashcard: {
     minHeight: 220,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 20,
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
+    borderRadius: AppRadius.lg,
   },
   thaiText: {
     fontSize: 46,
     lineHeight: 54,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     textAlign: "center",
   },
   romanText: {
     fontSize: 16,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textAlign: "center",
   },
   revealHint: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textAlign: "center",
   },
   answerArea: {
@@ -763,28 +771,28 @@ const styles = StyleSheet.create({
   answerDivider: {
     width: "100%",
     height: 1,
-    backgroundColor: Sketch.inkFaint,
+    backgroundColor: AppSketch.border,
   },
   englishText: {
     fontSize: 30,
     lineHeight: 38,
     fontWeight: "600",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     textAlign: "center",
   },
   feedbackChip: {
     alignSelf: "flex-end",
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
+    backgroundColor: AppSketch.background,
   },
   feedbackChipPromoted: {
     borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.successTint,
   },
   feedbackChipLapsed: {
     borderColor: MUTED_FEEDBACK_ACCENTS.errorBorder,
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.errorTint,
   },
   feedbackChipText: {
     fontSize: 12,
@@ -794,7 +802,7 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
   },
   inlineRatingHeader: {
     gap: 4,
@@ -802,12 +810,12 @@ const styles = StyleSheet.create({
   inlineRatingTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   inlineRatingBody: {
     fontSize: 13,
     lineHeight: 20,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   ratingGrid: {
     flexDirection: "row",
@@ -822,23 +830,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    borderWidth: 1,
+    borderRadius: AppRadius.md,
+    backgroundColor: AppSketch.surface,
   },
   rateLabel: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#fff",
   },
   rateInterval: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.86)",
   },
   queueStack: {
     gap: 12,
   },
   queueCard: {
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 16,
     gap: 4,
   },
@@ -849,7 +859,7 @@ const styles = StyleSheet.create({
   },
   queueLabel: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   preferenceList: {
     gap: 8,
@@ -857,7 +867,7 @@ const styles = StyleSheet.create({
   preferenceItem: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   summaryGrid: {
     flexDirection: "row",
@@ -865,9 +875,10 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 18,
     gap: 6,
   },
@@ -875,11 +886,11 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   summaryLabel: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   summaryActionRow: {
     marginTop: 16,
@@ -891,9 +902,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,
@@ -905,13 +918,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
 });

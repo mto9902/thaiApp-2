@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -164,7 +164,7 @@ export default function AlphabetPracticeWeb() {
             onPress={() => router.back()}
             activeOpacity={0.82}
           >
-            <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
             <Text style={styles.toolbarButtonText}>Back</Text>
           </TouchableOpacity>
         }
@@ -209,7 +209,7 @@ export default function AlphabetPracticeWeb() {
                   onPress={() => speak(currentItem.name)}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="volume-medium-outline" size={18} color={Sketch.ink} />
+                  <Ionicons name="volume-medium-outline" size={18} color={AppSketch.ink} />
                 </TouchableOpacity>
                 <Text style={styles.studyGlyph}>{currentItem.letter}</Text>
                 <Text style={styles.studyName}>{currentItem.name}</Text>
@@ -259,19 +259,11 @@ export default function AlphabetPracticeWeb() {
                       ? MUTED_FEEDBACK_ACCENTS.successBorder
                       : isSelected
                         ? MUTED_FEEDBACK_ACCENTS.errorBorder
-                        : Sketch.inkFaint
+                        : AppSketch.border
                     : isSelected
                       ? MUTED_FEEDBACK_ACCENTS.selectedBorder
-                      : Sketch.inkFaint;
-                  const backgroundColor = revealed
-                    ? isCorrect
-                      ? MUTED_FEEDBACK_ACCENTS.successTint
-                      : isSelected
-                        ? MUTED_FEEDBACK_ACCENTS.errorTint
-                        : Sketch.cardBg
-                    : isSelected
-                      ? MUTED_FEEDBACK_ACCENTS.selectedTint
-                      : Sketch.cardBg;
+                      : AppSketch.border;
+                  const backgroundColor = AppSketch.surface;
 
                   return (
                     <TouchableOpacity
@@ -315,13 +307,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   toolbarButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   modeRow: {
     flexDirection: "row",
@@ -332,30 +325,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   modeChipActive: {
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.background,
   },
   modeChipText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   modeChipTextActive: {
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
   studyCard: {
     minHeight: 320,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 28,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
+    borderRadius: AppRadius.lg,
+    ...appShadow("sm"),
   },
   speakerButton: {
     alignSelf: "flex-start",
@@ -364,58 +360,61 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   studyGlyph: {
     fontSize: 88,
     lineHeight: 96,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   studyName: {
     fontSize: 30,
     lineHeight: 36,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   studyRoman: {
     fontSize: 16,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   exampleCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 18,
     minWidth: 340,
     gap: 6,
     alignItems: "center",
+    borderRadius: AppRadius.md,
   },
   exampleThai: {
     fontSize: 28,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   exampleMeta: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textAlign: "center",
   },
   promptCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingVertical: 24,
     paddingHorizontal: 18,
     alignItems: "center",
     gap: 8,
+    borderRadius: AppRadius.lg,
   },
   promptLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -423,7 +422,7 @@ const styles = StyleSheet.create({
     fontSize: 42,
     lineHeight: 48,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   optionGrid: {
     flexDirection: "row",
@@ -438,18 +437,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    borderRadius: AppRadius.lg,
   },
   optionGlyph: {
     fontSize: 44,
     lineHeight: 50,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     textAlign: "center",
   },
   optionMeta: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textAlign: "center",
   },
   primaryButton: {
@@ -460,8 +460,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.md,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,

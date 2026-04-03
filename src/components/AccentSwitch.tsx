@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppSketch } from "@/constants/theme-app";
 
 type AccentSwitchProps = {
   value: boolean;
@@ -46,13 +46,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   trackOn: {
-    backgroundColor: Sketch.accent,
-    borderColor: Sketch.accent,
+    backgroundColor: AppSketch.primary,
+    borderColor: AppSketch.primary,
     alignItems: "flex-end",
   },
   trackOff: {
-    backgroundColor: Sketch.inkFaint,
-    borderColor: Sketch.inkFaint,
+    backgroundColor: AppSketch.border,
+    borderColor: AppSketch.border,
     alignItems: "flex-start",
   },
   trackDisabled: {
@@ -65,11 +65,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   thumbOn: {
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: AppSketch.surface,
     borderColor: "rgba(0,0,0,0.08)",
   },
   thumbOff: {
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: AppSketch.surface,
     borderColor: "rgba(0,0,0,0.06)",
   },
   thumbDisabled: {

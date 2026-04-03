@@ -10,10 +10,10 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { TONES as TONE_DATA, toLegacyTone } from "@/src/data/tones";
-import { getToneAccent, withAlpha } from "@/src/utils/toneAccent";
+import { getToneAccent } from "@/src/utils/toneAccent";
 
 const TONES = TONE_DATA.map(toLegacyTone);
 
@@ -71,8 +71,8 @@ function ToneRow({
         style={[
           styles.exampleBand,
           {
-            backgroundColor: withAlpha(accent, "10"),
-            borderColor: withAlpha(accent, "22"),
+            backgroundColor: AppSketch.surface,
+            borderColor: accent,
           },
         ]}
       >
@@ -167,7 +167,7 @@ export default function ToneGuide({ visible, onClose }: Props) {
                   key={tone.name}
                   style={[
                     styles.legendChip,
-                    { borderColor: withAlpha(accent, "22") },
+                    { borderColor: accent },
                   ]}
                 >
                   <View
@@ -218,10 +218,12 @@ const styles = StyleSheet.create({
   },
   panel: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 28,
     gap: 20,
+    borderRadius: AppRadius.lg,
+    ...appShadow("sm"),
   },
   headerRow: {
     flexDirection: "row",
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     letterSpacing: 1.1,
     textTransform: "uppercase",
   },
@@ -244,26 +246,27 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.8,
   },
   subtitle: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     maxWidth: 620,
   },
   closeButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderRadius: AppRadius.md,
   },
   closeButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   legendRow: {
     flexDirection: "row",
@@ -275,9 +278,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderRadius: AppRadius.md,
   },
   legendDot: {
     width: 10,
@@ -303,10 +307,11 @@ const styles = StyleSheet.create({
   },
   toneRow: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 12,
+    borderRadius: AppRadius.lg,
   },
   toneRowTop: {
     flexDirection: "row",
@@ -331,7 +336,7 @@ const styles = StyleSheet.create({
   toneName: {
     fontSize: 22,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.4,
   },
   toneThai: {
@@ -341,7 +346,7 @@ const styles = StyleSheet.create({
   toneDescription: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   pitchCurve: {
     flexDirection: "row",
@@ -368,7 +373,7 @@ const styles = StyleSheet.create({
   exampleMeta: {
     marginTop: 4,
     fontSize: 13,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   listenHint: {
     fontSize: 12,
@@ -378,14 +383,15 @@ const styles = StyleSheet.create({
   },
   triggerButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    borderRadius: AppRadius.md,
   },
   triggerLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
 });

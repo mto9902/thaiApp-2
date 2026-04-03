@@ -21,7 +21,8 @@ import PremiumGateCard from "../../../src/components/PremiumGateCard";
 import ToneDots from "../../../src/components/ToneDots";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
-import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
+import { Sketch, sketchShadow } from "@/constants/theme";
+import { AppRadius } from "@/constants/theme-app";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
@@ -59,12 +60,12 @@ function getBreakdownTextColor(item: { tone?: string; tones?: string[] }): strin
 }
 
 const MATTE_RESULT_COLORS = {
-  successTint: "#EDF2E8",
+  successTint: Sketch.cardBg,
   successBg: "#A2B28F",
   successBorder: "#8FA080",
   successText: "#32402E",
   successSubtext: "#40503B",
-  errorTint: "#F5E8E6",
+  errorTint: Sketch.cardBg,
   errorBg: "#C18B86",
   errorBorder: "#AF7A76",
   errorText: "#4E3231",
@@ -796,10 +797,18 @@ export default function GrammarExercisesScreen() {
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
             <View style={[st.methodsPanel, isDesktopWeb && st.methodsPanelDesktop]}>
-              <View style={st.methodsCard}>
+              <View style={[st.methodsCard, isDesktopWeb && st.methodsCardDesktop]}>
                 <View style={st.methodsHeaderRow}>
-                  <Text style={st.methodsEyebrow}>METHODS</Text>
-                  <Text style={st.methodsMeta}>Also in settings</Text>
+                  <View style={st.methodsHeaderText}>
+                    <Text style={st.methodsEyebrow}>Practice controls</Text>
+                    <Text style={st.methodsSubcopy}>
+                      Choose how this lesson appears.
+                    </Text>
+                  </View>
+                  <View style={st.methodsActions}>
+                    <Text style={st.methodsMeta}>Saved in settings</Text>
+                    <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+                  </View>
                 </View>
                 <View style={st.methodsRow}>
                   {ALL_MODES.map((practiceMode) => {
@@ -866,7 +875,7 @@ export default function GrammarExercisesScreen() {
                     {methodsNote}
                   </Text>
                 ) : null}
-                <View style={st.displayRow}>
+                <View style={[st.displayRow, isDesktopWeb && st.displayRowDesktop]}>
                   <Text style={st.displayLabel}>Display</Text>
                   <View style={st.displayChipRow}>
                     <TouchableOpacity
@@ -916,7 +925,6 @@ export default function GrammarExercisesScreen() {
                 <View style={st.modeTag}>
                   <Text style={st.modeTagText}>{meta.tag}</Text>
                 </View>
-                <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
               </View>
               <View style={st.modeTitleRow}>
                 <Text style={st.modeTitle}>{meta.title}</Text>
@@ -1302,20 +1310,16 @@ export default function GrammarExercisesScreen() {
                     if (matchRevealed) {
                       if (isCorrect) {
                         borderColor = MATTE_RESULT_COLORS.successBorder;
-                        if (!isDesktopWeb) {
-                          bgColor = MATTE_RESULT_COLORS.successTint;
-                        }
+                        bgColor = Sketch.cardBg;
                       } else if (isSelected && !isCorrect) {
                         borderColor = MATTE_RESULT_COLORS.errorBorder;
-                        if (!isDesktopWeb) {
-                          bgColor = MATTE_RESULT_COLORS.errorTint;
-                        }
+                        bgColor = Sketch.cardBg;
                       } else {
                         bgColor = Sketch.paperDark;
                       }
                     } else if (isSelected) {
                       borderColor = MUTED_FEEDBACK_ACCENTS.selectedBorder;
-                      bgColor = MUTED_FEEDBACK_ACCENTS.selectedTint;
+                      bgColor = Sketch.cardBg;
                     }
 
                     const sentenceBgColor = isCorrect && matchRevealed
@@ -1327,7 +1331,7 @@ export default function GrammarExercisesScreen() {
                           ? Sketch.paperDark
                           : "transparent"
                         : isSelected
-                          ? MUTED_FEEDBACK_ACCENTS.selectedTint
+                          ? Sketch.cardBg
                           : Sketch.paperDark;
                     const sentenceTextColor = isCorrect && matchRevealed
                       ? MATTE_RESULT_COLORS.successText
@@ -1398,12 +1402,12 @@ export default function GrammarExercisesScreen() {
                             <Ionicons
                               name={isExpanded ? "chevron-up" : "chevron-down"}
                               size={18}
-                              color={
-                                isExpanded
-                                  ? MUTED_FEEDBACK_ACCENTS.selected
+                                color={
+                                  isExpanded
+                                  ? Sketch.ink
                                   : Sketch.inkLight
-                              }
-                            />
+                               }
+                             />
                           </TouchableOpacity>
                         </View>
 
@@ -1589,35 +1593,59 @@ const st = StyleSheet.create({
   loadingPulse: {
     width: 40,
     height: 40,
-    borderRadius: SketchRadius.card,
+    borderRadius: AppRadius.lg,
     backgroundColor: Sketch.inkFaint,
   },
   loadingLabel: { fontSize: 14, color: Sketch.inkMuted, fontWeight: "600" },
 
   methodsPanel: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 14,
   },
   methodsPanelDesktop: {
     width: "100%",
     maxWidth: 980,
     alignSelf: "center",
     paddingHorizontal: 0,
-    paddingTop: 24,
+    paddingTop: 18,
   },
   methodsCard: {
-    gap: 10,
+    gap: 14,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    borderRadius: AppRadius.lg,
+    padding: 16,
+    ...sketchShadow(2),
+  },
+  methodsCardDesktop: {
+    padding: 18,
   },
   methodsHeaderRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: 16,
+  },
+  methodsHeaderText: {
+    flex: 1,
+    gap: 2,
   },
   methodsEyebrow: {
     fontSize: 11,
     fontWeight: "600",
     color: Sketch.inkMuted,
     letterSpacing: 1,
+  },
+  methodsSubcopy: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Sketch.inkMuted,
+  },
+  methodsActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   methodsMeta: {
     fontSize: 12,
@@ -1626,6 +1654,7 @@ const st = StyleSheet.create({
   },
   methodsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   methodChip: {
@@ -1635,7 +1664,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     backgroundColor: Sketch.cardBg,
     justifyContent: "center",
   },
@@ -1673,7 +1702,7 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.accent,
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.badge,
+    borderRadius: AppRadius.full,
   },
   methodBadgePending: {
     borderColor: Sketch.inkMuted,
@@ -1704,7 +1733,12 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingTop: 2,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+  },
+  displayRowDesktop: {
+    alignItems: "center",
   },
   displayLabel: {
     fontSize: 12,
@@ -1724,7 +1758,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     backgroundColor: Sketch.paper,
     justifyContent: "center",
   },
@@ -1746,7 +1780,7 @@ const st = StyleSheet.create({
 
   modeHeader: {
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 14,
     paddingBottom: 4,
   },
   modeHeaderDesktop: {
@@ -1754,7 +1788,7 @@ const st = StyleSheet.create({
     maxWidth: 980,
     alignSelf: "center",
     paddingHorizontal: 0,
-    paddingTop: 26,
+    paddingTop: 18,
     paddingBottom: 2,
   },
   modeTagRow: {
@@ -1764,8 +1798,8 @@ const st = StyleSheet.create({
     marginBottom: 8,
   },
   modeTag: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: SketchRadius.badge,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.full,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderWidth: 1,
@@ -1795,7 +1829,7 @@ const st = StyleSheet.create({
   lessonShortcutText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.orange,
+    color: Sketch.accentDark,
     letterSpacing: 0.1,
   },
   exerciseWrap: {
@@ -1814,7 +1848,7 @@ const st = StyleSheet.create({
 
   studyCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.card,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 22,
@@ -1830,8 +1864,8 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: Sketch.paperDark,
-    borderRadius: SketchRadius.control,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.md,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderWidth: 1,
@@ -1876,7 +1910,7 @@ const st = StyleSheet.create({
     width: 40,
     height: 2,
     backgroundColor: Sketch.inkFaint,
-    borderRadius: SketchRadius.track,
+    borderRadius: AppRadius.full,
     marginBottom: 16,
   },
   studyEnglish: {
@@ -1922,7 +1956,7 @@ const st = StyleSheet.create({
   },
   wordTile: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 10,
@@ -1952,7 +1986,7 @@ const st = StyleSheet.create({
   },
   matchWordTile: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 10,
@@ -2013,10 +2047,10 @@ const st = StyleSheet.create({
   },
 
   primaryBtn: {
-    backgroundColor: Sketch.orange,
-    borderRadius: SketchRadius.control,
+    backgroundColor: Sketch.accent,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.orange,
+    borderColor: Sketch.accent,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
@@ -2036,7 +2070,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.1,
   },
   secondaryBtn: {
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: Sketch.cardBg,
     borderColor: Sketch.inkFaint,
   },
   secondaryBtnText: {
@@ -2044,7 +2078,7 @@ const st = StyleSheet.create({
   },
   promptCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.card,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 16,
@@ -2053,6 +2087,8 @@ const st = StyleSheet.create({
   },
   promptCardDesktop: {
     width: "100%",
+    maxWidth: 760,
+    alignSelf: "flex-start",
     paddingVertical: 18,
     paddingHorizontal: 20,
   },
@@ -2073,20 +2109,20 @@ const st = StyleSheet.create({
   progressTrack: {
     height: 6,
     backgroundColor: Sketch.inkFaint,
-    borderRadius: SketchRadius.track,
+    borderRadius: AppRadius.full,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Sketch.ink,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: Sketch.orange,
-    borderRadius: SketchRadius.track,
+    backgroundColor: Sketch.accent,
+    borderRadius: AppRadius.full,
   },
 
   builderZone: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: SketchRadius.card,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.lg,
     minHeight: 80,
     paddingVertical: 16,
     paddingHorizontal: 18,
@@ -2102,7 +2138,7 @@ const st = StyleSheet.create({
   builderCorrect: {
     borderColor: MATTE_RESULT_COLORS.successBorder,
     borderStyle: "solid",
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: Sketch.cardBg,
   },
   builderCorrectMobile: {
     backgroundColor: MATTE_RESULT_COLORS.successTint,
@@ -2110,7 +2146,7 @@ const st = StyleSheet.create({
   builderWrong: {
     borderColor: MATTE_RESULT_COLORS.errorBorder,
     borderStyle: "solid",
-    backgroundColor: Sketch.paperDark,
+    backgroundColor: Sketch.cardBg,
   },
   builderWrongMobile: {
     backgroundColor: MATTE_RESULT_COLORS.errorTint,
@@ -2139,8 +2175,8 @@ const st = StyleSheet.create({
     alignSelf: "stretch",
   },
   builderChip: {
-    backgroundColor: Sketch.paperDark,
-    borderRadius: SketchRadius.control,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.md,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderWidth: 1.5,
@@ -2153,7 +2189,7 @@ const st = StyleSheet.create({
   },
   builderChipLocked: {
     backgroundColor: Sketch.paper,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderWidth: 1.5,
@@ -2166,7 +2202,7 @@ const st = StyleSheet.create({
   },
   builderSlotEmpty: {
     backgroundColor: Sketch.paper,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderWidth: 1.5,
@@ -2200,7 +2236,7 @@ const st = StyleSheet.create({
   actionBtn: {
     flex: 1,
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
@@ -2216,7 +2252,7 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderWidth: 1,
@@ -2227,14 +2263,14 @@ const st = StyleSheet.create({
     borderColor: MATTE_RESULT_COLORS.successBorder,
   },
   resultOkMobile: {
-    backgroundColor: MATTE_RESULT_COLORS.successTint,
+    backgroundColor: Sketch.cardBg,
   },
   resultBad: {
     backgroundColor: Sketch.cardBg,
     borderColor: MATTE_RESULT_COLORS.errorBorder,
   },
   resultBadMobile: {
-    backgroundColor: MATTE_RESULT_COLORS.errorTint,
+    backgroundColor: Sketch.cardBg,
   },
   resultLabel: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },
 
@@ -2247,7 +2283,7 @@ const st = StyleSheet.create({
   },
   optionCard: {
     backgroundColor: Sketch.cardBg,
-    borderRadius: SketchRadius.card,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 12,
@@ -2264,7 +2300,7 @@ const st = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 10,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     paddingVertical: 10,
     paddingHorizontal: 12,
     minHeight: 0,
@@ -2302,7 +2338,7 @@ const st = StyleSheet.create({
   matchExpandButton: {
     width: 32,
     height: 32,
-    borderRadius: SketchRadius.control,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.cardBg,
@@ -2311,7 +2347,7 @@ const st = StyleSheet.create({
   },
   matchExpandButtonActive: {
     borderColor: MUTED_FEEDBACK_ACCENTS.selectedBorder,
-    backgroundColor: MUTED_FEEDBACK_ACCENTS.selectedTint,
+    backgroundColor: Sketch.cardBg,
   },
   matchDetailsPanel: {
     paddingTop: 6,

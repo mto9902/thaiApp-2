@@ -20,6 +20,7 @@ import {
 } from "@/constants/theme-app";
 import AppButton from "@/src/components/app/AppButton";
 import AppCard from "@/src/components/app/AppCard";
+import KimiIcon from "@/src/components/app/KimiIcon";
 import { API_BASE } from "@/src/config";
 import { GRAMMAR_STAGE_META, GrammarStage } from "@/src/data/grammarStages";
 import {
@@ -70,6 +71,17 @@ function localDateKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function buildDateCountMap(items: string[]): Record<string, number> {
+  return items.reduce<Record<string, number>>((acc, isoString) => {
+    if (!isoString) return acc;
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return acc;
+    const key = localDateKey(date);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
 }
 
 function isPublicCefrLevel(level: string): level is PublicCefrLevel {
@@ -187,6 +199,24 @@ export default function HomeScreenWeb() {
     [progress, visibleGrammarPoints],
   );
 
+  const grammarActivityMap = useMemo(
+    () =>
+      buildDateCountMap(
+        Object.values(progress)
+          .map((entry) => entry.lastPracticed)
+          .filter(Boolean),
+      ),
+    [progress],
+  );
+
+  const combinedActivityMap = useMemo(() => {
+    const merged = { ...activityMap };
+    Object.entries(grammarActivityMap).forEach(([key, count]) => {
+      merged[key] = (merged[key] || 0) + count;
+    });
+    return merged;
+  }, [activityMap, grammarActivityMap]);
+
   const nextLesson = useMemo(
     () => visibleGrammarPoints.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
     [progress, visibleGrammarPoints],
@@ -227,25 +257,51 @@ export default function HomeScreenWeb() {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const key = localDateKey(d);
-      if ((activityMap[key] || 0) > 0) {
+      if ((combinedActivityMap[key] || 0) > 0) {
         streak += 1;
       } else if (i > 0) {
         break;
       }
     }
     return streak;
-  }, [activityMap]);
+  }, [combinedActivityMap]);
 
-  const weekActivity = useMemo(
+  const streakBlocks = useMemo(
     () =>
-      Array.from({ length: 7 }).map((_, index) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - index));
-        const key = localDateKey(d);
-        return { key, active: (activityMap[key] || 0) > 0 };
-      }),
-    [activityMap],
+      Array.from({ length: 7 }).map((_, index) => ({
+        key: `streak-${index}`,
+        active: index < Math.min(currentStreak, 7),
+      })),
+    [currentStreak],
   );
+
+  const todayGrammarCount = useMemo(() => {
+    const todayKey = localDateKey(new Date());
+    return visibleGrammarPoints.filter((point) => {
+      const lastPracticed = progress[point.id]?.lastPracticed;
+      if (!lastPracticed) return false;
+      const practicedDate = new Date(lastPracticed);
+      if (Number.isNaN(practicedDate.getTime())) return false;
+      return localDateKey(practicedDate) === todayKey;
+    }).length;
+  }, [progress, visibleGrammarPoints]);
+
+  const dominantStageMeta = useMemo(() => {
+    if (practicedGrammar.length === 0) return GRAMMAR_STAGE_META["A1.1"];
+
+    const counts = practicedGrammar.reduce<Record<GrammarStage, number>>((acc, point) => {
+      acc[point.stage] = (acc[point.stage] || 0) + 1;
+      return acc;
+    }, {} as Record<GrammarStage, number>);
+
+    return Object.values(GRAMMAR_STAGE_META)
+      .filter((meta) => meta.id !== "C2")
+      .sort((a, b) => {
+        const countDiff = (counts[b.id] || 0) - (counts[a.id] || 0);
+        if (countDiff !== 0) return countDiff;
+        return b.order - a.order;
+      })[0];
+  }, [practicedGrammar]);
 
   const learningPath = useMemo<LearningPathNode[]>(() => {
     if (visibleGrammarPoints.length === 0) return [];
@@ -411,13 +467,13 @@ export default function HomeScreenWeb() {
     {
       label: "Alphabet",
       detail: "Consonants and sound groups",
-      icon: "language-outline",
+      customIcon: "alphabet",
       route: "/alphabet/",
     },
     {
       label: "Numbers",
       detail: "Counting, time, and quantities",
-      icon: "calculator-outline",
+      customIcon: "numbers",
       route: "/numbers/",
     },
     {
@@ -649,7 +705,7 @@ export default function HomeScreenWeb() {
                   >
                     <View style={styles.tileIcon}>
                       <Ionicons
-                        name={tool.icon as any}
+                        name={tool.icon as keyof typeof Ionicons.glyphMap}
                         size={18}
                         color={tool.disabled ? AppSketch.inkFaint : AppSketch.primary}
                       />
@@ -685,7 +741,15 @@ export default function HomeScreenWeb() {
                     activeOpacity={0.88}
                   >
                     <View style={styles.tileIcon}>
-                      <Ionicons name={tool.icon as any} size={18} color={AppSketch.primary} />
+                      {tool.customIcon ? (
+                        <KimiIcon name={tool.customIcon} size={18} color={AppSketch.primary} />
+                      ) : (
+                        <Ionicons
+                          name={tool.icon as keyof typeof Ionicons.glyphMap}
+                          size={18}
+                          color={AppSketch.primary}
+                        />
+                      )}
                     </View>
                     <View style={styles.tileCopy}>
                       <Text style={styles.tileTitle}>{tool.label}</Text>
@@ -713,18 +777,10 @@ export default function HomeScreenWeb() {
                   </Text>
                 </View>
                 <View
-                  style={[
-                    styles.statusChip,
-                    isPremium && styles.statusChipPremium,
-                    isGuest && styles.statusChipGuest,
-                  ]}
+                  style={[styles.statusChip, isPremium && styles.statusChipPremium]}
                 >
                   <Text
-                    style={[
-                      styles.statusChipText,
-                      isPremium && styles.statusChipTextPremium,
-                      isGuest && styles.statusChipTextGuest,
-                    ]}
+                    style={[styles.statusChipText, isPremium && styles.statusChipTextPremium]}
                   >
                     {isGuest ? "Guest" : isPremium ? "Access" : "Standard"}
                   </Text>
@@ -737,7 +793,7 @@ export default function HomeScreenWeb() {
                   <Text style={styles.streakValueLabel}>day streak</Text>
                 </View>
                 <View style={styles.sparkline}>
-                  {weekActivity.map((day) => (
+                  {streakBlocks.map((day) => (
                     <View
                       key={day.key}
                       style={[styles.sparkDot, day.active && styles.sparkDotActive]}
@@ -748,18 +804,24 @@ export default function HomeScreenWeb() {
 
               <View style={styles.snapshotStats}>
                 <View style={styles.snapshotStat}>
+                  <Text style={styles.snapshotStatValue}>{todayGrammarCount}</Text>
+                  <Text style={styles.snapshotStatLabel} numberOfLines={2}>
+                    New today
+                  </Text>
+                </View>
+                <View style={styles.snapshotDivider} />
+                <View style={styles.snapshotStat}>
                   <Text style={styles.snapshotStatValue}>{practicedGrammar.length}</Text>
-                  <Text style={styles.snapshotStatLabel}>Studied</Text>
+                  <Text style={styles.snapshotStatLabel} numberOfLines={2}>
+                    Practiced
+                  </Text>
                 </View>
                 <View style={styles.snapshotDivider} />
                 <View style={styles.snapshotStat}>
-                  <Text style={styles.snapshotStatValue}>{reviewsDue}</Text>
-                  <Text style={styles.snapshotStatLabel}>Ready</Text>
-                </View>
-                <View style={styles.snapshotDivider} />
-                <View style={styles.snapshotStat}>
-                  <Text style={styles.snapshotStatValue}>{currentStageMeta?.id ?? "A1.1"}</Text>
-                  <Text style={styles.snapshotStatLabel}>Stage</Text>
+                  <Text style={styles.snapshotStatValue}>{dominantStageMeta.id}</Text>
+                  <Text style={styles.snapshotStatLabel} numberOfLines={2}>
+                    Stage
+                  </Text>
                 </View>
               </View>
 
@@ -841,9 +903,9 @@ const styles = StyleSheet.create({
   },
   content: {
     width: "100%",
-    maxWidth: 1220,
+    maxWidth: 1340,
     alignSelf: "center",
-    paddingHorizontal: AppSpacing.xl,
+    paddingHorizontal: AppSpacing.lg,
     paddingTop: AppSpacing.xl,
     paddingBottom: AppSpacing["3xl"],
     gap: AppSpacing.xl,
@@ -892,7 +954,7 @@ const styles = StyleSheet.create({
   topActionCard: {
     flex: 1,
     minWidth: 230,
-    borderRadius: AppRadius.lg,
+    borderRadius: AppRadius.sm,
     paddingHorizontal: AppSpacing.xl,
     paddingVertical: AppSpacing.lg,
     flexDirection: "row",
@@ -936,7 +998,7 @@ const styles = StyleSheet.create({
 
   heroCard: {
     backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.xl,
+    borderRadius: AppRadius.sm,
     borderWidth: 1,
     borderColor: AppSketch.border,
     padding: AppSpacing["2xl"],
@@ -1003,7 +1065,7 @@ const styles = StyleSheet.create({
     minWidth: 160,
     paddingVertical: AppSpacing.md,
     paddingHorizontal: AppSpacing.lg,
-    borderRadius: AppRadius.md,
+    borderRadius: AppRadius.sm,
     backgroundColor: AppSketch.background,
     borderWidth: 1,
     borderColor: AppSketch.borderLight,
@@ -1076,6 +1138,7 @@ const styles = StyleSheet.create({
 
   clusterCard: {
     gap: AppSpacing.lg,
+    borderRadius: AppRadius.sm,
   },
   clusterHeader: {
     flexDirection: "row",
@@ -1104,7 +1167,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 250,
     backgroundColor: AppSketch.background,
-    borderRadius: AppRadius.lg,
+    borderRadius: AppRadius.sm,
     borderWidth: 1,
     borderColor: AppSketch.borderLight,
     padding: AppSpacing.lg,
@@ -1118,7 +1181,7 @@ const styles = StyleSheet.create({
   tileIcon: {
     width: 40,
     height: 40,
-    borderRadius: AppRadius.md,
+    borderRadius: AppRadius.xs,
     backgroundColor: AppSketch.surface,
     borderWidth: 1,
     borderColor: AppSketch.border,
@@ -1142,6 +1205,7 @@ const styles = StyleSheet.create({
 
   sideCard: {
     gap: AppSpacing.lg,
+    borderRadius: AppRadius.sm,
   },
   profileHeader: {
     flexDirection: "row",
@@ -1151,7 +1215,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: AppRadius.md,
+    borderRadius: AppRadius.xs,
     backgroundColor: `${AppSketch.primary}10`,
     borderWidth: 1,
     borderColor: `${AppSketch.primary}20`,
@@ -1172,28 +1236,21 @@ const styles = StyleSheet.create({
   statusChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: AppRadius.full,
+    borderRadius: AppRadius.xs,
     backgroundColor: AppSketch.background,
     borderWidth: 1,
     borderColor: AppSketch.border,
   },
   statusChipPremium: {
-    backgroundColor: `${AppSketch.success}10`,
-    borderColor: `${AppSketch.success}30`,
-  },
-  statusChipGuest: {
-    backgroundColor: `${AppSketch.warning}10`,
-    borderColor: `${AppSketch.warning}35`,
+    backgroundColor: AppSketch.surface,
+    borderColor: `${AppSketch.primary}30`,
   },
   statusChipText: {
     ...AppTypography.captionSmall,
     color: AppSketch.inkMuted,
   },
   statusChipTextPremium: {
-    color: AppSketch.success,
-  },
-  statusChipTextGuest: {
-    color: "#B7791F",
+    color: AppSketch.primary,
   },
   streakBlock: {
     gap: AppSpacing.md,
@@ -1231,7 +1288,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
     backgroundColor: AppSketch.background,
-    borderRadius: AppRadius.lg,
+    borderRadius: AppRadius.sm,
     borderWidth: 1,
     borderColor: AppSketch.borderLight,
     overflow: "hidden",
@@ -1241,6 +1298,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: AppSpacing.md,
+    paddingHorizontal: AppSpacing.xs,
     gap: 2,
   },
   snapshotDivider: {
@@ -1253,8 +1311,9 @@ const styles = StyleSheet.create({
   snapshotStatLabel: {
     ...AppTypography.captionSmall,
     color: AppSketch.inkFaint,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    textAlign: "center",
+    lineHeight: 14,
+    maxWidth: 72,
   },
   sideActions: {
     gap: AppSpacing.sm,
@@ -1294,7 +1353,7 @@ const styles = StyleSheet.create({
     width: "48%",
     minWidth: 130,
     backgroundColor: AppSketch.background,
-    borderRadius: AppRadius.md,
+    borderRadius: AppRadius.sm,
     borderWidth: 1,
     borderColor: AppSketch.borderLight,
     padding: AppSpacing.md,

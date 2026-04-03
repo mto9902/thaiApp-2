@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -102,7 +102,11 @@ export default function AlphabetGroupWeb() {
                   <View style={styles.soundBadge}>
                     <Text style={styles.soundBadgeText}>{letter.sound.toUpperCase()}</Text>
                   </View>
-                  <Ionicons name="volume-medium-outline" size={16} color={Sketch.inkMuted} />
+                  <Ionicons
+                    name="volume-medium-outline"
+                    size={16}
+                    color={AppSketch.inkMuted}
+                  />
                 </View>
                 <Text style={styles.letterGlyph}>{letter.letter}</Text>
                 <Text style={styles.letterName}>{letter.name}</Text>
@@ -131,8 +135,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.md,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 13,
@@ -145,13 +151,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   secondaryButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   grid: {
     flexDirection: "row",
@@ -160,10 +167,12 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 16,
     gap: 10,
+    borderRadius: AppRadius.lg,
+    ...appShadow("sm"),
   },
   cardTop: {
     flexDirection: "row",
@@ -172,47 +181,49 @@ const styles = StyleSheet.create({
   },
   soundBadge: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    borderRadius: AppRadius.md,
   },
   soundBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: 0.8,
   },
   letterGlyph: {
     fontSize: 48,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     lineHeight: 54,
   },
   letterName: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   letterRoman: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   exampleCard: {
     marginTop: 4,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 12,
     gap: 4,
+    borderRadius: AppRadius.md,
   },
   exampleThai: {
     fontSize: 20,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   exampleEnglish: {
     fontSize: 13,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
 });

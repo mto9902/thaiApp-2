@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -172,7 +172,7 @@ export default function ExploreWeb() {
             <Text style={styles.helperText}>Loading bookmarks...</Text>
           ) : bookmarked.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="bookmark-outline" size={24} color={Sketch.inkMuted} />
+              <Ionicons name="bookmark-outline" size={24} color={AppSketch.inkMuted} />
               <Text style={styles.emptyTitle}>No bookmarks yet</Text>
               <Text style={styles.emptyBody}>
                 Save grammar lessons from the curriculum and they will appear here.
@@ -194,7 +194,7 @@ export default function ExploreWeb() {
                     <View style={styles.bookmarkTop}>
                       <Text style={styles.bookmarkStage}>{item.stage}</Text>
                       {!isPremium && isPremiumGrammarPoint(item) ? (
-                        <Ionicons name="lock-closed-outline" size={14} color={Sketch.accent} />
+                        <Ionicons name="lock-closed-outline" size={14} color={AppSketch.primary} />
                       ) : null}
                     </View>
                     <View style={styles.bookmarkBody}>
@@ -246,9 +246,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,
@@ -260,14 +262,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   disabledButton: {
     opacity: 0.5,
@@ -278,28 +281,29 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   emptyState: {
     minHeight: 180,
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   emptyBody: {
     maxWidth: 420,
     textAlign: "center",
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   grid: {
     flexDirection: "row",
@@ -307,12 +311,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bookmarkCard: {
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 12,
     minHeight: 260,
+    ...appShadow("sm"),
   },
   bookmarkBody: {
     flex: 1,
@@ -327,7 +333,7 @@ const styles = StyleSheet.create({
   bookmarkStage: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -335,25 +341,26 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   bookmarkMeta: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   innerButton: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
   },
   innerButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   modalOverlay: {
     flex: 1,
@@ -368,11 +375,13 @@ const styles = StyleSheet.create({
     maxWidth: 760,
     width: "100%",
     alignSelf: "center",
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 24,
     gap: 18,
+    ...appShadow("sm"),
   },
   modalHeader: {
     flexDirection: "row",
@@ -387,22 +396,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   modalSubtitle: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   modalCloseButton: {
     width: 42,
     height: 42,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   filterWrap: {
     flexDirection: "row",
@@ -413,13 +423,14 @@ const styles = StyleSheet.create({
     minWidth: 86,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     gap: 2,
   },
   filterChipActive: {
-    borderColor: Sketch.accent,
+    borderColor: AppSketch.primary,
   },
   filterChipDisabled: {
     opacity: 0.45,
@@ -427,13 +438,13 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   filterChipCount: {
     fontSize: 12,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   filterChipTextActive: {
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
 });

@@ -1,7 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -17,7 +17,6 @@ import {
 import {
   getToneAccent,
   getToneMarkAccent,
-  withAlpha,
 } from "@/src/utils/toneAccent";
 
 function getToneMarkDisplay(mark: string) {
@@ -76,10 +75,7 @@ function ToneCard({
             key={`${tone.name}-${index}`}
             style={[
               styles.exampleChip,
-              {
-                backgroundColor: withAlpha(accent, "10"),
-                borderColor: withAlpha(accent, "22"),
-              },
+              styles.neutralChip,
             ]}
             onPress={() => onSpeak(example.thai)}
             activeOpacity={0.82}
@@ -150,7 +146,7 @@ export default function TonesWeb() {
                       <View
                         style={[
                           styles.markBadge,
-                          { backgroundColor: withAlpha(accent, "12") },
+                          styles.neutralBadge,
                         ]}
                       >
                         <Text style={[styles.markSymbol, { color: accent }]}>
@@ -190,10 +186,7 @@ export default function TonesWeb() {
                             key={`${group.label}-${pair.thai}-${pair.tone}`}
                             style={[
                               styles.pairChip,
-                              {
-                                backgroundColor: withAlpha(accent, "10"),
-                                borderColor: withAlpha(accent, "22"),
-                              },
+                              styles.neutralChip,
                             ]}
                             onPress={() => speak(pair.thai)}
                             activeOpacity={0.82}
@@ -227,15 +220,16 @@ const styles = StyleSheet.create({
   },
   backButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   toneGrid: {
     flexDirection: "row",
@@ -246,12 +240,14 @@ const styles = StyleSheet.create({
     width: "48.9%",
   },
   toneCard: {
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 14,
     height: "100%",
+    ...appShadow("sm"),
   },
   toneCardTop: {
     flexDirection: "row",
@@ -276,7 +272,7 @@ const styles = StyleSheet.create({
   toneName: {
     fontSize: 24,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.5,
   },
   toneThai: {
@@ -286,7 +282,7 @@ const styles = StyleSheet.create({
   toneDescription: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   pitchCurve: {
     flexDirection: "row",
@@ -308,6 +304,11 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
     flexGrow: 1,
+    borderRadius: AppRadius.md,
+  },
+  neutralChip: {
+    backgroundColor: AppSketch.background,
+    borderColor: AppSketch.border,
   },
   exampleThai: {
     fontSize: 24,
@@ -315,11 +316,11 @@ const styles = StyleSheet.create({
   },
   exampleRoman: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   exampleEnglish: {
     fontSize: 13,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   splitRow: {
     flexDirection: "row",
@@ -338,18 +339,23 @@ const styles = StyleSheet.create({
   markRow: {
     flexDirection: "row",
     gap: 14,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 16,
   },
   markBadge: {
     width: 72,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
+  },
+  neutralBadge: {
+    backgroundColor: AppSketch.background,
   },
   markSymbol: {
     fontSize: 26,
@@ -362,7 +368,7 @@ const styles = StyleSheet.create({
   markName: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   markRoman: {
     fontSize: 13,
@@ -371,7 +377,7 @@ const styles = StyleSheet.create({
   markDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   pairGroupList: {
     gap: 22,
@@ -382,12 +388,12 @@ const styles = StyleSheet.create({
   pairLabel: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   pairDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   pairGrid: {
     flexDirection: "row",
@@ -400,6 +406,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
     flexGrow: 1,
+    borderRadius: AppRadius.md,
   },
   pairThai: {
     fontSize: 24,
@@ -407,11 +414,11 @@ const styles = StyleSheet.create({
   },
   pairRoman: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   pairEnglish: {
     fontSize: 13,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   pairTone: {
     marginTop: 4,

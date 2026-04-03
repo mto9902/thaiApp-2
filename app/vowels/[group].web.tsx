@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -91,13 +91,17 @@ export default function VowelGroupWeb() {
                   <View style={styles.soundBadge}>
                     <Text style={styles.soundBadgeText}>{vowel.sound.toUpperCase()}</Text>
                   </View>
-                  <Ionicons name="volume-medium-outline" size={16} color={Sketch.inkMuted} />
+                  <Ionicons
+                    name="volume-medium-outline"
+                    size={16}
+                    color={AppSketch.inkMuted}
+                  />
                 </View>
                 <VowelText
                   example={vowel.example}
                   style={styles.vowelExample}
-                  vowelColor={Sketch.accent}
-                  consonantColor={Sketch.inkLight}
+                  vowelColor={AppSketch.primary}
+                  consonantColor={AppSketch.inkSecondary}
                 />
                 <Text style={styles.vowelName}>
                   {vowel.name !== "..." ? vowel.name : vowel.symbol}
@@ -123,8 +127,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.md,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 13,
@@ -137,13 +143,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   secondaryButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   grid: {
     flexDirection: "row",
@@ -152,10 +159,12 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 16,
     gap: 10,
+    borderRadius: AppRadius.lg,
+    ...appShadow("sm"),
   },
   cardTop: {
     flexDirection: "row",
@@ -164,30 +173,31 @@ const styles = StyleSheet.create({
   },
   soundBadge: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    borderRadius: AppRadius.md,
   },
   soundBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: 0.8,
   },
   vowelExample: {
     fontSize: 32,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     lineHeight: 40,
   },
   vowelName: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   vowelSymbol: {
     fontSize: 14,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
 });

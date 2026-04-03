@@ -4,7 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import { useCallback, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -278,12 +278,12 @@ export default function ProfileWeb() {
         />
         <View style={styles.statGrid}>
           {[
-            { label: "Reviews Due", value: reviewsDue, tone: Sketch.accent },
-            { label: "Added Today", value: progress?.words_learned_today || 0, tone: Sketch.blue },
-            { label: "Mastered", value: progress?.mastered_words || 0, tone: Sketch.green },
+            { label: "Reviews Due", value: reviewsDue },
+            { label: "Added Today", value: progress?.words_learned_today || 0 },
+            { label: "Mastered", value: progress?.mastered_words || 0 },
           ].map((item) => (
             <View key={item.label} style={styles.statCard}>
-              <Text style={[styles.statValue, { color: item.tone }]}>{item.value}</Text>
+              <Text style={styles.statValue}>{item.value}</Text>
               <Text style={styles.statLabel}>{item.label}</Text>
             </View>
           ))}
@@ -302,7 +302,7 @@ export default function ProfileWeb() {
               onPress={() => router.push("/explore" as any)}
               activeOpacity={0.82}
             >
-              <Text style={[styles.statValue, { color: Sketch.accent }]}>{bookmarkedCount}</Text>
+              <Text style={styles.statValue}>{bookmarkedCount}</Text>
               <Text style={styles.statLabel}>Bookmarked</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -310,7 +310,7 @@ export default function ProfileWeb() {
               onPress={() => router.push("/progress" as any)}
               activeOpacity={0.82}
             >
-              <Text style={[styles.statValue, { color: Sketch.ink }]}>
+              <Text style={[styles.statValue, { color: AppSketch.ink }]}>
                 {grammarPracticedCount}
                 <Text style={styles.statValueMuted}> / {grammarPoints.length}</Text>
               </Text>
@@ -343,10 +343,10 @@ export default function ProfileWeb() {
                 activeOpacity={0.82}
               >
                 <View style={styles.linkRowLeft}>
-                  <Ionicons name={item.icon as any} size={18} color={Sketch.inkLight} />
+                  <Ionicons name={item.icon as any} size={18} color={AppSketch.inkSecondary} />
                   <Text style={styles.linkText}>{item.label}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={Sketch.inkMuted} />
+                <Ionicons name="chevron-forward" size={16} color={AppSketch.inkMuted} />
               </TouchableOpacity>
             ))}
           </View>
@@ -397,31 +397,33 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 34,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.7,
   },
   accountEmail: {
     fontSize: 16,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   accountMeta: {
     fontSize: 13,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   accessBody: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   primaryButton: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,
@@ -441,9 +443,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 18,
     gap: 6,
   },
@@ -457,18 +460,20 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   statValueMuted: {
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     fontSize: 28,
     lineHeight: 32,
     fontWeight: "600",
   },
   statLabel: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   linkList: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.md,
+    overflow: "hidden",
   },
   linkRow: {
     flexDirection: "row",
@@ -478,7 +483,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
+    borderBottomColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
   },
   linkRowLeft: {
     flexDirection: "row",
@@ -488,20 +494,21 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 15,
     fontWeight: "600",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   logoutButton: {
     marginTop: 16,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   logoutButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.red,
+    color: AppSketch.danger,
   },
 });

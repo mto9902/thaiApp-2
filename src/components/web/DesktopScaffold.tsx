@@ -9,7 +9,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Sketch } from "@/constants/theme";
+import {
+  AppRadius,
+  AppSketch,
+  AppTypography,
+  appShadow,
+} from "@/constants/theme-app";
 
 type DesktopPageProps = PropsWithChildren<{
   eyebrow?: string;
@@ -31,7 +36,7 @@ export function DesktopPage({
   title,
   subtitle,
   toolbar,
-  maxWidth = 1360,
+  maxWidth = 1480,
   density = "primary",
   contentStyle,
   scrollRef,
@@ -93,11 +98,11 @@ export function DesktopSectionTitle({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Sketch.paper,
+    backgroundColor: AppSketch.background,
   },
   scroll: {
-    paddingHorizontal: 28,
-    paddingTop: 22,
+    paddingHorizontal: 24,
+    paddingTop: 24,
     paddingBottom: 40,
   },
   scrollCompact: {
@@ -129,34 +134,29 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   eyebrow: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkMuted,
     letterSpacing: 1.1,
     textTransform: "uppercase",
   },
   title: {
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: "700",
-    color: Sketch.ink,
+    ...AppTypography.hero,
+    color: AppSketch.ink,
     letterSpacing: -1,
   },
   titleCompact: {
-    fontSize: 28,
-    lineHeight: 34,
+    ...AppTypography.title,
     letterSpacing: -0.7,
   },
   subtitle: {
     maxWidth: 760,
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkLight,
+    ...AppTypography.body,
+    color: AppSketch.inkSecondary,
   },
   subtitleCompact: {
     maxWidth: 640,
-    fontSize: 14,
-    lineHeight: 22,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkSecondary,
   },
   toolbar: {
     flexDirection: "row",
@@ -164,11 +164,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   panel: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     padding: 22,
     gap: 16,
+    ...appShadow("sm"),
   },
   sectionHeader: {
     flexDirection: "row",
@@ -181,15 +183,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Sketch.ink,
+    ...AppTypography.heading,
+    color: AppSketch.ink,
     letterSpacing: -0.35,
   },
   sectionCaption: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: Sketch.inkMuted,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
   },
   sectionAction: {
     flexDirection: "row",

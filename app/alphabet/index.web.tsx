@@ -1,7 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -106,15 +106,16 @@ export default function AlphabetWeb() {
 const styles = StyleSheet.create({
   backButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   grid: {
     flexDirection: "row",
@@ -125,30 +126,33 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     flex: 1,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 20,
     gap: 12,
     minHeight: 260,
+    ...appShadow("sm"),
   },
   speakerButton: {
     alignSelf: "flex-start",
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   speakerButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   entryEyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
@@ -156,30 +160,30 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.8,
   },
   entrySubtitle: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   entryFooter: {
     marginTop: "auto",
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   entryFooterText: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   entryFooterAction: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.primary,
   },
 });

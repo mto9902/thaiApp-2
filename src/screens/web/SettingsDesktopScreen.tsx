@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import AccentSwitch from "@/src/components/AccentSwitch";
 import {
   DesktopPage,
@@ -333,7 +333,7 @@ export default function SettingsWebScreen() {
                 onPress={() => setEditModalVisible(false)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="close" size={18} color={Sketch.inkMuted} />
+                <Ionicons name="close" size={18} color={AppSketch.inkMuted} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalBody}>
@@ -343,7 +343,7 @@ export default function SettingsWebScreen() {
               value={draftDisplayName}
               onChangeText={setDraftDisplayName}
               placeholder={getEmailLocalPart(profile?.email) || "Display name"}
-              placeholderTextColor={Sketch.inkFaint}
+              placeholderTextColor={AppSketch.inkFaint}
               style={styles.input}
               maxLength={40}
               autoCapitalize="words"
@@ -403,7 +403,7 @@ export default function SettingsWebScreen() {
                 disabled={actionBusy}
                 activeOpacity={0.8}
               >
-                <Ionicons name="close" size={18} color={Sketch.inkMuted} />
+                <Ionicons name="close" size={18} color={AppSketch.inkMuted} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalBody}>{confirmCopy.body}</Text>
@@ -444,14 +444,14 @@ export default function SettingsWebScreen() {
             onPress={() => router.back()}
             activeOpacity={0.82}
           >
-            <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         }
       >
         {loading ? (
           <DesktopPanel style={styles.loadingPanel}>
-            <ActivityIndicator size="large" color={Sketch.inkMuted} />
+            <ActivityIndicator size="large" color={AppSketch.inkMuted} />
           </DesktopPanel>
         ) : (
           <View style={styles.pageStack}>
@@ -823,13 +823,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   loadingPanel: {
     minHeight: 220,
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
   identityLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1.1,
   },
@@ -857,20 +858,21 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.7,
   },
   inlineButton: {
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   inlineButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   infoGrid: {
     flexDirection: "row",
@@ -882,30 +884,31 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 16,
     gap: 6,
     minHeight: 92,
     justifyContent: "center",
+    borderRadius: AppRadius.md,
   },
   infoLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   infoValue: {
     fontSize: 17,
     lineHeight: 25,
-    color: Sketch.ink,
+    color: AppSketch.ink,
     fontWeight: "600",
   },
   bodyText: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   preferenceStack: {
     gap: 18,
@@ -917,7 +920,7 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
+    borderBottomColor: AppSketch.border,
   },
   preferenceCopy: {
     flex: 1,
@@ -926,12 +929,12 @@ const styles = StyleSheet.create({
   preferenceTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   preferenceBody: {
     fontSize: 13,
     lineHeight: 21,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   preferenceBlock: {
     gap: 10,
@@ -944,21 +947,22 @@ const styles = StyleSheet.create({
   speedPill: {
     paddingHorizontal: 14,
     paddingVertical: 10,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   speedPillActive: {
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.background,
   },
   speedPillText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   speedPillTextActive: {
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
   exerciseChipRow: {
     flexDirection: "row",
@@ -968,29 +972,32 @@ const styles = StyleSheet.create({
   exerciseChip: {
     paddingHorizontal: 14,
     paddingVertical: 10,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   exerciseChipActive: {
-    borderColor: Sketch.accent,
+    borderColor: AppSketch.primary,
   },
   exerciseChipText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   exerciseChipTextActive: {
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
   primaryButton: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   primaryButtonText: {
     fontSize: 14,
@@ -1002,14 +1009,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   legalButtonStack: {
     gap: 12,
@@ -1019,14 +1027,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 18,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.red,
-    backgroundColor: Sketch.red,
+    borderColor: AppSketch.danger,
+    backgroundColor: AppSketch.surface,
   },
   dangerButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#fff",
+    color: AppSketch.danger,
   },
   disabledButton: {
     opacity: 0.55,
@@ -1044,11 +1053,13 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 520,
     alignSelf: "center",
-    backgroundColor: Sketch.paper,
+    backgroundColor: AppSketch.surface,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     padding: 22,
     gap: 16,
+    borderRadius: AppRadius.lg,
+    ...appShadow("sm"),
   },
   modalHeader: {
     flexDirection: "row",
@@ -1060,7 +1071,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 24,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.5,
   },
   modalIconBtn: {
@@ -1069,23 +1080,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.sm,
   },
   modalBody: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   input: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
     fontWeight: "500",
-    color: Sketch.ink,
+    color: AppSketch.ink,
+    borderRadius: AppRadius.md,
   },
   modalActions: {
     flexDirection: "row",

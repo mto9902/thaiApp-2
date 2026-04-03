@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import AccentSwitch from "@/src/components/AccentSwitch";
 import {
   DesktopPage,
@@ -153,7 +153,7 @@ export default function NumbersTrainerWeb() {
               onPress={() => setShowSettings(true)}
               activeOpacity={0.82}
             >
-              <Ionicons name="settings-outline" size={18} color={Sketch.inkLight} />
+              <Ionicons name="settings-outline" size={18} color={AppSketch.inkSecondary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.backButton}
@@ -177,7 +177,7 @@ export default function NumbersTrainerWeb() {
                 onPress={() => void playSentence(question.audioText, { speed: ttsSpeed })}
                 activeOpacity={0.82}
               >
-                <Ionicons name="volume-medium-outline" size={18} color={Sketch.accent} />
+                <Ionicons name="volume-medium-outline" size={18} color={AppSketch.primary} />
                 <Text style={styles.audioPanelButtonText}>Hear the Thai</Text>
               </TouchableOpacity>
             </DesktopPanel>
@@ -270,7 +270,7 @@ export default function NumbersTrainerWeb() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Settings</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)} activeOpacity={0.82}>
-                <Ionicons name="close" size={22} color={Sketch.ink} />
+                <Ionicons name="close" size={22} color={AppSketch.ink} />
               </TouchableOpacity>
             </View>
             <View style={styles.settingRow}>
@@ -307,23 +307,25 @@ const styles = StyleSheet.create({
   settingsButton: {
     width: 44,
     height: 44,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   backButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   pageGrid: {
     flexDirection: "row",
@@ -342,29 +344,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingVertical: 16,
   },
   audioPanelButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   promptCard: {
     alignItems: "center",
     gap: 8,
     paddingVertical: 28,
     paddingHorizontal: 20,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    ...appShadow("sm"),
   },
   promptEyebrow: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     letterSpacing: 1.1,
     textTransform: "uppercase",
   },
@@ -372,14 +377,14 @@ const styles = StyleSheet.create({
     fontSize: 56,
     lineHeight: 62,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -1.5,
   },
   promptSecondary: {
     fontSize: 32,
     lineHeight: 38,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.primary,
     textAlign: "center",
   },
   promptTertiary: {
@@ -387,7 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     textAlign: "center",
   },
   optionsGrid: {
@@ -399,83 +404,88 @@ const styles = StyleSheet.create({
   optionCard: {
     width: "48.8%",
     minHeight: 118,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 8,
     justifyContent: "center",
   },
   optionCardCorrect: {
-    borderColor: Sketch.green,
+    borderColor: AppSketch.success,
   },
   optionCardIncorrect: {
-    borderColor: Sketch.red,
+    borderColor: AppSketch.danger,
   },
   optionCardRevealed: {
-    borderColor: Sketch.green,
-    backgroundColor: "#F7FBF7",
+    borderColor: AppSketch.success,
+    backgroundColor: AppSketch.background,
   },
   optionPrimary: {
     fontSize: 20,
     lineHeight: 26,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   optionSecondary: {
     fontSize: 13,
     lineHeight: 20,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   skipButton: {
     marginTop: 18,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   skipButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   feedbackCard: {
     marginTop: 20,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
     padding: 16,
     gap: 4,
-    backgroundColor: Sketch.paper,
+    backgroundColor: AppSketch.background,
   },
   feedbackCardCorrect: {
-    borderColor: Sketch.green,
+    borderColor: AppSketch.success,
   },
   feedbackCardIncorrect: {
-    borderColor: Sketch.red,
+    borderColor: AppSketch.danger,
   },
   feedbackTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   feedbackBody: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
   nextButton: {
     marginTop: 18,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.primary,
+    ...appShadow("sm"),
   },
   nextButtonDisabled: {
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   nextButtonText: {
     fontSize: 14,
@@ -483,7 +493,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   nextButtonTextDisabled: {
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   modalBackdrop: {
     flex: 1,
@@ -495,11 +505,13 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     maxWidth: 420,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 22,
     gap: 20,
+    ...appShadow("sm"),
   },
   modalHeader: {
     flexDirection: "row",
@@ -509,7 +521,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.5,
   },
   settingRow: {
@@ -518,7 +530,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
     paddingTop: 18,
   },
   settingCopy: {
@@ -528,11 +540,11 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   settingDescription: {
     fontSize: 13,
     lineHeight: 20,
-    color: Sketch.inkLight,
+    color: AppSketch.inkSecondary,
   },
 });

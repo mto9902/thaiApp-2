@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -67,7 +67,7 @@ export default function ConsonantsWeb() {
                     <Ionicons
                       name="volume-medium-outline"
                       size={16}
-                      color={Sketch.inkMuted}
+                      color={AppSketch.inkMuted}
                     />
                   </TouchableOpacity>
                   <Text style={styles.eyebrow}>Group {item.group}</Text>
@@ -96,15 +96,16 @@ export default function ConsonantsWeb() {
 const styles = StyleSheet.create({
   backButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderRadius: AppRadius.md,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   grid: {
     flexDirection: "row",
@@ -113,30 +114,33 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 12,
+    borderRadius: AppRadius.lg,
+    ...appShadow("sm"),
   },
   speakerButton: {
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    borderRadius: AppRadius.md,
   },
   eyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   cardTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   letterRow: {
@@ -147,32 +151,33 @@ const styles = StyleSheet.create({
   letterChip: {
     minWidth: 44,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: "center",
+    borderRadius: AppRadius.md,
   },
   letterChipText: {
     fontSize: 22,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   cardFooter: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   footerText: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   footerAction: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.primary,
   },
 });

@@ -1,10 +1,10 @@
-import DesktopSidebarShell from "@/src/components/web/DesktopSidebarShell";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
 import SettingsDesktopScreen from "@/src/screens/web/SettingsDesktopScreen";
 
 export default function SettingsWebScreen() {
   return (
-    <DesktopSidebarShell>
+    <DesktopAppShell>
       <SettingsDesktopScreen />
-    </DesktopSidebarShell>
+    </DesktopAppShell>
   );
 }

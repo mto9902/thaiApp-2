@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -142,7 +142,7 @@ export default function GrammarProgressWeb() {
                 </Text>
                 <View style={styles.openRow}>
                   <Text style={styles.openText}>Open unit</Text>
-                  <Ionicons name="chevron-forward" size={14} color={Sketch.accent} />
+                  <Ionicons name="chevron-forward" size={14} color={AppSketch.primary} />
                 </View>
               </TouchableOpacity>
             ) : (
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     fontSize: 50,
     lineHeight: 54,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.ink,
     letterSpacing: -1.3,
   },
   summaryTrackWrap: {
@@ -252,29 +252,33 @@ const styles = StyleSheet.create({
   },
   summaryHint: {
     fontSize: 14,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   track: {
     height: 8,
-    backgroundColor: Sketch.inkFaint,
+    backgroundColor: AppSketch.border,
+    borderRadius: AppRadius.full,
   },
   fill: {
     height: "100%",
-    backgroundColor: Sketch.accent,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
   },
   recommendCard: {
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 20,
     gap: 8,
     minHeight: 130,
     justifyContent: "center",
+    ...appShadow("sm"),
   },
   recommendEyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
@@ -282,13 +286,13 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 32,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   recommendBody: {
     fontSize: 15,
     lineHeight: 24,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   openRow: {
     flexDirection: "row",
@@ -299,7 +303,7 @@ const styles = StyleSheet.create({
   openText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
   levelGrid: {
     flexDirection: "row",
@@ -307,12 +311,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   levelCard: {
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 12,
     alignSelf: "flex-start",
+    ...appShadow("sm"),
   },
   levelTop: {
     flexDirection: "row",
@@ -327,35 +333,36 @@ const styles = StyleSheet.create({
   levelName: {
     fontSize: 28,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.7,
   },
   levelSubtitle: {
     fontSize: 13,
     lineHeight: 20,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   levelPercent: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.ink,
   },
   levelCount: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   unitList: {
     gap: 10,
   },
   unitCard: {
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     padding: 14,
     gap: 6,
   },
   unitCardRecommended: {
-    borderColor: Sketch.accent,
+    borderColor: AppSketch.primary,
   },
   unitTop: {
     flexDirection: "row",
@@ -366,27 +373,27 @@ const styles = StyleSheet.create({
   unitStage: {
     fontSize: 11,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   unitPercent: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
   unitTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   unitBody: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   unitCount: {
     fontSize: 12,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
 });

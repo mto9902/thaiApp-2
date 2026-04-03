@@ -1,7 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -61,8 +61,8 @@ export default function VowelsWeb() {
                         <VowelText
                           example={entry.example}
                           style={styles.previewText}
-                          vowelColor={Sketch.accent}
-                          consonantColor={Sketch.ink}
+                          vowelColor={AppSketch.primary}
+                          consonantColor={AppSketch.ink}
                         />
                       </View>
                     ))}
@@ -84,15 +84,16 @@ export default function VowelsWeb() {
 const styles = StyleSheet.create({
   backButton: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   grid: {
     flexDirection: "row",
@@ -100,23 +101,25 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 12,
+    ...appShadow("sm"),
   },
   eyebrow: {
     fontSize: 12,
     fontWeight: "700",
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   cardTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -0.6,
   },
   previewRow: {
@@ -126,9 +129,10 @@ const styles = StyleSheet.create({
   },
   previewChip: {
     minWidth: 52,
+    borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.background,
     paddingHorizontal: 12,
     paddingVertical: 10,
     alignItems: "center",
@@ -137,23 +141,23 @@ const styles = StyleSheet.create({
   previewText: {
     fontSize: 20,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
   },
   cardFooter: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   footerText: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    color: AppSketch.inkMuted,
   },
   footerAction: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.primary,
   },
 });
