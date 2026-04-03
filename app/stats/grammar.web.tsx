@@ -18,7 +18,7 @@ import {
 } from "@/src/components/web/DesktopScaffold";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
+  PUBLIC_GRAMMAR_STAGES,
 } from "@/src/data/grammarStages";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import {
@@ -115,7 +115,7 @@ export default function GrammarStatsWebScreen() {
 
   const stageSummaries = useMemo<StageSummary[]>(
     () =>
-      GRAMMAR_STAGES.filter((stage) =>
+      PUBLIC_GRAMMAR_STAGES.filter((stage) =>
         grammarPoints.some((item) => item.stage === stage),
       ).map((stage) => {
         const points = grammarPoints.filter((item) => item.stage === stage);

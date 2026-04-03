@@ -249,14 +249,14 @@ export default function Profile() {
         <View style={styles.premiumCard}>
           <View style={styles.premiumCardText}>
             <Text style={styles.premiumCardTitle}>
-              {isPremium ? "Keystone Access is active" : "Unlock A1.2 and above"}
+              {isPremium ? "Keystone Access is active" : "Unlock the rest of the course"}
             </Text>
             <Text style={styles.premiumCardBody}>
               {isPremium
                 ? "Manage your subscription and keep access to the full Keystone Access path."
                 : isSupported
                   ? canMakePurchases
-                    ? "Keystone Access opens the A1.2 to C2 curriculum and higher-level practice on mobile."
+                    ? "Keystone Access opens everything beyond the first 6 lessons, plus higher-level practice on mobile."
                     : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
                   : "Keystone Access checkout is available in the mobile app for now."}
             </Text>

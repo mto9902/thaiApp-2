@@ -1,6 +1,10 @@
 export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 export type CefrLevel = (typeof CEFR_LEVELS)[number];
+export const PUBLIC_CEFR_LEVELS = CEFR_LEVELS.filter(
+  (level): level is Exclude<CefrLevel, "C2"> => level !== "C2",
+);
+export type PublicCefrLevel = (typeof PUBLIC_CEFR_LEVELS)[number];
 
 export const CEFR_LEVEL_META: Record<
   CefrLevel,
@@ -38,7 +42,8 @@ export const CEFR_LEVEL_META: Record<
   C1: {
     label: "C1",
     title: "C1 Nuanced Thai",
-    subtitle: "Cause and result, concession, and more nuanced inference",
+    subtitle:
+      "Inference, concession, formal written framing, and advanced discourse control",
     homeTitle: "C1 Nuanced Thai",
   },
   C2: {

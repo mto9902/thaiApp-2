@@ -15,7 +15,11 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
-import { CEFR_LEVELS, CEFR_LEVEL_META, CefrLevel } from "@/src/data/grammarLevels";
+import {
+  CEFR_LEVEL_META,
+  PUBLIC_CEFR_LEVELS,
+  PublicCefrLevel,
+} from "@/src/data/grammarLevels";
 import { GRAMMAR_STAGE_META } from "@/src/data/grammarStages";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { getAllProgress, GrammarProgressData } from "@/src/utils/grammarProgress";
@@ -65,7 +69,7 @@ export default function GrammarProgressWeb() {
 
   const levelSections = useMemo(
     () =>
-      CEFR_LEVELS.map((level) => {
+      PUBLIC_CEFR_LEVELS.map((level) => {
         const stages = stageSummaries.filter((summary) => summary.level === level);
         if (stages.length === 0) return null;
         const practiced = stages.reduce((sum, summary) => sum + summary.practiced, 0);
@@ -82,8 +86,8 @@ export default function GrammarProgressWeb() {
       }).filter(Boolean),
     [stageSummaries],
   ) as {
-    level: CefrLevel;
-    meta: (typeof CEFR_LEVEL_META)[CefrLevel];
+    level: PublicCefrLevel;
+    meta: (typeof CEFR_LEVEL_META)[PublicCefrLevel];
     stages: typeof stageSummaries;
     practiced: number;
     total: number;

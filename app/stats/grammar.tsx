@@ -14,7 +14,7 @@ import { Sketch } from "@/constants/theme";
 import Header from "../../src/components/Header";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
+  PUBLIC_GRAMMAR_STAGES,
 } from "../../src/data/grammarStages";
 import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import {
@@ -109,7 +109,7 @@ export default function GrammarStatsScreen() {
       ? sortedPracticeDates[sortedPracticeDates.length - 1]
       : undefined;
 
-  const stageSummaries: StageSummary[] = GRAMMAR_STAGES.filter((stage) =>
+  const stageSummaries: StageSummary[] = PUBLIC_GRAMMAR_STAGES.filter((stage) =>
     grammarPoints.some((item) => item.stage === stage),
   ).map((stage) => {
     const points = grammarPoints.filter((item) => item.stage === stage);

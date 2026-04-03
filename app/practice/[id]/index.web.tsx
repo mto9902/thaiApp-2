@@ -469,10 +469,10 @@ export default function GrammarDetailWeb() {
               <DesktopPanel>
                 <DesktopSectionTitle
                   title="Keystone Access"
-                  caption="A1.2 and above are part of the paid curriculum."
+                  caption="This lesson is beyond the free starting lessons."
                 />
                 <Text style={styles.bodyText}>
-                  Unlock Keystone Access to open this lesson, practice it, and continue through the rest of the curriculum.
+                  Unlock Keystone Access to open this lesson, practice it, and continue through the rest of the course.
                 </Text>
                 <TouchableOpacity
                   style={styles.primaryButton}

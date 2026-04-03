@@ -348,6 +348,7 @@ export default function ReviewWebScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        density="compact"
         scrollRef={scrollRef}
         eyebrow="Vocabulary"
         title="Review"

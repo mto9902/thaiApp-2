@@ -17,6 +17,7 @@ type DesktopPageProps = PropsWithChildren<{
   subtitle?: string;
   toolbar?: ReactNode;
   maxWidth?: number;
+  density?: "primary" | "compact";
   contentStyle?: StyleProp<ViewStyle>;
   scrollRef?: RefObject<ScrollView | null>;
 }>;
@@ -30,24 +31,31 @@ export function DesktopPage({
   title,
   subtitle,
   toolbar,
-  maxWidth = 1480,
+  maxWidth = 1360,
+  density = "primary",
   contentStyle,
   scrollRef,
   children,
 }: DesktopPageProps) {
+  const compact = density === "compact";
+
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.container, { maxWidth }]}>
-          <View style={styles.header}>
-            <View style={styles.headerText}>
+        <View style={[styles.container, compact && styles.containerCompact, { maxWidth }]}>
+          <View style={[styles.header, compact && styles.headerCompact]}>
+            <View style={[styles.headerText, compact && styles.headerTextCompact]}>
               {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-              <Text style={styles.title}>{title}</Text>
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
+              {subtitle ? (
+                <Text style={[styles.subtitle, compact && styles.subtitleCompact]}>
+                  {subtitle}
+                </Text>
+              ) : null}
             </View>
             {toolbar ? <View style={styles.toolbar}>{toolbar}</View> : null}
           </View>
@@ -88,44 +96,67 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   scroll: {
-    paddingHorizontal: 40,
-    paddingTop: 34,
-    paddingBottom: 56,
+    paddingHorizontal: 28,
+    paddingTop: 22,
+    paddingBottom: 40,
+  },
+  scrollCompact: {
+    paddingTop: 18,
+    paddingBottom: 32,
   },
   container: {
     width: "100%",
     alignSelf: "center",
-    gap: 28,
+    gap: 22,
+  },
+  containerCompact: {
+    gap: 18,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 28,
+    gap: 20,
+  },
+  headerCompact: {
+    gap: 16,
   },
   headerText: {
     flex: 1,
-    gap: 10,
+    gap: 8,
+  },
+  headerTextCompact: {
+    gap: 6,
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     color: Sketch.inkMuted,
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
   },
   title: {
-    fontSize: 48,
-    lineHeight: 54,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -1.5,
+    letterSpacing: -1,
+  },
+  titleCompact: {
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.7,
   },
   subtitle: {
-    maxWidth: 920,
-    fontSize: 18,
-    lineHeight: 30,
+    maxWidth: 760,
+    fontSize: 15,
+    lineHeight: 24,
     color: Sketch.inkLight,
+  },
+  subtitleCompact: {
+    maxWidth: 640,
+    fontSize: 14,
+    lineHeight: 22,
   },
   toolbar: {
     flexDirection: "row",
@@ -136,8 +167,8 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.cardBg,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 28,
-    gap: 20,
+    padding: 22,
+    gap: 16,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -150,14 +181,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
     color: Sketch.ink,
-    letterSpacing: -0.5,
+    letterSpacing: -0.35,
   },
   sectionCaption: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 22,
     color: Sketch.inkMuted,
   },
   sectionAction: {

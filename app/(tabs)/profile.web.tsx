@@ -34,6 +34,56 @@ type JwtPayload = {
   userId?: number;
 };
 
+function titleCaseWords(value: string) {
+  return value
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getAccessCopy({
+  isPremium,
+  billingProvider,
+  isSupported,
+  canMakePurchases,
+}: {
+  isPremium: boolean;
+  billingProvider: string | null;
+  isSupported: boolean;
+  canMakePurchases: boolean;
+}) {
+  if (isPremium) {
+    return {
+      caption: "Active on this account.",
+      body: "Manage your subscription, switch plans, or keep this account ready across web and mobile.",
+      cta: "Manage Keystone Access",
+    };
+  }
+
+  if (billingProvider === "paddle") {
+    return {
+      caption: "Unlock the full Thai path on web.",
+      body: "Keystone Access opens every Thai lesson beyond the first 6 lessons, mixed practice across what you study, and unlimited bookmarks.",
+      cta: "See plans",
+    };
+  }
+
+  if (isSupported && canMakePurchases) {
+    return {
+      caption: "Unlock the full Thai path on mobile.",
+      body: "Keystone Access opens every Thai lesson beyond the first 6 lessons, along with mixed practice and higher-level study across the course.",
+      cta: "Unlock Keystone Access",
+    };
+  }
+
+  return {
+    caption: "Unavailable in this build.",
+    body: "Keystone Access is not configured in this build yet.",
+    cta: "Keystone Access unavailable",
+  };
+}
+
 export default function ProfileWeb() {
   const router = useRouter();
   const { grammarPoints } = useGrammarCatalog();
@@ -150,6 +200,7 @@ export default function ProfileWeb() {
   if (isGuest) {
     return (
       <DesktopPage
+        density="compact"
         eyebrow="Profile"
         title="Guest mode"
         subtitle="Log in to save progress, bookmarks, vocabulary, and grammar history."
@@ -164,50 +215,49 @@ export default function ProfileWeb() {
   }
 
   const profileName =
-    profile?.display_name?.trim() || `User #${profile?.id || "..."}`;
+    profile?.display_name?.trim() ||
+    (profile?.email ? titleCaseWords(profile.email.split("@")[0] || "") : "") ||
+    "Your account";
+  const accessCopy = getAccessCopy({
+    isPremium,
+    billingProvider,
+    isSupported,
+    canMakePurchases,
+  });
 
   return (
     <DesktopPage
+      density="compact"
       eyebrow="Profile"
       title={profileName}
-      subtitle={profile?.email || "Loading account details..."}
+      subtitle="Account, access, and progress in one place."
     >
       <View style={styles.pageStack}>
       <View style={styles.topGrid}>
         <DesktopPanel style={styles.accountPanel}>
           <DesktopSectionTitle
             title="Account"
-            caption={profile?.is_admin ? "Admin access enabled for this account." : "Standard user account."}
+            caption={
+              profile?.is_admin
+                ? "Admin tools are enabled on this account."
+                : "Your Keystone account details and synced study progress."
+            }
           />
           <View style={styles.accountText}>
             <Text style={styles.accountName}>{profileName}</Text>
             <Text style={styles.accountEmail}>{profile?.email}</Text>
-            <Text style={styles.accountMeta}>User ID {profile?.id}</Text>
+            <Text style={styles.accountMeta}>
+              {profile?.is_admin ? "Admin account" : "Progress stays tied to this account"}
+            </Text>
           </View>
         </DesktopPanel>
 
         <DesktopPanel style={styles.accessPanel}>
           <DesktopSectionTitle
             title="Keystone Access"
-            caption={
-              isPremium
-                ? "Subscription active."
-                : billingProvider === "paddle"
-                  ? "Checkout is available on web."
-                  : "Manage access from one place."
-            }
+            caption={accessCopy.caption}
           />
-          <Text style={styles.accessBody}>
-            {isPremium
-              ? "Manage your subscription and keep access to the full Keystone Access path."
-              : billingProvider === "paddle"
-                ? "Keystone Access opens the A1.2 to C2 curriculum, higher-level practice, and unlimited bookmarks. Choose a web plan here, then keep the same account unlocked on mobile."
-                : isSupported
-                  ? canMakePurchases
-                    ? "Keystone Access opens the A1.2 to C2 curriculum and higher-level practice on mobile."
-                    : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
-                  : "Paddle web checkout is not configured for this build yet."}
-          </Text>
+          <Text style={styles.accessBody}>{accessCopy.body}</Text>
           <TouchableOpacity
             style={[styles.primaryButton, premiumBusy && styles.disabledButton]}
             onPress={() => void openSubscriptionManager()}
@@ -215,14 +265,7 @@ export default function ProfileWeb() {
             activeOpacity={0.82}
           >
             <Text style={styles.primaryButtonText}>
-              {premiumBusy
-                ? "Loading..."
-                : isPremium
-                  ? "Manage Keystone Access"
-                  : billingProvider === "paddle" ||
-                      (isSupported && canMakePurchases)
-                    ? "Unlock Keystone Access"
-                    : "Keystone Access unavailable"}
+              {premiumBusy ? "Loading..." : accessCopy.cta}
             </Text>
           </TouchableOpacity>
         </DesktopPanel>
@@ -231,13 +274,13 @@ export default function ProfileWeb() {
       <DesktopPanel>
         <DesktopSectionTitle
           title="Today’s Vocabulary"
-          caption="Keep the daily SRS state in a separate desktop strip instead of mixing it into the account card."
+          caption="See what needs attention today and keep new words moving."
         />
         <View style={styles.statGrid}>
           {[
-            { label: "Vocab Reviews Due", value: reviewsDue, tone: Sketch.accent },
-            { label: "New Words Added", value: progress?.words_learned_today || 0, tone: Sketch.blue },
-            { label: "Total Mastered", value: progress?.mastered_words || 0, tone: Sketch.green },
+            { label: "Reviews Due", value: reviewsDue, tone: Sketch.accent },
+            { label: "Added Today", value: progress?.words_learned_today || 0, tone: Sketch.blue },
+            { label: "Mastered", value: progress?.mastered_words || 0, tone: Sketch.green },
           ].map((item) => (
             <View key={item.label} style={styles.statCard}>
               <Text style={[styles.statValue, { color: item.tone }]}>{item.value}</Text>
@@ -251,7 +294,7 @@ export default function ProfileWeb() {
         <DesktopPanel style={styles.grammarPanel}>
           <DesktopSectionTitle
             title="Grammar"
-            caption="Bookmark count and practiced coverage across the curriculum."
+            caption="Track saved lessons and how much of the Thai path you have practiced."
           />
           <View style={styles.grammarStatGrid}>
             <TouchableOpacity
@@ -279,7 +322,7 @@ export default function ProfileWeb() {
         <DesktopPanel style={styles.insightPanel}>
           <DesktopSectionTitle
             title="Insights"
-            caption="Open the deeper stats and account tools from a separate actions panel."
+            caption="Settings, stats, and account tools in one place."
           />
           <View style={styles.linkList}>
             {[
@@ -320,7 +363,7 @@ export default function ProfileWeb() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 28,
+    gap: 22,
   },
   topGrid: {
     flexDirection: "row",

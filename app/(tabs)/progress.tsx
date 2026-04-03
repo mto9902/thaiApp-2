@@ -15,9 +15,9 @@ import Svg, { Circle } from "react-native-svg";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import {
-  CEFR_LEVELS,
   CEFR_LEVEL_META,
-  CefrLevel,
+  PUBLIC_CEFR_LEVELS,
+  PublicCefrLevel,
 } from "../../src/data/grammarLevels";
 import {
   GRAMMAR_STAGE_META,
@@ -70,12 +70,12 @@ export default function GrammarScreen() {
   const router = useRouter();
   const { grammarPoints } = useGrammarCatalog();
   const scrollViewRef = useRef<ScrollView>(null);
-  const levelOffsetsRef = useRef<Partial<Record<CefrLevel, number>>>({});
+  const levelOffsetsRef = useRef<Partial<Record<PublicCefrLevel, number>>>({});
   const hasAutoScrolledRef = useRef(false);
   const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
   const [expandedLevels, setExpandedLevels] = useState<
-    Partial<Record<CefrLevel, boolean>>
+    Partial<Record<PublicCefrLevel, boolean>>
   >({});
   const [hasManualLevelToggle, setHasManualLevelToggle] = useState(false);
   const [focusTick, setFocusTick] = useState(0);
@@ -91,7 +91,7 @@ export default function GrammarScreen() {
   const recommendedLevel = recommended?.level ?? null;
   const levelSections = useMemo(
     () =>
-      CEFR_LEVELS.map((level) => {
+      PUBLIC_CEFR_LEVELS.map((level) => {
         const levelStages = stageSummaries.filter(
           (summary) => summary.level === level,
         );
@@ -123,8 +123,8 @@ export default function GrammarScreen() {
       }).filter(Boolean),
     [recommendedLevel, recommendedStage, stageSummaries],
   ) as {
-    level: CefrLevel;
-    meta: (typeof CEFR_LEVEL_META)[CefrLevel];
+    level: PublicCefrLevel;
+    meta: (typeof CEFR_LEVEL_META)[PublicCefrLevel];
     levelTitle: string;
     stages: ReturnType<typeof buildStageProgressSummaries>;
     total: number;
@@ -161,7 +161,7 @@ export default function GrammarScreen() {
   const overallPercent =
     totalPoints > 0 ? Math.round((totalPracticed / totalPoints) * 100) : 0;
 
-  const toggleLevel = (level: CefrLevel) => {
+  const toggleLevel = (level: PublicCefrLevel) => {
     setHasManualLevelToggle(true);
     setExpandedLevels((current) => ({
       ...current,

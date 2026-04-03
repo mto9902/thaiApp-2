@@ -16,11 +16,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
-import { CEFR_LEVEL_META, CefrLevel } from "../../src/data/grammarLevels";
+import {
+  CEFR_LEVEL_META,
+  PUBLIC_CEFR_LEVELS,
+  PublicCefrLevel,
+} from "../../src/data/grammarLevels";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
-  GrammarStage,
+  PUBLIC_GRAMMAR_STAGES,
+  PublicGrammarStage,
 } from "../../src/data/grammarStages";
 import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import {
@@ -42,12 +46,12 @@ export default function GrammarTopicsScreen() {
   const rawLevel = Array.isArray(level) ? level[0] : level;
   const rawStage = Array.isArray(stage) ? stage[0] : stage;
   const selectedLevel =
-    rawLevel && rawLevel in CEFR_LEVEL_META
-      ? (rawLevel as CefrLevel)
+    rawLevel && PUBLIC_CEFR_LEVELS.includes(rawLevel as PublicCefrLevel)
+      ? (rawLevel as PublicCefrLevel)
       : undefined;
   const selectedStage =
-    rawStage && GRAMMAR_STAGES.includes(rawStage as GrammarStage)
-      ? (rawStage as GrammarStage)
+    rawStage && PUBLIC_GRAMMAR_STAGES.includes(rawStage as PublicGrammarStage)
+      ? (rawStage as PublicGrammarStage)
       : undefined;
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());

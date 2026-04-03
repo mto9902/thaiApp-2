@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isGuestUser } from "../../../src/utils/auth";
 
 import {
@@ -32,8 +32,10 @@ import { saveRound } from "../../../src/utils/grammarProgress";
 import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   getGrammarExerciseSettings,
+  GRAMMAR_EXERCISE_LABELS,
   GrammarExerciseMode,
   GrammarExerciseSettings,
+  setGrammarExerciseSettings,
 } from "../../../src/utils/grammarExerciseSettings";
 import {
   getBreakdownTones,
@@ -104,9 +106,9 @@ function randomMode(
 }
 
 const MODE_META: Record<Mode, { tag: string; title: string }> = {
-  breakdown: { tag: "STUDY", title: "Read & listen" },
-  wordScraps: { tag: "BUILD", title: "Arrange the words" },
-  matchThai: { tag: "MATCH", title: "Choose the correct sentence" },
+  breakdown: { tag: "STUDY", title: "Study the pattern" },
+  wordScraps: { tag: "BUILD", title: "Build the sentence" },
+  matchThai: { tag: "MATCH", title: "Choose the best sentence" },
 };
 
 function getPracticeHeaderTitle(grammarPoint: {
@@ -277,6 +279,12 @@ export default function GrammarExercisesScreen() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<"" | "correct" | "wrong">("");
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
+  const [enabledModes, setEnabledModes] = useState<GrammarExerciseSettings>(
+    DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
+  );
+  const [methodsGuardMessage, setMethodsGuardMessage] = useState<string | null>(
+    null,
+  );
 
   const [showRoman, setShowRoman] = useState(true);
   const [showEnglish, setShowEnglish] = useState(true);
@@ -316,11 +324,12 @@ export default function GrammarExercisesScreen() {
       if (tts !== null) setAutoplayTTS(tts === "true");
       setAutoAddPracticeVocab(practiceVocab);
       enabledModesRef.current = grammarExerciseModes;
+      setEnabledModes(grammarExerciseModes);
       setSettingsReady(true);
     })();
   }, []);
 
-  function handleSettingsChange(s: SettingsState) {
+  const handleSettingsChange = useCallback((s: SettingsState) => {
     setShowRoman(s.showRoman);
     setShowEnglish(s.showEnglish);
     setAutoplayTTS(s.autoplayTTS);
@@ -328,8 +337,61 @@ export default function GrammarExercisesScreen() {
     setTtsSpeed(s.ttsSpeed);
     setAutoAddPracticeVocab(s.autoAddPracticeVocab);
     enabledModesRef.current = s.grammarExerciseModes;
-    if (!s.grammarExerciseModes[mode]) {
-      void fetchRound(randomMode(s.grammarExerciseModes, modeHistoryRef.current));
+    setEnabledModes(s.grammarExerciseModes);
+    setMethodsGuardMessage(null);
+  }, []);
+
+  async function togglePracticeMethod(targetMode: Mode) {
+    const currentModes = enabledModesRef.current;
+    const enabledCount = getAvailableModes(currentModes).length;
+
+    if (currentModes[targetMode] && enabledCount === 1) {
+      setMethodsGuardMessage("Keep at least one method on.");
+      return;
+    }
+
+    const nextModes = {
+      ...currentModes,
+      [targetMode]: !currentModes[targetMode],
+    };
+
+    enabledModesRef.current = nextModes;
+    setEnabledModes(nextModes);
+    setMethodsGuardMessage(null);
+
+    try {
+      const savedModes = await setGrammarExerciseSettings(nextModes);
+      enabledModesRef.current = savedModes;
+      setEnabledModes(savedModes);
+    } catch (error) {
+      console.error("Failed to update practice methods:", error);
+      enabledModesRef.current = currentModes;
+      setEnabledModes(currentModes);
+      setMethodsGuardMessage("Couldn't update your practice methods.");
+    }
+  }
+
+  async function toggleDisplaySetting(target: "roman" | "english") {
+    const isRoman = target === "roman";
+    const storageKey = isRoman ? PREF_ROMANIZATION : PREF_ENGLISH;
+    const currentValue = isRoman ? showRoman : showEnglish;
+    const nextValue = !currentValue;
+
+    if (isRoman) {
+      setShowRoman(nextValue);
+    } else {
+      setShowEnglish(nextValue);
+    }
+
+    try {
+      await AsyncStorage.setItem(storageKey, String(nextValue));
+    } catch (error) {
+      console.error("Failed to update display setting:", error);
+      if (isRoman) {
+        setShowRoman(currentValue);
+      } else {
+        setShowEnglish(currentValue);
+      }
     }
   }
 
@@ -355,10 +417,10 @@ export default function GrammarExercisesScreen() {
         setPremiumBlocked({
           title:
             mixSource === "progress"
-              ? "Keystone Access practice set"
-              : "Keystone Access bookmarks",
+              ? "This study mix needs Keystone Access"
+              : "These bookmarks need Keystone Access",
           body:
-            "This practice mix includes Keystone Access grammar. Unlock Keystone Access to keep practicing A1.2 and above on mobile.",
+            "This practice set includes Thai lessons beyond the free starting path. Unlock Keystone Access to keep practicing every lesson after the first 6 lessons.",
         });
         return;
       }
@@ -377,9 +439,9 @@ export default function GrammarExercisesScreen() {
         currentGrammarIdRef.current = requestedGrammar.id;
         setGrammarPoint(requestedGrammar);
         setPremiumBlocked({
-          title: "Keystone Access practice",
+          title: "This lesson is in Keystone Access",
           body:
-            "A1.2 and above are part of Keystone Access. Unlock Keystone Access to practice this lesson on mobile.",
+            "Unlock Keystone Access to keep practicing Thai lessons beyond the first 6 lessons, with mixed practice and unlimited bookmarks.",
         });
         return;
       }
@@ -476,6 +538,7 @@ export default function GrammarExercisesScreen() {
     const round = ++roundRef.current;
     try {
       setLoading(true);
+      setMethodsGuardMessage(null);
       setResult("");
       setSelectedOption(null);
       setMatchRevealed(false);
@@ -636,6 +699,12 @@ export default function GrammarExercisesScreen() {
   };
 
   const meta = MODE_META[mode];
+  const currentModeDisabled = !enabledModes[mode];
+  const methodsNote = methodsGuardMessage
+    ? methodsGuardMessage
+    : currentModeDisabled
+      ? `${GRAMMAR_EXERCISE_LABELS[mode]} will finish this round, then turn off.`
+      : null;
   const availableWords = words.filter(
     (word) => !builtSentence.some((selected) => selected.id === word.id),
   );
@@ -655,7 +724,7 @@ export default function GrammarExercisesScreen() {
           />
           <View style={st.loadingWrap}>
             <View style={st.loadingPulse} />
-            <Text style={st.loadingLabel}>Checking Keystone Access...</Text>
+            <Text style={st.loadingLabel}>Checking your access...</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -726,6 +795,121 @@ export default function GrammarExercisesScreen() {
           </View>
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
+            <View style={[st.methodsPanel, isDesktopWeb && st.methodsPanelDesktop]}>
+              <View style={st.methodsCard}>
+                <View style={st.methodsHeaderRow}>
+                  <Text style={st.methodsEyebrow}>METHODS</Text>
+                  <Text style={st.methodsMeta}>Also in settings</Text>
+                </View>
+                <View style={st.methodsRow}>
+                  {ALL_MODES.map((practiceMode) => {
+                    const isEnabled = enabledModes[practiceMode];
+                    const isCurrent = mode === practiceMode;
+                    const isCurrentRoundOnly = isCurrent && !isEnabled;
+                    const showCurrentBadge = isCurrent;
+
+                    return (
+                      <TouchableOpacity
+                        key={practiceMode}
+                        style={[
+                          st.methodChip,
+                          isCurrent && st.methodChipCurrent,
+                          !isEnabled && !isCurrentRoundOnly && st.methodChipDisabled,
+                          isDesktopWeb && st.methodChipDesktop,
+                        ]}
+                        onPress={() => void togglePracticeMethod(practiceMode)}
+                        activeOpacity={0.85}
+                      >
+                        <View style={st.methodChipRow}>
+                          <Text
+                            style={[
+                              st.methodChipLabel,
+                              isCurrent && st.methodChipLabelCurrent,
+                              !isEnabled &&
+                                !isCurrentRoundOnly &&
+                                st.methodChipLabelDisabled,
+                            ]}
+                          >
+                            {GRAMMAR_EXERCISE_LABELS[practiceMode]}
+                          </Text>
+                          {showCurrentBadge ? (
+                            <View
+                              style={[
+                                st.methodBadge,
+                                !isEnabled && st.methodBadgePending,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  st.methodBadgeText,
+                                  !isEnabled && st.methodBadgeTextPending,
+                                ]}
+                              >
+                                Current
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {methodsNote ? (
+                  <Text
+                    style={[
+                      st.methodsNote,
+                      methodsGuardMessage
+                        ? st.methodsNoteWarning
+                        : st.methodsNoteMuted,
+                    ]}
+                  >
+                    {methodsNote}
+                  </Text>
+                ) : null}
+                <View style={st.displayRow}>
+                  <Text style={st.displayLabel}>Display</Text>
+                  <View style={st.displayChipRow}>
+                    <TouchableOpacity
+                      style={[
+                        st.displayChip,
+                        showRoman && st.displayChipActive,
+                        isDesktopWeb && st.displayChipDesktop,
+                      ]}
+                      onPress={() => void toggleDisplaySetting("roman")}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={[
+                          st.displayChipText,
+                          showRoman && st.displayChipTextActive,
+                        ]}
+                      >
+                        Romanization
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        st.displayChip,
+                        showEnglish && st.displayChipActive,
+                        isDesktopWeb && st.displayChipDesktop,
+                      ]}
+                      onPress={() => void toggleDisplaySetting("english")}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={[
+                          st.displayChipText,
+                          showEnglish && st.displayChipTextActive,
+                        ]}
+                      >
+                        Translation
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {/* Mode header */}
             <View style={[st.modeHeader, isDesktopWeb && st.modeHeaderDesktop]}>
               <View style={st.modeTagRow}>
@@ -1409,6 +1593,156 @@ const st = StyleSheet.create({
     backgroundColor: Sketch.inkFaint,
   },
   loadingLabel: { fontSize: 14, color: Sketch.inkMuted, fontWeight: "600" },
+
+  methodsPanel: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  methodsPanelDesktop: {
+    width: "100%",
+    maxWidth: 980,
+    alignSelf: "center",
+    paddingHorizontal: 0,
+    paddingTop: 24,
+  },
+  methodsCard: {
+    gap: 10,
+  },
+  methodsHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  methodsEyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+  },
+  methodsMeta: {
+    fontSize: 12,
+    color: Sketch.inkMuted,
+    fontWeight: "500",
+  },
+  methodsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  methodChip: {
+    flex: 1,
+    minHeight: 44,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    borderRadius: SketchRadius.control,
+    backgroundColor: Sketch.cardBg,
+    justifyContent: "center",
+  },
+  methodChipDesktop: {
+    cursor: "pointer",
+  },
+  methodChipCurrent: {
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.cardBg,
+  },
+  methodChipDisabled: {
+    backgroundColor: Sketch.paper,
+    borderColor: "#EBEBE8",
+  },
+  methodChipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  methodChipLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  methodChipLabelCurrent: {
+    color: Sketch.accentDark,
+  },
+  methodChipLabelDisabled: {
+    color: Sketch.inkMuted,
+  },
+  methodBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderWidth: 1,
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: SketchRadius.badge,
+  },
+  methodBadgePending: {
+    borderColor: Sketch.inkMuted,
+    backgroundColor: Sketch.paper,
+  },
+  methodBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Sketch.accentDark,
+    letterSpacing: 0.2,
+  },
+  methodBadgeTextPending: {
+    color: Sketch.inkMuted,
+  },
+  methodsNote: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  methodsNoteMuted: {
+    color: Sketch.inkMuted,
+  },
+  methodsNoteWarning: {
+    color: Sketch.red,
+  },
+  displayRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingTop: 2,
+  },
+  displayLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+  },
+  displayChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 8,
+    flex: 1,
+  },
+  displayChip: {
+    minHeight: 34,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    borderRadius: SketchRadius.control,
+    backgroundColor: Sketch.paper,
+    justifyContent: "center",
+  },
+  displayChipDesktop: {
+    cursor: "pointer",
+  },
+  displayChipActive: {
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.cardBg,
+  },
+  displayChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+  },
+  displayChipTextActive: {
+    color: Sketch.accentDark,
+  },
 
   modeHeader: {
     paddingHorizontal: 20,

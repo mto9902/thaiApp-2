@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../src/components/Header";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
+  PUBLIC_GRAMMAR_STAGES,
   GrammarStage,
 } from "../../src/data/grammarStages";
 import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
@@ -19,7 +19,7 @@ const LEVEL_COLORS = {
   B2: Sketch.red,
   C1: Sketch.purple,
   C2: Sketch.pink,
-};
+} as const;
 
 const LEVEL_ICONS = {
   A1: "leaf-outline",
@@ -28,14 +28,14 @@ const LEVEL_ICONS = {
   B2: "flash-outline",
   C1: "library-outline",
   C2: "diamond-outline",
-};
+} as const;
 
 function getStages(grammarPoints: { stage: GrammarStage }[]) {
   const stageMap = new Map<GrammarStage, number>();
   for (const point of grammarPoints) {
     stageMap.set(point.stage, (stageMap.get(point.stage) || 0) + 1);
   }
-  return GRAMMAR_STAGES.filter((stage) => stageMap.has(stage)).map((stage) => ({
+  return PUBLIC_GRAMMAR_STAGES.filter((stage) => stageMap.has(stage)).map((stage) => ({
     stage,
     count: stageMap.get(stage) || 0,
   }));

@@ -1,11 +1,10 @@
 import { Slot } from "expo-router";
-
-import DesktopSidebarShell from "@/src/components/web/DesktopSidebarShell";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
 
 export default function WebTabsLayout() {
   return (
-    <DesktopSidebarShell>
+    <DesktopAppShell>
       <Slot />
-    </DesktopSidebarShell>
+    </DesktopAppShell>
   );
 }

@@ -10,7 +10,6 @@ import { canAccessApp } from "@/src/utils/auth";
 
 type NavItem = {
   label: string;
-  subtitle: string;
   href: string;
   icon: keyof typeof Ionicons.glyphMap;
 };
@@ -18,37 +17,34 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   {
     label: "Home",
-    subtitle: "Dashboard",
     href: "/",
     icon: "home-outline",
   },
   {
     label: "Grammar",
-    subtitle: "Units",
     href: "/progress",
     icon: "book-outline",
   },
   {
     label: "Bookmarks",
-    subtitle: "Practice",
     href: "/explore",
     icon: "bookmark-outline",
   },
   {
     label: "Vocabulary",
-    subtitle: "SRS review",
     href: "/review",
     icon: "albums-outline",
   },
+];
+
+const ACCOUNT_ITEMS: NavItem[] = [
   {
     label: "Profile",
-    subtitle: "Account",
     href: "/profile",
     icon: "person-outline",
   },
   {
     label: "Settings",
-    subtitle: "Preferences",
     href: "/settings",
     icon: "settings-outline",
   },
@@ -92,43 +88,67 @@ export default function DesktopSidebarShell({
         <View style={styles.sidebar}>
           <View style={styles.brandBlock}>
             <View style={styles.brandRow}>
-              <BrandMark size={42} />
+              <BrandMark size={34} />
               <View style={styles.brandTitleWrap}>
                 <Text style={styles.brandEyebrow}>Keystone</Text>
-                <Text style={styles.brandTitle}>Languages</Text>
+                <Text style={styles.brandTitle}>Thai</Text>
               </View>
             </View>
-            <Text style={styles.brandBody}>
-              Practice grammar, review vocabulary, and manage your learning in one place.
-            </Text>
           </View>
 
-          <View style={styles.navList}>
-            {NAV_ITEMS.map((item) => {
-              const active = activeHref === item.href;
-              return (
-                <TouchableOpacity
-                  key={item.href}
-                  style={[styles.navItem, active && styles.navItemActive]}
-                  onPress={() => router.push(item.href as any)}
-                  activeOpacity={0.82}
-                >
-                  <View style={[styles.navIconBox, active && styles.navIconBoxActive]}>
-                    <Ionicons
-                      name={item.icon}
-                      size={18}
-                      color={active ? "#fff" : Sketch.inkMuted}
-                    />
-                  </View>
-                  <View style={styles.navText}>
+          <View style={styles.sidebarBody}>
+            <View style={styles.navList}>
+              {NAV_ITEMS.map((item) => {
+                const active = activeHref === item.href;
+                return (
+                  <TouchableOpacity
+                    key={item.href}
+                    style={[styles.navItem, active && styles.navItemActive]}
+                    onPress={() => router.push(item.href as any)}
+                    activeOpacity={0.82}
+                  >
+                    <View style={[styles.navIconBox, active && styles.navIconBoxActive]}>
+                      <Ionicons
+                        name={item.icon}
+                        size={17}
+                        color={active ? Sketch.paperDark : Sketch.inkMuted}
+                      />
+                    </View>
                     <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                       {item.label}
                     </Text>
-                    <Text style={styles.navSubtitle}>{item.subtitle}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.accountDock}>
+              <Text style={styles.accountLabel}>Account</Text>
+              <View style={styles.accountList}>
+                {ACCOUNT_ITEMS.map((item) => {
+                  const active = activeHref === item.href;
+                  return (
+                    <TouchableOpacity
+                      key={item.href}
+                      style={[styles.navItem, active && styles.navItemActive]}
+                      onPress={() => router.push(item.href as any)}
+                      activeOpacity={0.82}
+                    >
+                      <View style={[styles.navIconBox, active && styles.navIconBoxActive]}>
+                        <Ionicons
+                          name={item.icon}
+                          size={17}
+                          color={active ? Sketch.paperDark : Sketch.inkMuted}
+                        />
+                      </View>
+                      <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </View>
         </View>
 
@@ -149,18 +169,18 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.paper,
   },
   sidebar: {
-    width: 260,
+    width: 220,
     borderRightWidth: 1,
     borderRightColor: Sketch.inkFaint,
-    backgroundColor: "#FCFCFA",
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 24,
-    gap: 28,
+    backgroundColor: "#FAFAF8",
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 18,
+    gap: 20,
   },
   brandBlock: {
-    gap: 10,
-    paddingBottom: 8,
+    gap: 8,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: Sketch.inkFaint,
   },
@@ -174,44 +194,60 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   brandEyebrow: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "700",
     color: Sketch.inkMuted,
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
   },
   brandTitle: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 24,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.4,
   },
-  brandBody: {
-    fontSize: 13,
-    lineHeight: 21,
-    color: Sketch.inkMuted,
+  sidebarBody: {
+    flex: 1,
+    justifyContent: "space-between",
+    gap: 18,
   },
   navList: {
-    gap: 8,
+    gap: 6,
+  },
+  accountDock: {
+    gap: 10,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+  },
+  accountLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+  },
+  accountList: {
+    gap: 6,
   },
   navItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: "transparent",
-    backgroundColor: "transparent",
+    borderColor: Sketch.paper,
+    backgroundColor: Sketch.paper,
   },
   navItemActive: {
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.paper,
   },
   navIconBox: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -222,21 +258,13 @@ const styles = StyleSheet.create({
     backgroundColor: Sketch.accent,
     borderColor: Sketch.accent,
   },
-  navText: {
-    flex: 1,
-    gap: 1,
-  },
   navLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: Sketch.ink,
   },
   navLabelActive: {
     color: Sketch.ink,
-  },
-  navSubtitle: {
-    fontSize: 12,
-    color: Sketch.inkMuted,
   },
   contentShell: {
     flex: 1,

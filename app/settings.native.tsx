@@ -378,10 +378,10 @@ export default function SettingsScreen() {
 
             <Text style={styles.helperText}>
               {isPremium
-                ? "You have access to the full A1.2 to C2 Keystone Access path. Use the button below to manage your subscription."
+                ? "You have access to the full Keystone Access path. Use the button below to manage your subscription."
                 : isSupported
                   ? canMakePurchases
-                    ? "Keystone Access unlocks A1.2 and above, along with higher-level mixed practice, in the mobile app."
+                    ? "Keystone Access unlocks everything beyond the first 6 lessons, along with higher-level mixed practice, in the mobile app."
                     : "Add your RevenueCat mobile API keys to turn on Keystone Access in this build."
                   : "Keystone Access checkout is available in the mobile app for now."}
             </Text>

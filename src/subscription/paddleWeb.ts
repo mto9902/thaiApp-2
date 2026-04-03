@@ -72,8 +72,8 @@ export const WEB_CHECKOUT_PLANS: WebPlanCard[] = [
     priceLabel: "$59.99",
     cadenceLabel: "/ year",
     supportText:
-      "Everything in Keystone Access with the lowest long-term cost.",
-    detailText: "Save 58% compared with monthly billing",
+      "Everything in Keystone Access with the best long-term value.",
+    detailText: "Best for staying with the Thai course from A1.2 onward",
     badge: "Best value",
   },
   {
@@ -83,7 +83,7 @@ export const WEB_CHECKOUT_PLANS: WebPlanCard[] = [
     cadenceLabel: "/ month",
     supportText:
       "Full Keystone Access with flexible month-to-month billing.",
-    detailText: "Renews monthly",
+    detailText: "Best for starting with a lower commitment",
     badge: "Most flexible",
   },
 ];

@@ -451,8 +451,8 @@ export default function PremiumWebScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
         eyebrow="Keystone Access"
-        title="Continue beyond A1.1"
-        subtitle="Unlock the full path on web, then keep the same access on the rest of your account."
+        title="Continue after the free lessons"
+        subtitle="Unlock the rest of the Thai course on web, then keep the same access across your account."
         toolbar={
           <TouchableOpacity
             style={styles.backButton}
@@ -474,7 +474,7 @@ export default function PremiumWebScreen() {
               <DesktopPanel style={styles.heroPanel}>
                 <DesktopSectionTitle
                   title="What unlocks"
-                  caption="Keystone Access expands the curriculum after A1.1 and removes the free-plan bookmark cap."
+                  caption="Keystone Access opens the rest of the Thai course and lifts the free bookmark cap."
                 />
                 {promptLabel ? (
                   <Text style={styles.contextLine}>Trying to open: {promptLabel}</Text>
@@ -487,9 +487,10 @@ export default function PremiumWebScreen() {
                 ) : null}
                 <View style={styles.benefitsList}>
                   {[
-                    "A1.2 to C2 grammar access",
+                    "Thai lessons beyond the first 6 lessons",
                     "Mixed practice across studied grammar",
                     "Unlimited bookmarks",
+                    "One account across web and mobile",
                   ].map((item) => (
                     <View key={item} style={styles.benefitRow}>
                       <Ionicons name="checkmark" size={16} color={Sketch.accent} />
@@ -509,8 +510,8 @@ export default function PremiumWebScreen() {
                   <>
                     <Text style={styles.stateTitle}>Keystone Access is active</Text>
                     <Text style={styles.bodyText}>
-                      This account already has access to the full curriculum on web
-                      and mobile.
+                      This account already has access to the full Thai course on
+                      web and mobile.
                     </Text>
                     {billingSummaryLoading ? (
                       <Text style={styles.bodyText}>Loading current billing details...</Text>
@@ -562,8 +563,7 @@ export default function PremiumWebScreen() {
                   <>
                     <Text style={styles.stateTitle}>Checkout isn&apos;t configured yet</Text>
                     <Text style={styles.bodyText}>
-                      Add the Paddle client token and plan price IDs to the web
-                      environment, then this screen will launch checkout directly.
+                      This build cannot launch Paddle checkout yet.
                     </Text>
                   </>
                 ) : (
@@ -585,7 +585,7 @@ export default function PremiumWebScreen() {
                 caption={
                   isPremium
                     ? "Your active billing cadence is shown below. Switching updates the existing subscription instead of opening a second checkout."
-                    : "Pick the cadence that fits your study pace."
+                    : "Pick the cadence that fits your pace through the Thai course."
                 }
               />
               {switchMessage ? <Text style={styles.syncNote}>{switchMessage}</Text> : null}
@@ -739,8 +739,8 @@ export default function PremiumWebScreen() {
 
               <Text style={styles.legalNote}>
                 Web subscriptions are billed securely through Paddle. App Store
-                and Google Play purchases continue to use their own billing
-                systems.
+                and Google Play purchases keep using their own billing systems,
+                but access stays tied to the same account.
               </Text>
             </DesktopPanel>
 

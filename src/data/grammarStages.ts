@@ -14,6 +14,10 @@ export const GRAMMAR_STAGES = [
 ] as const;
 
 export type GrammarStage = (typeof GRAMMAR_STAGES)[number];
+export const PUBLIC_GRAMMAR_STAGES = GRAMMAR_STAGES.filter(
+  (stage): stage is Exclude<GrammarStage, "C2"> => stage !== "C2",
+);
+export type PublicGrammarStage = (typeof PUBLIC_GRAMMAR_STAGES)[number];
 
 export const GRAMMAR_STAGE_META: Record<
   GrammarStage,
@@ -95,7 +99,8 @@ export const GRAMMAR_STAGE_META: Record<
     level: "C1",
     order: 8,
     title: "C1 Nuanced Thai",
-    subtitle: "Cause, concession, and inference with more advanced control",
+    subtitle:
+      "Inference, concession, formal written Thai, and discourse framing with stronger control",
     shortTitle: "C1 Nuance",
   },
   C2: {
@@ -111,21 +116,21 @@ export const GRAMMAR_STAGE_META: Record<
 export const GRAMMAR_STAGE_GROUPS: Record<GrammarStage, string[]> = {
   "A1.1": [
     "svo",
+    "negative-mai",
+    "identity-pen",
     "polite-particles",
     "name-chue",
-    "natural-address-pronouns",
-    "identity-pen",
-    "adjectives",
-    "negative-mai",
     "question-mai",
     "question-words",
     "have-mii",
     "no-have-mai-mii",
     "location-yuu",
-    "origin-maa-jaak",
+    "adjectives",
     "this-that",
-    "not-identity-mai-chai",
     "go-come-pai-maa",
+    "origin-maa-jaak",
+    "not-identity-mai-chai",
+    "natural-address-pronouns",
   ],
   "A1.2": [
     "place-words",
@@ -290,21 +295,37 @@ export const GRAMMAR_STAGE_GROUPS: Record<GrammarStage, string[]> = {
     "although-formal-maewaa",
     "consequently-song-phal",
     "in-contrast-formal-nai-khana",
-  ],
-  C1: [
-    "resultative-hai",
-    "concessive-mae",
-    "seems-like-duu",
-  ],
-  C2: [
-    "no-matter-mai-waa",
-    "even-if-tor-hai",
-    "passive-formal",
-    "the-more-ying",
     "once-phor",
     "keep-doing-ruai",
     "supposed-to-khuan-ja",
   ],
+  C1: [
+    "seems-like-duu",
+    "scope-thao-thi",
+    "clarification-mai-dai-pla-wa",
+    "correction-mai-chai-wa-tae",
+    "evaluation-thue-wa-nap-wa",
+    "concessive-mae",
+    "even-if-tor-hai",
+    "no-matter-mai-waa",
+    "scope-kor-taam",
+    "even-mae-tae-c1",
+    "resultative-hai",
+    "consequence-song-phon",
+    "cause-duay-het-thi",
+    "the-more-ying",
+    "result-extreme-thueng-khan",
+    "passive-formal",
+    "nominalization-karn-thi",
+    "formal-evaluation-thue-pen",
+    "procedural-doi",
+    "clarification-klao-kue",
+    "however-yangrai-kor-taam",
+    "contrast-nai-thang-trong-kham",
+    "framing-thang-nii",
+    "case-nai-karani-thi",
+  ],
+  C2: [],
 };
 
 export const GRAMMAR_STAGE_BY_ID: Record<

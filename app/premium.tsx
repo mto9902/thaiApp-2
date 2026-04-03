@@ -265,10 +265,10 @@ export default function PremiumScreen() {
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>UNLOCK MORE THAI</Text>
-          <Text style={styles.title}>Continue beyond A1.1</Text>
+          <Text style={styles.title}>Continue after the free lessons</Text>
           <Text style={styles.subtitle}>
-            Unlock every grammar lesson after A1.1, practice mixed sets across the
-            full curriculum, and save unlimited bookmarks.
+            Unlock the rest of the Thai course, practice mixed sets across what
+            you study, and save unlimited bookmarks.
           </Text>
           {promptLabel ? (
             <Text style={styles.contextLine}>You&apos;re trying to open: {promptLabel}</Text>
@@ -277,7 +277,7 @@ export default function PremiumScreen() {
 
         <View style={styles.benefitsCard}>
           {[
-            "A1.2 to C2 grammar access",
+            "Everything beyond the first 6 lessons",
             "Mixed practice across studied grammar",
             "Unlimited bookmarks",
           ].map((benefit) => (

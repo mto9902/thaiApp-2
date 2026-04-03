@@ -46,7 +46,13 @@ function PitchCurve({ points, color }: { points: number[]; color: string }) {
   );
 }
 
-function ToneCard({ tone }: { tone: ToneData }) {
+function ToneCard({
+  tone,
+  onSpeak,
+}: {
+  tone: ToneData;
+  onSpeak: (text: string) => void;
+}) {
   const accent = getToneAccent(tone.name);
 
   return (
@@ -75,7 +81,7 @@ function ToneCard({ tone }: { tone: ToneData }) {
                 borderColor: withAlpha(accent, "22"),
               },
             ]}
-            onPress={() => speak(example.thai)}
+            onPress={() => onSpeak(example.thai)}
             activeOpacity={0.82}
           >
             <Text style={[styles.exampleThai, { color: accent }]}>
@@ -124,7 +130,7 @@ export default function TonesWeb() {
             <View style={styles.toneGrid}>
               {TONES.map((tone) => (
                 <View key={tone.name} style={styles.toneColumn}>
-                  <ToneCard tone={tone} />
+                  <ToneCard tone={tone} onSpeak={speak} />
                 </View>
               ))}
             </View>

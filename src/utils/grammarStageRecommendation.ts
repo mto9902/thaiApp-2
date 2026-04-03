@@ -1,6 +1,10 @@
 import type { GrammarPoint } from "../data/grammar";
-import type { CefrLevel } from "../data/grammarLevels";
-import { GRAMMAR_STAGES, type GrammarStage } from "../data/grammarStages";
+import type { PublicCefrLevel } from "../data/grammarLevels";
+import {
+  GRAMMAR_STAGES,
+  PUBLIC_GRAMMAR_STAGES,
+  type GrammarStage,
+} from "../data/grammarStages";
 import type { GrammarProgressData } from "./grammarProgress";
 import { isGrammarPracticed } from "./grammarProgress";
 
@@ -8,7 +12,7 @@ export type StageProgressStatus = "unstarted" | "inProgress" | "completed";
 
 export interface StageProgressSummary {
   stage: GrammarStage;
-  level: CefrLevel;
+  level: PublicCefrLevel;
   total: number;
   practiced: number;
   percentage: number;
@@ -18,7 +22,7 @@ export interface StageProgressSummary {
 
 export interface RecommendedGrammarStage {
   stage: GrammarStage;
-  level: CefrLevel;
+  level: PublicCefrLevel;
 }
 
 function getLatestPracticeDate(
@@ -50,7 +54,7 @@ export function buildStageProgressSummaries(
   points: GrammarPoint[],
   progress: Record<string, GrammarProgressData>,
 ): StageProgressSummary[] {
-  return GRAMMAR_STAGES.flatMap((stage) => {
+  return PUBLIC_GRAMMAR_STAGES.flatMap((stage) => {
     const stagePoints = points.filter((point) => point.stage === stage);
     if (stagePoints.length === 0) return [];
 
@@ -69,7 +73,7 @@ export function buildStageProgressSummaries(
     return [
       {
         stage,
-        level: stagePoints[0].level,
+        level: stagePoints[0].level as PublicCefrLevel,
         total,
         practiced,
         percentage,

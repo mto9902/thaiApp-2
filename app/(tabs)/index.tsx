@@ -21,10 +21,13 @@ import { Sketch, SketchRadius, sketchShadow } from "@/constants/theme";
 import { API_BASE } from "../../src/config";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
+  PUBLIC_GRAMMAR_STAGES,
   GrammarStage,
 } from "../../src/data/grammarStages";
-import { CEFR_LEVELS, CefrLevel } from "../../src/data/grammarLevels";
+import {
+  PUBLIC_CEFR_LEVELS,
+  PublicCefrLevel,
+} from "../../src/data/grammarLevels";
 import { useGrammarCatalog } from "../../src/grammar/GrammarCatalogProvider";
 import { isPremiumGrammarPoint } from "../../src/subscription/premium";
 import { useSubscription } from "../../src/subscription/SubscriptionProvider";
@@ -55,9 +58,7 @@ function localDateKey(d: Date): string {
 
 const HEATMAP_COLORS = ["#E8E8E8", "#D0D0D0", "#B0B0B0", "#888888", "#555555"];
 
-const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
-  (level) => level !== "C2",
-) as readonly CefrLevel[];
+const PROGRESS_LEVEL_OPTIONS = PUBLIC_CEFR_LEVELS;
 const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
 
 type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
@@ -104,7 +105,7 @@ export default function HomeScreen() {
   const { ensurePremiumAccess } = usePremiumAccess();
   const modules = useMemo<ModuleInfo[]>(
     () => [
-      ...GRAMMAR_STAGES.filter((stage) =>
+      ...PUBLIC_GRAMMAR_STAGES.filter((stage) =>
         grammarPoints.some((g) => g.stage === stage),
       ).map((stage) => ({
         stage,
@@ -288,14 +289,14 @@ export default function HomeScreen() {
 
   const progressCountsByLevel = useMemo(
     () =>
-      CEFR_LEVELS.reduce(
+      PUBLIC_CEFR_LEVELS.reduce(
         (acc, level) => {
           acc[level] = practicedGrammar.filter(
             (point) => point.level === level,
           ).length;
           return acc;
         },
-        {} as Record<CefrLevel, number>,
+        {} as Record<PublicCefrLevel, number>,
       ),
     [practicedGrammar],
   );
@@ -303,7 +304,7 @@ export default function HomeScreen() {
   const filteredProgressGrammar = useMemo(() => {
     if (selectedProgressLevels.includes("All")) return practicedGrammar;
     return practicedGrammar.filter((point) =>
-      selectedProgressLevels.includes(point.level),
+      point.level !== "C2" && selectedProgressLevels.includes(point.level),
     );
   }, [practicedGrammar, selectedProgressLevels]);
 
@@ -333,7 +334,7 @@ export default function HomeScreen() {
 
     setSelectedProgressLevels((current) => {
       const withoutAll = current.filter(
-        (value): value is CefrLevel => value !== "All",
+        (value): value is PublicCefrLevel => value !== "All",
       );
 
       if (withoutAll.includes(level)) {
@@ -881,7 +882,7 @@ export default function HomeScreen() {
                   Begin your grammar journey
                 </Text>
                 <Text style={styles.startGrammarSub}>
-                  Explore Thai grammar from A1.1 onward
+                  Start with the first 6 lessons and build from there
                 </Text>
               </View>
               <Ionicons

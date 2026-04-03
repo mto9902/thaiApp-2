@@ -158,6 +158,10 @@ export default function Header({
       ...settings.grammarExerciseModes,
       [targetMode]: !settings.grammarExerciseModes[targetMode],
     };
+    const optimisticNext = { ...settings, grammarExerciseModes: nextModes };
+
+    setSettings(optimisticNext);
+    onSettingsChange?.(optimisticNext);
 
     try {
       const savedModes = await setGrammarExerciseSettings(nextModes);
@@ -166,6 +170,8 @@ export default function Header({
       onSettingsChange?.(next);
     } catch (err) {
       console.error("Failed to update grammar exercise settings:", err);
+      setSettings(settings);
+      onSettingsChange?.(settings);
     }
   }
 

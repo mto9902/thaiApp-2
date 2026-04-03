@@ -434,6 +434,7 @@ export default function SettingsWebScreen() {
       </Modal>
 
       <DesktopPage
+        density="compact"
         eyebrow="Account"
         title="Settings"
         subtitle="Manage your account, reading preferences, audio, and practice options."
@@ -500,12 +501,12 @@ export default function SettingsWebScreen() {
                 />
                 <Text style={styles.bodyText}>
                   {isPremium
-                    ? "Your account has the full A1.2 to C2 Keystone Access path. Use the button below to manage the subscription."
+                    ? "Your account has the full Keystone Access path. Use the button below to manage the subscription."
                     : billingProvider === "paddle"
-                      ? "Keystone Access unlocks A1.2 and above, higher-level mixed practice, and unlimited bookmarks. Choose monthly or yearly on web, then keep the same account unlocked on mobile."
+                      ? "Keystone Access unlocks everything beyond the first 6 lessons, higher-level mixed practice, and unlimited bookmarks. Choose monthly or yearly on web, then keep the same account unlocked on mobile."
                       : isSupported
                         ? canMakePurchases
-                          ? "Keystone Access unlocks A1.2 and above, higher-level mixed practice, and unlimited bookmarks."
+                          ? "Keystone Access unlocks everything beyond the first 6 lessons, higher-level mixed practice, and unlimited bookmarks."
                           : "Use the mobile app to purchase or restore Keystone Access, then keep learning here with the same account."
                         : "Paddle web checkout is not configured for this build yet."}
                 </Text>
@@ -788,7 +789,7 @@ export default function SettingsWebScreen() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 28,
+    gap: 22,
   },
   topGrid: {
     flexDirection: "row",

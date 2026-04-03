@@ -3,28 +3,35 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 
 import { Sketch } from "@/constants/theme";
 import {
-  DesktopPage,
-  DesktopPanel,
-  DesktopSectionTitle,
-} from "@/src/components/web/DesktopScaffold";
+  AppSketch,
+  AppRadius,
+  appShadow,
+  AppTypography,
+  AppSpacing,
+} from "@/constants/theme-app";
+import AppButton from "@/src/components/app/AppButton";
+import AppCard from "@/src/components/app/AppCard";
 import { API_BASE } from "@/src/config";
 import {
   GRAMMAR_STAGE_META,
-  GRAMMAR_STAGES,
+  PUBLIC_GRAMMAR_STAGES,
   GrammarStage,
 } from "@/src/data/grammarStages";
-import { CEFR_LEVELS, CefrLevel } from "@/src/data/grammarLevels";
+import {
+  PUBLIC_CEFR_LEVELS,
+  PublicCefrLevel,
+} from "@/src/data/grammarLevels";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { isPremiumGrammarPoint } from "@/src/subscription/premium";
 import { useSubscription } from "@/src/subscription/SubscriptionProvider";
@@ -37,12 +44,33 @@ import {
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
 
-function activityToLevel(count: number): number {
-  if (count === 0) return 0;
-  if (count < 15) return 1;
-  if (count < 40) return 2;
-  if (count < 80) return 3;
-  return 4;
+// ── Types ──────────────────────────────────────────────────────────────────────
+type ProgressFilterLevel = "All" | PublicCefrLevel;
+type PendingProgressMixAction =
+  | { type: "premium"; label: string; route: string }
+  | { type: "practice"; route: string };
+
+interface LessonPoint {
+  id: string;
+  title: string;
+  stage: GrammarStage;
+  level: PublicCefrLevel;
+  completed: boolean;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function formatDelay(nextDueAt: string): string {
+  const msUntilDue = Math.max(new Date(nextDueAt).getTime() - Date.now(), 0);
+  const minsUntilDue = Math.ceil(msUntilDue / 60000);
+  if (minsUntilDue <= 1) return "<1m";
+  if (minsUntilDue < 60) return `${minsUntilDue}m`;
+  const hoursUntilDue = Math.ceil(minsUntilDue / 60);
+  if (hoursUntilDue < 24) return `${hoursUntilDue}h`;
+  return `${Math.ceil(hoursUntilDue / 24)}d`;
+}
+
+function shuffleIds(ids: string[]) {
+  return [...ids].sort(() => Math.random() - 0.5);
 }
 
 function localDateKey(d: Date): string {
@@ -52,135 +80,50 @@ function localDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function formatReviewDelay(nextDueAt: string): string {
-  const msUntilDue = Math.max(new Date(nextDueAt).getTime() - Date.now(), 0);
-  const minsUntilDue = Math.ceil(msUntilDue / 60000);
-  if (minsUntilDue <= 1) return "<1m";
-  if (minsUntilDue < 60) return `${minsUntilDue}m`;
-  const hoursUntilDue = Math.ceil(minsUntilDue / 60);
-  if (hoursUntilDue < 24) return `${hoursUntilDue}h`;
-  const daysUntilDue = Math.ceil(hoursUntilDue / 24);
-  return `${daysUntilDue}d`;
-}
-
-const HEATMAP_COLORS = ["#E8E8E8", "#D0D0D0", "#B0B0B0", "#888888", "#555555"];
-
-const PROGRESS_LEVEL_OPTIONS = CEFR_LEVELS.filter(
-  (level) => level !== "C2",
-) as readonly CefrLevel[];
-const PROGRESS_FILTER_LEVELS = ["All", ...PROGRESS_LEVEL_OPTIONS] as const;
-
-type ProgressFilterLevel = (typeof PROGRESS_FILTER_LEVELS)[number];
-type PendingProgressMixAction =
-  | { type: "premium"; label: string; route: string }
-  | { type: "practice"; route: string };
-
-type ModuleInfo = {
-  stage: GrammarStage;
-  title: string;
-  grammarIds: string[];
-};
-
-function shuffleIds(ids: string[]) {
-  return [...ids].sort(() => Math.random() - 0.5);
-}
-
-export default function HomeScreenWeb() {
+// ── Main Component ─────────────────────────────────────────────────────────────
+export default function HomeScreenApp() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
+
+  // State
+  const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
+  const [reviewsDue, setReviewsDue] = useState(0);
+  const [reviewStatus, setReviewStatus] = useState("You're caught up");
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [isGuest, setIsGuest] = useState(false);
-  const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
-    {},
-  );
-  const [moduleProgress, setModuleProgress] = useState<number[]>([]);
-  const [overallGrammarProgress, setOverallGrammarProgress] = useState(0);
-  const [reviewsDue, setReviewsDue] = useState(0);
-  const [reviewStatusText, setReviewStatusText] = useState("You're caught up");
   const [showProgressMixModal, setShowProgressMixModal] = useState(false);
-  const [selectedProgressLevels, setSelectedProgressLevels] = useState<
-    ProgressFilterLevel[]
-  >(["All"]);
-  const [pendingProgressMixAction, setPendingProgressMixAction] =
-    useState<PendingProgressMixAction | null>(null);
+  const [selectedProgressLevels, setSelectedProgressLevels] = useState<ProgressFilterLevel[]>(["All"]);
+  const [pendingProgressMixAction, setPendingProgressMixAction] = useState<PendingProgressMixAction | null>(null);
 
-  const modules = useMemo<ModuleInfo[]>(
-    () =>
-      GRAMMAR_STAGES.filter((stage) =>
-        grammarPoints.some((g) => g.stage === stage),
-      ).map((stage) => ({
-        stage,
-        title: GRAMMAR_STAGE_META[stage].shortTitle,
-        grammarIds: grammarPoints
-          .filter((g) => g.stage === stage)
-          .map((g) => g.id),
-      })),
-    [grammarPoints],
-  );
-
-  const quickColumns = width >= 1280 ? 4 : width >= 980 ? 2 : 1;
-  const quickCardWidth =
-    quickColumns === 4 ? "23.6%" : quickColumns === 2 ? "48.8%" : "100%";
-
+  // Auth check
   const checkAuth = useCallback(async () => {
     const allowed = await canAccessApp();
-    if (!allowed) {
-      router.replace("/login");
-    }
+    if (!allowed) router.replace("/login");
   }, [router]);
 
   useEffect(() => {
     void checkAuth();
   }, [checkAuth]);
 
+  // Data loading
   const loadProgress = useCallback(async () => {
     try {
       const allProgress = await getAllProgress();
-      const totalPracticed = grammarPoints.filter((point) =>
-        isGrammarPracticed(allProgress[point.id]),
-      ).length;
-      const nextModuleProgress = modules.map((mod) => {
-        if (mod.grammarIds.length === 0) return 0;
-        const practiced = mod.grammarIds.filter((id) =>
-          isGrammarPracticed(allProgress[id]),
-        ).length;
-        return Math.round((practiced / mod.grammarIds.length) * 100);
-      });
-      const overallPercent =
-        grammarPoints.length > 0
-          ? Math.round((totalPracticed / grammarPoints.length) * 100)
-          : 0;
-
       setProgress(allProgress);
-      setModuleProgress(nextModuleProgress);
-      setOverallGrammarProgress(overallPercent);
     } catch (err) {
       console.error("Failed to load progress:", err);
     }
-  }, [grammarPoints, modules]);
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      void loadProgress();
-      void loadReviewStatus();
-      void loadHeatmap();
-    }, [loadProgress]),
-  );
-
-  useEffect(() => {
-    setModuleProgress(modules.map(() => 0));
-  }, [modules]);
-
-  async function loadReviewStatus() {
+  const loadReviewStatus = useCallback(async () => {
     try {
       const guest = await isGuestUser();
       setIsGuest(guest);
       if (guest) {
         setReviewsDue(0);
-        setReviewStatusText("Log in to review");
+        setReviewStatus("Log in to review");
         return;
       }
 
@@ -192,36 +135,23 @@ export default function HomeScreenWeb() {
 
       if (data?.waiting && data?.nextDueAt) {
         setReviewsDue(0);
-        setReviewStatusText(
-          `Next card in ${formatReviewDelay(data.nextDueAt)}`,
-        );
-        return;
-      }
-
-      if (data?.done) {
+        setReviewStatus(`Next in ${formatDelay(data.nextDueAt)}`);
+      } else if (data?.done) {
         setReviewsDue(0);
-        setReviewStatusText("You're caught up");
-        return;
+        setReviewStatus("You're caught up");
+      } else {
+        const counts = data?.counts ?? {};
+        const actionable = (counts.newCount ?? 0) + (counts.learningCount ?? 0) + (counts.reviewCount ?? 0);
+        setReviewsDue(Math.max(0, actionable));
+        setReviewStatus(`${actionable} card${actionable !== 1 ? 's' : ''} ready`);
       }
-
-      const counts = data?.counts ?? {};
-      const actionableReviews =
-        (counts.newCount ?? 0) +
-        (counts.learningCount ?? 0) +
-        (counts.reviewCount ?? 0);
-      const dueNow = actionableReviews > 0 ? actionableReviews : 1;
-
-      setReviewsDue(dueNow);
-      setReviewStatusText(
-        `Est. time: ${Math.max(1, Math.round(dueNow * 0.15))}m`,
-      );
     } catch {
       setReviewsDue(0);
-      setReviewStatusText("Review unavailable");
+      setReviewStatus("Review unavailable");
     }
-  }
+  }, []);
 
-  async function loadHeatmap() {
+  const loadHeatmap = useCallback(async () => {
     try {
       const guest = await isGuestUser();
       if (guest) return;
@@ -231,343 +161,143 @@ export default function HomeScreenWeb() {
       });
       if (res.ok) setActivityMap(await res.json());
     } catch {
-      // noop
+      // keep default empty
     }
-  }
+  }, []);
 
-  const progressCards = useMemo(() => {
-    const cards: {
-      key: string;
-      label: string;
-      title: string;
-      percent: number;
-      route: string;
-    }[] = [];
+  useFocusEffect(
+    useCallback(() => {
+      void loadProgress();
+      void loadReviewStatus();
+      void loadHeatmap();
+    }, [loadProgress, loadReviewStatus, loadHeatmap])
+  );
 
-    if (moduleProgress.some((p) => p > 0)) {
-      cards.push({
-        key: "overview",
-        label: "Overview",
-        title: "All Grammar",
-        percent: overallGrammarProgress,
-        route: "/progress",
-      });
-
-      modules.forEach((mod, index) => {
-        if (moduleProgress[index] === 0) return;
-        cards.push({
-          key: mod.stage,
-          label: mod.stage,
-          title: mod.title,
-          percent: moduleProgress[index],
-        route: `/practice/topics?stage=${mod.stage}`,
-        });
-      });
-    }
-
-    return cards.slice(0, 4);
-  }, [moduleProgress, modules, overallGrammarProgress]);
-
+  // Derived data
+  const practicedGrammar = useMemo(
+    () => grammarPoints.filter((p) => isGrammarPracticed(progress[p.id])),
+    [grammarPoints, progress]
+  );
   const nextLesson = useMemo(
-    () => grammarPoints.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
-    [grammarPoints, progress],
+    () => grammarPoints.find((p) => !isGrammarPracticed(progress[p.id])) ?? null,
+    [grammarPoints, progress]
   );
   const firstLesson = grammarPoints[0] ?? null;
 
-  const practicedGrammar = useMemo(
-    () => grammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
-    [grammarPoints, progress],
-  );
-  const heroCard = useMemo(() => {
-    if (!isGuest && reviewsDue > 0) {
-      return {
-        label: "Today",
-        title: "Review before your next lesson",
-        subtitle:
-          reviewsDue === 1
-            ? "You have 1 card ready. A quick review keeps recent words active."
-            : `You have ${reviewsDue} cards ready. A quick review keeps recent words active.`,
-        actionLabel: "Start review",
-        action: () => router.push("/review/" as any),
-      };
-    }
+  const overallProgress = useMemo(() => {
+    if (grammarPoints.length === 0) return 0;
+    return Math.round((practicedGrammar.length / grammarPoints.length) * 100);
+  }, [grammarPoints, practicedGrammar]);
 
-    if (practicedGrammar.length === 0) {
-      return {
-        label: "Start",
-        title: "Begin your first topic",
-        subtitle: firstLesson
-          ? `${firstLesson.stage} · ${firstLesson.title}`
-          : "Start with the first grammar lesson and build from there.",
-        actionLabel: "Start topic",
-        action: () =>
-          router.push(
-            (firstLesson ? `/practice/${firstLesson.id}` : "/progress") as any,
-          ),
-      };
+  // Streak calculation
+  const currentStreak = useMemo(() => {
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = localDateKey(d);
+      if ((activityMap[key] || 0) > 0) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
     }
+    return streak;
+  }, [activityMap]);
 
+  // Learning path generation
+  const learningPath = useMemo<LessonPoint[]>(() => {
+    const currentIndex = nextLesson
+      ? grammarPoints.findIndex((p) => p.id === nextLesson.id)
+      : grammarPoints.length;
+    
+    const path: LessonPoint[] = [];
+    
+    // Last 2 completed
+    for (let i = Math.max(0, currentIndex - 2); i < currentIndex; i++) {
+      const p = grammarPoints[i];
+      if (p) path.push({ id: p.id, title: p.title, stage: p.stage, level: p.level, completed: true });
+    }
+    
+    // Current
     if (nextLesson) {
-      return {
-        label: "Continue",
+      path.push({
+        id: nextLesson.id,
         title: nextLesson.title,
-        subtitle: `${nextLesson.stage} · Pick up where your current path continues.`,
-        actionLabel: "Resume topic",
-        action: () => router.push(`/practice/${nextLesson.id}` as any),
-      };
+        stage: nextLesson.stage,
+        level: nextLesson.level,
+        completed: false,
+      });
     }
+    
+    // Next 2 upcoming
+    for (let i = currentIndex + 1; i < Math.min(grammarPoints.length, currentIndex + 3); i++) {
+      const p = grammarPoints[i];
+      if (p) path.push({ id: p.id, title: p.title, stage: p.stage, level: p.level, completed: false });
+    }
+    
+    return path;
+  }, [grammarPoints, nextLesson]);
 
-    return {
-      label: "Continue",
-      title: "Keep your grammar active",
-      subtitle:
-        "You have completed every topic so far. Revisit studied grammar or review vocabulary.",
-      actionLabel: "View progress",
-      action: () => router.push("/progress" as any),
-    };
-  }, [firstLesson, isGuest, nextLesson, practicedGrammar.length, reviewsDue, router]);
-
-  const progressCountsByLevel = useMemo(
-    () =>
-      CEFR_LEVELS.reduce(
-        (acc, level) => {
-          acc[level] = practicedGrammar.filter((point) => point.level === level).length;
-          return acc;
-        },
-        {} as Record<CefrLevel, number>,
-      ),
-    [practicedGrammar],
-  );
-
+  // Progress mix handling
   const filteredProgressGrammar = useMemo(() => {
     if (selectedProgressLevels.includes("All")) return practicedGrammar;
-    return practicedGrammar.filter((point) =>
-      selectedProgressLevels.includes(point.level),
-    );
+    return practicedGrammar.filter((p) => selectedProgressLevels.includes(p.level));
   }, [practicedGrammar, selectedProgressLevels]);
 
-  useEffect(() => {
-    if (showProgressMixModal || !pendingProgressMixAction) return;
-
-    const action = pendingProgressMixAction;
-    setPendingProgressMixAction(null);
-    if (action.type === "premium") {
-      void ensurePremiumAccess(action.label, action.route);
-      return;
-    }
-    router.push(action.route as any);
-  }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
+  const progressCountsByLevel = useMemo(() =>
+    PUBLIC_CEFR_LEVELS.reduce((acc, level) => {
+      acc[level] = practicedGrammar.filter((p) => p.level === level).length;
+      return acc;
+    }, {} as Record<PublicCefrLevel, number>),
+    [practicedGrammar]
+  );
 
   function toggleProgressLevel(level: ProgressFilterLevel) {
     if (level === "All") {
       setSelectedProgressLevels(["All"]);
       return;
     }
-
     setSelectedProgressLevels((current) => {
-      const withoutAll = current.filter(
-        (value): value is CefrLevel => value !== "All",
-      );
-
+      const withoutAll = current.filter((v): v is PublicCefrLevel => v !== "All");
       if (withoutAll.includes(level)) {
-        const next = withoutAll.filter((value) => value !== level);
+        const next = withoutAll.filter((v) => v !== level);
         return next.length > 0 ? next : ["All"];
       }
-
       return [...withoutAll, level];
     });
   }
 
   function handleStartProgressMix() {
     if (filteredProgressGrammar.length === 0) return;
+    const shuffled = shuffleIds(filteredProgressGrammar.map((p) => p.id));
+    const route = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=progress`;
 
-    const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
-    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=progress`;
-
-    if (
-      !isPremium &&
-      filteredProgressGrammar.some((point) => isPremiumGrammarPoint(point))
-    ) {
+    if (!isPremium && filteredProgressGrammar.some((p) => isPremiumGrammarPoint(p))) {
       setShowProgressMixModal(false);
-      setPendingProgressMixAction({
-        type: "premium",
-        label: "the studied grammar in this mix",
-        route: practiceRoute,
-      });
+      setPendingProgressMixAction({ type: "premium", label: "studied grammar", route });
       return;
     }
-
     setShowProgressMixModal(false);
-    setPendingProgressMixAction({ type: "practice", route: practiceRoute });
+    setPendingProgressMixAction({ type: "practice", route });
   }
 
-  const heatmapSummary = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayKey = localDateKey(today);
-
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
-    weekStart.setHours(0, 0, 0, 0);
-
-    let thisWeek = 0;
-    let activeDays = 0;
-    Object.entries(activityMap).forEach(([key, count]) => {
-      if (count > 0) activeDays += 1;
-      const date = new Date(`${key}T00:00:00`);
-      if (date >= weekStart && date <= today) {
-        thisWeek += count;
-      }
-    });
-
-    return [
-      { label: "Today", value: activityMap[todayKey] || 0 },
-      { label: "This week", value: thisWeek },
-      { label: "Active days", value: activeDays },
-    ];
-  }, [activityMap]);
-
-  function renderHeatmap() {
-    const totalWeeks = 26;
-    const dayLabelWidth = 42;
-    const monthLabelHeight = 22;
-    const dayLabels = ["", "Mon", "", "Wed", "", "Fri", ""];
-    const monthNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const estimatedPanelWidth =
-      width >= 1500
-        ? Math.floor((width - 420) * 0.34)
-        : width >= 1180
-          ? Math.floor((width - 360) * 0.42)
-          : Math.floor(width - 180);
-    const heatmapViewportWidth = Math.max(
-      320,
-      Math.min(estimatedPanelWidth, 760),
-    );
-    const cell = Math.max(
-      12,
-      Math.min(19, Math.floor((heatmapViewportWidth - dayLabelWidth) / totalWeeks)),
-    );
-    const gap = cell >= 17 ? 5 : cell >= 14 ? 4 : 3;
-    const sq = Math.max(8, cell - gap);
-    const heatmapCanvasWidth = dayLabelWidth + totalWeeks * cell;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayKey = localDateKey(today);
-
-    const activityDates = Object.keys(activityMap).sort();
-    let startSunday: Date;
-    if (activityDates.length > 0) {
-      const earliest = new Date(`${activityDates[0]}T00:00:00`);
-      startSunday = new Date(earliest);
-      startSunday.setDate(startSunday.getDate() - startSunday.getDay());
+  useEffect(() => {
+    if (showProgressMixModal || !pendingProgressMixAction) return;
+    const action = pendingProgressMixAction;
+    setPendingProgressMixAction(null);
+    if (action.type === "premium") {
+      void ensurePremiumAccess(action.label, action.route);
     } else {
-      const endSat = new Date(today);
-      endSat.setDate(endSat.getDate() + (6 - endSat.getDay()));
-      startSunday = new Date(endSat);
-      startSunday.setDate(startSunday.getDate() - (totalWeeks * 7 - 1));
+      router.push(action.route as any);
     }
+  }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
 
-    const monthLabels: { col: number; label: string }[] = [];
-    let prevMonth = -1;
-    for (let week = 0; week < totalWeeks; week += 1) {
-      const d = new Date(startSunday);
-      d.setDate(d.getDate() + week * 7);
-      const month = d.getMonth();
-      if (month !== prevMonth) {
-        monthLabels.push({ col: week, label: monthNames[month] });
-        prevMonth = month;
-      }
-    }
-
-    return (
-      <View style={styles.heatmapFrame}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.heatmapScrollContent,
-            { minWidth: heatmapCanvasWidth },
-          ]}
-        >
-          <View>
-            <View
-              style={[
-                styles.monthRow,
-                { marginLeft: dayLabelWidth, height: monthLabelHeight },
-              ]}
-            >
-              {monthLabels.map((label, index) => (
-                <Text
-                  key={`${label.label}-${index}`}
-                  style={[styles.monthLabel, { left: label.col * cell }]}
-                >
-                  {label.label}
-                </Text>
-              ))}
-            </View>
-            <View style={styles.heatmapBody}>
-              <View style={{ width: dayLabelWidth }}>
-                {dayLabels.map((label, index) => (
-                  <View
-                    key={`${label}-${index}`}
-                    style={{ height: cell, justifyContent: "center" }}
-                  >
-                    <Text style={styles.dayLabel}>{label}</Text>
-                  </View>
-                ))}
-              </View>
-              <View>
-                {Array.from({ length: 7 }).map((_, dow) => (
-                  <View key={dow} style={styles.heatmapRow}>
-                    {Array.from({ length: totalWeeks }).map((_, week) => {
-                      const d = new Date(startSunday);
-                      d.setDate(d.getDate() + week * 7 + dow);
-                      const key = localDateKey(d);
-                      const isFuture = key > todayKey;
-                      const count = activityMap[key] || 0;
-                      const level = isFuture ? 0 : activityToLevel(count);
-                      return (
-                        <View
-                          key={`${week}-${dow}`}
-                          style={[
-                            styles.heatmapCell,
-                            {
-                              width: sq,
-                              height: sq,
-                              backgroundColor: HEATMAP_COLORS[level],
-                              marginRight: gap,
-                              marginBottom: gap,
-                            },
-                          ]}
-                        />
-                      );
-                    })}
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
-
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <>
+      {/* Progress Mix Modal */}
       <Modal
         visible={showProgressMixModal}
         transparent
@@ -575,61 +305,45 @@ export default function HomeScreenWeb() {
         onRequestClose={() => setShowProgressMixModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <Pressable
-            style={styles.modalBackdrop}
-            onPress={() => setShowProgressMixModal(false)}
-          />
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowProgressMixModal(false)} />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeading}>
-                <Text style={styles.modalTitle}>Studied Grammar</Text>
+                <Text style={styles.modalTitle}>Practice Studied Grammar</Text>
                 <Text style={styles.modalSubtitle}>
-                  Practice grammar points you have already studied.
+                  Review grammar points you&apos;ve already learned
                 </Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseButton}
+                style={styles.modalClose}
                 onPress={() => setShowProgressMixModal(false)}
-                activeOpacity={0.82}
+                activeOpacity={0.8}
               >
-                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
+                <Ionicons name="close" size={20} color={AppSketch.inkMuted} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.filterWrap}>
-              {PROGRESS_FILTER_LEVELS.map((level) => {
-                const count =
-                  level === "All"
-                    ? practicedGrammar.length
-                    : progressCountsByLevel[level];
-                const isSelected = selectedProgressLevels.includes(level);
-                const isDisabled = count === 0;
+            <View style={styles.filterGrid}>
+              {["All", ...PUBLIC_CEFR_LEVELS].map((level) => {
+                const count = level === "All" ? practicedGrammar.length : progressCountsByLevel[level];
+                const selected = selectedProgressLevels.includes(level as ProgressFilterLevel);
+                const disabled = count === 0;
                 return (
                   <TouchableOpacity
                     key={level}
                     style={[
                       styles.filterChip,
-                      isSelected && styles.filterChipActive,
-                      isDisabled && styles.filterChipDisabled,
+                      selected && styles.filterChipActive,
+                      disabled && styles.filterChipDisabled,
                     ]}
-                    onPress={() => toggleProgressLevel(level)}
-                    disabled={isDisabled}
-                    activeOpacity={0.82}
+                    onPress={() => toggleProgressLevel(level as ProgressFilterLevel)}
+                    disabled={disabled}
+                    activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        isSelected && styles.filterChipTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.filterChipText, selected && styles.filterChipTextActive]}>
                       {level}
                     </Text>
-                    <Text
-                      style={[
-                        styles.filterChipCount,
-                        isSelected && styles.filterChipTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.filterChipCount, selected && styles.filterChipTextActive]}>
                       {count}
                     </Text>
                   </TouchableOpacity>
@@ -637,658 +351,560 @@ export default function HomeScreenWeb() {
               })}
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                filteredProgressGrammar.length === 0 && styles.disabledButton,
-              ]}
+            <AppButton
+              title={`Practice ${filteredProgressGrammar.length} topic${filteredProgressGrammar.length !== 1 ? 's' : ''}`}
               onPress={handleStartProgressMix}
               disabled={filteredProgressGrammar.length === 0}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.primaryButtonText}>Practice</Text>
-            </TouchableOpacity>
+              fullWidth
+            />
           </View>
         </View>
       </Modal>
 
-      <DesktopPage
-        eyebrow="Home"
-        title="Keystone"
-        subtitle="Pick up your next grammar lesson, review vocabulary, and keep your Thai progress moving."
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.pageStack}>
-      <DesktopPanel style={styles.heroPanel}>
-        <View style={styles.heroPromptBlock}>
-          <Text style={styles.heroThaiPrompt}>วันนี้เรียนอะไรดี</Text>
-          <Text style={styles.heroPromptTranslation}>
-            What should we study today?
+        {/* Header Greeting */}
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Good to see you</Text>
+          <Text style={styles.subtitle}>
+            {isGuest ? "Start learning Thai today" : "Continue your Thai journey"}
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.heroActionCard}
-          onPress={heroCard.action}
-          activeOpacity={0.82}
-        >
-          <View style={styles.heroActionCopy}>
-            <Text style={styles.heroActionLabel}>{heroCard.label}</Text>
-            <Text style={styles.heroActionTitle}>{heroCard.title}</Text>
-            <Text style={styles.heroActionSubtitle}>{heroCard.subtitle}</Text>
-          </View>
-          <View style={styles.heroActionFooter}>
-            <Text style={styles.heroActionButtonText}>{heroCard.actionLabel}</Text>
-            <Ionicons name="arrow-forward" size={16} color={Sketch.paperDark} />
-          </View>
-        </TouchableOpacity>
-      </DesktopPanel>
 
-      <View style={styles.metricStrip}>
-        {[
-          {
-            label: "Cards due",
-            value: reviewsDue > 0 ? String(reviewsDue) : "0",
-            meta: reviewStatusText,
-            action: () => router.push("/review/" as any),
-          },
-          {
-            label: "Grammar progress",
-            value: `${overallGrammarProgress}%`,
-            meta: `${progressCards.length > 0 ? progressCards.length - 1 : 0} active units`,
-            action: () => router.push("/progress" as any),
-          },
-          {
-            label: "Bookmarks",
-            value: "",
-            meta: "Saved grammar practice",
-            action: () => router.push("/explore" as any),
-            renderValue: (
-              <Ionicons
-                name="bookmark-outline"
-                size={34}
-                color={Sketch.accent}
-              />
-            ),
-          },
-          {
-            label: "Trainer",
-            value: "",
-            meta: "Alphabet and reading drills",
-            action: () => router.push("/trainer" as any),
-            renderValue: <Text style={styles.metricThaiGlyph}>ก</Text>,
-          },
-        ].map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.metricCard, { width: quickCardWidth }]}
-            onPress={item.action}
-            activeOpacity={0.82}
-          >
-            {item.renderValue ? (
-              <View style={styles.metricValueWrap}>{item.renderValue}</View>
-            ) : (
-              <Text style={styles.metricValue}>{item.value}</Text>
-            )}
-            <Text style={styles.metricLabel}>{item.label}</Text>
-            <Text style={styles.metricMeta}>{item.meta}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.mainGrid}>
-        <DesktopPanel style={styles.focusPanel}>
-          <DesktopSectionTitle
-            title="Focus"
-            caption="Continue with your next lesson or jump into the grammar path."
-          />
-          <View style={styles.focusActions}>
-            <TouchableOpacity
-              style={styles.primaryAction}
+        {/* Daily Focus - Hero Card */}
+        <AppCard variant="elevated" size="lg" style={styles.heroCard}>
+          <View style={styles.heroContent}>
+            <View style={styles.heroText}>
+              <View style={styles.heroLabelRow}>
+                <Text style={styles.heroLabel}>TODAY&apos;S FOCUS</Text>
+                {nextLesson && (
+                  <View style={styles.stageBadge}>
+                    <Text style={styles.stageBadgeText}>{nextLesson.stage}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.heroTitle}>
+                {nextLesson
+                  ? nextLesson.title
+                  : practicedGrammar.length > 0
+                  ? "Great progress!"
+                  : "Start your first lesson"}
+              </Text>
+              <Text style={styles.heroBody}>
+                {nextLesson
+                  ? `Continue with ${nextLesson.stage} and build your skills`
+                  : practicedGrammar.length > 0
+                  ? "You've completed all available lessons. Review or practice to keep learning."
+                  : "Begin with the fundamentals and start speaking Thai"}
+              </Text>
+            </View>
+            <AppButton
+              title={nextLesson ? "Continue" : practicedGrammar.length > 0 ? "Review" : "Start Learning"}
               onPress={() =>
-                nextLesson
-                  ? router.push(`/practice/${nextLesson.id}` as any)
-                  : router.push("/progress" as any)
+                router.push(
+                  (nextLesson
+                    ? `/practice/${nextLesson.id}`
+                    : practicedGrammar.length > 0
+                    ? "/review"
+                    : firstLesson
+                    ? `/practice/${firstLesson.id}`
+                    : "/progress") as any
+                )
               }
-              activeOpacity={0.82}
-            >
-              <Text style={styles.primaryActionText}>Continue Learning</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.secondaryAction}
-              onPress={() => router.push("/progress" as any)}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.secondaryActionText}>View Grammar Units</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.secondaryAction,
-                practicedGrammar.length === 0 && styles.disabledSecondaryAction,
-              ]}
-              onPress={() => {
-                if (practicedGrammar.length === 0) return;
-                setSelectedProgressLevels(["All"]);
-                setShowProgressMixModal(true);
-              }}
-              activeOpacity={0.82}
-              disabled={practicedGrammar.length === 0}
-            >
-              <Text style={styles.secondaryActionText}>Studied Grammar</Text>
-            </TouchableOpacity>
+              size="lg"
+            />
           </View>
+          {/* Progress bar */}
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${overallProgress}%` }]} />
+            </View>
+            <Text style={styles.progressText}>{overallProgress}% complete</Text>
+          </View>
+        </AppCard>
 
-          {progressCards.length > 0 ? (
-            <View style={styles.focusProgressList}>
-              {progressCards.map((card) => (
+        {/* Action Grid */}
+        <View style={styles.actionGrid}>
+          <AppCard
+            variant="flat"
+            size="md"
+            style={[styles.actionCard, styles.actionCardPrimary]}
+            onPress={() => router.push("/progress" as any)}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="book-outline" size={24} color={AppSketch.primary} />
+            </View>
+            <Text style={styles.actionTitle}>Grammar Path</Text>
+            <Text style={styles.actionSubtitle}>
+              {nextLesson ? nextLesson.stage : "Start learning"}
+            </Text>
+          </AppCard>
+
+          <AppCard
+            variant="flat"
+            size="md"
+            style={[styles.actionCard, reviewsDue > 0 && styles.actionCardHighlight]}
+            onPress={() => router.push("/review/" as any)}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="albums-outline" size={24} color={reviewsDue > 0 ? AppSketch.primary : AppSketch.inkMuted} />
+            </View>
+            <Text style={styles.actionTitle}>Review</Text>
+            <Text style={styles.actionSubtitle}>{reviewStatus}</Text>
+            {reviewsDue > 0 && (
+              <View style={styles.actionBadge}>
+                <Text style={styles.actionBadgeText}>{reviewsDue}</Text>
+              </View>
+            )}
+          </AppCard>
+
+          <AppCard
+            variant="flat"
+            size="md"
+            style={[styles.actionCard, practicedGrammar.length === 0 && styles.actionCardDisabled]}
+            onPress={() => {
+              if (practicedGrammar.length === 0) return;
+              setSelectedProgressLevels(["All"]);
+              setShowProgressMixModal(true);
+            }}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="shuffle-outline" size={24} color={practicedGrammar.length > 0 ? AppSketch.primary : AppSketch.inkFaint} />
+            </View>
+            <Text style={[styles.actionTitle, practicedGrammar.length === 0 && styles.actionTitleDisabled]}>
+              Practice Mix
+            </Text>
+            <Text style={styles.actionSubtitle}>
+              {practicedGrammar.length > 0 ? `${practicedGrammar.length} topics` : "No topics yet"}
+            </Text>
+          </AppCard>
+        </View>
+
+        {/* Learning Path */}
+        {learningPath.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Path</Text>
+            <AppCard variant="flat" size="md" style={styles.pathCard}>
+              <View style={styles.pathTrack}>
+                {learningPath.map((point, index) => (
+                  <TouchableOpacity
+                    key={point.id}
+                    style={styles.pathNode}
+                    onPress={() => router.push(`/practice/${point.id}` as any)}
+                    activeOpacity={0.8}
+                  >
+                    <View
+                      style={[
+                        styles.pathDot,
+                        point.completed && styles.pathDotCompleted,
+                        index === learningPath.findIndex((p) => !p.completed) && styles.pathDotCurrent,
+                      ]}
+                    >
+                      {point.completed ? (
+                        <Ionicons name="checkmark" size={12} color="#fff" />
+                      ) : index === learningPath.findIndex((p) => !p.completed) ? (
+                        <View style={styles.pathDotPulse} />
+                      ) : null}
+                    </View>
+                    <Text style={styles.pathLabel} numberOfLines={1}>
+                      {point.stage}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </AppCard>
+          </View>
+        )}
+
+        {/* Bottom Row: Streak & Tools */}
+        <View style={styles.bottomRow}>
+          {/* Streak Card */}
+          <AppCard variant="flat" size="md" style={styles.streakCard}>
+            <View style={styles.streakHeader}>
+              <Text style={styles.streakEmoji}>🔥</Text>
+              <View>
+                <Text style={styles.streakValue}>{currentStreak}</Text>
+                <Text style={styles.streakLabel}>day streak</Text>
+              </View>
+            </View>
+            {/* Mini sparkline */}
+            <View style={styles.sparkline}>
+              {Array.from({ length: 7 }).map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                const key = localDateKey(d);
+                const active = (activityMap[key] || 0) > 0;
+                return (
+                  <View
+                    key={i}
+                    style={[styles.sparkDot, active && styles.sparkDotActive]}
+                  />
+                );
+              })}
+            </View>
+          </AppCard>
+
+          {/* Quick Tools */}
+          <View style={styles.toolsSection}>
+            <Text style={styles.sectionTitle}>Quick Access</Text>
+            <View style={styles.toolsGrid}>
+              {[
+                { label: "Alphabet", icon: "language-outline", route: "/alphabet/" },
+                { label: "Numbers", icon: "calculator-outline", route: "/numbers/" },
+                { label: "Tones", icon: "musical-notes-outline", route: "/tones/" },
+                { label: "Trainer", icon: "school-outline", route: "/trainer/" },
+              ].map((tool) => (
                 <TouchableOpacity
-                  key={card.key}
-                  style={styles.focusProgressCard}
-                  onPress={() => router.push(card.route as any)}
-                  activeOpacity={0.82}
+                  key={tool.label}
+                  style={styles.toolChip}
+                  onPress={() => router.push(tool.route as any)}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.focusProgressTop}>
-                    <Text style={styles.focusProgressLabel}>{card.label}</Text>
-                    <Text style={styles.focusProgressPercent}>{card.percent}%</Text>
-                  </View>
-                  <Text style={styles.focusProgressTitle}>{card.title}</Text>
-                  <View style={styles.track}>
-                    <View style={[styles.fill, { width: `${card.percent}%` }]} />
-                  </View>
+                  <Ionicons name={tool.icon as any} size={16} color={AppSketch.inkMuted} />
+                  <Text style={styles.toolLabel}>{tool.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.emptyProgressCard}
-              onPress={() => router.push("/progress" as any)}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.emptyProgressTitle}>Begin your grammar journey</Text>
-              <Text style={styles.emptyProgressBody}>
-                Start at A1.1 and build through the full curriculum.
-              </Text>
-            </TouchableOpacity>
-          )}
-        </DesktopPanel>
-
-        <DesktopPanel style={styles.activityPanel}>
-          <DesktopSectionTitle
-            title="Activity"
-            caption={
-              isGuest
-                ? "Log in to track your learning activity."
-                : "An overview of your vocabulary activity."
-            }
-          />
-          {renderHeatmap()}
-          <View
-            style={[
-              styles.heatmapSummaryRow,
-              width < 1180 && styles.heatmapSummaryRowCompact,
-            ]}
-          >
-            {heatmapSummary.map((item) => (
-              <View
-                key={item.label}
-                style={[
-                  styles.heatmapMiniStat,
-                  width < 1180 && styles.heatmapMiniStatCompact,
-                ]}
-              >
-                <Text style={styles.heatmapMiniValue}>{item.value}</Text>
-                <Text style={styles.heatmapMiniLabel}>{item.label}</Text>
-              </View>
-            ))}
           </View>
-        </DesktopPanel>
-      </View>
+        </View>
 
-      <DesktopPanel>
-        <DesktopSectionTitle
-          title="Explore"
-          caption="Open the main learning tools from one place."
-        />
-        <View style={styles.exploreGrid}>
-          {[
-            {
-              title: "Alphabet",
-              body: "Browse consonants and sound classes.",
-              route: "/alphabet/",
-              glyph: "ก",
-            },
-            {
-              title: "Numbers",
-              body: "Learn digits, Thai numerals, and real-life number usage.",
-              route: "/numbers/",
-              glyph: "๑",
-            },
-            {
-              title: "Tones",
-              body: "Use the tone reference and listening guide.",
-              route: "/tones/",
-              icon: "musical-notes-outline" as const,
-            },
-            {
-              title: "Bookmarks",
-              body: "Open saved grammar practice sets.",
-              route: "/explore",
-              icon: "bookmark-outline" as const,
-            },
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.title}
-              style={[styles.exploreCard, { width: width >= 1180 ? "48.8%" : "100%" }]}
-              onPress={() => router.push(item.route as any)}
-              activeOpacity={0.82}
-            >
-              {"glyph" in item ? (
-                <Text style={styles.exploreThaiGlyph}>{item.glyph}</Text>
-              ) : (
-                <Ionicons name={item.icon} size={18} color={Sketch.accent} />
-              )}
-              <Text style={styles.exploreTitle}>{item.title}</Text>
-              <Text style={styles.exploreBody}>{item.body}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </DesktopPanel>
-        </View>
-      </DesktopPage>
+        {/* Spacer for scrolling */}
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </>
   );
 }
 
+// ── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  pageStack: {
-    gap: 28,
+  container: {
+    flex: 1,
+    backgroundColor: AppSketch.background,
   },
-  heroPanel: {
-    gap: 18,
+  content: {
+    padding: AppSpacing.xl,
+    gap: AppSpacing.xl,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
   },
-  heroPromptBlock: {
+
+  // Header
+  header: {
     gap: 4,
   },
-  heroThaiPrompt: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: "700",
-    color: Sketch.accent,
-    letterSpacing: -0.2,
+  greeting: {
+    ...AppTypography.hero,
   },
-  heroPromptTranslation: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: Sketch.inkMuted,
+  subtitle: {
+    ...AppTypography.bodyLarge,
+    color: AppSketch.inkMuted,
   },
-  heroActionCard: {
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    padding: 20,
-    gap: 16,
+
+  // Hero Card
+  heroCard: {
+    gap: AppSpacing.lg,
   },
-  heroActionCopy: {
-    gap: 8,
+  heroContent: {
+    gap: AppSpacing.lg,
   },
-  heroActionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+  heroText: {
+    gap: AppSpacing.sm,
   },
-  heroActionTitle: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.8,
+  heroLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.md,
   },
-  heroActionSubtitle: {
-    maxWidth: 620,
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkMuted,
+  heroLabel: {
+    ...AppTypography.labelSmall,
+    color: AppSketch.primary,
+    letterSpacing: 1.5,
   },
-  heroActionFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+  stageBadge: {
+    backgroundColor: `${AppSketch.primary}15`,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: AppRadius.sm,
   },
-  heroActionButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.paperDark,
+  stageBadgeText: {
+    ...AppTypography.caption,
+    color: AppSketch.primary,
+    fontWeight: '600',
   },
-  metricStrip: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
+  heroTitle: {
+    ...AppTypography.title,
   },
-  metricCard: {
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-    padding: 20,
-    gap: 4,
-    minHeight: 132,
+  heroBody: {
+    ...AppTypography.body,
+    color: AppSketch.inkSecondary,
   },
-  metricValue: {
-    fontSize: 32,
-    lineHeight: 36,
-    fontWeight: "700",
-    color: Sketch.accent,
-    letterSpacing: -0.8,
+  progressBarContainer: {
+    gap: AppSpacing.sm,
   },
-  metricValueWrap: {
-    minHeight: 40,
-    justifyContent: "center",
-    alignItems: "flex-start",
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: AppSketch.border,
+    borderRadius: AppRadius.full,
+    overflow: 'hidden',
   },
-  metricThaiGlyph: {
-    fontSize: 34,
-    lineHeight: 38,
-    fontWeight: "700",
-    color: Sketch.accent,
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
   },
-  metricLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Sketch.ink,
+  progressText: {
+    ...AppTypography.caption,
+    textAlign: 'right',
   },
-  metricMeta: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: Sketch.inkMuted,
+
+  // Action Grid
+  actionGrid: {
+    flexDirection: 'row',
+    gap: AppSpacing.md,
+    flexWrap: 'wrap',
   },
-  mainGrid: {
-    flexDirection: "row",
-    gap: 20,
-    alignItems: "stretch",
-  },
-  focusPanel: {
-    flex: 1.08,
-  },
-  activityPanel: {
-    flex: 0.92,
-  },
-  focusActions: {
-    flexDirection: "row",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  primaryAction: {
+  actionCard: {
+    flex: 1,
     minWidth: 180,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 13,
+    alignItems: 'center',
+    paddingVertical: AppSpacing.lg,
+  },
+  actionCardPrimary: {
+    borderColor: `${AppSketch.primary}30`,
+    backgroundColor: `${AppSketch.primary}08`,
+  },
+  actionCardHighlight: {
+    borderColor: `${AppSketch.success}30`,
+  },
+  actionCardDisabled: {
+    opacity: 0.6,
+  },
+  actionIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: AppRadius.md,
+    backgroundColor: AppSketch.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: AppSpacing.md,
+  },
+  actionTitle: {
+    ...AppTypography.subheading,
+  },
+  actionTitleDisabled: {
+    color: AppSketch.inkMuted,
+  },
+  actionSubtitle: {
+    ...AppTypography.caption,
+    marginTop: 2,
+  },
+  actionBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // Section
+  section: {
+    gap: AppSpacing.md,
+  },
+  sectionTitle: {
+    ...AppTypography.heading,
+  },
+
+  // Path
+  pathCard: {
+    paddingVertical: AppSpacing.lg,
+  },
+  pathTrack: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  pathNode: {
+    alignItems: 'center',
+    gap: AppSpacing.sm,
+    minWidth: 80,
+  },
+  pathDot: {
+    width: 32,
+    height: 32,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pathDotCompleted: {
+    backgroundColor: AppSketch.success,
+  },
+  pathDotCurrent: {
+    backgroundColor: AppSketch.primary,
+    ...appShadow('sm'),
+  },
+  pathDotPulse: {
+    width: 12,
+    height: 12,
+    borderRadius: AppRadius.full,
+    backgroundColor: '#fff',
+  },
+  pathLabel: {
+    ...AppTypography.caption,
+    fontWeight: '600',
+  },
+
+  // Bottom Row
+  bottomRow: {
+    flexDirection: 'row',
+    gap: AppSpacing.lg,
+    flexWrap: 'wrap',
+  },
+  streakCard: {
+    flex: 1,
+    minWidth: 200,
+    gap: AppSpacing.md,
+  },
+  streakHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.md,
+  },
+  streakEmoji: {
+    fontSize: 32,
+  },
+  streakValue: {
+    ...AppTypography.hero,
+    lineHeight: 36,
+  },
+  streakLabel: {
+    ...AppTypography.caption,
+  },
+  sparkline: {
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+  },
+  sparkDot: {
+    width: 8,
+    height: 8,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.border,
+  },
+  sparkDotActive: {
+    backgroundColor: AppSketch.warning,
+  },
+
+  // Tools
+  toolsSection: {
+    flex: 2,
+    minWidth: 280,
+    gap: AppSpacing.md,
+  },
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: AppSpacing.sm,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.sm,
+    paddingHorizontal: AppSpacing.md,
+    paddingVertical: AppSpacing.sm,
+    borderRadius: AppRadius.sm,
+    backgroundColor: AppSketch.surface,
     borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    borderColor: AppSketch.border,
   },
-  primaryActionText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#fff",
+  toolLabel: {
+    ...AppTypography.labelSmall,
   },
-  secondaryAction: {
-    minWidth: 220,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-  },
-  secondaryActionText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  disabledSecondaryAction: {
-    opacity: 0.45,
-  },
+
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.28)",
-    justifyContent: "center",
-    padding: 28,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: AppSpacing.xl,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalCard: {
-    maxWidth: 760,
-    width: "100%",
-    alignSelf: "center",
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    padding: 24,
-    gap: 18,
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.xl,
+    padding: AppSpacing.xl,
+    gap: AppSpacing.lg,
+    ...appShadow('lg'),
   },
   modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   modalHeading: {
     flex: 1,
-    gap: 6,
+    gap: AppSpacing.xs,
   },
   modalTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.6,
+    ...AppTypography.heading,
   },
   modalSubtitle: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkMuted,
+    ...AppTypography.body,
+    color: AppSketch.inkMuted,
   },
-  modalCloseButton: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+  modalClose: {
+    padding: AppSpacing.xs,
+    borderRadius: AppRadius.sm,
   },
-  filterWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+  filterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: AppSpacing.sm,
   },
   filterChip: {
-    minWidth: 86,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.xs,
+    paddingHorizontal: AppSpacing.md,
+    paddingVertical: AppSpacing.sm,
+    borderRadius: AppRadius.sm,
+    backgroundColor: AppSketch.background,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-    gap: 2,
+    borderColor: AppSketch.border,
   },
   filterChipActive: {
-    borderColor: Sketch.accent,
+    borderColor: AppSketch.primary,
+    backgroundColor: `${AppSketch.primary}10`,
   },
   filterChipDisabled: {
-    opacity: 0.45,
+    opacity: 0.4,
   },
   filterChipText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  filterChipCount: {
-    fontSize: 12,
-    color: Sketch.inkMuted,
+    ...AppTypography.labelSmall,
   },
   filterChipTextActive: {
-    color: Sketch.accent,
+    color: AppSketch.primary,
   },
-  focusProgressList: {
-    gap: 12,
-    marginTop: 6,
-  },
-  focusProgressCard: {
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    padding: 16,
-    gap: 10,
-  },
-  focusProgressTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-  },
-  focusProgressLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  focusProgressPercent: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Sketch.accent,
-  },
-  focusProgressTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  track: {
-    height: 7,
-    backgroundColor: Sketch.inkFaint,
-  },
-  fill: {
-    height: "100%",
-    backgroundColor: Sketch.accent,
-  },
-  emptyProgressCard: {
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    padding: 18,
-    gap: 8,
-  },
-  emptyProgressTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  emptyProgressBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: Sketch.inkMuted,
-  },
-  monthRow: {
-    position: "relative",
-    marginBottom: 8,
-  },
-  monthLabel: {
-    position: "absolute",
-    fontSize: 11,
-    color: Sketch.inkMuted,
-  },
-  heatmapBody: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  dayLabel: {
-    fontSize: 11,
-    color: Sketch.inkMuted,
-  },
-  heatmapRow: {
-    flexDirection: "row",
-  },
-  heatmapCell: {
-    borderRadius: 3,
-  },
-  heatmapFrame: {
-    paddingTop: 4,
-    width: "100%",
-    alignItems: "center",
-  },
-  heatmapScrollContent: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heatmapSummaryRow: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-  heatmapSummaryRowCompact: {
-    gap: 10,
-  },
-  heatmapMiniStat: {
-    flex: 1,
-    minWidth: 160,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 2,
-  },
-  heatmapMiniStatCompact: {
-    minWidth: 148,
-  },
-  heatmapMiniValue: {
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.4,
-  },
-  heatmapMiniLabel: {
-    fontSize: 12,
-    color: Sketch.inkMuted,
-  },
-  exploreThaiGlyph: {
-    fontSize: 22,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: Sketch.accent,
-  },
-  exploreGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    marginTop: 4,
-  },
-  exploreCard: {
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    padding: 20,
-    gap: 10,
-    minHeight: 156,
-  },
-  exploreTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Sketch.ink,
-  },
-  exploreBody: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: Sketch.inkMuted,
+  filterChipCount: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkFaint,
   },
 });

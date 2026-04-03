@@ -27,12 +27,19 @@ export default function PremiumGateCard({
   const primaryLabel = busy
     ? "Loading..."
     : billingProvider === "paddle"
-      ? "Unlock Keystone Access"
+      ? "See web plans"
       : !isSupported
         ? "Available on mobile"
         : !canMakePurchases
-          ? "Set up subscriptions"
+          ? "Subscriptions unavailable"
           : "Unlock Keystone Access";
+
+  const supportText =
+    billingProvider === "paddle"
+      ? "Secure web checkout unlocks the same Keystone account you already use."
+      : isSupported && canMakePurchases
+        ? "Your purchase stays tied to this account."
+        : "Keystone Access is not available in this build yet.";
 
   return (
     <View style={styles.card}>
@@ -51,6 +58,8 @@ export default function PremiumGateCard({
         <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
       </TouchableOpacity>
 
+      <Text style={styles.supportText}>{supportText}</Text>
+
       {isSupported && canMakePurchases ? (
         <TouchableOpacity
           style={styles.restoreButton}
@@ -68,19 +77,19 @@ export default function PremiumGateCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 18,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 20,
-    gap: 12,
+    padding: 22,
+    gap: 14,
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(196, 97, 60, 0.12)",
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
   },
   title: {
     fontSize: 20,
@@ -90,13 +99,14 @@ const styles = StyleSheet.create({
   },
   body: {
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
     color: Sketch.inkMuted,
   },
   primaryButton: {
     marginTop: 4,
     backgroundColor: Sketch.orange,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Sketch.orange,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
@@ -109,10 +119,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
   },
+  supportText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Sketch.inkLight,
+  },
   restoreButton: {
     alignSelf: "center",
-    paddingTop: 2,
-    paddingBottom: 4,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
   restoreText: {
     fontSize: 13,

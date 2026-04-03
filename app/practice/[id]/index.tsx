@@ -354,7 +354,7 @@ export default function GrammarDetail() {
 
           <PremiumGateCard
             title="Keystone Access lesson"
-            body="A1.2 and above are part of Keystone Access. Unlock Keystone Access to open this lesson, practice it, and continue through the rest of the curriculum."
+            body="This lesson is beyond the free starting lessons. Unlock Keystone Access to open it, practice it, and continue through the rest of the course."
             redirectTo={`/practice/${id}`}
           />
         </ScrollView>
