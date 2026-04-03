@@ -3,7 +3,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,23 +11,19 @@ import {
   View,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
 import {
-  AppSketch,
   AppRadius,
-  appShadow,
-  AppTypography,
+  AppSketch,
   AppSpacing,
+  AppTypography,
+  appShadow,
 } from "@/constants/theme-app";
 import AppButton from "@/src/components/app/AppButton";
 import AppCard from "@/src/components/app/AppCard";
 import { API_BASE } from "@/src/config";
+import { GRAMMAR_STAGE_META, GrammarStage } from "@/src/data/grammarStages";
 import {
-  GRAMMAR_STAGE_META,
-  PUBLIC_GRAMMAR_STAGES,
-  GrammarStage,
-} from "@/src/data/grammarStages";
-import {
+  CEFR_LEVEL_META,
   PUBLIC_CEFR_LEVELS,
   PublicCefrLevel,
 } from "@/src/data/grammarLevels";
@@ -44,21 +39,18 @@ import {
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
 type ProgressFilterLevel = "All" | PublicCefrLevel;
 type PendingProgressMixAction =
   | { type: "premium"; label: string; route: string }
   | { type: "practice"; route: string };
 
-interface LessonPoint {
+type LearningPathNode = {
   id: string;
-  title: string;
   stage: GrammarStage;
-  level: PublicCefrLevel;
-  completed: boolean;
-}
+  label: string;
+  status: "completed" | "current" | "upcoming";
+};
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 function formatDelay(nextDueAt: string): string {
   const msUntilDue = Math.max(new Date(nextDueAt).getTime() - Date.now(), 0);
   const minsUntilDue = Math.ceil(msUntilDue / 60000);
@@ -80,24 +72,28 @@ function localDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
-export default function HomeScreenApp() {
+function isPublicCefrLevel(level: string): level is PublicCefrLevel {
+  return (PUBLIC_CEFR_LEVELS as readonly string[]).includes(level);
+}
+
+export default function HomeScreenWeb() {
   const router = useRouter();
   const { grammarPoints } = useGrammarCatalog();
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
 
-  // State
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
   const [reviewsDue, setReviewsDue] = useState(0);
   const [reviewStatus, setReviewStatus] = useState("You're caught up");
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [isGuest, setIsGuest] = useState(false);
   const [showProgressMixModal, setShowProgressMixModal] = useState(false);
-  const [selectedProgressLevels, setSelectedProgressLevels] = useState<ProgressFilterLevel[]>(["All"]);
-  const [pendingProgressMixAction, setPendingProgressMixAction] = useState<PendingProgressMixAction | null>(null);
+  const [selectedProgressLevels, setSelectedProgressLevels] = useState<ProgressFilterLevel[]>([
+    "All",
+  ]);
+  const [pendingProgressMixAction, setPendingProgressMixAction] =
+    useState<PendingProgressMixAction | null>(null);
 
-  // Auth check
   const checkAuth = useCallback(async () => {
     const allowed = await canAccessApp();
     if (!allowed) router.replace("/login");
@@ -107,7 +103,6 @@ export default function HomeScreenApp() {
     void checkAuth();
   }, [checkAuth]);
 
-  // Data loading
   const loadProgress = useCallback(async () => {
     try {
       const allProgress = await getAllProgress();
@@ -121,9 +116,10 @@ export default function HomeScreenApp() {
     try {
       const guest = await isGuestUser();
       setIsGuest(guest);
+
       if (guest) {
         setReviewsDue(0);
-        setReviewStatus("Log in to review");
+        setReviewStatus("Sign in to review vocabulary");
         return;
       }
 
@@ -135,15 +131,18 @@ export default function HomeScreenApp() {
 
       if (data?.waiting && data?.nextDueAt) {
         setReviewsDue(0);
-        setReviewStatus(`Next in ${formatDelay(data.nextDueAt)}`);
+        setReviewStatus(`Next batch in ${formatDelay(data.nextDueAt)}`);
       } else if (data?.done) {
         setReviewsDue(0);
         setReviewStatus("You're caught up");
       } else {
         const counts = data?.counts ?? {};
-        const actionable = (counts.newCount ?? 0) + (counts.learningCount ?? 0) + (counts.reviewCount ?? 0);
+        const actionable =
+          (counts.newCount ?? 0) +
+          (counts.learningCount ?? 0) +
+          (counts.reviewCount ?? 0);
         setReviewsDue(Math.max(0, actionable));
-        setReviewStatus(`${actionable} card${actionable !== 1 ? 's' : ''} ready`);
+        setReviewStatus(`${actionable} card${actionable !== 1 ? "s" : ""} ready`);
       }
     } catch {
       setReviewsDue(0);
@@ -155,13 +154,14 @@ export default function HomeScreenApp() {
     try {
       const guest = await isGuestUser();
       if (guest) return;
+
       const token = await getAuthToken();
       const res = await fetch(`${API_BASE}/vocab/heatmap`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setActivityMap(await res.json());
     } catch {
-      // keep default empty
+      // keep default empty state
     }
   }, []);
 
@@ -170,35 +170,65 @@ export default function HomeScreenApp() {
       void loadProgress();
       void loadReviewStatus();
       void loadHeatmap();
-    }, [loadProgress, loadReviewStatus, loadHeatmap])
+    }, [loadHeatmap, loadProgress, loadReviewStatus]),
   );
 
-  // Derived data
+  const visibleGrammarPoints = useMemo(
+    () =>
+      grammarPoints.filter(
+        (point): point is typeof point & { level: PublicCefrLevel } =>
+          isPublicCefrLevel(point.level),
+      ),
+    [grammarPoints],
+  );
+
   const practicedGrammar = useMemo(
-    () => grammarPoints.filter((p) => isGrammarPracticed(progress[p.id])),
-    [grammarPoints, progress]
+    () => visibleGrammarPoints.filter((point) => isGrammarPracticed(progress[point.id])),
+    [progress, visibleGrammarPoints],
   );
+
   const nextLesson = useMemo(
-    () => grammarPoints.find((p) => !isGrammarPracticed(progress[p.id])) ?? null,
-    [grammarPoints, progress]
+    () => visibleGrammarPoints.find((point) => !isGrammarPracticed(progress[point.id])) ?? null,
+    [progress, visibleGrammarPoints],
   );
-  const firstLesson = grammarPoints[0] ?? null;
+
+  const firstLesson = visibleGrammarPoints[0] ?? null;
+  const anchorLesson =
+    nextLesson ??
+    (visibleGrammarPoints.length > 0
+      ? visibleGrammarPoints[visibleGrammarPoints.length - 1]
+      : null);
+  const currentStageMeta = anchorLesson ? GRAMMAR_STAGE_META[anchorLesson.stage] : null;
+
+  const currentStagePoints = useMemo(() => {
+    if (!anchorLesson) return [];
+    return visibleGrammarPoints.filter((point) => point.stage === anchorLesson.stage);
+  }, [anchorLesson, visibleGrammarPoints]);
+
+  const currentStagePracticed = useMemo(
+    () => currentStagePoints.filter((point) => isGrammarPracticed(progress[point.id])).length,
+    [currentStagePoints, progress],
+  );
 
   const overallProgress = useMemo(() => {
-    if (grammarPoints.length === 0) return 0;
-    return Math.round((practicedGrammar.length / grammarPoints.length) * 100);
-  }, [grammarPoints, practicedGrammar]);
+    if (visibleGrammarPoints.length === 0) return 0;
+    return Math.round((practicedGrammar.length / visibleGrammarPoints.length) * 100);
+  }, [practicedGrammar.length, visibleGrammarPoints.length]);
 
-  // Streak calculation
+  const stageProgress = useMemo(() => {
+    if (currentStagePoints.length === 0) return 0;
+    return Math.round((currentStagePracticed / currentStagePoints.length) * 100);
+  }, [currentStagePoints.length, currentStagePracticed]);
+
   const currentStreak = useMemo(() => {
     let streak = 0;
     const today = new Date();
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i < 365; i += 1) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const key = localDateKey(d);
       if ((activityMap[key] || 0) > 0) {
-        streak++;
+        streak += 1;
       } else if (i > 0) {
         break;
       }
@@ -206,52 +236,76 @@ export default function HomeScreenApp() {
     return streak;
   }, [activityMap]);
 
-  // Learning path generation
-  const learningPath = useMemo<LessonPoint[]>(() => {
-    const currentIndex = nextLesson
-      ? grammarPoints.findIndex((p) => p.id === nextLesson.id)
-      : grammarPoints.length;
-    
-    const path: LessonPoint[] = [];
-    
-    // Last 2 completed
-    for (let i = Math.max(0, currentIndex - 2); i < currentIndex; i++) {
-      const p = grammarPoints[i];
-      if (p) path.push({ id: p.id, title: p.title, stage: p.stage, level: p.level, completed: true });
-    }
-    
-    // Current
-    if (nextLesson) {
-      path.push({
-        id: nextLesson.id,
-        title: nextLesson.title,
-        stage: nextLesson.stage,
-        level: nextLesson.level,
-        completed: false,
-      });
-    }
-    
-    // Next 2 upcoming
-    for (let i = currentIndex + 1; i < Math.min(grammarPoints.length, currentIndex + 3); i++) {
-      const p = grammarPoints[i];
-      if (p) path.push({ id: p.id, title: p.title, stage: p.stage, level: p.level, completed: false });
-    }
-    
-    return path;
-  }, [grammarPoints, nextLesson]);
+  const weekActivity = useMemo(
+    () =>
+      Array.from({ length: 7 }).map((_, index) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - index));
+        const key = localDateKey(d);
+        return { key, active: (activityMap[key] || 0) > 0 };
+      }),
+    [activityMap],
+  );
 
-  // Progress mix handling
+  const learningPath = useMemo<LearningPathNode[]>(() => {
+    if (visibleGrammarPoints.length === 0) return [];
+
+    if (!nextLesson) {
+      return visibleGrammarPoints.slice(-5).map((point) => ({
+        id: point.id,
+        stage: point.stage,
+        label: point.stage,
+        status: "completed",
+      }));
+    }
+
+    const currentIndex = visibleGrammarPoints.findIndex((point) => point.id === nextLesson.id);
+    const startIndex = Math.max(0, currentIndex - 2);
+    const endIndex = Math.min(visibleGrammarPoints.length, currentIndex + 3);
+
+    return visibleGrammarPoints.slice(startIndex, endIndex).map((point) => ({
+      id: point.id,
+      stage: point.stage,
+      label: point.stage,
+      status:
+        point.id === nextLesson.id
+          ? "current"
+          : isGrammarPracticed(progress[point.id])
+            ? "completed"
+            : "upcoming",
+    }));
+  }, [nextLesson, progress, visibleGrammarPoints]);
+
   const filteredProgressGrammar = useMemo(() => {
     if (selectedProgressLevels.includes("All")) return practicedGrammar;
-    return practicedGrammar.filter((p) => selectedProgressLevels.includes(p.level));
+    return practicedGrammar.filter((point) => selectedProgressLevels.includes(point.level));
   }, [practicedGrammar, selectedProgressLevels]);
 
-  const progressCountsByLevel = useMemo(() =>
-    PUBLIC_CEFR_LEVELS.reduce((acc, level) => {
-      acc[level] = practicedGrammar.filter((p) => p.level === level).length;
-      return acc;
-    }, {} as Record<PublicCefrLevel, number>),
-    [practicedGrammar]
+  const progressCountsByLevel = useMemo(
+    () =>
+      PUBLIC_CEFR_LEVELS.reduce((acc, level) => {
+        acc[level] = practicedGrammar.filter((point) => point.level === level).length;
+        return acc;
+      }, {} as Record<PublicCefrLevel, number>),
+    [practicedGrammar],
+  );
+
+  const levelProgress = useMemo(
+    () =>
+      PUBLIC_CEFR_LEVELS.map((level) => {
+        const points = visibleGrammarPoints.filter((point) => point.level === level);
+        const practiced = points.filter((point) => isGrammarPracticed(progress[point.id])).length;
+        const percent = points.length > 0 ? Math.round((practiced / points.length) * 100) : 0;
+        return {
+          level,
+          practiced,
+          total: points.length,
+          percent,
+          current: anchorLesson?.level === level,
+          meta: CEFR_LEVEL_META[level],
+        };
+      }),
+    [anchorLesson?.level, progress, visibleGrammarPoints],
   );
 
   function toggleProgressLevel(level: ProgressFilterLevel) {
@@ -259,10 +313,11 @@ export default function HomeScreenApp() {
       setSelectedProgressLevels(["All"]);
       return;
     }
+
     setSelectedProgressLevels((current) => {
-      const withoutAll = current.filter((v): v is PublicCefrLevel => v !== "All");
+      const withoutAll = current.filter((value): value is PublicCefrLevel => value !== "All");
       if (withoutAll.includes(level)) {
-        const next = withoutAll.filter((v) => v !== level);
+        const next = withoutAll.filter((value) => value !== level);
         return next.length > 0 ? next : ["All"];
       }
       return [...withoutAll, level];
@@ -271,22 +326,26 @@ export default function HomeScreenApp() {
 
   function handleStartProgressMix() {
     if (filteredProgressGrammar.length === 0) return;
-    const shuffled = shuffleIds(filteredProgressGrammar.map((p) => p.id));
+
+    const shuffled = shuffleIds(filteredProgressGrammar.map((point) => point.id));
     const route = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=progress`;
 
-    if (!isPremium && filteredProgressGrammar.some((p) => isPremiumGrammarPoint(p))) {
+    if (!isPremium && filteredProgressGrammar.some((point) => isPremiumGrammarPoint(point))) {
       setShowProgressMixModal(false);
       setPendingProgressMixAction({ type: "premium", label: "studied grammar", route });
       return;
     }
+
     setShowProgressMixModal(false);
     setPendingProgressMixAction({ type: "practice", route });
   }
 
   useEffect(() => {
     if (showProgressMixModal || !pendingProgressMixAction) return;
+
     const action = pendingProgressMixAction;
     setPendingProgressMixAction(null);
+
     if (action.type === "premium") {
       void ensurePremiumAccess(action.label, action.route);
     } else {
@@ -294,10 +353,83 @@ export default function HomeScreenApp() {
     }
   }, [ensurePremiumAccess, pendingProgressMixAction, router, showProgressMixModal]);
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  const heroRoute = nextLesson
+    ? `/practice/${nextLesson.id}`
+    : practicedGrammar.length > 0
+      ? "/progress"
+      : firstLesson
+        ? `/practice/${firstLesson.id}`
+        : "/progress";
+
+  const heroActionLabel = nextLesson
+    ? "Pick up next lesson"
+    : practicedGrammar.length > 0
+      ? "Open grammar path"
+      : "Start first lesson";
+
+  const reviewActionRoute = isGuest ? "/login" : "/review/";
+
+  const studyTools = [
+    {
+      label: "Saved Practice",
+      detail: "Open bookmarks and saved grammar",
+      icon: "bookmark-outline",
+      onPress: () => router.push("/explore" as any),
+      disabled: false,
+    },
+    {
+      label: "Practice Mix",
+      detail:
+        practicedGrammar.length > 0
+          ? `${practicedGrammar.length} studied topics ready`
+          : "Unlocks after your first completed lesson",
+      icon: "shuffle-outline",
+      onPress: () => {
+        if (practicedGrammar.length === 0) return;
+        setSelectedProgressLevels(["All"]);
+        setShowProgressMixModal(true);
+      },
+      disabled: practicedGrammar.length === 0,
+    },
+    {
+      label: "Trainer",
+      detail: "Reading drills and focused recall",
+      icon: "school-outline",
+      onPress: () => router.push("/trainer/" as any),
+      disabled: false,
+    },
+    {
+      label: "Content Review",
+      detail: "Revisit studied lessons by content",
+      icon: "layers-outline",
+      onPress: () => router.push("/content-review/" as any),
+      disabled: false,
+    },
+  ] as const;
+
+  const foundations = [
+    {
+      label: "Alphabet",
+      detail: "Consonants and sound groups",
+      icon: "language-outline",
+      route: "/alphabet/",
+    },
+    {
+      label: "Numbers",
+      detail: "Counting, time, and quantities",
+      icon: "calculator-outline",
+      route: "/numbers/",
+    },
+    {
+      label: "Tones",
+      detail: "Tone patterns and listening",
+      icon: "musical-notes-outline",
+      route: "/tones/",
+    },
+  ] as const;
+
   return (
     <>
-      {/* Progress Mix Modal */}
       <Modal
         visible={showProgressMixModal}
         transparent
@@ -309,9 +441,9 @@ export default function HomeScreenApp() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeading}>
-                <Text style={styles.modalTitle}>Practice Studied Grammar</Text>
+                <Text style={styles.modalTitle}>Practice studied grammar</Text>
                 <Text style={styles.modalSubtitle}>
-                  Review grammar points you&apos;ve already learned
+                  Build a mixed round from grammar points you have already practiced.
                 </Text>
               </View>
               <TouchableOpacity
@@ -324,10 +456,12 @@ export default function HomeScreenApp() {
             </View>
 
             <View style={styles.filterGrid}>
-              {["All", ...PUBLIC_CEFR_LEVELS].map((level) => {
-                const count = level === "All" ? practicedGrammar.length : progressCountsByLevel[level];
-                const selected = selectedProgressLevels.includes(level as ProgressFilterLevel);
+              {(["All", ...PUBLIC_CEFR_LEVELS] as ProgressFilterLevel[]).map((level) => {
+                const count =
+                  level === "All" ? practicedGrammar.length : progressCountsByLevel[level];
+                const selected = selectedProgressLevels.includes(level);
                 const disabled = count === 0;
+
                 return (
                   <TouchableOpacity
                     key={level}
@@ -336,14 +470,16 @@ export default function HomeScreenApp() {
                       selected && styles.filterChipActive,
                       disabled && styles.filterChipDisabled,
                     ]}
-                    onPress={() => toggleProgressLevel(level as ProgressFilterLevel)}
+                    onPress={() => toggleProgressLevel(level)}
                     disabled={disabled}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                   >
                     <Text style={[styles.filterChipText, selected && styles.filterChipTextActive]}>
                       {level}
                     </Text>
-                    <Text style={[styles.filterChipCount, selected && styles.filterChipTextActive]}>
+                    <Text
+                      style={[styles.filterChipCount, selected && styles.filterChipTextActive]}
+                    >
                       {count}
                     </Text>
                   </TouchableOpacity>
@@ -352,7 +488,7 @@ export default function HomeScreenApp() {
             </View>
 
             <AppButton
-              title={`Practice ${filteredProgressGrammar.length} topic${filteredProgressGrammar.length !== 1 ? 's' : ''}`}
+              title={`Practice ${filteredProgressGrammar.length} topic${filteredProgressGrammar.length !== 1 ? "s" : ""}`}
               onPress={handleStartProgressMix}
               disabled={filteredProgressGrammar.length === 0}
               fullWidth
@@ -366,274 +502,464 @@ export default function HomeScreenApp() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Greeting */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Good to see you</Text>
+          <Text style={styles.eyebrow}>Home</Text>
+          <Text style={styles.title}>Continue your Thai</Text>
           <Text style={styles.subtitle}>
-            {isGuest ? "Start learning Thai today" : "Continue your Thai journey"}
+            Keep the next lesson, review queue, and core tools in one place.
           </Text>
         </View>
 
-        {/* Daily Focus - Hero Card */}
-        <AppCard variant="elevated" size="lg" style={styles.heroCard}>
-          <View style={styles.heroContent}>
-            <View style={styles.heroText}>
-              <View style={styles.heroLabelRow}>
-                <Text style={styles.heroLabel}>TODAY&apos;S FOCUS</Text>
-                {nextLesson && (
-                  <View style={styles.stageBadge}>
-                    <Text style={styles.stageBadgeText}>{nextLesson.stage}</Text>
+        <View style={styles.workspaceGrid}>
+          <View style={styles.mainColumn}>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[styles.topActionCard, styles.learnActionCard]}
+                onPress={() => router.push("/progress" as any)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.topActionCopy}>
+                  <Text style={styles.topActionLabel}>Learn Grammar</Text>
+                  <Text style={styles.topActionDetail}>
+                    {nextLesson
+                      ? `${nextLesson.stage} ready to continue`
+                      : "Open the full grammar path"}
+                  </Text>
+                </View>
+                <Ionicons name="book-outline" size={24} color="rgba(255,255,255,0.38)" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.topActionCard, styles.reviewActionCard]}
+                onPress={() => router.push(reviewActionRoute as any)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.topActionCopy}>
+                  <Text style={styles.topActionLabel}>Review Vocabulary</Text>
+                  <Text style={styles.topActionDetail}>{reviewStatus}</Text>
+                </View>
+                {reviewsDue > 0 ? (
+                  <View style={styles.reviewBadge}>
+                    <Text style={styles.reviewBadgeText}>{reviewsDue}</Text>
                   </View>
+                ) : (
+                  <Ionicons name="albums-outline" size={24} color="rgba(255,255,255,0.38)" />
                 )}
-              </View>
-              <Text style={styles.heroTitle}>
-                {nextLesson
-                  ? nextLesson.title
-                  : practicedGrammar.length > 0
-                  ? "Great progress!"
-                  : "Start your first lesson"}
-              </Text>
-              <Text style={styles.heroBody}>
-                {nextLesson
-                  ? `Continue with ${nextLesson.stage} and build your skills`
-                  : practicedGrammar.length > 0
-                  ? "You've completed all available lessons. Review or practice to keep learning."
-                  : "Begin with the fundamentals and start speaking Thai"}
-              </Text>
+              </TouchableOpacity>
             </View>
-            <AppButton
-              title={nextLesson ? "Continue" : practicedGrammar.length > 0 ? "Review" : "Start Learning"}
-              onPress={() =>
-                router.push(
-                  (nextLesson
-                    ? `/practice/${nextLesson.id}`
-                    : practicedGrammar.length > 0
-                    ? "/review"
-                    : firstLesson
-                    ? `/practice/${firstLesson.id}`
-                    : "/progress") as any
-                )
-              }
-              size="lg"
-            />
-          </View>
-          {/* Progress bar */}
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: `${overallProgress}%` }]} />
-            </View>
-            <Text style={styles.progressText}>{overallProgress}% complete</Text>
-          </View>
-        </AppCard>
 
-        {/* Action Grid */}
-        <View style={styles.actionGrid}>
-          <AppCard
-            variant="flat"
-            size="md"
-            style={[styles.actionCard, styles.actionCardPrimary]}
-            onPress={() => router.push("/progress" as any)}
-          >
-            <View style={styles.actionIconBox}>
-              <Ionicons name="book-outline" size={24} color={AppSketch.primary} />
-            </View>
-            <Text style={styles.actionTitle}>Grammar Path</Text>
-            <Text style={styles.actionSubtitle}>
-              {nextLesson ? nextLesson.stage : "Start learning"}
-            </Text>
-          </AppCard>
+            <TouchableOpacity
+              style={styles.heroCard}
+              onPress={() => router.push(heroRoute as any)}
+              activeOpacity={0.95}
+            >
+              <View style={styles.heroTopRow}>
+                <View style={styles.heroHeading}>
+                  <Text style={styles.heroEyebrow}>Current progress</Text>
+                  <Text style={styles.heroTitle}>
+                    {currentStageMeta?.title ?? "Start your first lesson"}
+                  </Text>
+                  <Text style={styles.heroBody}>
+                    {nextLesson
+                      ? `Next lesson: ${nextLesson.title}`
+                      : practicedGrammar.length > 0
+                        ? "You are caught up. Revisit the path or keep your review queue fresh."
+                        : "Begin with the first lesson and start building the foundation."}
+                  </Text>
+                </View>
 
-          <AppCard
-            variant="flat"
-            size="md"
-            style={[styles.actionCard, reviewsDue > 0 && styles.actionCardHighlight]}
-            onPress={() => router.push("/review/" as any)}
-          >
-            <View style={styles.actionIconBox}>
-              <Ionicons name="albums-outline" size={24} color={reviewsDue > 0 ? AppSketch.primary : AppSketch.inkMuted} />
-            </View>
-            <Text style={styles.actionTitle}>Review</Text>
-            <Text style={styles.actionSubtitle}>{reviewStatus}</Text>
-            {reviewsDue > 0 && (
-              <View style={styles.actionBadge}>
-                <Text style={styles.actionBadgeText}>{reviewsDue}</Text>
-              </View>
-            )}
-          </AppCard>
-
-          <AppCard
-            variant="flat"
-            size="md"
-            style={[styles.actionCard, practicedGrammar.length === 0 && styles.actionCardDisabled]}
-            onPress={() => {
-              if (practicedGrammar.length === 0) return;
-              setSelectedProgressLevels(["All"]);
-              setShowProgressMixModal(true);
-            }}
-          >
-            <View style={styles.actionIconBox}>
-              <Ionicons name="shuffle-outline" size={24} color={practicedGrammar.length > 0 ? AppSketch.primary : AppSketch.inkFaint} />
-            </View>
-            <Text style={[styles.actionTitle, practicedGrammar.length === 0 && styles.actionTitleDisabled]}>
-              Practice Mix
-            </Text>
-            <Text style={styles.actionSubtitle}>
-              {practicedGrammar.length > 0 ? `${practicedGrammar.length} topics` : "No topics yet"}
-            </Text>
-          </AppCard>
-        </View>
-
-        {/* Learning Path */}
-        {learningPath.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Your Path</Text>
-            <AppCard variant="flat" size="md" style={styles.pathCard}>
-              <View style={styles.pathTrack}>
-                {learningPath.map((point, index) => (
-                  <TouchableOpacity
-                    key={point.id}
-                    style={styles.pathNode}
-                    onPress={() => router.push(`/practice/${point.id}` as any)}
-                    activeOpacity={0.8}
-                  >
-                    <View
-                      style={[
-                        styles.pathDot,
-                        point.completed && styles.pathDotCompleted,
-                        index === learningPath.findIndex((p) => !p.completed) && styles.pathDotCurrent,
-                      ]}
-                    >
-                      {point.completed ? (
-                        <Ionicons name="checkmark" size={12} color="#fff" />
-                      ) : index === learningPath.findIndex((p) => !p.completed) ? (
-                        <View style={styles.pathDotPulse} />
-                      ) : null}
+                <View style={styles.heroSide}>
+                  {currentStageMeta ? (
+                    <View style={styles.heroStageChip}>
+                      <Text style={styles.heroStageChipText}>{currentStageMeta.id}</Text>
                     </View>
-                    <Text style={styles.pathLabel} numberOfLines={1}>
-                      {point.stage}
-                    </Text>
+                  ) : null}
+                  <Text style={styles.heroPercent}>{overallProgress}%</Text>
+                  <Text style={styles.heroPercentLabel}>course complete</Text>
+                </View>
+              </View>
+
+              <View style={styles.heroProgressRow}>
+                <View style={styles.heroMetric}>
+                  <Text style={styles.heroMetricLabel}>Current path</Text>
+                  <Text style={styles.heroMetricValue}>
+                    {currentStageMeta?.shortTitle ?? "Getting started"}
+                  </Text>
+                </View>
+                <View style={styles.heroMetric}>
+                  <Text style={styles.heroMetricLabel}>Stage progress</Text>
+                  <Text style={styles.heroMetricValue}>
+                    {stageProgress}% · {currentStagePracticed}/{currentStagePoints.length || 0}
+                  </Text>
+                </View>
+                <View style={styles.heroMetric}>
+                  <Text style={styles.heroMetricLabel}>Studied grammar</Text>
+                  <Text style={styles.heroMetricValue}>{practicedGrammar.length} topics</Text>
+                </View>
+              </View>
+
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: `${overallProgress}%` }]} />
+              </View>
+
+              {learningPath.length > 0 ? (
+                <View style={styles.heroPathRow}>
+                  {learningPath.map((point) => (
+                    <View key={point.id} style={styles.heroPathNode}>
+                      <View
+                        style={[
+                          styles.heroPathDot,
+                          point.status === "completed" && styles.heroPathDotCompleted,
+                          point.status === "current" && styles.heroPathDotCurrent,
+                        ]}
+                      >
+                        {point.status === "completed" ? (
+                          <Ionicons name="checkmark" size={12} color="#fff" />
+                        ) : null}
+                      </View>
+                      <Text style={styles.heroPathLabel}>{point.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              <View style={styles.heroFooter}>
+                <Text style={styles.heroFooterText}>{heroActionLabel}</Text>
+                <Ionicons name="arrow-forward" size={16} color={AppSketch.primary} />
+              </View>
+            </TouchableOpacity>
+
+            <AppCard variant="flat" size="lg" style={styles.clusterCard}>
+              <View style={styles.clusterHeader}>
+                <View style={styles.clusterHeading}>
+                  <Text style={styles.clusterTitle}>Study tools</Text>
+                  <Text style={styles.clusterSubtitle}>
+                    Keep the most useful practice surfaces close to the path.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.tileGrid}>
+                {studyTools.map((tool) => (
+                  <TouchableOpacity
+                    key={tool.label}
+                    style={[styles.tileCard, tool.disabled && styles.tileCardDisabled]}
+                    onPress={tool.onPress}
+                    activeOpacity={tool.disabled ? 1 : 0.88}
+                  >
+                    <View style={styles.tileIcon}>
+                      <Ionicons
+                        name={tool.icon as any}
+                        size={18}
+                        color={tool.disabled ? AppSketch.inkFaint : AppSketch.primary}
+                      />
+                    </View>
+                    <View style={styles.tileCopy}>
+                      <Text style={[styles.tileTitle, tool.disabled && styles.tileTitleDisabled]}>
+                        {tool.label}
+                      </Text>
+                      <Text style={styles.tileSubtitle}>{tool.detail}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={AppSketch.inkFaint} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </AppCard>
+
+            <AppCard variant="flat" size="lg" style={styles.clusterCard}>
+              <View style={styles.clusterHeader}>
+                <View style={styles.clusterHeading}>
+                  <Text style={styles.clusterTitle}>Alphabet + numbers</Text>
+                  <Text style={styles.clusterSubtitle}>
+                    Jump into the reading tools when you want focused script practice.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.tileGrid}>
+                {foundations.map((tool) => (
+                  <TouchableOpacity
+                    key={tool.label}
+                    style={styles.tileCard}
+                    onPress={() => router.push(tool.route as any)}
+                    activeOpacity={0.88}
+                  >
+                    <View style={styles.tileIcon}>
+                      <Ionicons name={tool.icon as any} size={18} color={AppSketch.primary} />
+                    </View>
+                    <View style={styles.tileCopy}>
+                      <Text style={styles.tileTitle}>{tool.label}</Text>
+                      <Text style={styles.tileSubtitle}>{tool.detail}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={AppSketch.inkFaint} />
                   </TouchableOpacity>
                 ))}
               </View>
             </AppCard>
           </View>
-        )}
 
-        {/* Bottom Row: Streak & Tools */}
-        <View style={styles.bottomRow}>
-          {/* Streak Card */}
-          <AppCard variant="flat" size="md" style={styles.streakCard}>
-            <View style={styles.streakHeader}>
-              <Text style={styles.streakEmoji}>🔥</Text>
-              <View>
-                <Text style={styles.streakValue}>{currentStreak}</Text>
-                <Text style={styles.streakLabel}>day streak</Text>
-              </View>
-            </View>
-            {/* Mini sparkline */}
-            <View style={styles.sparkline}>
-              {Array.from({ length: 7 }).map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - (6 - i));
-                const key = localDateKey(d);
-                const active = (activityMap[key] || 0) > 0;
-                return (
-                  <View
-                    key={i}
-                    style={[styles.sparkDot, active && styles.sparkDotActive]}
-                  />
-                );
-              })}
-            </View>
-          </AppCard>
-
-          {/* Quick Tools */}
-          <View style={styles.toolsSection}>
-            <Text style={styles.sectionTitle}>Quick Access</Text>
-            <View style={styles.toolsGrid}>
-              {[
-                { label: "Alphabet", icon: "language-outline", route: "/alphabet/" },
-                { label: "Numbers", icon: "calculator-outline", route: "/numbers/" },
-                { label: "Tones", icon: "musical-notes-outline", route: "/tones/" },
-                { label: "Trainer", icon: "school-outline", route: "/trainer/" },
-              ].map((tool) => (
-                <TouchableOpacity
-                  key={tool.label}
-                  style={styles.toolChip}
-                  onPress={() => router.push(tool.route as any)}
-                  activeOpacity={0.8}
+          <View style={styles.sideColumn}>
+            <AppCard variant="flat" size="lg" style={styles.sideCard}>
+              <View style={styles.profileHeader}>
+                <View style={styles.avatar}>
+                  <Ionicons name="person" size={18} color={AppSketch.primary} />
+                </View>
+                <View style={styles.profileCopy}>
+                  <Text style={styles.profileTitle}>
+                    {isGuest ? "Guest learner" : "Your account"}
+                  </Text>
+                  <Text style={styles.profileSubtitle}>
+                    {isGuest ? "Sign in to sync review and progress" : "Keystone Thai"}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.statusChip,
+                    isPremium && styles.statusChipPremium,
+                    isGuest && styles.statusChipGuest,
+                  ]}
                 >
-                  <Ionicons name={tool.icon as any} size={16} color={AppSketch.inkMuted} />
-                  <Text style={styles.toolLabel}>{tool.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  <Text
+                    style={[
+                      styles.statusChipText,
+                      isPremium && styles.statusChipTextPremium,
+                      isGuest && styles.statusChipTextGuest,
+                    ]}
+                  >
+                    {isGuest ? "Guest" : isPremium ? "Access" : "Standard"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.streakBlock}>
+                <View style={styles.streakValueRow}>
+                  <Text style={styles.streakValue}>{currentStreak}</Text>
+                  <Text style={styles.streakValueLabel}>day streak</Text>
+                </View>
+                <View style={styles.sparkline}>
+                  {weekActivity.map((day) => (
+                    <View
+                      key={day.key}
+                      style={[styles.sparkDot, day.active && styles.sparkDotActive]}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.snapshotStats}>
+                <View style={styles.snapshotStat}>
+                  <Text style={styles.snapshotStatValue}>{practicedGrammar.length}</Text>
+                  <Text style={styles.snapshotStatLabel}>Studied</Text>
+                </View>
+                <View style={styles.snapshotDivider} />
+                <View style={styles.snapshotStat}>
+                  <Text style={styles.snapshotStatValue}>{reviewsDue}</Text>
+                  <Text style={styles.snapshotStatLabel}>Ready</Text>
+                </View>
+                <View style={styles.snapshotDivider} />
+                <View style={styles.snapshotStat}>
+                  <Text style={styles.snapshotStatValue}>{currentStageMeta?.id ?? "A1.1"}</Text>
+                  <Text style={styles.snapshotStatLabel}>Stage</Text>
+                </View>
+              </View>
+
+              <View style={styles.sideActions}>
+                <AppButton
+                  title="Profile"
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onPress={() => router.push("/profile" as any)}
+                />
+                <AppButton
+                  title="Settings"
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
+                  onPress={() => router.push("/settings" as any)}
+                />
+              </View>
+            </AppCard>
+
+            <AppCard variant="flat" size="lg" style={styles.sideCard}>
+              <View style={styles.clusterHeader}>
+                <View style={styles.clusterHeading}>
+                  <Text style={styles.clusterTitle}>Course progress</Text>
+                  <Text style={styles.clusterSubtitle}>
+                    Keep the full path visible without turning home into a report page.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.sideProgressSummary}>
+                <Text style={styles.sideProgressValue}>{overallProgress}%</Text>
+                <Text style={styles.sideProgressLabel}>complete so far</Text>
+              </View>
+
+              <View style={styles.sideProgressTrack}>
+                <View style={[styles.sideProgressFill, { width: `${overallProgress}%` }]} />
+              </View>
+
+              <View style={styles.levelGrid}>
+                {levelProgress.map((level) => (
+                  <View
+                    key={level.level}
+                    style={[styles.levelTile, level.current && styles.levelTileCurrent]}
+                  >
+                    <View style={styles.levelTileTop}>
+                      <Text style={styles.levelTileTitle}>{level.level}</Text>
+                      <Text style={styles.levelTilePercent}>{level.percent}%</Text>
+                    </View>
+                    <Text style={styles.levelTileSubtitle} numberOfLines={1}>
+                      {level.meta.homeTitle}
+                    </Text>
+                    <View style={styles.levelTileTrack}>
+                      <View
+                        style={[styles.levelTileFill, { width: `${level.percent}%` }]}
+                      />
+                    </View>
+                    <Text style={styles.levelTileMeta}>
+                      {level.practiced}/{level.total} topics
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </AppCard>
           </View>
         </View>
 
-        {/* Spacer for scrolling */}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </>
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: AppSketch.background,
   },
   content: {
-    padding: AppSpacing.xl,
+    width: "100%",
+    maxWidth: 1220,
+    alignSelf: "center",
+    paddingHorizontal: AppSpacing.xl,
+    paddingTop: AppSpacing.xl,
+    paddingBottom: AppSpacing["3xl"],
     gap: AppSpacing.xl,
-    maxWidth: 800,
-    alignSelf: 'center',
-    width: '100%',
   },
 
-  // Header
   header: {
-    gap: 4,
+    gap: AppSpacing.xs,
   },
-  greeting: {
+  eyebrow: {
+    ...AppTypography.labelSmall,
+    color: AppSketch.inkFaint,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  title: {
     ...AppTypography.hero,
   },
   subtitle: {
     ...AppTypography.bodyLarge,
     color: AppSketch.inkMuted,
+    maxWidth: 700,
   },
 
-  // Hero Card
+  workspaceGrid: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: AppSpacing.xl,
+    flexWrap: "wrap",
+  },
+  mainColumn: {
+    flex: 1,
+    minWidth: 640,
+    gap: AppSpacing.xl,
+  },
+  sideColumn: {
+    width: 340,
+    maxWidth: "100%",
+    gap: AppSpacing.xl,
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    gap: AppSpacing.md,
+    flexWrap: "wrap",
+  },
+  topActionCard: {
+    flex: 1,
+    minWidth: 230,
+    borderRadius: AppRadius.lg,
+    paddingHorizontal: AppSpacing.xl,
+    paddingVertical: AppSpacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    ...appShadow("sm"),
+  },
+  learnActionCard: {
+    backgroundColor: "#5F6877",
+  },
+  reviewActionCard: {
+    backgroundColor: "#4A5362",
+  },
+  topActionCopy: {
+    flex: 1,
+    gap: 4,
+    paddingRight: AppSpacing.md,
+  },
+  topActionLabel: {
+    ...AppTypography.subheading,
+    color: "#FFFFFF",
+  },
+  topActionDetail: {
+    ...AppTypography.caption,
+    color: "rgba(255,255,255,0.76)",
+  },
+  reviewBadge: {
+    minWidth: 42,
+    height: 42,
+    borderRadius: AppRadius.md,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: AppSpacing.sm,
+  },
+  reviewBadgeText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
   heroCard: {
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.xl,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    padding: AppSpacing["2xl"],
     gap: AppSpacing.lg,
+    ...appShadow("md"),
   },
-  heroContent: {
-    gap: AppSpacing.lg,
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: AppSpacing.xl,
+    flexWrap: "wrap",
   },
-  heroText: {
+  heroHeading: {
+    flex: 1,
+    minWidth: 280,
     gap: AppSpacing.sm,
   },
-  heroLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.md,
-  },
-  heroLabel: {
+  heroEyebrow: {
     ...AppTypography.labelSmall,
     color: AppSketch.primary,
-    letterSpacing: 1.5,
-  },
-  stageBadge: {
-    backgroundColor: `${AppSketch.primary}15`,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: AppRadius.sm,
-  },
-  stageBadgeText: {
-    ...AppTypography.caption,
-    color: AppSketch.primary,
-    fontWeight: '600',
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   heroTitle: {
     ...AppTypography.title,
@@ -642,203 +968,378 @@ const styles = StyleSheet.create({
     ...AppTypography.body,
     color: AppSketch.inkSecondary,
   },
-  progressBarContainer: {
-    gap: AppSpacing.sm,
+  heroSide: {
+    alignItems: "flex-end",
+    gap: AppSpacing.xs,
+    minWidth: 120,
+  },
+  heroStageChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: AppRadius.full,
+    backgroundColor: `${AppSketch.primary}12`,
+  },
+  heroStageChipText: {
+    ...AppTypography.caption,
+    color: AppSketch.primary,
+    fontWeight: "700",
+  },
+  heroPercent: {
+    fontSize: 38,
+    fontWeight: "700",
+    lineHeight: 42,
+    color: AppSketch.ink,
+  },
+  heroPercentLabel: {
+    ...AppTypography.caption,
+  },
+  heroProgressRow: {
+    flexDirection: "row",
+    gap: AppSpacing.md,
+    flexWrap: "wrap",
+  },
+  heroMetric: {
+    flex: 1,
+    minWidth: 160,
+    paddingVertical: AppSpacing.md,
+    paddingHorizontal: AppSpacing.lg,
+    borderRadius: AppRadius.md,
+    backgroundColor: AppSketch.background,
+    borderWidth: 1,
+    borderColor: AppSketch.borderLight,
+    gap: 2,
+  },
+  heroMetricLabel: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkFaint,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  heroMetricValue: {
+    ...AppTypography.label,
+    color: AppSketch.ink,
   },
   progressBarTrack: {
-    height: 6,
-    backgroundColor: AppSketch.border,
+    height: 7,
+    backgroundColor: AppSketch.borderLight,
     borderRadius: AppRadius.full,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressBarFill: {
-    height: '100%',
+    height: "100%",
     backgroundColor: AppSketch.primary,
     borderRadius: AppRadius.full,
   },
-  progressText: {
+  heroPathRow: {
+    flexDirection: "row",
+    gap: AppSpacing.md,
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  heroPathNode: {
+    alignItems: "center",
+    gap: AppSpacing.xs,
+    minWidth: 56,
+  },
+  heroPathDot: {
+    width: 24,
+    height: 24,
+    borderRadius: AppRadius.full,
+    backgroundColor: AppSketch.border,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroPathDotCompleted: {
+    backgroundColor: AppSketch.success,
+    borderColor: AppSketch.success,
+  },
+  heroPathDotCurrent: {
+    backgroundColor: AppSketch.primary,
+    borderColor: AppSketch.primary,
+  },
+  heroPathLabel: {
     ...AppTypography.caption,
-    textAlign: 'right',
+    color: AppSketch.inkMuted,
+  },
+  heroFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: AppSpacing.xs,
+  },
+  heroFooterText: {
+    ...AppTypography.label,
+    color: AppSketch.primary,
   },
 
-  // Action Grid
-  actionGrid: {
-    flexDirection: 'row',
+  clusterCard: {
+    gap: AppSpacing.lg,
+  },
+  clusterHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     gap: AppSpacing.md,
-    flexWrap: 'wrap',
   },
-  actionCard: {
+  clusterHeading: {
     flex: 1,
-    minWidth: 180,
-    alignItems: 'center',
-    paddingVertical: AppSpacing.lg,
+    gap: 4,
   },
-  actionCardPrimary: {
-    borderColor: `${AppSketch.primary}30`,
-    backgroundColor: `${AppSketch.primary}08`,
+  clusterTitle: {
+    ...AppTypography.heading,
   },
-  actionCardHighlight: {
-    borderColor: `${AppSketch.success}30`,
+  clusterSubtitle: {
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
   },
-  actionCardDisabled: {
-    opacity: 0.6,
+
+  tileGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: AppSpacing.md,
   },
-  actionIconBox: {
+  tileCard: {
+    flex: 1,
+    minWidth: 250,
+    backgroundColor: AppSketch.background,
+    borderRadius: AppRadius.lg,
+    borderWidth: 1,
+    borderColor: AppSketch.borderLight,
+    padding: AppSpacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: AppSpacing.md,
+  },
+  tileCardDisabled: {
+    opacity: 0.55,
+  },
+  tileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: AppRadius.md,
+    backgroundColor: AppSketch.surface,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tileCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  tileTitle: {
+    ...AppTypography.label,
+  },
+  tileTitleDisabled: {
+    color: AppSketch.inkMuted,
+  },
+  tileSubtitle: {
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
+  },
+
+  sideCard: {
+    gap: AppSpacing.lg,
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: AppSpacing.md,
+  },
+  avatar: {
     width: 48,
     height: 48,
     borderRadius: AppRadius.md,
-    backgroundColor: AppSketch.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: AppSpacing.md,
+    backgroundColor: `${AppSketch.primary}10`,
+    borderWidth: 1,
+    borderColor: `${AppSketch.primary}20`,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  actionTitle: {
+  profileCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  profileTitle: {
     ...AppTypography.subheading,
   },
-  actionTitleDisabled: {
+  profileSubtitle: {
+    ...AppTypography.caption,
     color: AppSketch.inkMuted,
   },
-  actionSubtitle: {
-    ...AppTypography.caption,
-    marginTop: 2,
-  },
-  actionBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: AppSketch.primary,
+  statusChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: AppRadius.full,
-    minWidth: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: AppSketch.background,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
   },
-  actionBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
+  statusChipPremium: {
+    backgroundColor: `${AppSketch.success}10`,
+    borderColor: `${AppSketch.success}30`,
   },
-
-  // Section
-  section: {
+  statusChipGuest: {
+    backgroundColor: `${AppSketch.warning}10`,
+    borderColor: `${AppSketch.warning}35`,
+  },
+  statusChipText: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkMuted,
+  },
+  statusChipTextPremium: {
+    color: AppSketch.success,
+  },
+  statusChipTextGuest: {
+    color: "#B7791F",
+  },
+  streakBlock: {
     gap: AppSpacing.md,
   },
-  sectionTitle: {
-    ...AppTypography.heading,
-  },
-
-  // Path
-  pathCard: {
-    paddingVertical: AppSpacing.lg,
-  },
-  pathTrack: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  pathNode: {
-    alignItems: 'center',
+  streakValueRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: AppSpacing.sm,
-    minWidth: 80,
-  },
-  pathDot: {
-    width: 32,
-    height: 32,
-    borderRadius: AppRadius.full,
-    backgroundColor: AppSketch.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pathDotCompleted: {
-    backgroundColor: AppSketch.success,
-  },
-  pathDotCurrent: {
-    backgroundColor: AppSketch.primary,
-    ...appShadow('sm'),
-  },
-  pathDotPulse: {
-    width: 12,
-    height: 12,
-    borderRadius: AppRadius.full,
-    backgroundColor: '#fff',
-  },
-  pathLabel: {
-    ...AppTypography.caption,
-    fontWeight: '600',
-  },
-
-  // Bottom Row
-  bottomRow: {
-    flexDirection: 'row',
-    gap: AppSpacing.lg,
-    flexWrap: 'wrap',
-  },
-  streakCard: {
-    flex: 1,
-    minWidth: 200,
-    gap: AppSpacing.md,
-  },
-  streakHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.md,
-  },
-  streakEmoji: {
-    fontSize: 32,
   },
   streakValue: {
-    ...AppTypography.hero,
-    lineHeight: 36,
+    fontSize: 36,
+    fontWeight: "700",
+    lineHeight: 40,
+    color: AppSketch.ink,
   },
-  streakLabel: {
-    ...AppTypography.caption,
+  streakValueLabel: {
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
+    marginBottom: 6,
   },
   sparkline: {
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
+    flexDirection: "row",
+    gap: 8,
   },
   sparkDot: {
-    width: 8,
-    height: 8,
+    flex: 1,
+    height: 10,
     borderRadius: AppRadius.full,
     backgroundColor: AppSketch.border,
   },
   sparkDotActive: {
     backgroundColor: AppSketch.warning,
   },
-
-  // Tools
-  toolsSection: {
-    flex: 2,
-    minWidth: 280,
-    gap: AppSpacing.md,
-  },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: AppSpacing.sm,
-  },
-  toolChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.sm,
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-    borderRadius: AppRadius.sm,
-    backgroundColor: AppSketch.surface,
+  snapshotStats: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: AppSketch.background,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: AppSketch.border,
+    borderColor: AppSketch.borderLight,
+    overflow: "hidden",
   },
-  toolLabel: {
-    ...AppTypography.labelSmall,
+  snapshotStat: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: AppSpacing.md,
+    gap: 2,
+  },
+  snapshotDivider: {
+    width: 1,
+    backgroundColor: AppSketch.border,
+  },
+  snapshotStatValue: {
+    ...AppTypography.subheading,
+  },
+  snapshotStatLabel: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkFaint,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  sideActions: {
+    gap: AppSpacing.sm,
   },
 
-  // Modal
+  sideProgressSummary: {
+    alignItems: "flex-start",
+    gap: 2,
+  },
+  sideProgressValue: {
+    fontSize: 34,
+    fontWeight: "700",
+    lineHeight: 38,
+    color: AppSketch.ink,
+  },
+  sideProgressLabel: {
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
+  },
+  sideProgressTrack: {
+    height: 8,
+    backgroundColor: AppSketch.borderLight,
+    borderRadius: AppRadius.full,
+    overflow: "hidden",
+  },
+  sideProgressFill: {
+    height: "100%",
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
+  },
+  levelGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: AppSpacing.sm,
+  },
+  levelTile: {
+    width: "48%",
+    minWidth: 130,
+    backgroundColor: AppSketch.background,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: AppSketch.borderLight,
+    padding: AppSpacing.md,
+    gap: AppSpacing.sm,
+  },
+  levelTileCurrent: {
+    borderColor: `${AppSketch.primary}35`,
+    backgroundColor: `${AppSketch.primary}07`,
+  },
+  levelTileTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  levelTileTitle: {
+    ...AppTypography.label,
+  },
+  levelTilePercent: {
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
+  },
+  levelTileSubtitle: {
+    ...AppTypography.caption,
+    color: AppSketch.inkSecondary,
+  },
+  levelTileTrack: {
+    height: 6,
+    backgroundColor: AppSketch.border,
+    borderRadius: AppRadius.full,
+    overflow: "hidden",
+  },
+  levelTileFill: {
+    height: "100%",
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
+  },
+  levelTileMeta: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkFaint,
+  },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
     padding: AppSpacing.xl,
   },
   modalBackdrop: {
@@ -846,18 +1347,19 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     maxWidth: 480,
-    width: '100%',
-    alignSelf: 'center',
+    width: "100%",
+    alignSelf: "center",
     backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.xl,
     padding: AppSpacing.xl,
     gap: AppSpacing.lg,
-    ...appShadow('lg'),
+    ...appShadow("lg"),
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: AppSpacing.md,
   },
   modalHeading: {
     flex: 1,
@@ -875,13 +1377,13 @@ const styles = StyleSheet.create({
     borderRadius: AppRadius.sm,
   },
   filterGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: AppSpacing.sm,
   },
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: AppSpacing.xs,
     paddingHorizontal: AppSpacing.md,
     paddingVertical: AppSpacing.sm,

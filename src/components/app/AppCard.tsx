@@ -1,10 +1,10 @@
 import React, { PropsWithChildren } from "react";
 import {
+  StyleProp,
   View,
   ViewStyle,
   StyleSheet,
   TouchableOpacity,
-  TouchableOpacityProps,
 } from "react-native";
 import { AppSketch, AppRadius, appShadow, AppSpacing } from "@/constants/theme-app";
 
@@ -14,7 +14,7 @@ type CardSize = "sm" | "md" | "lg";
 interface AppCardProps extends PropsWithChildren {
   variant?: CardVariant;
   size?: CardSize;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   disabled?: boolean;
   activeOpacity?: number;
@@ -37,7 +37,7 @@ export default function AppCard({
 }: AppCardProps) {
   const { padding, gap } = sizePadding[size];
   
-  const containerStyle = [
+  const containerStyle: StyleProp<ViewStyle> = [
     styles.base,
     { padding, gap },
     variant === "default" && styles.default,

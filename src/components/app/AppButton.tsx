@@ -3,8 +3,6 @@ import {
   Text,
   TouchableOpacity,
   TouchableOpacityProps,
-  ViewStyle,
-  TextStyle,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
@@ -43,7 +41,7 @@ export default function AppButton({
 }: AppButtonProps) {
   const { padding, height } = sizeStyles[size];
 
-  const containerStyle: ViewStyle[] = [
+  const containerStyle = [
     styles.base,
     { paddingHorizontal: padding, height, minWidth: height },
     variant === "primary" && styles.primary,
@@ -54,7 +52,7 @@ export default function AppButton({
     fullWidth && styles.fullWidth,
   ];
 
-  const textStyle: TextStyle[] = [
+  const textStyle = [
     styles.text,
     variant === "primary" && styles.primaryText,
     variant === "secondary" && styles.secondaryText,
