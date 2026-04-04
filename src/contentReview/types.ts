@@ -1,3 +1,4 @@
+import type { LessonBlocks } from "@/src/data/lessonBlocks";
 import { ToneName } from "@/src/utils/toneAccent";
 
 export type ReviewStatus =
@@ -72,6 +73,37 @@ export type ReviewExampleRow = {
   sortOrder: number;
 };
 
+export type ReviewExampleRevisionSnapshot = {
+  thai: string;
+  romanization: string;
+  english: string;
+  breakdown: ReviewBreakdownItem[];
+  difficulty: "easy" | "medium" | "hard";
+  reviewStatus: ReviewStatus;
+  reviewAssigneeUserId: number | null;
+  reviewNote: string | null;
+  sortOrder: number;
+  toneConfidence: number;
+  toneStatus: "approved" | "review";
+};
+
+export type ReviewExampleRevision = {
+  id: number;
+  exampleId: number;
+  grammarId: string;
+  action: string;
+  editedByUserId: number | null;
+  changedFields: string[];
+  beforeSnapshot: ReviewExampleRevisionSnapshot | null;
+  afterSnapshot: ReviewExampleRevisionSnapshot | null;
+  createdAt: string;
+  editor?: {
+    id: number;
+    email: string;
+    display_name?: string | null;
+  } | null;
+};
+
 export type ReviewLessonOverride = {
   grammarId: string;
   override: {
@@ -80,6 +112,7 @@ export type ReviewLessonOverride = {
     stage: string;
     explanation: string;
     pattern: string;
+    lessonBlocks?: LessonBlocks;
     aiPrompt?: string;
     example: {
       thai: string;

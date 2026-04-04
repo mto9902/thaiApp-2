@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 
@@ -9,7 +8,6 @@ import {
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
 import { alphabet } from "@/src/data/alphabet";
-import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 
 const GROUPS = [
   { group: 1, title: "Mid Class" },
@@ -21,7 +19,6 @@ const GROUPS = [
 export default function ConsonantsWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { playSentence } = useSentenceAudio();
   const columns = width >= 1320 ? 4 : width >= 980 ? 2 : 1;
   const cardWidth = columns === 4 ? "23.6%" : columns === 2 ? "48.8%" : "100%";
 
@@ -53,23 +50,6 @@ export default function ConsonantsWeb() {
                   onPress={() => router.push(`/alphabet/${item.group}` as any)}
                   activeOpacity={0.82}
                 >
-                  <TouchableOpacity
-                    style={styles.speakerButton}
-                    onPress={(event) => {
-                      event.stopPropagation();
-                      void playSentence(
-                        letters.slice(0, 4).map((entry) => entry.letter).join(" "),
-                        { speed: "slow" },
-                      );
-                    }}
-                    activeOpacity={0.82}
-                  >
-                    <Ionicons
-                      name="volume-medium-outline"
-                      size={16}
-                      color={AppSketch.inkMuted}
-                    />
-                  </TouchableOpacity>
                   <Text style={styles.eyebrow}>Group {item.group}</Text>
                   <Text style={styles.cardTitle}>{item.title}</Text>
                   <View style={styles.letterRow}>
@@ -120,15 +100,6 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: AppRadius.lg,
     ...appShadow("sm"),
-  },
-  speakerButton: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: AppRadius.md,
   },
   eyebrow: {
     fontSize: 12,

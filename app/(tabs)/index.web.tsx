@@ -21,8 +21,13 @@ import {
 import AppButton from "@/src/components/app/AppButton";
 import AppCard from "@/src/components/app/AppCard";
 import KimiIcon from "@/src/components/app/KimiIcon";
+import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 import { API_BASE } from "@/src/config";
-import { GRAMMAR_STAGE_META, GrammarStage } from "@/src/data/grammarStages";
+import {
+  GRAMMAR_STAGE_META,
+  GrammarStage,
+  PUBLIC_GRAMMAR_STAGES,
+} from "@/src/data/grammarStages";
 import {
   CEFR_LEVEL_META,
   PUBLIC_CEFR_LEVELS,
@@ -34,6 +39,7 @@ import { useSubscription } from "@/src/subscription/SubscriptionProvider";
 import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { canAccessApp, isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
+import { getProfileDisplayName } from "@/src/utils/profileName";
 import {
   getAllProgress,
   GrammarProgressData,
@@ -45,11 +51,10 @@ type PendingProgressMixAction =
   | { type: "premium"; label: string; route: string }
   | { type: "practice"; route: string };
 
-type LearningPathNode = {
-  id: string;
-  stage: GrammarStage;
-  label: string;
-  status: "completed" | "current" | "upcoming";
+type HomeProfile = {
+  id?: number | null;
+  email?: string | null;
+  display_name?: string | null;
 };
 
 function formatDelay(nextDueAt: string): string {
@@ -99,6 +104,7 @@ export default function HomeScreenWeb() {
   const [reviewStatus, setReviewStatus] = useState("You're caught up");
   const [activityMap, setActivityMap] = useState<Record<string, number>>({});
   const [isGuest, setIsGuest] = useState(false);
+  const [profile, setProfile] = useState<HomeProfile | null>(null);
   const [showProgressMixModal, setShowProgressMixModal] = useState(false);
   const [selectedProgressLevels, setSelectedProgressLevels] = useState<ProgressFilterLevel[]>([
     "All",
@@ -162,6 +168,36 @@ export default function HomeScreenWeb() {
     }
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    try {
+      const guest = await isGuestUser();
+      if (guest) {
+        setProfile(null);
+        return;
+      }
+
+      const token = await getAuthToken();
+      if (!token) {
+        setProfile(null);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to load profile (${res.status})`);
+      }
+
+      const data = await res.json();
+      setProfile(data);
+    } catch (err) {
+      console.error("Failed to load home profile:", err);
+      setProfile(null);
+    }
+  }, []);
+
   const loadHeatmap = useCallback(async () => {
     try {
       const guest = await isGuestUser();
@@ -182,7 +218,8 @@ export default function HomeScreenWeb() {
       void loadProgress();
       void loadReviewStatus();
       void loadHeatmap();
-    }, [loadHeatmap, loadProgress, loadReviewStatus]),
+      void loadProfile();
+    }, [loadHeatmap, loadProfile, loadProgress, loadReviewStatus]),
   );
 
   const visibleGrammarPoints = useMemo(
@@ -303,34 +340,39 @@ export default function HomeScreenWeb() {
       })[0];
   }, [practicedGrammar]);
 
-  const learningPath = useMemo<LearningPathNode[]>(() => {
-    if (visibleGrammarPoints.length === 0) return [];
+  const stageRail = useMemo(() => {
+    const countsByStage = visibleGrammarPoints.reduce(
+      (acc, point) => {
+        const existing = acc[point.stage] ?? { practiced: 0, total: 0 };
+        existing.total += 1;
+        if (isGrammarPracticed(progress[point.id])) existing.practiced += 1;
+        acc[point.stage] = existing;
+        return acc;
+      },
+      {} as Record<GrammarStage, { practiced: number; total: number }>,
+    );
 
-    if (!nextLesson) {
-      return visibleGrammarPoints.slice(-5).map((point) => ({
-        id: point.id,
-        stage: point.stage,
-        label: point.stage,
-        status: "completed",
-      }));
-    }
+    const currentStageId = currentStageMeta?.id;
+    return PUBLIC_GRAMMAR_STAGES.map((stage) => {
+      const counts = countsByStage[stage] ?? { practiced: 0, total: 0 };
+      const isCompleted = counts.total > 0 && counts.practiced >= counts.total;
+      const isVisited = counts.practiced > 0 && !isCompleted;
+      const status =
+        isCompleted
+          ? "completed"
+          : stage === currentStageId
+            ? "current"
+            : isVisited
+              ? "visited"
+              : "unstarted";
 
-    const currentIndex = visibleGrammarPoints.findIndex((point) => point.id === nextLesson.id);
-    const startIndex = Math.max(0, currentIndex - 2);
-    const endIndex = Math.min(visibleGrammarPoints.length, currentIndex + 3);
-
-    return visibleGrammarPoints.slice(startIndex, endIndex).map((point) => ({
-      id: point.id,
-      stage: point.stage,
-      label: point.stage,
-      status:
-        point.id === nextLesson.id
-          ? "current"
-          : isGrammarPracticed(progress[point.id])
-            ? "completed"
-            : "upcoming",
-    }));
-  }, [nextLesson, progress, visibleGrammarPoints]);
+      return {
+        id: stage,
+        label: GRAMMAR_STAGE_META[stage].id,
+        status,
+      };
+    });
+  }, [currentStageMeta?.id, progress, visibleGrammarPoints]);
 
   const filteredProgressGrammar = useMemo(() => {
     if (selectedProgressLevels.includes("All")) return practicedGrammar;
@@ -378,6 +420,13 @@ export default function HomeScreenWeb() {
       }
       return [...withoutAll, level];
     });
+  }
+
+  function openLevelProgress(level: PublicCefrLevel) {
+    const count = progressCountsByLevel[level];
+    if (count === 0) return;
+    setSelectedProgressLevels([level]);
+    setShowProgressMixModal(true);
   }
 
   function handleStartProgressMix() {
@@ -658,22 +707,33 @@ export default function HomeScreenWeb() {
                 <View style={[styles.progressBarFill, { width: `${overallProgress}%` }]} />
               </View>
 
-              {learningPath.length > 0 ? (
-                <View style={styles.heroPathRow}>
-                  {learningPath.map((point) => (
+              {stageRail.length > 0 ? (
+                <View style={styles.heroPathRail}>
+                  {stageRail.map((point) => (
                     <View key={point.id} style={styles.heroPathNode}>
                       <View
                         style={[
                           styles.heroPathDot,
                           point.status === "completed" && styles.heroPathDotCompleted,
                           point.status === "current" && styles.heroPathDotCurrent,
+                          point.status === "visited" && styles.heroPathDotVisited,
                         ]}
                       >
                         {point.status === "completed" ? (
-                          <Ionicons name="checkmark" size={12} color="#fff" />
+                          <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+                        ) : point.status === "visited" ? (
+                          <View style={styles.heroPathDotVisitedInner} />
                         ) : null}
                       </View>
-                      <Text style={styles.heroPathLabel}>{point.label}</Text>
+                      <Text
+                        style={[
+                          styles.heroPathLabel,
+                          point.status !== "unstarted" && styles.heroPathLabelActive,
+                          point.status === "current" && styles.heroPathLabelCurrent,
+                        ]}
+                      >
+                        {point.label}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -769,11 +829,13 @@ export default function HomeScreenWeb() {
                   <Ionicons name="person" size={18} color={AppSketch.primary} />
                 </View>
                 <View style={styles.profileCopy}>
-                  <Text style={styles.profileTitle}>
-                    {isGuest ? "Guest learner" : "Your account"}
+                  <Text style={styles.profileTitle} numberOfLines={1}>
+                    {isGuest ? "Guest learner" : getProfileDisplayName(profile)}
                   </Text>
-                  <Text style={styles.profileSubtitle}>
-                    {isGuest ? "Sign in to sync review and progress" : "Keystone Thai"}
+                  <Text style={styles.profileSubtitle} numberOfLines={1}>
+                    {isGuest
+                      ? "Sign in to sync review and progress"
+                      : profile?.email || "Keystone Thai"}
                   </Text>
                 </View>
                 <View
@@ -862,16 +924,19 @@ export default function HomeScreenWeb() {
                 <View style={[styles.sideProgressFill, { width: `${overallProgress}%` }]} />
               </View>
 
-              <View style={styles.levelGrid}>
-                {levelProgress.map((level) => (
-                  <View
-                    key={level.level}
-                    style={[styles.levelTile, level.current && styles.levelTileCurrent]}
-                  >
-                    <View style={styles.levelTileTop}>
-                      <Text style={styles.levelTileTitle}>{level.level}</Text>
-                      <Text style={styles.levelTilePercent}>{level.percent}%</Text>
-                    </View>
+                <View style={styles.levelGrid}>
+                  {levelProgress.map((level) => (
+                    <TouchableOpacity
+                      key={level.level}
+                      style={[styles.levelTile, level.current && styles.levelTileCurrent]}
+                      onPress={() => openLevelProgress(level.level)}
+                      activeOpacity={level.practiced === 0 ? 1 : 0.88}
+                      disabled={level.practiced === 0}
+                    >
+                      <View style={styles.levelTileTop}>
+                        <Text style={styles.levelTileTitle}>{level.level}</Text>
+                        <Text style={styles.levelTilePercent}>{level.percent}%</Text>
+                      </View>
                     <Text style={styles.levelTileSubtitle} numberOfLines={1}>
                       {level.meta.homeTitle}
                     </Text>
@@ -880,12 +945,12 @@ export default function HomeScreenWeb() {
                         style={[styles.levelTileFill, { width: `${level.percent}%` }]}
                       />
                     </View>
-                    <Text style={styles.levelTileMeta}>
-                      {level.practiced}/{level.total} topics
-                    </Text>
-                  </View>
-                ))}
-              </View>
+                      <Text style={styles.levelTileMeta}>
+                        {level.practiced}/{level.total} topics
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
             </AppCard>
           </View>
         </View>
@@ -903,7 +968,7 @@ const styles = StyleSheet.create({
   },
   content: {
     width: "100%",
-    maxWidth: 1340,
+    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
     alignSelf: "center",
     paddingHorizontal: AppSpacing.lg,
     paddingTop: AppSpacing.xl,
@@ -1092,38 +1157,59 @@ const styles = StyleSheet.create({
     backgroundColor: AppSketch.primary,
     borderRadius: AppRadius.full,
   },
-  heroPathRow: {
+  heroPathRail: {
     flexDirection: "row",
-    gap: AppSpacing.md,
-    flexWrap: "wrap",
-    alignItems: "center",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: AppSpacing.xs,
+    paddingTop: AppSpacing.xs,
   },
   heroPathNode: {
     alignItems: "center",
     gap: AppSpacing.xs,
-    minWidth: 56,
+    flex: 1,
+    minWidth: 0,
   },
   heroPathDot: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: AppRadius.full,
-    backgroundColor: AppSketch.border,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
+    backgroundColor: "#E9EAED",
+    borderWidth: 0,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1,
   },
   heroPathDotCompleted: {
-    backgroundColor: AppSketch.success,
-    borderColor: AppSketch.success,
+    backgroundColor: "#5F89AB",
   },
   heroPathDotCurrent: {
-    backgroundColor: AppSketch.primary,
-    borderColor: AppSketch.primary,
+    width: 24,
+    height: 24,
+    backgroundColor: AppSketch.primaryDark,
+  },
+  heroPathDotVisited: {
+    backgroundColor: AppSketch.surface,
+    borderWidth: 2,
+    borderColor: "#7D97AD",
+  },
+  heroPathDotVisitedInner: {
+    width: 8,
+    height: 8,
+    borderRadius: AppRadius.full,
+    backgroundColor: "#7D97AD",
   },
   heroPathLabel: {
     ...AppTypography.caption,
     color: AppSketch.inkMuted,
+    textAlign: "center",
+  },
+  heroPathLabelActive: {
+    color: AppSketch.ink,
+  },
+  heroPathLabelCurrent: {
+    fontWeight: "700",
+    color: AppSketch.primaryDark,
   },
   heroFooter: {
     flexDirection: "row",

@@ -3,7 +3,13 @@ import {
   GRAMMAR_EXPLANATION_OVERRIDES,
   GRAMMAR_FOCUS_ROMANIZATION_OVERRIDES,
 } from "./grammarContentOverrides";
+import {
+  GRAMMAR_FOCUS_DETAILS_OVERRIDES,
+  type FocusDetail,
+} from "./grammarFocusDetails";
 import { CefrLevel } from "./grammarLevels";
+import { A1_LESSON_BLOCKS } from "./lessonBlocks";
+import type { LessonBlocks } from "./lessonBlocks";
 import { GRAMMAR_STAGE_BY_ID, GrammarStage } from "./grammarStages";
 import { ToneName } from "../utils/toneAccent";
 
@@ -25,6 +31,7 @@ export interface GrammarPoint {
   lessonOrder: number;
   explanation: string;
   pattern: string;
+  lessonBlocks?: LessonBlocks;
   aiPrompt?: string;
   example: {
     thai: string;
@@ -36,6 +43,7 @@ export interface GrammarPoint {
     particle: string;
     meaning: string;
     romanization?: string;
+    details?: FocusDetail[];
   };
 }
 
@@ -3097,6 +3105,7 @@ const rawGrammarPoints: RawGrammarPoint[] = [
 export const grammarPoints: GrammarPoint[] = rawGrammarPoints
   .map((point) => {
     const stageConfig = GRAMMAR_STAGE_BY_ID[point.id];
+    const lessonBlocks = A1_LESSON_BLOCKS[point.id];
 
     if (!stageConfig) {
       throw new Error(`Missing grammar stage config for ${point.id}`);
@@ -3105,12 +3114,18 @@ export const grammarPoints: GrammarPoint[] = rawGrammarPoints
     return {
       ...point,
       explanation:
-        GRAMMAR_EXPLANATION_OVERRIDES[point.id] ?? point.explanation,
+        lessonBlocks?.summary ??
+        GRAMMAR_EXPLANATION_OVERRIDES[point.id] ??
+        point.explanation,
+      lessonBlocks: lessonBlocks ?? point.lessonBlocks,
       focus: {
         ...point.focus,
         romanization:
           point.focus.romanization ??
           GRAMMAR_FOCUS_ROMANIZATION_OVERRIDES[point.id],
+        details:
+          point.focus.details ??
+          GRAMMAR_FOCUS_DETAILS_OVERRIDES[point.id],
       },
       stage: stageConfig.stage,
       stageOrder: stageConfig.stageOrder,

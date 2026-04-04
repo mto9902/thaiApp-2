@@ -69,6 +69,7 @@ export default function NumbersWeb() {
         eyebrow="Numbers"
         title="Thai Numbers"
         subtitle="Learn the spoken forms, Thai numeral glyphs, and the number patterns you actually meet in prices, times, dates, and quantities."
+        contentStyle={styles.pageContent}
         toolbar={
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.82}>
             <Text style={styles.backButtonText}>Back</Text>
@@ -112,27 +113,15 @@ export default function NumbersWeb() {
           </DesktopPanel>
         ))}
 
-        <DesktopPanel style={styles.ctaPanel}>
-          <View style={styles.ctaCopy}>
-            <Text style={styles.ctaTitle}>Ready to switch from reference to practice?</Text>
-            <Text style={styles.ctaBody}>
-              Use the trainer to practice reading digits, Thai numerals, and bigger number patterns.
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push("/numbers/trainer" as any)}
-            activeOpacity={0.82}
-          >
-            <Text style={styles.secondaryButtonText}>Start Trainer</Text>
-          </TouchableOpacity>
-        </DesktopPanel>
       </DesktopPage>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  pageContent: {
+    gap: 12,
+  },
   backButton: {
     borderWidth: 1,
     borderColor: AppSketch.border,
@@ -149,12 +138,12 @@ const styles = StyleSheet.create({
   introPanel: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 24,
+    alignItems: "center",
+    gap: 18,
   },
   introCopy: {
     flex: 1,
-    gap: 8,
+    gap: 6,
   },
   introEyebrow: {
     fontSize: 12,
@@ -164,24 +153,24 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   introTitle: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: "700",
     color: AppSketch.ink,
-    letterSpacing: -0.8,
+    letterSpacing: -0.4,
   },
   introBody: {
-    maxWidth: 820,
-    fontSize: 16,
-    lineHeight: 26,
+    maxWidth: 760,
+    fontSize: 14,
+    lineHeight: 22,
     color: AppSketch.inkSecondary,
   },
   launchButton: {
-    minWidth: 220,
+    minWidth: 180,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.primary,
@@ -196,43 +185,44 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 12,
   },
   referenceCard: {
-    width: "31.8%",
-    minHeight: 236,
+    width: "24%",
+    minHeight: 156,
     borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 18,
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 4,
     ...appShadow("sm"),
   },
   referenceTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 12,
+    gap: 10,
   },
   referenceDisplay: {
     gap: 4,
   },
   referenceDigits: {
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: "700",
     color: AppSketch.ink,
   },
   referenceThaiNumeral: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: "700",
     color: AppSketch.primary,
   },
   playButton: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
@@ -241,17 +231,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   referenceThai: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: "700",
     color: AppSketch.ink,
   },
   referenceRomanization: {
-    fontSize: 14,
+    fontSize: 12,
     color: AppSketch.inkSecondary,
   },
   referenceEnglish: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: AppSketch.inkMuted,
     textTransform: "uppercase",
@@ -263,34 +253,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  ctaPanel: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 20,
-  },
-  ctaCopy: {
-    flex: 1,
-    gap: 6,
-  },
-  ctaTitle: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "700",
-    color: AppSketch.ink,
-    letterSpacing: -0.6,
-  },
-  ctaBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: AppSketch.inkSecondary,
-  },
   secondaryButton: {
-    minWidth: 220,
+    minWidth: 180,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,

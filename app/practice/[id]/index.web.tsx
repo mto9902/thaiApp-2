@@ -275,6 +275,7 @@ export default function GrammarDetailWeb() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <DesktopPage
+          widthVariant="wide"
           eyebrow="Grammar"
           title="Lesson not found"
           subtitle="This grammar topic is not available in the current catalog."
@@ -304,6 +305,7 @@ export default function GrammarDetailWeb() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <DesktopPage
+          widthVariant="wide"
           eyebrow={grammar.stage}
           title={grammar.title}
           subtitle="Checking your Keystone Access status."
@@ -317,6 +319,23 @@ export default function GrammarDetailWeb() {
   }
 
   const explanation = grammar.explanation || "No explanation provided yet.";
+  const lessonSections = [
+    {
+      id: "summary",
+      label: "Summary",
+      text: grammar.lessonBlocks?.summary?.trim() || "",
+    },
+    {
+      id: "build",
+      label: "Build",
+      text: grammar.lessonBlocks?.build?.trim() || "",
+    },
+    {
+      id: "use",
+      label: "Use",
+      text: grammar.lessonBlocks?.use?.trim() || "",
+    },
+  ].filter((section) => section.text.length > 0);
   const example = previewExample
     ? {
         thai: previewExample.thai,
@@ -339,11 +358,22 @@ export default function GrammarDetailWeb() {
     example.breakdown,
     exampleRomanTokens,
   );
+  const focusDetails =
+    grammar.focus.details?.length > 0
+      ? grammar.focus.details
+      : [
+          {
+            particle: grammar.focus.particle,
+            romanization: grammar.focus.romanization,
+            meaning: grammar.focus.meaning,
+          },
+        ];
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        widthVariant="wide"
         eyebrow={grammar.stage}
         title={grammar.title}
         subtitle="Study the grammar point, hear the example, and move straight into practice."
@@ -363,7 +393,7 @@ export default function GrammarDetailWeb() {
             <DesktopPanel>
               <DesktopSectionTitle
                 title="Concept"
-                caption="Read the core explanation before moving into the example."
+                caption="Read what the pattern does, how it is built, and where it shows up before moving into the example."
               />
               {keyForms.length > 0 ? (
                 <View style={styles.keyFormBlock}>
@@ -371,7 +401,24 @@ export default function GrammarDetailWeb() {
                   <Text style={styles.keyFormText}>{keyForms.join(" / ")}</Text>
                 </View>
               ) : null}
-              <Text style={styles.bodyText}>{explanation}</Text>
+              {lessonSections.length > 0 ? (
+                <View style={styles.lessonSectionList}>
+                  {lessonSections.map((section, index) => (
+                    <View
+                      key={section.id}
+                      style={[
+                        styles.lessonSection,
+                        index > 0 && styles.lessonSectionDivider,
+                      ]}
+                    >
+                      <Text style={styles.lessonSectionLabel}>{section.label}</Text>
+                      <Text style={styles.lessonSectionText}>{section.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.bodyText}>{explanation}</Text>
+              )}
             </DesktopPanel>
 
             <DesktopPanel>
@@ -460,8 +507,23 @@ export default function GrammarDetailWeb() {
               <Text style={styles.patternText}>{grammar.pattern}</Text>
               <View style={styles.sideMetaBlock}>
                 <Text style={styles.sideMetaLabel}>Focus</Text>
-                <Text style={styles.sideMetaValue}>{grammar.focus.particle}</Text>
-                <Text style={styles.sideMetaBody}>{grammar.focus.meaning}</Text>
+                <View style={styles.focusDetailList}>
+                  {focusDetails.map((detail, index) => (
+                    <View
+                      key={`${detail.particle}-${index}`}
+                      style={[
+                        styles.focusDetailItem,
+                        index > 0 && styles.focusDetailItemDivider,
+                      ]}
+                    >
+                      <Text style={styles.sideMetaValue}>
+                        {detail.particle}
+                        {detail.romanization ? ` (${detail.romanization})` : ""}
+                      </Text>
+                      <Text style={styles.sideMetaBody}>{detail.meaning}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </DesktopPanel>
 
@@ -556,6 +618,29 @@ const styles = StyleSheet.create({
     color: AppSketch.ink,
   },
   bodyText: {
+    fontSize: 16,
+    lineHeight: 28,
+    color: AppSketch.ink,
+  },
+  lessonSectionList: {
+    gap: 18,
+  },
+  lessonSection: {
+    gap: 8,
+  },
+  lessonSectionDivider: {
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: AppSketch.border,
+  },
+  lessonSectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: AppSketch.inkMuted,
+  },
+  lessonSectionText: {
     fontSize: 16,
     lineHeight: 28,
     color: AppSketch.ink,
@@ -710,6 +795,17 @@ const styles = StyleSheet.create({
   sideMetaBlock: {
     paddingTop: 6,
     gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: AppSketch.border,
+  },
+  focusDetailList: {
+    gap: 12,
+  },
+  focusDetailItem: {
+    gap: 4,
+  },
+  focusDetailItemDivider: {
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: AppSketch.border,
   },

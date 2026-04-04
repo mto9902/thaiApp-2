@@ -15,12 +15,17 @@ import {
   AppTypography,
   appShadow,
 } from "@/constants/theme-app";
+import {
+  DesktopWidthVariant,
+  resolveDesktopPageWidth,
+} from "@/src/components/web/desktopLayout";
 
 type DesktopPageProps = PropsWithChildren<{
   eyebrow?: string;
   title: string;
   subtitle?: string;
   toolbar?: ReactNode;
+  widthVariant?: DesktopWidthVariant;
   maxWidth?: number;
   density?: "primary" | "compact";
   contentStyle?: StyleProp<ViewStyle>;
@@ -36,13 +41,15 @@ export function DesktopPage({
   title,
   subtitle,
   toolbar,
-  maxWidth = 1480,
+  widthVariant = "standard",
+  maxWidth,
   density = "primary",
   contentStyle,
   scrollRef,
   children,
 }: DesktopPageProps) {
   const compact = density === "compact";
+  const resolvedWidth = resolveDesktopPageWidth(widthVariant, maxWidth);
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
@@ -51,7 +58,13 @@ export function DesktopPage({
         contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.container, compact && styles.containerCompact, { maxWidth }]}>
+        <View
+          style={[
+            styles.container,
+            compact && styles.containerCompact,
+            { maxWidth: resolvedWidth },
+          ]}
+        >
           <View style={[styles.header, compact && styles.headerCompact]}>
             <View style={[styles.headerText, compact && styles.headerTextCompact]}>
               {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}

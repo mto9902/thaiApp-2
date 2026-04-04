@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,6 +19,7 @@ import {
 } from "@/src/components/web/DesktopScaffold";
 import { API_BASE } from "@/src/config";
 import { GrammarPoint } from "@/src/data/grammar";
+import { PUBLIC_CEFR_LEVELS, PublicCefrLevel } from "@/src/data/grammarLevels";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { isPremiumGrammarPoint } from "@/src/subscription/premium";
 import { useSubscription } from "@/src/subscription/SubscriptionProvider";
@@ -29,6 +32,8 @@ import {
   getAllProgress,
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
+
+type BookmarkFilterLevel = "All" | PublicCefrLevel;
 
 function shuffleIds(ids: string[]) {
   return [...ids].sort(() => Math.random() - 0.5);
@@ -64,10 +69,27 @@ export default function ExploreWeb() {
   );
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const [selectedBookmarkLevels, setSelectedBookmarkLevels] = useState<
+    BookmarkFilterLevel[]
+  >(["All"]);
 
-  const columns = width >= 1440 ? 4 : width >= 1120 ? 3 : width >= 820 ? 2 : 1;
+  const columns = width >= 1320 ? 4 : width >= 1040 ? 3 : width >= 760 ? 2 : 1;
   const cardWidth =
-    columns === 4 ? "23.6%" : columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
+    columns === 4 ? "24%" : columns === 3 ? "32%" : columns === 2 ? "49%" : "100%";
+
+  const bookmarkCountsByLevel = PUBLIC_CEFR_LEVELS.reduce(
+    (acc, level) => {
+      acc[level] = bookmarked.filter((point) => point.level === level).length;
+      return acc;
+    },
+    {} as Record<PublicCefrLevel, number>,
+  );
+
+  const filteredBookmarked =
+    selectedBookmarkLevels.includes("All")
+      ? bookmarked
+      : bookmarked.filter((point) => selectedBookmarkLevels.includes(point.level as PublicCefrLevel));
 
   const loadData = useCallback(async () => {
     try {
@@ -112,11 +134,12 @@ export default function ExploreWeb() {
     }, [loadData]),
   );
 
-  function handleQuickPractice() {
+  function handleQuickPractice(shouldShuffle = false) {
     if (bookmarked.length === 0) return;
 
-    const shuffled = shuffleIds(bookmarked.map((g) => g.id));
-    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=bookmarks`;
+    const ids = bookmarked.map((g) => g.id);
+    const mix = shouldShuffle ? shuffleIds(ids) : ids;
+    const practiceRoute = `/practice/${mix[0]}/exercises?mix=${mix.join(",")}&source=bookmarks`;
 
     if (!isPremium && bookmarked.some((point) => isPremiumGrammarPoint(point))) {
       void ensurePremiumAccess(
@@ -129,27 +152,184 @@ export default function ExploreWeb() {
     router.push(practiceRoute as any);
   }
 
+  function toggleBookmarkLevel(level: BookmarkFilterLevel) {
+    if (level === "All") {
+      setSelectedBookmarkLevels(["All"]);
+      return;
+    }
+
+    setSelectedBookmarkLevels((current) => {
+      const withoutAll = current.filter(
+        (value): value is PublicCefrLevel => value !== "All",
+      );
+      if (withoutAll.includes(level)) {
+        const next = withoutAll.filter((value) => value !== level);
+        return next.length > 0 ? next : ["All"];
+      }
+      return [...withoutAll, level];
+    });
+  }
+
+  function handleStartChosenPractice() {
+    if (filteredBookmarked.length === 0) return;
+
+    const shuffled = shuffleIds(filteredBookmarked.map((point) => point.id));
+    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=bookmarks`;
+
+    setShowPracticeModal(false);
+
+    if (!isPremium && filteredBookmarked.some((point) => isPremiumGrammarPoint(point))) {
+      void ensurePremiumAccess(
+        "your bookmarked Keystone Access lessons",
+        practiceRoute,
+      );
+      return;
+    }
+
+    router.push(practiceRoute as any);
+  }
+
   return (
     <>
+      <Modal
+        visible={showPracticeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPracticeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setShowPracticeModal(false)}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeading}>
+                <Text style={styles.modalTitle}>Choose bookmark practice</Text>
+                <Text style={styles.modalSubtitle}>
+                  Pick which saved lessons to include in this mixed practice round.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowPracticeModal(false)}
+                activeOpacity={0.82}
+              >
+                <Ionicons name="close" size={20} color={AppSketch.inkMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterWrap}>
+              {(["All", ...PUBLIC_CEFR_LEVELS] as BookmarkFilterLevel[]).map((level) => {
+                const count =
+                  level === "All" ? bookmarked.length : bookmarkCountsByLevel[level];
+                const selected = selectedBookmarkLevels.includes(level);
+                const disabled = count === 0;
+
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.filterChip,
+                      selected && styles.filterChipActive,
+                      disabled && styles.filterChipDisabled,
+                    ]}
+                    onPress={() => toggleBookmarkLevel(level)}
+                    disabled={disabled}
+                    activeOpacity={0.85}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {level}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.filterChipCount,
+                        selected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.modalFooter}>
+              <View style={styles.modalSummaryRow}>
+                <Text style={styles.modalSummaryLabel}>Selected set</Text>
+                <Text style={styles.modalSummaryValue}>
+                  {filteredBookmarked.length} saved lesson
+                  {filteredBookmarked.length === 1 ? "" : "s"}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  styles.modalPrimaryButton,
+                  filteredBookmarked.length === 0 && styles.disabledButton,
+                ]}
+                onPress={handleStartChosenPractice}
+                disabled={filteredBookmarked.length === 0}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.primaryButtonText}>
+                  Practice {filteredBookmarked.length} topic
+                  {filteredBookmarked.length === 1 ? "" : "s"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <DesktopPage
         eyebrow="Bookmarks"
         title="Saved grammar lessons"
         subtitle="Keep saved lessons close, start quick practice, and return to grammar you want to revisit."
       >
         <View style={styles.pageStack}>
-        <DesktopPanel style={styles.actionPanel}>
-          <DesktopSectionTitle
-            title="Quick Practice"
-            caption="Practice grammar points using your saved bookmarks."
-          />
-          <TouchableOpacity
-            style={[styles.primaryButton, bookmarked.length === 0 && styles.disabledButton]}
-            onPress={handleQuickPractice}
-            disabled={bookmarked.length === 0}
-            activeOpacity={0.82}
-          >
-            <Text style={styles.primaryButtonText}>Practice bookmarks</Text>
-          </TouchableOpacity>
+        <DesktopPanel style={styles.summaryPanel}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCopy}>
+              <Text style={styles.summaryTitle}>Quick Practice</Text>
+              <Text style={styles.summaryBody}>
+                {isGuest
+                  ? "Log in to practice from your saved lessons."
+                  : loading
+                    ? "Loading your saved lessons."
+                    : bookmarked.length > 0
+                      ? `${bookmarked.length} saved lesson${bookmarked.length === 1 ? "" : "s"} ready for quick practice.`
+                      : "Save lessons to build a practice set from your bookmarks."}
+              </Text>
+            </View>
+            <View style={styles.summaryActions}>
+              <TouchableOpacity
+                style={[styles.secondaryButton, bookmarked.length === 0 && styles.disabledSecondaryButton]}
+                onPress={() => {
+                  setSelectedBookmarkLevels(["All"]);
+                  setShowPracticeModal(true);
+                }}
+                disabled={bookmarked.length === 0}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.secondaryButtonText}>Choose practice</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, bookmarked.length === 0 && styles.disabledButton]}
+                onPress={() => handleQuickPractice(false)}
+                disabled={bookmarked.length === 0}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.primaryButtonText}>Practice bookmarks</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </DesktopPanel>
 
         <DesktopPanel>
@@ -192,31 +372,37 @@ export default function ExploreWeb() {
                     activeOpacity={0.82}
                   >
                     <View style={styles.bookmarkTop}>
-                      <Text style={styles.bookmarkStage}>{item.stage}</Text>
-                      {!isPremium && isPremiumGrammarPoint(item) ? (
-                        <Ionicons name="lock-closed-outline" size={14} color={AppSketch.primary} />
-                      ) : null}
+                      <View style={styles.bookmarkTopLeft}>
+                        <Text style={styles.bookmarkStage}>{item.stage}</Text>
+                        {practiced && p ? (
+                          <Text style={styles.bookmarkMetaInline}>
+                            {p.rounds} rounds · {accuracyLabel(p)}
+                          </Text>
+                        ) : (
+                          <Text style={styles.bookmarkMetaInline}>Not practiced yet</Text>
+                        )}
+                      </View>
+                      <View style={styles.bookmarkTopRight}>
+                        {!isPremium && isPremiumGrammarPoint(item) ? (
+                          <Ionicons name="lock-closed-outline" size={14} color={AppSketch.primary} />
+                        ) : null}
+                      </View>
                     </View>
                     <View style={styles.bookmarkBody}>
                       <Text style={styles.bookmarkTitle}>{cardCopy.title}</Text>
-                      {practiced && p ? (
-                        <>
-                          <Text style={styles.bookmarkMeta}>
-                            {p.rounds} rounds - {accuracyLabel(p)}
-                          </Text>
-                          <Text style={styles.bookmarkMeta}>{timeAgo(p.lastPracticed)}</Text>
-                        </>
-                      ) : (
-                        <Text style={styles.bookmarkMeta}>Not practiced yet</Text>
-                      )}
+                      <Text style={styles.bookmarkMeta}>
+                        {practiced && p ? timeAgo(p.lastPracticed) : "Open when you want to revisit it"}
+                      </Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.innerButton}
-                      onPress={() => router.push(`/practice/${item.id}` as any)}
-                      activeOpacity={0.82}
-                    >
-                      <Text style={styles.innerButtonText}>Open lesson</Text>
-                    </TouchableOpacity>
+                    <View style={styles.bookmarkFooter}>
+                      <Text style={styles.bookmarkFooterHint}>
+                        {practiced ? "Return to lesson" : "Start lesson"}
+                      </Text>
+                      <View style={styles.inlineAction}>
+                        <Text style={styles.inlineActionText}>Open lesson</Text>
+                        <Ionicons name="arrow-forward" size={14} color={AppSketch.primary} />
+                      </View>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -231,20 +417,42 @@ export default function ExploreWeb() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 28,
-  },
-  actionGrid: {
-    flexDirection: "row",
     gap: 20,
   },
-  actionPanel: {
+  summaryPanel: {
+    paddingVertical: 18,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 20,
+  },
+  summaryActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  },
+  summaryCopy: {
     flex: 1,
-    minHeight: 180,
+    gap: 6,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: AppSketch.ink,
+  },
+  summaryBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: AppSketch.inkMuted,
   },
   primaryButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
+    minWidth: 190,
+    paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: AppRadius.md,
     borderWidth: 1,
@@ -260,7 +468,8 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
+    minWidth: 170,
+    paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: AppRadius.md,
     borderWidth: 1,
@@ -308,27 +517,36 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 14,
   },
   bookmarkCard: {
     borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 18,
-    gap: 12,
-    minHeight: 260,
+    padding: 16,
+    gap: 10,
+    minHeight: 176,
     ...appShadow("sm"),
   },
   bookmarkBody: {
     flex: 1,
-    gap: 8,
+    gap: 6,
   },
   bookmarkTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
+  },
+  bookmarkTopLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  bookmarkTopRight: {
+    minWidth: 18,
+    alignItems: "flex-end",
+    paddingTop: 1,
   },
   bookmarkStage: {
     fontSize: 12,
@@ -338,29 +556,43 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   bookmarkTitle: {
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 17,
+    lineHeight: 24,
     fontWeight: "700",
     color: AppSketch.ink,
-    letterSpacing: -0.6,
+    letterSpacing: -0.3,
   },
   bookmarkMeta: {
     fontSize: 13,
     color: AppSketch.inkMuted,
   },
-  innerButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
+  bookmarkMetaInline: {
+    fontSize: 12,
+    color: AppSketch.inkMuted,
   },
-  innerButtonText: {
+  bookmarkFooter: {
+    marginTop: "auto",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: AppSketch.borderLight,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  bookmarkFooterHint: {
+    fontSize: 12,
+    color: AppSketch.inkMuted,
+  },
+  inlineAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  inlineActionText: {
     fontSize: 13,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: AppSketch.primary,
   },
   modalOverlay: {
     flex: 1,
@@ -372,41 +604,43 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalCard: {
-    maxWidth: 760,
+    maxWidth: 720,
     width: "100%",
     alignSelf: "center",
     borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 24,
-    gap: 18,
+    paddingHorizontal: 24,
+    paddingVertical: 22,
+    gap: 20,
     ...appShadow("sm"),
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 12,
+    gap: 16,
   },
   modalHeading: {
     flex: 1,
-    gap: 6,
+    gap: 8,
   },
   modalTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
     color: AppSketch.ink,
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
   },
   modalSubtitle: {
-    fontSize: 15,
-    lineHeight: 24,
+    maxWidth: 460,
+    fontSize: 14,
+    lineHeight: 22,
     color: AppSketch.inkMuted,
   },
   modalCloseButton: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: AppRadius.md,
@@ -417,20 +651,24 @@ const styles = StyleSheet.create({
   filterWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
   },
   filterChip: {
-    minWidth: 86,
+    width: 84,
+    minHeight: 62,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.background,
-    gap: 2,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    gap: 4,
   },
   filterChipActive: {
     borderColor: AppSketch.primary,
+    backgroundColor: AppSketch.surface,
   },
   filterChipDisabled: {
     opacity: 0.45,
@@ -446,5 +684,33 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: AppSketch.primary,
+  },
+  modalFooter: {
+    gap: 14,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: AppSketch.borderLight,
+  },
+  modalSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  modalSummaryLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: AppSketch.inkFaint,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  modalSummaryValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: AppSketch.ink,
+  },
+  modalPrimaryButton: {
+    width: "100%",
+    minWidth: 0,
   },
 });

@@ -153,6 +153,7 @@ export default function VowelPracticeWeb() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        widthVariant="wide"
         eyebrow={groupInfo.badge}
         title={`${groupInfo.title} Practice`}
         subtitle="Practice vowel patterns, hear Thai audio, and build confidence with reading drills."

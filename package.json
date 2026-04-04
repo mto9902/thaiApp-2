@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "backfill:lesson-example-romanization": "node ./scripts/backfillGrammarExampleOverrides.mjs",
+    "report:a1-production": "node ./scripts/reportA1ProductionReadiness.mjs",
     "browser:open": "powershell -ExecutionPolicy Bypass -File ./scripts/browser/openAutomationChrome.ps1",
     "browser:gmail:open": "powershell -ExecutionPolicy Bypass -File ./scripts/browser/openAutomationChrome.ps1",
     "browser:gmail:recent": "node ./scripts/browser/getGmailMessages.mjs",

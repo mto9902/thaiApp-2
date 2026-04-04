@@ -142,6 +142,7 @@ export default function GrammarTopicsScreenWeb() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        widthVariant="wide"
         density="compact"
         eyebrow={selectedStage ? selectedStage : selectedLevel ? selectedLevel : "Grammar"}
         title={

@@ -155,6 +155,7 @@ export default function AlphabetPracticeWeb() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        widthVariant="wide"
         eyebrow={groupInfo.badge}
         title={`${groupInfo.title} Practice`}
         subtitle="Practice letter recognition, hear Thai audio, and move through short reading drills."
