@@ -93,6 +93,7 @@ const REVISION_FIELD_LABELS: Record<string, string> = {
   romanization: "Romanization",
   english: "English",
   breakdown: "Breakdown",
+  tones: "Tones",
   difficulty: "Difficulty",
   reviewStatus: "Status",
   reviewAssigneeUserId: "Assignee",
@@ -168,6 +169,120 @@ function compactBreakdownPreview(items: ReviewBreakdownItem[] | null | undefined
   return preview.length > 160 ? `${preview.slice(0, 157)}...` : preview;
 }
 
+function compactTonePreview(items: ReviewBreakdownItem[] | null | undefined) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return "—";
+  }
+
+  const preview = items
+    .map((item) => {
+      const thai = (item.thai ?? "").trim();
+      if (!thai) {
+        return null;
+      }
+      const tones = Array.isArray(item.tones) && item.tones.length > 0
+        ? item.tones.join("/")
+        : "—";
+      return `${thai}: ${tones}`;
+    })
+    .filter(Boolean)
+    .join(" · ");
+
+  if (!preview) {
+    return "—";
+  }
+
+  return preview.length > 180 ? `${preview.slice(0, 177)}...` : preview;
+}
+
+function normalizeBreakdownForRevisionDiff(
+  items: ReviewBreakdownItem[] | null | undefined,
+  options: { includeTones?: boolean } = {},
+) {
+  const { includeTones = true } = options;
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.map((item, index) => ({
+    index,
+    thai: item?.thai ?? "",
+    english: item?.english ?? "",
+    romanization: item?.romanization ?? "",
+    grammar: item?.grammar === true,
+    ...(includeTones
+      ? {
+          tones: Array.isArray(item?.tones) ? item.tones : [],
+        }
+      : {}),
+  }));
+}
+
+function resolveRevisionDisplayFields(revision: ReviewExampleRevision) {
+  const rawFields = Array.isArray(revision.changedFields)
+    ? revision.changedFields
+    : [];
+  const displayFields = rawFields.filter(
+    (field) => field !== "breakdown" && field !== "tones" && field !== "no_changes",
+  );
+
+  const hasSnapshots = Boolean(revision.beforeSnapshot || revision.afterSnapshot);
+
+  if (hasSnapshots) {
+    const beforeBreakdownContent = normalizeBreakdownForRevisionDiff(
+      revision.beforeSnapshot?.breakdown,
+      { includeTones: false },
+    );
+    const afterBreakdownContent = normalizeBreakdownForRevisionDiff(
+      revision.afterSnapshot?.breakdown,
+      { includeTones: false },
+    );
+
+    if (
+      JSON.stringify(beforeBreakdownContent) !==
+      JSON.stringify(afterBreakdownContent)
+    ) {
+      displayFields.push("breakdown");
+    }
+
+    const beforeBreakdownTones = normalizeBreakdownForRevisionDiff(
+      revision.beforeSnapshot?.breakdown,
+      { includeTones: true },
+    ).map((item) => ({
+      index: item.index,
+      thai: item.thai,
+      romanization: item.romanization,
+      tones: item.tones,
+    }));
+    const afterBreakdownTones = normalizeBreakdownForRevisionDiff(
+      revision.afterSnapshot?.breakdown,
+      { includeTones: true },
+    ).map((item) => ({
+      index: item.index,
+      thai: item.thai,
+      romanization: item.romanization,
+      tones: item.tones,
+    }));
+
+    if (
+      JSON.stringify(beforeBreakdownTones) !==
+      JSON.stringify(afterBreakdownTones)
+    ) {
+      displayFields.push("tones");
+    }
+  } else {
+    if (rawFields.includes("breakdown")) {
+      displayFields.push("breakdown");
+    }
+    if (rawFields.includes("tones")) {
+      displayFields.push("tones");
+    }
+  }
+
+  const deduped = Array.from(new Set(displayFields));
+  return deduped.length > 0 ? deduped : ["no_changes"];
+}
+
 function formatRevisionSnapshotValue(
   snapshot: ReviewExampleRevision["beforeSnapshot"] | ReviewExampleRevision["afterSnapshot"],
   field: string,
@@ -180,6 +295,8 @@ function formatRevisionSnapshotValue(
   switch (field) {
     case "breakdown":
       return compactBreakdownPreview(snapshot.breakdown);
+    case "tones":
+      return compactTonePreview(snapshot.breakdown);
     case "reviewAssigneeUserId":
       return snapshot.reviewAssigneeUserId
         ? reviewerLabel(reviewersMap.get(snapshot.reviewAssigneeUserId))
@@ -919,6 +1036,7 @@ export default function GrammarReviewEditorScreen({
           <View style={styles.historyList}>
             {rowHistory.map((revision) => {
               const expanded = expandedRevisionIds.includes(revision.id);
+              const revisionDisplayFields = resolveRevisionDisplayFields(revision);
               return (
                 <View key={revision.id} style={styles.historyCard}>
                   <TouchableOpacity
@@ -951,9 +1069,7 @@ export default function GrammarReviewEditorScreen({
                     </View>
 
                     <View style={styles.historyFieldPillRow}>
-                      {(revision.changedFields.length > 0
-                        ? revision.changedFields
-                        : ["no_changes"]).map((field) => (
+                      {revisionDisplayFields.map((field) => (
                         <View key={`${revision.id}-${field}`} style={styles.historyFieldPill}>
                           <Text style={styles.historyFieldPillText}>
                             {REVISION_FIELD_LABELS[field] ??
@@ -966,9 +1082,7 @@ export default function GrammarReviewEditorScreen({
 
                   {expanded ? (
                     <View style={styles.historyDetails}>
-                      {(revision.changedFields.length > 0
-                        ? revision.changedFields
-                        : ["no_changes"]).map((field) => (
+                      {revisionDisplayFields.map((field) => (
                         <View key={`${revision.id}-${field}-detail`} style={styles.historyFieldRow}>
                           <Text style={styles.historyFieldLabel}>
                             {REVISION_FIELD_LABELS[field] ??
