@@ -8,6 +8,8 @@ import {
   View,
 } from "react-native";
 
+import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
+
 type AuthFeature = {
   eyebrow?: string;
   title: string;
@@ -126,7 +128,7 @@ const styles = StyleSheet.create({
   },
   leftPanelInner: {
     width: "100%",
-    maxWidth: 760,
+    maxWidth: DESKTOP_PAGE_WIDTHS.auth,
     alignSelf: "center",
     gap: 18,
   },

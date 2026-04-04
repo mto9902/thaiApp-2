@@ -10,7 +10,13 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import {
+  AppRadius,
+  AppSketch,
+  AppSpacing,
+  AppTypography,
+  appShadow,
+} from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
@@ -26,7 +32,6 @@ import {
   GrammarProgressData,
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
-import { MUTED_APP_ACCENTS, withAlpha } from "@/src/utils/toneAccent";
 
 type StageSummary = {
   stage: string;
@@ -54,14 +59,23 @@ function percent(correct: number, total: number): number {
   return Math.round((correct / total) * 100);
 }
 
-const LEVEL_ACCENTS = [
-  MUTED_APP_ACCENTS.clay,
-  MUTED_APP_ACCENTS.slate,
-  MUTED_APP_ACCENTS.sage,
-  MUTED_APP_ACCENTS.rose,
-  MUTED_APP_ACCENTS.stone,
-  MUTED_APP_ACCENTS.clay,
-];
+function MetricCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string | number;
+  detail?: string;
+}) {
+  return (
+    <View style={styles.metricCard}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+      {detail ? <Text style={styles.metricDetail}>{detail}</Text> : null}
+    </View>
+  );
+}
 
 export default function GrammarStatsWebScreen() {
   const router = useRouter();
@@ -85,9 +99,9 @@ export default function GrammarStatsWebScreen() {
     })();
   }, []);
 
+  const compactMetrics = width < 1260;
   const stageCardWidth =
-    width >= 1320 ? "31.8%" : width >= 980 ? "48.8%" : "100%";
-  const compactSummary = width < 1180;
+    width >= 1320 ? "31.9%" : width >= 1020 ? "48.8%" : "100%";
 
   const practicedEntries = Object.entries(progress).filter(([, item]) =>
     isGrammarPracticed(item),
@@ -124,10 +138,7 @@ export default function GrammarStatsWebScreen() {
           .filter(isGrammarPracticed);
         const practiced = levelProgress.length;
         const rounds = levelProgress.reduce((sum, item) => sum + item.rounds, 0);
-        const correct = levelProgress.reduce(
-          (sum, item) => sum + item.correct,
-          0,
-        );
+        const correct = levelProgress.reduce((sum, item) => sum + item.correct, 0);
         const attempts = levelProgress.reduce((sum, item) => sum + item.total, 0);
 
         return {
@@ -148,25 +159,26 @@ export default function GrammarStatsWebScreen() {
       <DesktopPage
         eyebrow="Grammar"
         title="Grammar stats"
-        subtitle="See how much grammar you have practiced and where your strongest progress is."
+        subtitle="Track how much grammar you have practiced, where your strongest coverage is, and which units still need attention."
+        density="compact"
         toolbar={
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
             activeOpacity={0.82}
           >
-            <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         }
       >
         {loading ? (
           <DesktopPanel style={styles.loadingPanel}>
-            <ActivityIndicator size="large" color={Sketch.inkMuted} />
+            <ActivityIndicator size="large" color={AppSketch.inkMuted} />
           </DesktopPanel>
         ) : (
           <View style={styles.pageStack}>
-            <View style={[styles.metricStrip, compactSummary && styles.metricStripWrap]}>
+            <View style={[styles.summaryStrip, compactMetrics && styles.summaryStripWrap]}>
               <View style={styles.heroCard}>
                 <Text style={styles.heroLabel}>Topics practiced</Text>
                 <Text style={styles.heroValue}>
@@ -174,32 +186,32 @@ export default function GrammarStatsWebScreen() {
                 </Text>
                 <Text style={styles.heroSubtitle}>active curriculum coverage</Text>
               </View>
-              <View style={styles.statCard}>
-                <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.clay }]}>
-                  {totalRounds}
-                </Text>
-                <Text style={styles.statLabel}>All-time rounds</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={[styles.statValue, { color: MUTED_APP_ACCENTS.sage }]}>
-                  {percent(totalCorrect, totalAttempts)}%
-                </Text>
-                <Text style={styles.statLabel}>All-time accuracy</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.lastLabel}>Last practiced</Text>
-                <Text style={styles.lastValue}>{timeAgo(lastPracticed)}</Text>
-              </View>
+
+              <MetricCard
+                label="All-time rounds"
+                value={totalRounds}
+                detail="completed grammar rounds"
+              />
+              <MetricCard
+                label="All-time accuracy"
+                value={`${percent(totalCorrect, totalAttempts)}%`}
+                detail="across practiced grammar"
+              />
+              <MetricCard
+                label="Last practiced"
+                value={timeAgo(lastPracticed)}
+                detail="most recent grammar activity"
+              />
             </View>
 
             <DesktopPanel>
               <DesktopSectionTitle
                 title="By unit"
-                caption="Each unit shows your coverage, rounds, and accuracy."
+                caption="Each unit shows how much of that stage you have practiced, plus rounds and accuracy."
               />
+
               <View style={styles.grid}>
-                {stageSummaries.map((item, index) => {
-                  const accent = LEVEL_ACCENTS[index % LEVEL_ACCENTS.length];
+                {stageSummaries.map((item) => {
                   const completion =
                     item.total > 0
                       ? Math.round((item.practiced / item.total) * 100)
@@ -208,33 +220,33 @@ export default function GrammarStatsWebScreen() {
                   return (
                     <View
                       key={item.stage}
-                      style={[styles.levelCard, { width: stageCardWidth }]}
+                      style={[styles.stageCard, { width: stageCardWidth }]}
                     >
-                      <View style={styles.levelHeader}>
-                        <Text style={[styles.levelTag, { color: accent }]}>
-                          {item.stage}
-                        </Text>
-                        <Text style={[styles.levelRounds, { color: accent }]}>
-                          {item.rounds} rounds
-                        </Text>
+                      <View style={styles.stageCardTop}>
+                        <Text style={styles.stageTag}>{item.stage}</Text>
+                        <Text style={styles.stageRounds}>{item.rounds} rounds</Text>
                       </View>
-                      <Text style={styles.levelTitle}>{item.title}</Text>
-                      <View style={styles.progressRow}>
-                        <View style={styles.progressTrack}>
+
+                      <Text style={styles.stageTitle}>{item.title}</Text>
+
+                      <View style={styles.stageProgressRow}>
+                        <View style={styles.stageTrack}>
                           <View
                             style={[
-                              styles.progressFill,
-                              { width: `${completion}%`, backgroundColor: accent },
+                              styles.stageFill,
+                              { width: `${completion}%` },
                             ]}
                           />
                         </View>
-                        <Text style={[styles.progressPercent, { color: accent }]}>
-                          {completion}%
-                        </Text>
+                        <Text style={styles.stagePercent}>{completion}%</Text>
                       </View>
-                      <Text style={styles.levelMeta}>
-                        {item.practiced}/{item.total} topics - {item.accuracy}% accuracy
-                      </Text>
+
+                      <View style={styles.stageMetaRow}>
+                        <Text style={styles.stageMeta}>
+                          {item.practiced}/{item.total} topics
+                        </Text>
+                        <Text style={styles.stageMeta}>{item.accuracy}% accuracy</Text>
+                      </View>
                     </View>
                   );
                 })}
@@ -249,7 +261,7 @@ export default function GrammarStatsWebScreen() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 28,
+    gap: 20,
   },
   backButton: {
     flexDirection: "row",
@@ -258,38 +270,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.md,
   },
   backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.ink,
+    ...AppTypography.label,
+    color: AppSketch.ink,
   },
   loadingPanel: {
     minHeight: 220,
     alignItems: "center",
     justifyContent: "center",
   },
-  metricStrip: {
+  summaryStrip: {
     flexDirection: "row",
-    gap: 16,
+    gap: AppSpacing.md,
   },
-  metricStripWrap: {
+  summaryStripWrap: {
     flexWrap: "wrap",
   },
   heroCard: {
-    flex: 1.12,
+    flex: 1.16,
+    minWidth: 260,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: withAlpha(MUTED_APP_ACCENTS.stone, "0B"),
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.lg,
+    backgroundColor: AppSketch.surface,
     padding: 22,
-    gap: 8,
+    gap: 6,
+    ...appShadow("sm"),
   },
   heroLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkMuted,
     letterSpacing: 1.1,
     textTransform: "uppercase",
   },
@@ -297,102 +311,108 @@ const styles = StyleSheet.create({
     fontSize: 42,
     lineHeight: 46,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
     letterSpacing: -1,
   },
   heroSubtitle: {
-    fontSize: 14,
-    color: Sketch.inkMuted,
+    ...AppTypography.bodySmall,
+    color: AppSketch.inkMuted,
   },
-  statCard: {
-    flex: 0.88,
+  metricCard: {
+    flex: 0.92,
+    minWidth: 190,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.lg,
+    backgroundColor: AppSketch.surface,
     padding: 20,
-    gap: 6,
-    minWidth: 220,
+    gap: 4,
+    ...appShadow("sm"),
   },
-  statValue: {
-    fontSize: 32,
-    lineHeight: 36,
-    fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.6,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: Sketch.inkMuted,
-  },
-  lastLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.inkMuted,
-    letterSpacing: 1.1,
+  metricLabel: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.inkMuted,
     textTransform: "uppercase",
+    letterSpacing: 0.9,
   },
-  lastValue: {
-    fontSize: 20,
-    lineHeight: 28,
+  metricValue: {
+    fontSize: 30,
+    lineHeight: 34,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: AppSketch.ink,
+  },
+  metricDetail: {
+    ...AppTypography.caption,
+    color: AppSketch.inkSecondary,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 18,
+    gap: AppSpacing.md,
   },
-  levelCard: {
+  stageCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.lg,
+    backgroundColor: AppSketch.surface,
     padding: 18,
     gap: 12,
   },
-  levelHeader: {
+  stageCardTop: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between",
+    gap: 12,
   },
-  levelTag: {
-    fontSize: 12,
+  stageTag: {
+    ...AppTypography.captionSmall,
+    color: AppSketch.primary,
     fontWeight: "700",
     letterSpacing: 1,
+    textTransform: "uppercase",
   },
-  levelRounds: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  levelTitle: {
-    fontSize: 22,
-    lineHeight: 28,
+  stageRounds: {
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
     fontWeight: "700",
-    color: Sketch.ink,
-    letterSpacing: -0.5,
   },
-  progressRow: {
+  stageTitle: {
+    ...AppTypography.subheading,
+    color: AppSketch.ink,
+    letterSpacing: -0.25,
+  },
+  stageProgressRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  progressTrack: {
+  stageTrack: {
     flex: 1,
-    height: 8,
-    backgroundColor: Sketch.inkFaint,
+    height: 7,
+    backgroundColor: AppSketch.borderLight,
+    borderRadius: AppRadius.full,
+    overflow: "hidden",
   },
-  progressFill: {
+  stageFill: {
     height: "100%",
+    backgroundColor: AppSketch.primary,
+    borderRadius: AppRadius.full,
   },
-  progressPercent: {
-    minWidth: 40,
+  stagePercent: {
+    minWidth: 42,
     textAlign: "right",
-    fontSize: 13,
+    ...AppTypography.caption,
+    color: AppSketch.primary,
     fontWeight: "700",
   },
-  levelMeta: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: Sketch.inkMuted,
+  stageMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  stageMeta: {
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
   },
 });

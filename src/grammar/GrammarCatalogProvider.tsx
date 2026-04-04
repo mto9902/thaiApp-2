@@ -15,7 +15,13 @@ import { GRAMMAR_STAGE_META } from "../data/grammarStages";
 type GrammarPointOverride = Partial<
   Pick<
     GrammarPoint,
-    "title" | "level" | "stage" | "explanation" | "pattern" | "aiPrompt"
+    | "title"
+    | "level"
+    | "stage"
+    | "explanation"
+    | "pattern"
+    | "lessonBlocks"
+    | "aiPrompt"
   >
 > & {
   example?: GrammarPoint["example"];
@@ -52,7 +58,13 @@ function applyOverride(
     level,
     stageOrder: stageMeta.order,
     example: override.example ?? point.example,
-    focus: override.focus ?? point.focus,
+    focus: override.focus
+      ? {
+          ...point.focus,
+          ...override.focus,
+          details: override.focus.details ?? point.focus.details,
+        }
+      : point.focus,
   };
 }
 

@@ -143,6 +143,7 @@ export default function NumbersTrainerWeb() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        widthVariant="wide"
         eyebrow="Numbers trainer"
         title="Practice Thai Numbers"
         subtitle="Practice reading digits, Thai numerals, and bigger number patterns."
@@ -329,12 +330,12 @@ const styles = StyleSheet.create({
   },
   pageGrid: {
     flexDirection: "row",
-    gap: 20,
+    gap: 16,
     alignItems: "flex-start",
   },
   sideColumn: {
-    width: 340,
-    gap: 20,
+    width: 250,
+    gap: 16,
   },
   mainColumn: {
     flex: 1,
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
   audioPanelButtonText: {
     fontSize: 14,
@@ -357,9 +358,9 @@ const styles = StyleSheet.create({
   },
   promptCard: {
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
+    gap: 6,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
     borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: AppSketch.border,
@@ -374,42 +375,43 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   promptPrimary: {
-    fontSize: 56,
-    lineHeight: 62,
+    fontSize: 44,
+    lineHeight: 50,
     fontWeight: "700",
     color: AppSketch.ink,
-    letterSpacing: -1.5,
+    letterSpacing: -1.1,
   },
   promptSecondary: {
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: "700",
     color: AppSketch.primary,
     textAlign: "center",
   },
   promptTertiary: {
     maxWidth: 760,
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: "700",
     color: AppSketch.ink,
     textAlign: "center",
   },
   optionsGrid: {
-    marginTop: 20,
+    marginTop: 16,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 14,
   },
   optionCard: {
     width: "48.8%",
-    minHeight: 118,
+    minHeight: 96,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 18,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 6,
     justifyContent: "center",
   },
   optionCardCorrect: {
@@ -423,21 +425,21 @@ const styles = StyleSheet.create({
     backgroundColor: AppSketch.background,
   },
   optionPrimary: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: "700",
     color: AppSketch.ink,
   },
   optionSecondary: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 18,
     color: AppSketch.inkSecondary,
   },
   skipButton: {
-    marginTop: 18,
+    marginTop: 14,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
@@ -449,10 +451,10 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
   },
   feedbackCard: {
-    marginTop: 20,
+    marginTop: 16,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    padding: 16,
+    padding: 14,
     gap: 4,
     backgroundColor: AppSketch.background,
   },
@@ -473,10 +475,10 @@ const styles = StyleSheet.create({
     color: AppSketch.inkSecondary,
   },
   nextButton: {
-    marginTop: 18,
+    marginTop: 16,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.primary,

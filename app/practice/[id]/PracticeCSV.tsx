@@ -23,6 +23,7 @@ import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
 import { AppRadius } from "@/constants/theme-app";
+import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
@@ -70,6 +71,11 @@ const MATTE_RESULT_COLORS = {
   errorBorder: "#AF7A76",
   errorText: "#4E3231",
   errorSubtext: "#634543",
+} as const;
+
+const CONTROL_PANEL_ACCENT = {
+  border: "#5A6470",
+  fill: "#3F4B58",
 } as const;
 
 type Mode = GrammarExerciseMode;
@@ -156,6 +162,10 @@ interface MatchOption {
   isCorrect: boolean;
 }
 
+type StudyExample = SentenceData & {
+  romanTokens: string[];
+};
+
 type BuilderWord = {
   id: number;
   breakdownIndex: number;
@@ -190,6 +200,7 @@ function buildMatchOptions(
 }
 
 const MAX_FREE_TILES = 4;
+const STUDY_EXAMPLE_COUNT = 3;
 
 function computePrefill(
   breakdown: SentenceData["breakdown"],
@@ -229,6 +240,23 @@ function getBreakdownRomanizations(
   );
 }
 
+function toStudyExample(data: SentenceData): StudyExample {
+  return {
+    ...data,
+    romanTokens: getBreakdownRomanizations(data.romanization, data.breakdown),
+  };
+}
+
+function flattenStudyExampleWords(examples: StudyExample[]) {
+  return examples.flatMap((example) =>
+    example.breakdown.map((word, index) => ({
+      ...word,
+      romanization:
+        example.romanTokens[index] || word.romanization || word.roman || "",
+    })),
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function GrammarExercisesScreen() {
   const { id, mix, source } = useLocalSearchParams<{
@@ -258,11 +286,12 @@ export default function GrammarExercisesScreen() {
   );
 
   const [sentence, setSentence] = useState("");
-  const [romanization, setRomanization] = useState("");
   const [translation, setTranslation] = useState("");
   const [grammarPoint, setGrammarPoint] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<SentenceData["breakdown"]>([]);
   const [romanTokens, setRomanTokens] = useState<string[]>([]);
+  const [studyExamples, setStudyExamples] = useState<StudyExample[]>([]);
+  const [selectedStudyIndex, setSelectedStudyIndex] = useState(0);
 
   const [words, setWords] = useState<BuilderWord[]>([]);
   const [builtSentence, setBuiltSentence] = useState<BuilderWord[]>([]);
@@ -299,6 +328,12 @@ export default function GrammarExercisesScreen() {
   } | null>(null);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const canPlayBreakdownTiles = isDesktopWeb || wordBreakdownTTS;
+  const selectedStudyExample =
+    mode === "breakdown"
+      ? studyExamples[selectedStudyIndex] || studyExamples[0] || null
+      : null;
+  const activeBreakdown = selectedStudyExample?.breakdown || breakdown;
+  const activeRomanTokens = selectedStudyExample?.romanTokens || romanTokens;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   function fadeIn() {
@@ -345,9 +380,10 @@ export default function GrammarExercisesScreen() {
   async function togglePracticeMethod(targetMode: Mode) {
     const currentModes = enabledModesRef.current;
     const enabledCount = getAvailableModes(currentModes).length;
+    const turningOffCurrentMode = currentModes[targetMode] && mode === targetMode;
 
     if (currentModes[targetMode] && enabledCount === 1) {
-      setMethodsGuardMessage("Keep at least one method on.");
+      setMethodsGuardMessage("Turn on another method before turning this one off.");
       return;
     }
 
@@ -364,6 +400,13 @@ export default function GrammarExercisesScreen() {
       const savedModes = await setGrammarExerciseSettings(nextModes);
       enabledModesRef.current = savedModes;
       setEnabledModes(savedModes);
+
+      if (turningOffCurrentMode && !savedModes[targetMode]) {
+        const nextMode = randomMode(savedModes, modeHistoryRef.current);
+        if (nextMode !== mode || !savedModes[mode]) {
+          void fetchRound(nextMode);
+        }
+      }
     } catch (error) {
       console.error("Failed to update practice methods:", error);
       enabledModesRef.current = currentModes;
@@ -459,11 +502,14 @@ export default function GrammarExercisesScreen() {
   function findGrammarById(gid: string) {
     return grammarPoints.find((g) => g.id === gid);
   }
+  function getCurrentMixGrammarId(): string | null {
+    if (mixIdsRef.current.length === 0) return null;
+    return mixIdsRef.current[mixIndexRef.current % mixIdsRef.current.length] ?? null;
+  }
   function grammarObject() {
     if (mixIdsRef.current.length > 0) {
-      const currentId =
-        mixIdsRef.current[mixIndexRef.current % mixIdsRef.current.length];
-      return findGrammarById(currentId) || getRandomGrammar();
+      const currentId = getCurrentMixGrammarId();
+      return currentId ? findGrammarById(currentId) ?? null : null;
     }
     return typeof id === "string"
       ? findGrammarById(id) || getRandomGrammar()
@@ -480,6 +526,41 @@ export default function GrammarExercisesScreen() {
     };
   }
 
+  async function fetchStudyExamples(
+    gid: string,
+    seed?: SentenceData,
+  ): Promise<StudyExample[]> {
+    const examples: StudyExample[] = [];
+    const seenThai = new Set<string>();
+
+    const addExample = (candidate: SentenceData | null | undefined) => {
+      if (!candidate?.thai || seenThai.has(candidate.thai)) return;
+      seenThai.add(candidate.thai);
+      examples.push(toStudyExample(candidate));
+    };
+
+    if (seed) addExample(seed);
+
+    let attempts = 0;
+    const maxAttempts = STUDY_EXAMPLE_COUNT * 4;
+
+    while (examples.length < STUDY_EXAMPLE_COUNT && attempts < maxAttempts) {
+      addExample(await fetchSentence(gid));
+      attempts += 1;
+    }
+
+    const baseExamples = [...examples];
+    while (examples.length < STUDY_EXAMPLE_COUNT && baseExamples.length > 0) {
+      examples.push(baseExamples[examples.length % baseExamples.length]);
+    }
+
+    if (examples.length === 0 && seed) {
+      examples.push(toStudyExample(seed));
+    }
+
+    return examples.slice(0, STUDY_EXAMPLE_COUNT);
+  }
+
   async function trackWords(
     wordsToTrack: SentenceData["breakdown"],
     trigger: string,
@@ -492,7 +573,8 @@ export default function GrammarExercisesScreen() {
     try {
       const enriched = wordsToTrack.map((w, i) => ({
         ...w,
-        romanization: romanTokensForWords?.[i] || "",
+        romanization:
+          romanTokensForWords?.[i] || w.romanization || w.roman || "",
       }));
       await fetch(`${API_BASE}/track-words`, {
         method: "POST",
@@ -545,45 +627,114 @@ export default function GrammarExercisesScreen() {
       setMatchRevealed(false);
       setExpandedMatchOption(null);
 
-      const gobj = grammarObject();
-      const main = await fetchSentence(gobj.id);
+      let gobj: any = null;
+      let main: SentenceData | null = null;
+      let attempts = 0;
+      const maxAttempts = Math.max(1, mixIdsRef.current.length || 1);
+
+      while (attempts < maxAttempts && !main) {
+        const candidateGrammar = grammarObject();
+        const candidateId = candidateGrammar?.id ?? getCurrentMixGrammarId();
+
+        if (!candidateId) {
+          break;
+        }
+
+        try {
+          const fetchedSentence = await fetchSentence(candidateId);
+          gobj = candidateGrammar ?? findGrammarById(candidateId) ?? null;
+          main = fetchedSentence;
+
+          if (mixIdsRef.current.length > 0) {
+            mixIndexRef.current++;
+          }
+        } catch (err) {
+          console.error(
+            `[Round ${round}] skipping unavailable mix grammar "${candidateId}":`,
+            err,
+          );
+
+          if (mixIdsRef.current.length > 0) {
+            mixIdsRef.current = mixIdsRef.current.filter(
+              (grammarId) => grammarId !== candidateId,
+            );
+            mixIndexRef.current =
+              mixIdsRef.current.length > 0
+                ? mixIndexRef.current % mixIdsRef.current.length
+                : 0;
+            attempts += 1;
+            continue;
+          }
+
+          throw err;
+        }
+      }
+
+      if (!gobj || !main) {
+        setMethodsGuardMessage(
+          mixSource === "progress"
+            ? "Some studied grammar topics are not practice-ready yet, so this mix cannot continue."
+            : mixSource === "bookmarks"
+              ? "Some saved lessons are not practice-ready yet, so this mix cannot continue."
+              : "This lesson does not have practice-ready sentences yet.",
+        );
+        return;
+      }
 
       currentGrammarIdRef.current = gobj.id;
-      setSentence(main.thai);
-      setRomanization(main.romanization);
-      setTranslation(main.english);
       setGrammarPoint(gobj);
-      setBreakdown(main.breakdown);
 
-      const perWordRoman = getBreakdownRomanizations(
-        main.romanization,
-        main.breakdown,
-      );
-      setRomanTokens(perWordRoman);
+      if (nextMode === "breakdown") {
+        const examples = await fetchStudyExamples(gobj.id, main);
+        const firstExample = examples[0] || toStudyExample(main);
 
-      const slots = computePrefill(main.breakdown);
-      setPrefilled(slots);
+        setStudyExamples(examples);
+        setSelectedStudyIndex(0);
+        setSentence(firstExample.thai);
+        setTranslation(firstExample.english);
+        setBreakdown(firstExample.breakdown);
+        setRomanTokens(firstExample.romanTokens);
+        setPrefilled([]);
+        setWords([]);
+        setBuiltSentence([]);
+        setMatchOptions([]);
+      } else {
+        setStudyExamples([]);
+        setSelectedStudyIndex(0);
+        setSentence(main.thai);
+        setTranslation(main.english);
+        setBreakdown(main.breakdown);
 
-      const freeIndices: number[] = [];
-      slots.forEach((s, i) => {
-        if (s === null) freeIndices.push(i);
-      });
+        const perWordRoman = getBreakdownRomanizations(
+          main.romanization,
+          main.breakdown,
+        );
+        setRomanTokens(perWordRoman);
 
-      const formatted: BuilderWord[] = freeIndices.map((i, wordIndex) => {
-        const w = main.breakdown[i];
-        return {
-          id: wordIndex,
-          breakdownIndex: i,
-          thai: w.thai,
-          english: w.english.toUpperCase(),
-          roman: perWordRoman[i] ?? "",
-          tones: getBreakdownTones(w),
-          rotation: Math.random() * 6 - 3,
-        };
-      });
+        const slots = computePrefill(main.breakdown);
+        setPrefilled(slots);
 
-      setWords(shuffleNotSame(formatted, formatted));
-      setBuiltSentence([]);
+        const freeIndices: number[] = [];
+        slots.forEach((s, i) => {
+          if (s === null) freeIndices.push(i);
+        });
+
+        const formatted: BuilderWord[] = freeIndices.map((i, wordIndex) => {
+          const w = main.breakdown[i];
+          return {
+            id: wordIndex,
+            breakdownIndex: i,
+            thai: w.thai,
+            english: w.english.toUpperCase(),
+            roman: perWordRoman[i] ?? "",
+            tones: getBreakdownTones(w),
+            rotation: Math.random() * 6 - 3,
+          };
+        });
+
+        setWords(shuffleNotSame(formatted, formatted));
+        setBuiltSentence([]);
+      }
 
       if (nextMode === "matchThai") {
         const extras = await Promise.all([
@@ -597,10 +748,6 @@ export default function GrammarExercisesScreen() {
       setMode(nextMode);
       modeHistoryRef.current = [...modeHistoryRef.current.slice(-1), nextMode];
       fadeIn();
-
-      if (mixIdsRef.current.length > 0) {
-        mixIndexRef.current++;
-      }
     } catch (err) {
       console.error(`[Round ${round}] fetchRound FAILED:`, err);
     } finally {
@@ -706,11 +853,246 @@ export default function GrammarExercisesScreen() {
     : currentModeDisabled
       ? `${GRAMMAR_EXERCISE_LABELS[mode]} will finish this round, then turn off.`
       : null;
-  const availableWords = words.filter(
-    (word) => !builtSentence.some((selected) => selected.id === word.id),
-  );
+  const selectedWordIds = new Set(builtSentence.map((selected) => selected.id));
   const showLessonShortcut =
     (mixSource === "bookmarks" || mixSource === "progress") && Boolean(grammarPoint?.id);
+  const practiceControls = (
+    <View
+      style={[
+        st.methodsPanel,
+        isDesktopWeb ? st.methodsPanelSidebarDesktop : st.methodsPanelDesktop,
+      ]}
+    >
+      <View
+        style={[
+          st.methodsCard,
+          isDesktopWeb && st.methodsCardSidebarDesktop,
+          !isDesktopWeb && st.methodsCardDesktop,
+        ]}
+      >
+        <View
+          style={[
+            st.methodsHeaderRow,
+            isDesktopWeb && st.methodsHeaderRowSidebar,
+          ]}
+        >
+          <View style={st.methodsHeaderText}>
+            <Text style={st.methodsEyebrow}>Practice controls</Text>
+            <Text style={st.methodsSubcopy}>
+              Choose how this lesson appears.
+            </Text>
+          </View>
+          <View
+            style={[
+              st.methodsActions,
+              isDesktopWeb && st.methodsActionsSidebar,
+            ]}
+          >
+            <Text style={st.methodsMeta}>Saved in settings</Text>
+            <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+          </View>
+        </View>
+        <View
+          style={[st.methodsRow, isDesktopWeb && st.methodsRowDesktopSidebar]}
+        >
+          {ALL_MODES.map((practiceMode) => {
+            const isEnabled = enabledModes[practiceMode];
+            const isCurrent = mode === practiceMode;
+            const isCurrentRoundOnly = isCurrent && !isEnabled;
+            const showCurrentBadge = isCurrent;
+
+            return (
+              <TouchableOpacity
+                key={practiceMode}
+                style={[
+                  st.methodChip,
+                  isCurrent && st.methodChipCurrent,
+                  !isEnabled && !isCurrentRoundOnly && st.methodChipDisabled,
+                  isDesktopWeb && st.methodChipSidebarDesktop,
+                ]}
+                onPress={() => void togglePracticeMethod(practiceMode)}
+                activeOpacity={0.85}
+              >
+                <View style={st.methodChipRow}>
+                  <View style={st.methodChipCopy}>
+                    <Text
+                      style={[
+                        st.methodChipLabel,
+                        isCurrent && st.methodChipLabelCurrent,
+                        !isEnabled &&
+                          !isCurrentRoundOnly &&
+                          st.methodChipLabelDisabled,
+                      ]}
+                    >
+                      {GRAMMAR_EXERCISE_LABELS[practiceMode]}
+                    </Text>
+                    {isDesktopWeb && showCurrentBadge ? (
+                      <Text style={st.methodChipMeta}>Current</Text>
+                    ) : null}
+                  </View>
+                  {isDesktopWeb ? (
+                    <View
+                      style={[
+                        st.methodToggle,
+                        isEnabled && st.methodToggleOn,
+                        isCurrentRoundOnly && st.methodTogglePending,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          st.methodToggleKnob,
+                          isEnabled && st.methodToggleKnobOn,
+                          isCurrentRoundOnly && st.methodToggleKnobPending,
+                        ]}
+                      />
+                    </View>
+                  ) : showCurrentBadge ? (
+                    <View
+                      style={[
+                        st.methodBadge,
+                        !isEnabled && st.methodBadgePending,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          st.methodBadgeText,
+                          !isEnabled && st.methodBadgeTextPending,
+                        ]}
+                      >
+                        Current
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {methodsNote ? (
+          <Text
+            style={[
+              st.methodsNote,
+              methodsGuardMessage
+                ? st.methodsNoteWarning
+                : st.methodsNoteMuted,
+            ]}
+          >
+            {methodsNote}
+          </Text>
+        ) : null}
+        <View
+          style={[
+            st.displayRow,
+            isDesktopWeb && st.displayRowSidebarDesktop,
+          ]}
+        >
+          <Text style={st.displayLabel}>Display</Text>
+          {isDesktopWeb ? (
+            <View style={st.displayOptionList}>
+              <TouchableOpacity
+                style={[
+                  st.displayOptionRow,
+                  showRoman && st.displayOptionRowActive,
+                ]}
+                onPress={() => void toggleDisplaySetting("roman")}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    st.displayOptionLabel,
+                    showRoman && st.displayOptionLabelActive,
+                  ]}
+                >
+                  Romanization
+                </Text>
+                  <View
+                    style={[
+                      st.displayOptionCheck,
+                      showRoman && st.displayOptionCheckActive,
+                    ]}
+                  >
+                    {showRoman ? (
+                      <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+                    ) : null}
+                  </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  st.displayOptionRow,
+                  showEnglish && st.displayOptionRowActive,
+                ]}
+                onPress={() => void toggleDisplaySetting("english")}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    st.displayOptionLabel,
+                    showEnglish && st.displayOptionLabelActive,
+                  ]}
+                >
+                  Translation
+                </Text>
+                  <View
+                    style={[
+                      st.displayOptionCheck,
+                      showEnglish && st.displayOptionCheckActive,
+                    ]}
+                  >
+                    {showEnglish ? (
+                      <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+                    ) : null}
+                  </View>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View
+              style={[
+                st.displayChipRow,
+                isDesktopWeb && st.displayChipRowSidebarDesktop,
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  st.displayChip,
+                  showRoman && st.displayChipActive,
+                  isDesktopWeb && st.displayChipSidebarDesktop,
+                ]}
+                onPress={() => void toggleDisplaySetting("roman")}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    st.displayChipText,
+                    showRoman && st.displayChipTextActive,
+                  ]}
+                >
+                  Romanization
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  st.displayChip,
+                  showEnglish && st.displayChipActive,
+                  isDesktopWeb && st.displayChipSidebarDesktop,
+                ]}
+                onPress={() => void toggleDisplaySetting("english")}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    st.displayChipText,
+                    showEnglish && st.displayChipTextActive,
+                  ]}
+                >
+                  Translation
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
 
   if (premiumLoading) {
     return (
@@ -796,128 +1178,14 @@ export default function GrammarExercisesScreen() {
           </View>
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
-            <View style={[st.methodsPanel, isDesktopWeb && st.methodsPanelDesktop]}>
-              <View style={[st.methodsCard, isDesktopWeb && st.methodsCardDesktop]}>
-                <View style={st.methodsHeaderRow}>
-                  <View style={st.methodsHeaderText}>
-                    <Text style={st.methodsEyebrow}>Practice controls</Text>
-                    <Text style={st.methodsSubcopy}>
-                      Choose how this lesson appears.
-                    </Text>
-                  </View>
-                  <View style={st.methodsActions}>
-                    <Text style={st.methodsMeta}>Saved in settings</Text>
-                    <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
-                  </View>
-                </View>
-                <View style={st.methodsRow}>
-                  {ALL_MODES.map((practiceMode) => {
-                    const isEnabled = enabledModes[practiceMode];
-                    const isCurrent = mode === practiceMode;
-                    const isCurrentRoundOnly = isCurrent && !isEnabled;
-                    const showCurrentBadge = isCurrent;
-
-                    return (
-                      <TouchableOpacity
-                        key={practiceMode}
-                        style={[
-                          st.methodChip,
-                          isCurrent && st.methodChipCurrent,
-                          !isEnabled && !isCurrentRoundOnly && st.methodChipDisabled,
-                          isDesktopWeb && st.methodChipDesktop,
-                        ]}
-                        onPress={() => void togglePracticeMethod(practiceMode)}
-                        activeOpacity={0.85}
-                      >
-                        <View style={st.methodChipRow}>
-                          <Text
-                            style={[
-                              st.methodChipLabel,
-                              isCurrent && st.methodChipLabelCurrent,
-                              !isEnabled &&
-                                !isCurrentRoundOnly &&
-                                st.methodChipLabelDisabled,
-                            ]}
-                          >
-                            {GRAMMAR_EXERCISE_LABELS[practiceMode]}
-                          </Text>
-                          {showCurrentBadge ? (
-                            <View
-                              style={[
-                                st.methodBadge,
-                                !isEnabled && st.methodBadgePending,
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  st.methodBadgeText,
-                                  !isEnabled && st.methodBadgeTextPending,
-                                ]}
-                              >
-                                Current
-                              </Text>
-                            </View>
-                          ) : null}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {methodsNote ? (
-                  <Text
-                    style={[
-                      st.methodsNote,
-                      methodsGuardMessage
-                        ? st.methodsNoteWarning
-                        : st.methodsNoteMuted,
-                    ]}
-                  >
-                    {methodsNote}
-                  </Text>
-                ) : null}
-                <View style={[st.displayRow, isDesktopWeb && st.displayRowDesktop]}>
-                  <Text style={st.displayLabel}>Display</Text>
-                  <View style={st.displayChipRow}>
-                    <TouchableOpacity
-                      style={[
-                        st.displayChip,
-                        showRoman && st.displayChipActive,
-                        isDesktopWeb && st.displayChipDesktop,
-                      ]}
-                      onPress={() => void toggleDisplaySetting("roman")}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          st.displayChipText,
-                          showRoman && st.displayChipTextActive,
-                        ]}
-                      >
-                        Romanization
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        st.displayChip,
-                        showEnglish && st.displayChipActive,
-                        isDesktopWeb && st.displayChipDesktop,
-                      ]}
-                      onPress={() => void toggleDisplaySetting("english")}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          st.displayChipText,
-                          showEnglish && st.displayChipTextActive,
-                        ]}
-                      >
-                        Translation
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </View>
+            <View
+              style={[
+                st.practiceWorkspace,
+                isDesktopWeb && st.practiceWorkspaceDesktop,
+              ]}
+            >
+              {!isDesktopWeb ? practiceControls : null}
+              <View style={[isDesktopWeb && st.practiceMainDesktop]}>
 
             {/* Mode header */}
             <View style={[st.modeHeader, isDesktopWeb && st.modeHeaderDesktop]}>
@@ -943,43 +1211,87 @@ export default function GrammarExercisesScreen() {
             {/* ── BREAKDOWN (Study) ── */}
             {mode === "breakdown" && (
               <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
-                <View style={[st.studyCard, isDesktopWeb && st.studyCardDesktop]}>
-                  <TouchableOpacity
-                    style={[st.speakerBtn, isDesktopWeb && st.speakerBtnDesktop]}
-                    onPress={() => void playSentence(sentence, { speed: ttsSpeed })}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name="volume-medium-outline"
-                      size={20}
-                      color={Sketch.inkLight}
-                    />
-                  </TouchableOpacity>
+                <View
+                  style={[
+                    st.studyExamplesGrid,
+                    isDesktopWeb && st.studyExamplesGridDesktop,
+                  ]}
+                >
+                  {studyExamples.map((example, index) => {
+                    const isSelected = index === selectedStudyIndex;
+                    return (
+                      <TouchableOpacity
+                        key={`${example.thai}-${index}`}
+                        style={[
+                          st.studyExampleCard,
+                          isDesktopWeb && st.studyExampleCardDesktop,
+                          isSelected && st.studyExampleCardSelected,
+                        ]}
+                        onPress={() => setSelectedStudyIndex(index)}
+                        activeOpacity={0.85}
+                      >
+                        <View style={st.studyExampleHeader}>
+                          <Text style={st.studyExampleEyebrow}>
+                            Example {index + 1}
+                          </Text>
+                          <TouchableOpacity
+                            style={st.studyExampleAudio}
+                            onPress={() =>
+                              void playSentence(example.thai, {
+                                speed: ttsSpeed,
+                              })
+                            }
+                            activeOpacity={0.75}
+                          >
+                            <Ionicons
+                              name="volume-medium-outline"
+                              size={16}
+                              color={Sketch.inkLight}
+                            />
+                          </TouchableOpacity>
+                        </View>
 
-                  <Text style={[st.studySentence, isDesktopWeb && st.studySentenceDesktop]}>
-                    {breakdown.map((w, i) => (
-                      <Text key={i} style={{ color: getBreakdownTextColor(w) }}>
-                        {w.thai}
-                      </Text>
-                    ))}
-                  </Text>
-                  {showRoman && (
-                    <Text style={[st.studyRoman, isDesktopWeb && st.studyRomanDesktop]}>
-                      {romanization}
-                    </Text>
-                  )}
-                  <View style={st.divider} />
-                  {showEnglish && (
-                    <Text style={[st.studyEnglish, isDesktopWeb && st.studyEnglishDesktop]}>
-                      {translation}
-                    </Text>
-                  )}
+                        <Text style={st.studyExampleSentence}>
+                          {example.breakdown.map((word, wordIndex) => (
+                            <Text
+                              key={wordIndex}
+                              style={{ color: getBreakdownTextColor(word) }}
+                            >
+                              {word.thai}
+                            </Text>
+                          ))}
+                        </Text>
+
+                        {showRoman && example.romanization ? (
+                          <Text style={st.studyExampleRoman}>
+                            {example.romanization}
+                          </Text>
+                        ) : null}
+
+                        {showEnglish && example.english ? (
+                          <Text style={st.studyExampleEnglish}>
+                            {example.english}
+                          </Text>
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
 
-                <View style={st.tileSection}>
-                  <Text style={st.tileSectionLabel}>WORD BREAKDOWN</Text>
+                <View
+                  style={[
+                    st.studyBreakdownCard,
+                    isDesktopWeb && st.studyBreakdownCardDesktop,
+                  ]}
+                >
+                  <View style={st.studyBreakdownHeader}>
+                    <Text style={st.tileSectionLabel}>WORD BREAKDOWN</Text>
+                    <Text style={st.studyBreakdownHint}>
+                      Tap another example above to inspect it.
+                    </Text>
+                  </View>
                   <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
-                    {breakdown.map((w, i) => (
+                    {activeBreakdown.map((w, i) => (
                       canPlayBreakdownTiles ? (
                         <TouchableOpacity
                           key={i}
@@ -994,8 +1306,10 @@ export default function GrammarExercisesScreen() {
                               style={st.toneDots}
                             />
                           </View>
-                          {showRoman && romanTokens[i] ? (
-                            <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
+                          {showRoman && activeRomanTokens[i] ? (
+                            <Text style={st.wordTileRoman}>
+                              {activeRomanTokens[i]}
+                            </Text>
                           ) : null}
                           {showEnglish && (
                             <Text style={st.wordTileEng}>
@@ -1015,8 +1329,10 @@ export default function GrammarExercisesScreen() {
                               style={st.toneDots}
                             />
                           </View>
-                          {showRoman && romanTokens[i] ? (
-                            <Text style={st.wordTileRoman}>{romanTokens[i]}</Text>
+                          {showRoman && activeRomanTokens[i] ? (
+                            <Text style={st.wordTileRoman}>
+                              {activeRomanTokens[i]}
+                            </Text>
                           ) : null}
                           {showEnglish && (
                             <Text style={st.wordTileEng}>
@@ -1032,7 +1348,13 @@ export default function GrammarExercisesScreen() {
                 <TouchableOpacity
                   style={[st.primaryBtn, isDesktopWeb && st.primaryBtnDesktop]}
                   onPress={() => {
-                    trackWords(breakdown, "breakdown-next", romanTokens);
+                    trackWords(
+                      studyExamples.length > 0
+                        ? flattenStudyExampleWords(studyExamples)
+                        : activeBreakdown,
+                      "breakdown-next",
+                      studyExamples.length > 0 ? undefined : activeRomanTokens,
+                    );
                     recordRound(true);
                     fetchRound(
                       randomMode(enabledModesRef.current, modeHistoryRef.current),
@@ -1048,12 +1370,15 @@ export default function GrammarExercisesScreen() {
             {/* ── WORDSCRAPS (Build) ── */}
             {mode === "wordScraps" && (
               <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
-                <View style={[st.promptCard, isDesktopWeb && st.promptCardDesktop]}>
+                <View style={[st.buildCard, isDesktopWeb && st.buildCardDesktop]}>
+                  <View style={[st.promptCard, isDesktopWeb && st.promptCardDesktopCompact]}>
                   <Text style={st.promptLabel}>TRANSLATE INTO THAI</Text>
                   <Text style={st.promptText}>{translation}</Text>
-                </View>
+                  </View>
 
-                <View
+                  <View style={st.buildSection}>
+                    <Text style={st.buildSectionLabel}>Your answer</Text>
+                    <View
                   style={[
                     st.builderZone,
                     isDesktopWeb && st.builderZoneDesktop,
@@ -1076,7 +1401,7 @@ export default function GrammarExercisesScreen() {
                         result === "wrong" && st.builderPlaceholderResultBad,
                       ]}
                     >
-                      Tap words below to build...
+                      Tap words below to build your answer
                     </Text>
                   ) : (
                     <View
@@ -1130,7 +1455,8 @@ export default function GrammarExercisesScreen() {
                       })()}
                     </View>
                   )}
-                </View>
+                    </View>
+                  </View>
 
                 {result !== "" && (
                   <View
@@ -1177,18 +1503,33 @@ export default function GrammarExercisesScreen() {
                 </View>
 
                 {/* wordScraps tiles — same style as breakdown word tiles */}
+                <View style={st.buildDivider} />
+
+                <View style={st.availableWordsHeader}>
+                  <Text style={st.buildSectionLabel}>Available words</Text>
+                  <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+                </View>
+
                 <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
-                  {availableWords.map((word) => (
+                  {words.map((word) => {
+                    const isUsed = selectedWordIds.has(word.id);
+                    return (
                     <TouchableOpacity
                       key={word.id}
-                      style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
+                      style={[
+                        st.wordTile,
+                        isDesktopWeb && st.wordTileDesktop,
+                        isUsed && st.wordTileUsed,
+                      ]}
                       onPress={() => {
+                        if (isUsed) return;
                         handleWordTap(word);
                         if (autoplayTTS) {
                           playBreakdownWord(word.thai);
                         }
                       }}
-                      activeOpacity={0.8}
+                      activeOpacity={isUsed ? 1 : 0.8}
+                      disabled={isUsed}
                     >
                       <View style={st.wordTileHeader}>
                         <Text style={st.wordTileThai}>{word.thai}</Text>
@@ -1201,7 +1542,9 @@ export default function GrammarExercisesScreen() {
                         <Text style={st.wordTileEng}>{word.english}</Text>
                       )}
                     </TouchableOpacity>
-                  ))}
+                    );
+                  })}
+                </View>
                 </View>
 
                 {isDesktopWeb ? (
@@ -1289,12 +1632,20 @@ export default function GrammarExercisesScreen() {
             {/* ── MATCHTHAI ── */}
             {mode === "matchThai" && (
               <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
-                <View style={[st.promptCard, isDesktopWeb && st.promptCardDesktop]}>
+                <View style={[st.matchCard, isDesktopWeb && st.matchCardDesktop]}>
+                  <View
+                    style={[
+                      st.promptCard,
+                      isDesktopWeb && st.promptCardDesktopCompact,
+                    ]}
+                  >
                   <Text style={st.promptLabel}>CHOOSE THE SENTENCE FOR</Text>
                   <Text style={st.promptText}>{translation}</Text>
-                </View>
+                  </View>
 
-                <View style={[st.optionsGrid, isDesktopWeb && st.optionsGridDesktop]}>
+                  <Text style={st.matchHelperText}>Select the correct answer</Text>
+
+                  <View style={[st.matchList, isDesktopWeb && st.matchListDesktop]}>
                   {matchOptions.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
                     const isCorrect = opt.isCorrect;
@@ -1333,16 +1684,7 @@ export default function GrammarExercisesScreen() {
                         : isSelected
                           ? Sketch.cardBg
                           : Sketch.paperDark;
-                    const sentenceTextColor = isCorrect && matchRevealed
-                      ? MATTE_RESULT_COLORS.successText
-                      : isSelected && matchRevealed && !isCorrect
-                        ? MATTE_RESULT_COLORS.errorText
-                        : Sketch.ink;
-                    const sentenceRomanColor = isCorrect && matchRevealed
-                      ? MATTE_RESULT_COLORS.successSubtext
-                      : isSelected && matchRevealed && !isCorrect
-                        ? MATTE_RESULT_COLORS.errorSubtext
-                        : Sketch.inkMuted;
+                    const sentenceRomanColor = Sketch.inkMuted;
 
                     return (
                       <View
@@ -1374,10 +1716,18 @@ export default function GrammarExercisesScreen() {
                               style={[
                                 st.matchSentenceText,
                                 isDesktopWeb && st.matchSentenceTextDesktop,
-                                { color: sentenceTextColor },
                               ]}
                             >
-                              {opt.thai}
+                              {opt.breakdown.length > 0
+                                ? opt.breakdown.map((item, itemIndex) => (
+                                    <Text
+                                      key={`${idx}-${itemIndex}-${item.thai}`}
+                                      style={{ color: getBreakdownTextColor(item) }}
+                                    >
+                                      {item.thai}
+                                    </Text>
+                                  ))
+                                : opt.thai}
                             </Text>
                             {showRoman && opt.romanization ? (
                               <Text
@@ -1391,24 +1741,22 @@ export default function GrammarExercisesScreen() {
                               </Text>
                             ) : null}
                           </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              st.matchExpandButton,
-                              isExpanded && st.matchExpandButtonActive,
-                            ]}
-                            onPress={() => toggleMatchOptionExpanded(idx)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons
-                              name={isExpanded ? "chevron-up" : "chevron-down"}
-                              size={18}
-                                color={
-                                  isExpanded
-                                  ? Sketch.ink
-                                  : Sketch.inkLight
-                               }
-                             />
-                          </TouchableOpacity>
+                          <View style={st.matchOptionControls}>
+                            <TouchableOpacity
+                              style={[
+                                st.matchExpandButton,
+                                isExpanded && st.matchExpandButtonActive,
+                              ]}
+                              onPress={() => toggleMatchOptionExpanded(idx)}
+                              activeOpacity={0.8}
+                            >
+                              <Ionicons
+                                name={isExpanded ? "chevron-up" : "chevron-down"}
+                                size={18}
+                                color={isExpanded ? Sketch.ink : Sketch.inkLight}
+                              />
+                            </TouchableOpacity>
+                          </View>
                         </View>
 
                         {isExpanded && (
@@ -1439,12 +1787,12 @@ export default function GrammarExercisesScreen() {
                                       />
                                     </View>
                                     {showRoman && optRomanTokens[wi] ? (
-                                      <Text style={st.wordTileRoman}>
+                                      <Text style={st.matchWordTileRoman}>
                                         {optRomanTokens[wi]}
                                       </Text>
                                     ) : null}
                                     {showEnglish && (
-                                      <Text style={st.wordTileEng}>
+                                      <Text style={st.matchWordTileEng}>
                                         {w.english.toUpperCase()}
                                       </Text>
                                     )}
@@ -1471,12 +1819,12 @@ export default function GrammarExercisesScreen() {
                                       />
                                     </View>
                                     {showRoman && optRomanTokens[wi] ? (
-                                      <Text style={st.wordTileRoman}>
+                                      <Text style={st.matchWordTileRoman}>
                                         {optRomanTokens[wi]}
                                       </Text>
                                     ) : null}
                                     {showEnglish && (
-                                      <Text style={st.wordTileEng}>
+                                      <Text style={st.matchWordTileEng}>
                                         {w.english.toUpperCase()}
                                       </Text>
                                     )}
@@ -1519,6 +1867,12 @@ export default function GrammarExercisesScreen() {
                   </View>
                 )}
 
+                  <View style={st.availableWordsHeader}>
+                    <View />
+                    <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+                  </View>
+                </View>
+
                 {matchRevealed && result === "wrong" && (
                   <TouchableOpacity
                     style={[
@@ -1560,6 +1914,9 @@ export default function GrammarExercisesScreen() {
                 )}
               </View>
             )}
+              </View>
+              {isDesktopWeb ? practiceControls : null}
+            </View>
           </Animated.View>
         )}
         </View>
@@ -1583,7 +1940,7 @@ const st = StyleSheet.create({
   },
   pageFrameDesktop: {
     width: "100%",
-    maxWidth: 1180,
+    maxWidth: DESKTOP_PAGE_WIDTHS.wide,
     alignSelf: "center",
     paddingHorizontal: 12,
   },
@@ -1597,6 +1954,18 @@ const st = StyleSheet.create({
     backgroundColor: Sketch.inkFaint,
   },
   loadingLabel: { fontSize: 14, color: Sketch.inkMuted, fontWeight: "600" },
+  practiceWorkspace: {
+    width: "100%",
+  },
+  practiceWorkspaceDesktop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 24,
+  },
+  practiceMainDesktop: {
+    flex: 1,
+    minWidth: 0,
+  },
 
   methodsPanel: {
     paddingHorizontal: 20,
@@ -1609,23 +1978,38 @@ const st = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 18,
   },
+  methodsPanelSidebarDesktop: {
+      width: 252,
+      paddingHorizontal: 0,
+      paddingTop: 96,
+      flexShrink: 0,
+    },
   methodsCard: {
     gap: 14,
     backgroundColor: Sketch.cardBg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: "#E6E1D8",
     borderRadius: AppRadius.lg,
     padding: 16,
-    ...sketchShadow(2),
+    ...sketchShadow(1),
   },
   methodsCardDesktop: {
     padding: 18,
+  },
+  methodsCardSidebarDesktop: {
+    gap: 12,
+    padding: 14,
   },
   methodsHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 16,
+  },
+  methodsHeaderRowSidebar: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 10,
   },
   methodsHeaderText: {
     flex: 1,
@@ -1647,6 +2031,11 @@ const st = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  methodsActionsSidebar: {
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 8,
+  },
   methodsMeta: {
     fontSize: 12,
     color: Sketch.inkMuted,
@@ -1657,13 +2046,18 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10,
   },
+  methodsRowDesktopSidebar: {
+    flexDirection: "column",
+    flexWrap: "nowrap",
+    gap: 8,
+  },
   methodChip: {
     flex: 1,
     minHeight: 44,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: "#DED8CE",
     borderRadius: AppRadius.md,
     backgroundColor: Sketch.cardBg,
     justifyContent: "center",
@@ -1671,19 +2065,33 @@ const st = StyleSheet.create({
   methodChipDesktop: {
     cursor: "pointer",
   },
+  methodChipSidebarDesktop: {
+    width: "100%",
+    minHeight: 58,
+    flex: 0,
+  },
   methodChipCurrent: {
-    borderColor: Sketch.accent,
+    borderColor: CONTROL_PANEL_ACCENT.border,
     backgroundColor: Sketch.cardBg,
   },
   methodChipDisabled: {
     backgroundColor: Sketch.paper,
-    borderColor: "#EBEBE8",
+    borderColor: "#E6E1D8",
   },
   methodChipRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+  },
+  methodChipCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  methodChipMeta: {
+    fontSize: 11,
+    color: Sketch.inkMuted,
+    fontWeight: "500",
   },
   methodChipLabel: {
     fontSize: 14,
@@ -1717,6 +2125,40 @@ const st = StyleSheet.create({
   methodBadgeTextPending: {
     color: Sketch.inkMuted,
   },
+  methodToggle: {
+    width: 42,
+    height: 24,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D8D4CE",
+    backgroundColor: "#E7E4DF",
+    paddingHorizontal: 2,
+    justifyContent: "center",
+  },
+  methodToggleOn: {
+    borderColor: CONTROL_PANEL_ACCENT.border,
+    backgroundColor: CONTROL_PANEL_ACCENT.fill,
+    alignItems: "flex-end",
+  },
+  methodTogglePending: {
+    borderColor: "#D8D4CE",
+  },
+  methodToggleKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D8D4CE",
+  },
+  methodToggleKnobOn: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#FFFFFF",
+  },
+  methodToggleKnobPending: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#D8D4CE",
+  },
   methodsNote: {
     fontSize: 12,
     lineHeight: 18,
@@ -1740,6 +2182,12 @@ const st = StyleSheet.create({
   displayRowDesktop: {
     alignItems: "center",
   },
+  displayRowSidebarDesktop: {
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    flexDirection: "column",
+    gap: 10,
+  },
   displayLabel: {
     fontSize: 12,
     fontWeight: "600",
@@ -1751,6 +2199,14 @@ const st = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 8,
     flex: 1,
+  },
+  displayChipRowSidebarDesktop: {
+    width: "100%",
+    flexDirection: "column",
+    flexWrap: "nowrap",
+    justifyContent: "flex-start",
+    gap: 8,
+    flex: 0,
   },
   displayChip: {
     minHeight: 34,
@@ -1764,6 +2220,53 @@ const st = StyleSheet.create({
   },
   displayChipDesktop: {
     cursor: "pointer",
+  },
+  displayChipSidebarDesktop: {
+    width: "100%",
+    minHeight: 38,
+  },
+  displayOptionList: {
+    width: "100%",
+    gap: 10,
+  },
+  displayOptionRow: {
+    width: "100%",
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: "#DED8CE",
+    borderRadius: AppRadius.md,
+    backgroundColor: Sketch.cardBg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  displayOptionRowActive: {
+    borderColor: CONTROL_PANEL_ACCENT.border,
+  },
+  displayOptionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Sketch.ink,
+  },
+  displayOptionLabelActive: {
+    color: Sketch.ink,
+  },
+  displayOptionCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#D8D4CE",
+    backgroundColor: Sketch.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  displayOptionCheckActive: {
+    borderColor: CONTROL_PANEL_ACCENT.border,
+    backgroundColor: CONTROL_PANEL_ACCENT.fill,
   },
   displayChipActive: {
     borderColor: Sketch.accent,
@@ -1926,6 +2429,90 @@ const st = StyleSheet.create({
     lineHeight: 26,
     maxWidth: 780,
   },
+  studyExamplesGrid: {
+    gap: 12,
+  },
+  studyExamplesGridDesktop: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  studyExampleCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.lg,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
+    gap: 10,
+    ...sketchShadow(1),
+  },
+  studyExampleCardDesktop: {
+    flex: 1,
+    minHeight: 188,
+  },
+  studyExampleCardSelected: {
+    borderColor: Sketch.ink,
+  },
+  studyExampleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  studyExampleEyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  studyExampleAudio: {
+    width: 32,
+    height: 32,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Sketch.cardBg,
+  },
+  studyExampleSentence: {
+    fontSize: 24,
+    lineHeight: 33,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  studyExampleRoman: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+  },
+  studyExampleEnglish: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  studyBreakdownCard: {
+    gap: 12,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.lg,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 16,
+    ...sketchShadow(1),
+  },
+  studyBreakdownCardDesktop: {
+    padding: 18,
+  },
+  studyBreakdownHeader: {
+    gap: 4,
+  },
+  studyBreakdownHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Sketch.inkMuted,
+  },
 
   tileSection: { gap: 10 },
   tileSectionLabel: {
@@ -1950,9 +2537,9 @@ const st = StyleSheet.create({
   matchTileRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
     alignSelf: "stretch",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   wordTile: {
     backgroundColor: Sketch.cardBg,
@@ -1972,6 +2559,9 @@ const st = StyleSheet.create({
     paddingHorizontal: 16,
     cursor: "pointer",
   },
+  wordTileUsed: {
+    opacity: 0.38,
+  },
   wordTileHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1989,34 +2579,50 @@ const st = StyleSheet.create({
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     alignItems: "flex-start",
     alignSelf: "flex-start",
-    minWidth: 64,
+    minWidth: 0,
     maxWidth: "100%",
   },
   matchWordTileDesktop: {
-    minWidth: 128,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    minWidth: 92,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     alignItems: "center",
     cursor: "pointer",
   },
   matchWordTileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     alignSelf: "flex-start",
   },
   matchWordTileHeaderDesktop: {
     alignSelf: "center",
   },
   matchWordTileThai: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: Sketch.ink,
     flexShrink: 1,
+  },
+  matchWordTileRoman: {
+    fontSize: 9,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+    opacity: 0.9,
+    marginTop: 3,
+    letterSpacing: 0.2,
+  },
+  matchWordTileEng: {
+    fontSize: 8,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    opacity: 0.9,
+    marginTop: 2,
+    letterSpacing: 0.4,
   },
   wordTileRoman: {
     fontSize: 10,
@@ -2092,6 +2698,13 @@ const st = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
   },
+  promptCardDesktopCompact: {
+    width: "100%",
+    maxWidth: "100%",
+    alignSelf: "stretch",
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+  },
   promptLabel: {
     fontSize: 11,
     fontWeight: "600",
@@ -2104,6 +2717,37 @@ const st = StyleSheet.create({
     fontWeight: "600",
     color: Sketch.ink,
     lineHeight: 24,
+  },
+  buildCard: {
+    gap: 16,
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.lg,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 18,
+    ...sketchShadow(2),
+  },
+  buildCardDesktop: {
+    gap: 18,
+    padding: 18,
+  },
+  buildSection: {
+    gap: 10,
+  },
+  buildSectionLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  availableWordsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  buildDivider: {
+    height: 1,
+    backgroundColor: Sketch.inkFaint,
   },
 
   progressTrack: {
@@ -2133,7 +2777,7 @@ const st = StyleSheet.create({
   },
   builderZoneDesktop: {
     width: "100%",
-    minHeight: 110,
+    minHeight: 72,
   },
   builderCorrect: {
     borderColor: MATTE_RESULT_COLORS.successBorder,
@@ -2219,7 +2863,7 @@ const st = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: 10 },
   actionRowDesktop: {
     width: "100%",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
   ctaRowDesktop: {
     width: "100%",
@@ -2274,56 +2918,85 @@ const st = StyleSheet.create({
   },
   resultLabel: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },
 
-  optionsGrid: { gap: 10 },
-  optionsGridDesktop: {
-    width: "100%",
-    flexDirection: "row",
-    flexWrap: "wrap",
+  matchCard: {
     gap: 16,
-  },
-  optionCard: {
     backgroundColor: Sketch.cardBg,
     borderRadius: AppRadius.lg,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    padding: 12,
-    gap: 8,
+    padding: 18,
     ...sketchShadow(2),
   },
+  matchCardDesktop: {
+    gap: 18,
+    padding: 18,
+  },
+  matchHelperText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  matchList: {
+    gap: 12,
+  },
+  matchListDesktop: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  optionsGrid: { gap: 10 },
+  optionsGridDesktop: {
+    width: "100%",
+    gap: 12,
+  },
+  optionCard: {
+    backgroundColor: Sketch.cardBg,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    padding: 14,
+    gap: 8,
+    ...sketchShadow(1),
+  },
   optionCardDesktop: {
-    width: "49.1%",
+    width: "48.9%",
+    maxWidth: "48.9%",
     minHeight: 0,
     alignSelf: "flex-start",
   },
   matchSentenceButton: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 14,
     borderRadius: AppRadius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     minHeight: 0,
+  },
+  matchSentenceButtonDesktop: {
+    alignItems: "center",
   },
   matchSentenceTapArea: {
     flex: 1,
-    gap: 2,
+    gap: 4,
     justifyContent: "flex-start",
     alignItems: "flex-start",
     alignSelf: "stretch",
   },
   matchSentenceTapAreaDesktop: {
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   matchSentenceText: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "700",
     color: Sketch.ink,
     textAlign: "left",
     width: "100%",
   },
   matchSentenceTextDesktop: {
-    textAlign: "center",
+    textAlign: "left",
   },
   matchSentenceRoman: {
     fontSize: 12,
@@ -2333,7 +3006,13 @@ const st = StyleSheet.create({
     width: "100%",
   },
   matchSentenceRomanDesktop: {
-    textAlign: "center",
+    textAlign: "left",
+  },
+  matchOptionControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 0,
+    alignSelf: "center",
   },
   matchExpandButton: {
     width: 32,
@@ -2350,7 +3029,7 @@ const st = StyleSheet.create({
     backgroundColor: Sketch.cardBg,
   },
   matchDetailsPanel: {
-    paddingTop: 6,
+    paddingTop: 10,
   },
 
 });

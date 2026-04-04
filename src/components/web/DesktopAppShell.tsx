@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppSketch, AppRadius, AppSpacing, AppTypography } from "@/constants/theme-app";
 import KimiIcon from "@/src/components/app/KimiIcon";
+import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 import { canAccessApp } from "@/src/utils/auth";
 
 type NavItem = {
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   },
   topbarInner: {
     width: "100%",
-    maxWidth: 1400,
+    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
     alignSelf: "center",
     minHeight: 72,
     paddingHorizontal: AppSpacing.xl,

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { AppRadius, AppSketch, AppTypography } from "@/constants/theme-app";
+import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 
 type RouteLink = {
   label: string;
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
   },
   content: {
     width: "100%",
-    maxWidth: 1080,
+    maxWidth: DESKTOP_PAGE_WIDTHS.utility,
     alignSelf: "center",
     paddingHorizontal: 24,
     paddingTop: 32,

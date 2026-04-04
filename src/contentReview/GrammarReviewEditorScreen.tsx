@@ -17,11 +17,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 import ToneDots from "@/src/components/ToneDots";
 import { API_BASE } from "@/src/config";
 import {
   buildLessonFormState,
   buildRowEditorState,
+  countBreakdownThaiSyllables,
   createEmptyBreakdownItem,
   formatReviewTimestamp,
   lessonPayloadFromState,
@@ -29,7 +31,9 @@ import {
   REVIEW_STATUS_OPTIONS,
   rowPayloadFromState,
   sanitizeReviewAssigneeUserId,
+  splitBreakdownRomanizationSyllables,
   sortComments,
+  suggestBreakdownTonesFromRomanization,
   TONE_OPTIONS,
   validateBreakdownItems,
   type LessonFormState,
@@ -38,6 +42,7 @@ import {
 import {
   ReviewBreakdownItem,
   ReviewComment,
+  ReviewExampleRevision,
   ReviewGrammarDetailResponse,
   ReviewExampleRow,
   ReviewerProfile,
@@ -53,6 +58,7 @@ type GrammarReviewEditorProps = {
   grammarId: string;
   mode: "review" | "admin";
   initialRowId?: number | null;
+  surface?: "full" | "rowOnly";
 };
 
 function statusTone(status: ReviewStatus) {
@@ -82,6 +88,135 @@ function reviewerById(reviewers: ReviewerUser[]) {
   return new Map(reviewers.map((reviewer) => [reviewer.id, reviewer]));
 }
 
+const REVISION_FIELD_LABELS: Record<string, string> = {
+  thai: "Thai",
+  romanization: "Romanization",
+  english: "English",
+  breakdown: "Breakdown",
+  difficulty: "Difficulty",
+  reviewStatus: "Status",
+  reviewAssigneeUserId: "Assignee",
+  reviewNote: "Review note",
+  sortOrder: "Sort order",
+  toneConfidence: "Tone confidence",
+  toneStatus: "Tone status",
+};
+
+function formatRevisionRelativeTime(value: string | null | undefined) {
+  if (!value) {
+    return "just now";
+  }
+
+  const when = new Date(value).getTime();
+  if (Number.isNaN(when)) {
+    return "just now";
+  }
+
+  const diffMs = Date.now() - when;
+  if (diffMs < 60_000) {
+    return "just now";
+  }
+
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return `${days}d ago`;
+  }
+
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `${months}mo ago`;
+  }
+
+  const years = Math.floor(months / 12);
+  return `${years}y ago`;
+}
+
+function compactBreakdownPreview(items: ReviewBreakdownItem[] | null | undefined) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return "—";
+  }
+
+  const preview = items
+    .map((item) => {
+      const thai = (item.thai ?? "").trim();
+      const english = (item.english ?? "").trim();
+      if (!thai && !english) {
+        return null;
+      }
+      if (!english) {
+        return thai;
+      }
+      return `${thai} (${english})`;
+    })
+    .filter(Boolean)
+    .join(" · ");
+
+  if (!preview) {
+    return "—";
+  }
+
+  return preview.length > 160 ? `${preview.slice(0, 157)}...` : preview;
+}
+
+function formatRevisionSnapshotValue(
+  snapshot: ReviewExampleRevision["beforeSnapshot"] | ReviewExampleRevision["afterSnapshot"],
+  field: string,
+  reviewersMap: Map<number, ReviewerUser>,
+) {
+  if (!snapshot) {
+    return "—";
+  }
+
+  switch (field) {
+    case "breakdown":
+      return compactBreakdownPreview(snapshot.breakdown);
+    case "reviewAssigneeUserId":
+      return snapshot.reviewAssigneeUserId
+        ? reviewerLabel(reviewersMap.get(snapshot.reviewAssigneeUserId))
+        : "Unassigned";
+    case "reviewStatus":
+      return REVIEW_STATUS_LABELS[snapshot.reviewStatus] ?? snapshot.reviewStatus;
+    case "reviewNote": {
+      const note = snapshot.reviewNote?.trim();
+      if (!note) {
+        return "—";
+      }
+      return note.length > 160 ? `${note.slice(0, 157)}...` : note;
+    }
+    case "sortOrder":
+      return String(snapshot.sortOrder);
+    case "toneConfidence":
+      return String(snapshot.toneConfidence);
+    case "toneStatus":
+      return snapshot.toneStatus;
+    case "difficulty":
+      return snapshot.difficulty;
+    case "thai":
+      return snapshot.thai || "—";
+    case "romanization":
+      return snapshot.romanization || "—";
+    case "english":
+      return snapshot.english || "—";
+    default: {
+      const value = (snapshot as Record<string, unknown>)[field];
+      if (value === null || value === undefined || value === "") {
+        return "—";
+      }
+      return String(value);
+    }
+  }
+}
+
 function showReviewAlert(title: string, message: string) {
   if (Platform.OS === "web" && typeof window !== "undefined") {
     window.alert(`${title}\n\n${message}`);
@@ -91,12 +226,33 @@ function showReviewAlert(title: string, message: string) {
   Alert.alert(title, message);
 }
 
+async function readJsonResponseSafe(
+  res: Response,
+  fallbackMessage: string,
+): Promise<any> {
+  const raw = await res.text();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    if (raw.trim().startsWith("<")) {
+      throw new Error(fallbackMessage);
+    }
+    throw new Error("Received an unreadable server response.");
+  }
+}
+
 function BreakdownEditor({
   items,
   onChange,
+  compact = false,
 }: {
   items: ReviewBreakdownItem[];
   onChange: (items: ReviewBreakdownItem[]) => void;
+  compact?: boolean;
 }) {
   function updateItem(index: number, patch: Partial<ReviewBreakdownItem>) {
     onChange(items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
@@ -119,23 +275,78 @@ function BreakdownEditor({
 
   function setToneCount(index: number, count: number) {
     const current = items[index]?.tones ?? [];
+    const suggested = suggestBreakdownTonesFromRomanization(
+      items[index]?.romanization,
+      items[index]?.thai,
+    );
     const nextTones =
       count <= 0
         ? []
-        : Array.from({ length: count }, (_unused, toneIndex) => current[toneIndex] ?? "mid");
+        : Array.from(
+            { length: count },
+            (_unused, toneIndex) =>
+              current[toneIndex] ?? suggested[toneIndex] ?? "mid",
+          );
     updateItem(index, { tones: nextTones });
   }
 
-  function setTone(index: number, toneIndex: number, tone: ReviewBreakdownItem["tones"][number]) {
+  function setTone(
+    index: number,
+    toneIndex: number,
+    tone: NonNullable<ReviewBreakdownItem["tones"]>[number],
+  ) {
     const tones = [...(items[index]?.tones ?? [])];
     tones[toneIndex] = tone;
     updateItem(index, { tones });
   }
 
+  function updateRomanization(index: number, romanization: string) {
+    const currentTones = items[index]?.tones ?? [];
+    const suggestedTones = suggestBreakdownTonesFromRomanization(
+      romanization,
+      items[index]?.thai,
+    );
+
+    updateItem(index, {
+      romanization,
+      ...(currentTones.length === 0 && suggestedTones.length > 0
+        ? { tones: suggestedTones }
+        : {}),
+    });
+  }
+
   return (
-    <View style={styles.breakdownList}>
+    <View style={[styles.breakdownList, compact && styles.breakdownListCompact]}>
       {items.map((item, index) => (
-        <View key={`breakdown-${index}`} style={styles.breakdownCard}>
+        <View
+          key={`breakdown-${index}`}
+          style={[styles.breakdownCard, compact && styles.breakdownCardCompact]}
+        >
+          {(() => {
+            const syllables = splitBreakdownRomanizationSyllables(
+              item.romanization,
+            );
+            const thaiSyllableCount = countBreakdownThaiSyllables(item.thai);
+            const suggestedTones = suggestBreakdownTonesFromRomanization(
+              item.romanization,
+              item.thai,
+            );
+            const toneSignature = (item.tones ?? []).join("|");
+            const suggestedSignature = suggestedTones.join("|");
+            const canApplySuggestion =
+              suggestedTones.length > 0 && toneSignature !== suggestedSignature;
+            const detectedSyllableCount = Math.max(
+              syllables.length,
+              suggestedTones.length,
+              thaiSyllableCount,
+            );
+            const detectionSource =
+              syllables.length <= 1 && thaiSyllableCount > syllables.length
+                ? "Thai spelling"
+                : "Romanization";
+
+            return (
+              <>
           <View style={styles.breakdownHeader}>
             <Text style={styles.breakdownTitle}>Word {index + 1}</Text>
             <View style={styles.breakdownHeaderActions}>
@@ -158,7 +369,34 @@ function BreakdownEditor({
           <TextInput value={item.english} onChangeText={(english) => updateItem(index, { english })} style={styles.input} />
 
           <Text style={styles.fieldLabel}>Romanization</Text>
-          <TextInput value={item.romanization ?? ""} onChangeText={(romanization) => updateItem(index, { romanization })} style={styles.input} />
+          <TextInput
+            value={item.romanization ?? ""}
+            onChangeText={(romanization) =>
+              updateRomanization(index, romanization)
+            }
+            style={styles.input}
+          />
+
+          {detectedSyllableCount > 0 ? (
+            <View style={styles.suggestionRow}>
+              <Text style={styles.suggestionText}>
+                Detected {detectedSyllableCount} syllable
+                {detectedSyllableCount === 1 ? "" : "s"} from {detectionSource}
+                : {suggestedTones.join(" / ")}
+              </Text>
+              {canApplySuggestion ? (
+                <TouchableOpacity
+                  style={styles.miniSecondaryButton}
+                  onPress={() => updateItem(index, { tones: suggestedTones })}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.miniSecondaryButtonText}>
+                    Use suggestion
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
 
           <View style={styles.inlineRow}>
             <Text style={styles.fieldLabel}>Grammar marker</Text>
@@ -185,7 +423,10 @@ function BreakdownEditor({
             <View style={styles.toneEditorWrap}>
               <ToneDots tones={item.tones} style={styles.breakdownToneDots} />
               {item.tones.map((tone, toneIndex) => (
-                <View key={`tone-slot-${toneIndex}`} style={styles.toneSlotBlock}>
+                <View
+                  key={`tone-slot-${toneIndex}`}
+                  style={[styles.toneSlotBlock, compact && styles.toneSlotBlockCompact]}
+                >
                   <Text style={styles.fieldLabel}>Tone {toneIndex + 1}</Text>
                   <View style={styles.inlineChipRow}>
                     {TONE_OPTIONS.map((toneOption) => {
@@ -201,6 +442,9 @@ function BreakdownEditor({
               ))}
             </View>
           ) : null}
+              </>
+            );
+          })()}
         </View>
       ))}
 
@@ -298,10 +542,12 @@ export default function GrammarReviewEditorScreen({
   grammarId,
   mode,
   initialRowId = null,
+  surface = "full",
 }: GrammarReviewEditorProps) {
   const router = useRouter();
   const { grammarById, refresh } = useGrammarCatalog();
   const grammarPoint = grammarById.get(grammarId);
+  const isRowOnly = surface === "rowOnly";
 
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -315,6 +561,10 @@ export default function GrammarReviewEditorScreen({
   const [rowEditorVisible, setRowEditorVisible] = useState(false);
   const [rowDraft, setRowDraft] = useState<RowEditorState | null>(null);
   const [rowCommentDraft, setRowCommentDraft] = useState("");
+  const [rowHistory, setRowHistory] = useState<ReviewExampleRevision[]>([]);
+  const [rowHistoryLoading, setRowHistoryLoading] = useState(false);
+  const [rowHistoryError, setRowHistoryError] = useState<string | null>(null);
+  const [expandedRevisionIds, setExpandedRevisionIds] = useState<number[]>([]);
   const [savingLesson, setSavingLesson] = useState(false);
   const [savingRow, setSavingRow] = useState(false);
   const [savingComment, setSavingComment] = useState(false);
@@ -322,6 +572,50 @@ export default function GrammarReviewEditorScreen({
   const [initialRowHandled, setInitialRowHandled] = useState(false);
 
   const reviewersMap = useMemo(() => reviewerById(reviewers), [reviewers]);
+
+  const loadRowHistory = useCallback(
+    async (exampleId: number | null) => {
+      if (!exampleId) {
+        setRowHistory([]);
+        setRowHistoryError(null);
+        setExpandedRevisionIds([]);
+        return;
+      }
+
+      try {
+        setRowHistoryLoading(true);
+        setRowHistoryError(null);
+        const token = await getAuthToken();
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/review/examples/${exampleId}/history`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await readJsonResponseSafe(
+          res,
+          "History is unavailable on the backend this web app is currently using.",
+        );
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load row history");
+        }
+
+        setRowHistory(Array.isArray(data?.revisions) ? data.revisions : []);
+        setExpandedRevisionIds([]);
+      } catch (err) {
+        console.error("Failed to load row history:", err);
+        setRowHistory([]);
+        setRowHistoryError(
+          err instanceof Error ? err.message : "Failed to load row history",
+        );
+      } finally {
+        setRowHistoryLoading(false);
+      }
+    },
+    [router],
+  );
 
   const loadDetail = useCallback(async () => {
     try {
@@ -407,6 +701,353 @@ export default function GrammarReviewEditorScreen({
     : [];
   const lessonReviewMeta = lessonForm ? statusTone(lessonForm.reviewStatus) : null;
 
+  useEffect(() => {
+    void loadRowHistory(rowDraft?.id ?? null);
+  }, [loadRowHistory, rowDraft?.id]);
+
+  const toggleRevisionExpanded = useCallback((revisionId: number) => {
+    setExpandedRevisionIds((current) =>
+      current.includes(revisionId)
+        ? current.filter((id) => id !== revisionId)
+        : [...current, revisionId],
+    );
+  }, []);
+
+  const rowEditorBody = rowDraft ? (
+    <>
+      <View style={isRowOnly ? styles.rowOnlyFieldGrid : undefined}>
+        <View
+          style={[
+            styles.fieldBlock,
+            isRowOnly ? styles.rowOnlyHalfField : undefined,
+          ]}
+        >
+          <Text style={styles.fieldLabel}>Thai</Text>
+          <TextInput
+            value={rowDraft.thai}
+            onChangeText={(thai) =>
+              setRowDraft((current) => (current ? { ...current, thai } : current))
+            }
+            style={styles.input}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.fieldBlock,
+            isRowOnly ? styles.rowOnlyHalfField : undefined,
+          ]}
+        >
+          <Text style={styles.fieldLabel}>Romanization</Text>
+          <TextInput
+            value={rowDraft.romanization}
+            onChangeText={(romanization) =>
+              setRowDraft((current) =>
+                current ? { ...current, romanization } : current,
+              )
+            }
+            style={styles.input}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.fieldBlock,
+            isRowOnly ? styles.rowOnlyWideField : undefined,
+          ]}
+        >
+          <Text style={styles.fieldLabel}>English</Text>
+          <TextInput
+            value={rowDraft.english}
+            onChangeText={(english) =>
+              setRowDraft((current) =>
+                current ? { ...current, english } : current,
+              )
+            }
+            style={styles.input}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.fieldBlock,
+            isRowOnly ? styles.rowOnlyNarrowField : undefined,
+          ]}
+        >
+          <Text style={styles.fieldLabel}>Sort order</Text>
+          <TextInput
+            value={String(rowDraft.sortOrder)}
+            onChangeText={(value) =>
+              setRowDraft((current) =>
+                current
+                  ? {
+                      ...current,
+                      sortOrder: Number.parseInt(value || "0", 10) || 0,
+                    }
+                  : current,
+              )
+            }
+            style={styles.input}
+            keyboardType="numeric"
+          />
+        </View>
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.fieldLabel}>Difficulty</Text>
+        <View style={styles.inlineChipRow}>
+          {(["easy", "medium", "hard"] as const).map((difficulty) => {
+            const active = rowDraft.difficulty === difficulty;
+            return (
+              <TouchableOpacity
+                key={difficulty}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() =>
+                  setRowDraft((current) =>
+                    current ? { ...current, difficulty } : current,
+                  )
+                }
+                activeOpacity={0.82}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {difficulty}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>Review settings</Text>
+      <View style={isRowOnly ? styles.rowOnlyFieldGrid : undefined}>
+        <View
+          style={[
+            styles.fieldBlock,
+            isRowOnly ? styles.rowOnlyHalfField : undefined,
+          ]}
+        >
+          <Text style={styles.fieldLabel}>Status</Text>
+          <StatusPicker
+            value={rowDraft.reviewStatus}
+            onChange={(reviewStatus) =>
+              setRowDraft((current) =>
+                current ? { ...current, reviewStatus } : current,
+              )
+            }
+          />
+        </View>
+
+        <View
+          style={[
+            styles.fieldBlock,
+            isRowOnly ? styles.rowOnlyHalfField : undefined,
+          ]}
+        >
+          <Text style={styles.fieldLabel}>Assignee</Text>
+          <ReviewerPicker
+            reviewers={reviewers}
+            value={rowDraft.reviewAssigneeUserId}
+            onChange={(reviewAssigneeUserId) =>
+              setRowDraft((current) =>
+                current ? { ...current, reviewAssigneeUserId } : current,
+              )
+            }
+          />
+        </View>
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.fieldLabel}>Review note</Text>
+        <TextInput
+          value={rowDraft.reviewNote}
+          onChangeText={(reviewNote) =>
+            setRowDraft((current) =>
+              current ? { ...current, reviewNote } : current,
+            )
+          }
+          style={[
+            styles.input,
+            styles.textarea,
+            isRowOnly ? styles.rowOnlyNoteInput : undefined,
+          ]}
+          multiline
+          textAlignVertical="top"
+        />
+      </View>
+
+      <Text style={styles.sectionTitle}>Breakdown editor</Text>
+      <BreakdownEditor
+        items={rowDraft.breakdown}
+        onChange={(breakdown) =>
+          setRowDraft((current) => (current ? { ...current, breakdown } : current))
+        }
+        compact={isRowOnly}
+      />
+
+      <CommentsBlock
+        title="Row comments"
+        comments={rowComments}
+        draft={rowCommentDraft}
+        onDraftChange={setRowCommentDraft}
+        onSubmit={() => void submitRowComment()}
+        submitLabel="Add row comment"
+        disabled={!rowDraft.id || savingComment}
+        emptyCopy={rowDraft.id ? "No comments yet." : "Save this row first to enable comments."}
+      />
+
+      <View style={styles.historyWrap}>
+        <Text style={styles.sectionTitle}>History</Text>
+        {!rowDraft.id ? (
+          <Text style={styles.helperText}>
+            Save this row first to start tracking sentence revisions.
+          </Text>
+        ) : rowHistoryLoading ? (
+          <View style={styles.historyLoadingRow}>
+            <ActivityIndicator size="small" color={Sketch.inkMuted} />
+            <Text style={styles.helperText}>Loading history...</Text>
+          </View>
+        ) : rowHistoryError ? (
+          <Text style={styles.helperText}>
+            {rowHistoryError}
+            {Platform.OS === "web"
+              ? " Refresh after the backend route is deployed, or point this web app at your local backend."
+              : ""}
+          </Text>
+        ) : rowHistory.length === 0 ? (
+          <Text style={styles.helperText}>No row history yet.</Text>
+        ) : (
+          <View style={styles.historyList}>
+            {rowHistory.map((revision) => {
+              const expanded = expandedRevisionIds.includes(revision.id);
+              return (
+                <View key={revision.id} style={styles.historyCard}>
+                  <TouchableOpacity
+                    style={styles.historyToggle}
+                    onPress={() => toggleRevisionExpanded(revision.id)}
+                    activeOpacity={0.82}
+                  >
+                    <View style={styles.historyTopRow}>
+                      <View style={styles.historyMeta}>
+                        <Text style={styles.historyTitle}>
+                          {revision.action === "created"
+                            ? "Row created"
+                            : "Row updated"}
+                        </Text>
+                        <Text style={styles.historyMetaText}>
+                          {revision.editor
+                            ? reviewerLabel(revision.editor)
+                            : "Unknown"}
+                          {" · "}
+                          {formatReviewTimestamp(revision.createdAt)}
+                          {" · "}
+                          {formatRevisionRelativeTime(revision.createdAt)}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={expanded ? "chevron-up" : "chevron-down"}
+                        size={18}
+                        color={Sketch.inkMuted}
+                      />
+                    </View>
+
+                    <View style={styles.historyFieldPillRow}>
+                      {(revision.changedFields.length > 0
+                        ? revision.changedFields
+                        : ["no_changes"]).map((field) => (
+                        <View key={`${revision.id}-${field}`} style={styles.historyFieldPill}>
+                          <Text style={styles.historyFieldPillText}>
+                            {REVISION_FIELD_LABELS[field] ??
+                              (field === "no_changes" ? "No field diff" : field)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+
+                  {expanded ? (
+                    <View style={styles.historyDetails}>
+                      {(revision.changedFields.length > 0
+                        ? revision.changedFields
+                        : ["no_changes"]).map((field) => (
+                        <View key={`${revision.id}-${field}-detail`} style={styles.historyFieldRow}>
+                          <Text style={styles.historyFieldLabel}>
+                            {REVISION_FIELD_LABELS[field] ??
+                              (field === "no_changes" ? "Change summary" : field)}
+                          </Text>
+                          <View style={styles.historyBeforeAfter}>
+                            <Text style={styles.historyBeforeText}>
+                              Before:{" "}
+                              {field === "no_changes"
+                                ? "No field diff was recorded."
+                                : formatRevisionSnapshotValue(
+                                    revision.beforeSnapshot,
+                                    field,
+                                    reviewersMap,
+                                  )}
+                            </Text>
+                            <Text style={styles.historyAfterText}>
+                              After:{" "}
+                              {field === "no_changes"
+                                ? "No field diff was recorded."
+                                : formatRevisionSnapshotValue(
+                                    revision.afterSnapshot,
+                                    field,
+                                    reviewersMap,
+                                  )}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.modalActions}>
+        {rowDraft.id ? (
+          <TouchableOpacity
+            style={[styles.dangerButton, savingRow && styles.disabledButton]}
+            onPress={() => void deleteRow()}
+            activeOpacity={0.82}
+            disabled={savingRow}
+          >
+            <Text style={styles.dangerButtonText}>Delete row</Text>
+          </TouchableOpacity>
+        ) : (
+          <View />
+        )}
+
+        <View style={styles.actionsRight}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() =>
+              isRowOnly ? router.back() : setRowEditorVisible(false)
+            }
+            activeOpacity={0.82}
+          >
+            <Text style={styles.secondaryButtonText}>
+              {isRowOnly ? "Back" : "Cancel"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.primaryButton, savingRow && styles.disabledButton]}
+            onPress={() => void saveRow()}
+            activeOpacity={0.82}
+            disabled={savingRow}
+          >
+            <Text style={styles.primaryButtonText}>
+              {savingRow ? "Saving..." : rowDraft.id ? "Save row" : "Create row"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </>
+  ) : null;
+
   const openRowEditor = useCallback((row?: ReviewExampleRow | null) => {
     const nextDraft = buildRowEditorState(row ?? null);
     nextDraft.reviewAssigneeUserId = sanitizeReviewAssigneeUserId(
@@ -418,8 +1059,10 @@ export default function GrammarReviewEditorScreen({
     }
     setRowDraft(nextDraft);
     setRowCommentDraft("");
-    setRowEditorVisible(true);
-  }, [reviewers, rows.length]);
+    if (!isRowOnly) {
+      setRowEditorVisible(true);
+    }
+  }, [isRowOnly, reviewers, rows.length]);
 
   useEffect(() => {
     if (initialRowHandled || !initialRowId || loading || rowEditorVisible) {
@@ -568,10 +1211,23 @@ export default function GrammarReviewEditorScreen({
             : [...current, savedRow];
           return [...next].sort((a, b) => a.sortOrder - b.sortOrder);
         });
+        if (isRowOnly) {
+          const nextDraft = buildRowEditorState(savedRow);
+          nextDraft.reviewAssigneeUserId = sanitizeReviewAssigneeUserId(
+            nextDraft.reviewAssigneeUserId,
+            reviewers,
+          );
+          setRowDraft(nextDraft);
+        }
+        void loadRowHistory(savedRow.id);
       }
 
-      setRowEditorVisible(false);
-      setRowDraft(null);
+      if (isRowOnly) {
+        showReviewAlert("Row saved", "Sentence row was updated.");
+      } else {
+        setRowEditorVisible(false);
+        setRowDraft(null);
+      }
     } catch (err) {
       showReviewAlert("Row save failed", err instanceof Error ? err.message : "Failed to save row");
     } finally {
@@ -600,8 +1256,12 @@ export default function GrammarReviewEditorScreen({
       }
 
       setRows((current) => current.filter((row) => row.id !== rowDraft.id));
-      setRowEditorVisible(false);
-      setRowDraft(null);
+      if (isRowOnly) {
+        router.back();
+      } else {
+        setRowEditorVisible(false);
+        setRowDraft(null);
+      }
     } catch (err) {
       showReviewAlert("Delete failed", err instanceof Error ? err.message : "Failed to delete row");
     } finally {
@@ -660,91 +1320,60 @@ export default function GrammarReviewEditorScreen({
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Modal visible={rowEditorVisible} transparent animationType="fade" onRequestClose={() => setRowEditorVisible(false)}>
-        <View style={styles.overlay}>
-          <Pressable style={styles.backdrop} onPress={() => setRowEditorVisible(false)} />
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{rowDraft?.id ? "Edit sentence row" : "Add sentence row"}</Text>
-              <TouchableOpacity style={styles.iconButton} onPress={() => setRowEditorVisible(false)} activeOpacity={0.82}>
-                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
-              </TouchableOpacity>
+      {!isRowOnly ? (
+        <Modal
+          visible={rowEditorVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setRowEditorVisible(false)}
+        >
+          <View style={styles.overlay}>
+            <Pressable
+              style={styles.backdrop}
+              onPress={() => setRowEditorVisible(false)}
+            />
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {rowDraft?.id ? "Edit sentence row" : "Add sentence row"}
+                </Text>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setRowEditorVisible(false)}
+                  activeOpacity={0.82}
+                >
+                  <Ionicons name="close" size={20} color={Sketch.inkMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {rowDraft ? (
+                <ScrollView
+                  contentContainerStyle={styles.modalBody}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {rowEditorBody}
+                </ScrollView>
+              ) : null}
             </View>
-
-            {rowDraft ? (
-              <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
-                <Text style={styles.fieldLabel}>Thai</Text>
-                <TextInput value={rowDraft.thai} onChangeText={(thai) => setRowDraft((current) => (current ? { ...current, thai } : current))} style={styles.input} />
-
-                <Text style={styles.fieldLabel}>Romanization</Text>
-                <TextInput value={rowDraft.romanization} onChangeText={(romanization) => setRowDraft((current) => (current ? { ...current, romanization } : current))} style={styles.input} />
-
-                <Text style={styles.fieldLabel}>English</Text>
-                <TextInput value={rowDraft.english} onChangeText={(english) => setRowDraft((current) => (current ? { ...current, english } : current))} style={styles.input} />
-
-                <Text style={styles.fieldLabel}>Difficulty</Text>
-                <View style={styles.inlineChipRow}>
-                  {(["easy", "medium", "hard"] as const).map((difficulty) => {
-                    const active = rowDraft.difficulty === difficulty;
-                    return (
-                      <TouchableOpacity key={difficulty} style={[styles.chip, active && styles.chipActive]} onPress={() => setRowDraft((current) => (current ? { ...current, difficulty } : current))} activeOpacity={0.82}>
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{difficulty}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <Text style={styles.fieldLabel}>Sort order</Text>
-                <TextInput value={String(rowDraft.sortOrder)} onChangeText={(value) => setRowDraft((current) => (current ? { ...current, sortOrder: Number.parseInt(value || "0", 10) || 0 } : current))} style={styles.input} keyboardType="numeric" />
-
-                <Text style={styles.sectionTitle}>Review settings</Text>
-                <Text style={styles.fieldLabel}>Status</Text>
-                <StatusPicker value={rowDraft.reviewStatus} onChange={(reviewStatus) => setRowDraft((current) => (current ? { ...current, reviewStatus } : current))} />
-
-                <Text style={styles.fieldLabel}>Assignee</Text>
-                <ReviewerPicker reviewers={reviewers} value={rowDraft.reviewAssigneeUserId} onChange={(reviewAssigneeUserId) => setRowDraft((current) => (current ? { ...current, reviewAssigneeUserId } : current))} />
-
-                <Text style={styles.fieldLabel}>Review note</Text>
-                <TextInput value={rowDraft.reviewNote} onChangeText={(reviewNote) => setRowDraft((current) => (current ? { ...current, reviewNote } : current))} style={[styles.input, styles.textarea]} multiline textAlignVertical="top" />
-
-                <Text style={styles.sectionTitle}>Breakdown editor</Text>
-                <BreakdownEditor items={rowDraft.breakdown} onChange={(breakdown) => setRowDraft((current) => (current ? { ...current, breakdown } : current))} />
-
-                <CommentsBlock title="Row comments" comments={rowComments} draft={rowCommentDraft} onDraftChange={setRowCommentDraft} onSubmit={() => void submitRowComment()} submitLabel="Add row comment" disabled={!rowDraft.id || savingComment} emptyCopy={rowDraft.id ? "No comments yet." : "Save this row first to enable comments."} />
-
-                <View style={styles.modalActions}>
-                  {rowDraft.id ? (
-                    <TouchableOpacity style={[styles.dangerButton, savingRow && styles.disabledButton]} onPress={() => void deleteRow()} activeOpacity={0.82} disabled={savingRow}>
-                      <Text style={styles.dangerButtonText}>Delete row</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View />
-                  )}
-
-                  <View style={styles.actionsRight}>
-                    <TouchableOpacity style={styles.secondaryButton} onPress={() => setRowEditorVisible(false)} activeOpacity={0.82}>
-                      <Text style={styles.secondaryButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.primaryButton, savingRow && styles.disabledButton]} onPress={() => void saveRow()} activeOpacity={0.82} disabled={savingRow}>
-                      <Text style={styles.primaryButtonText}>{savingRow ? "Saving..." : rowDraft.id ? "Save row" : "Create row"}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            ) : null}
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      ) : null}
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconButton} onPress={() => router.back()} activeOpacity={0.82}>
           <Ionicons name="arrow-back" size={22} color={Sketch.ink} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{mode === "admin" ? "Admin Lesson Editor" : "Lesson Review"}</Text>
+          <Text style={styles.headerTitle}>
+            {isRowOnly
+              ? "Sentence Row Editor"
+              : mode === "admin"
+                ? "Admin Lesson Editor"
+                : "Lesson Review"}
+          </Text>
           <Text style={styles.headerSubtitle}>{grammarId}</Text>
         </View>
-        {mode === "admin" ? (
+        {mode === "admin" && !isRowOnly ? (
           <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowAdvancedInfo((current) => !current)} activeOpacity={0.82}>
             <Text style={styles.secondaryButtonText}>{showAdvancedInfo ? "Hide advanced" : "Advanced tools"}</Text>
           </TouchableOpacity>
@@ -760,6 +1389,51 @@ export default function GrammarReviewEditorScreen({
           <Text style={styles.emptyTitle}>Review access required</Text>
           <Text style={styles.helperText}>This account is not marked as an admin or reviewer.</Text>
         </View>
+      ) : isRowOnly ? (
+        rowDraft ? (
+          <ScrollView
+            contentContainerStyle={[styles.scroll, styles.rowOnlyScroll]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.card, styles.rowOnlyCard]}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.headerCenter}>
+                  <Text style={styles.sectionTitle}>Sentence row editor</Text>
+                  <Text style={styles.helperText}>
+                    Focused editor for sentence rows in{" "}
+                    {grammarPoint?.title ?? grammarId}.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={() => router.push(`/admin/grammar/${grammarId}` as any)}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    Open full lesson editor
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {rowEditorBody}
+            </View>
+          </ScrollView>
+        ) : (
+          <View style={styles.centerWrap}>
+            <Text style={styles.emptyTitle}>Sentence row not found</Text>
+            <Text style={styles.helperText}>
+              This row may have been deleted, or the link is out of date.
+            </Text>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push(`/admin/grammar/${grammarId}` as any)}
+              activeOpacity={0.82}
+            >
+              <Text style={styles.secondaryButtonText}>
+                Open full lesson editor
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )
       ) : lessonForm && grammarPoint ? (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {showAdvancedInfo && mode === "admin" ? (
@@ -816,8 +1490,49 @@ export default function GrammarReviewEditorScreen({
             <Text style={styles.fieldLabel}>Pattern</Text>
             <TextInput value={lessonForm.pattern} onChangeText={(pattern) => setLessonForm((current) => (current ? { ...current, pattern } : current))} style={styles.input} />
 
-            <Text style={styles.fieldLabel}>Explanation</Text>
+            <Text style={styles.fieldLabel}>Short explanation</Text>
             <TextInput value={lessonForm.explanation} onChangeText={(explanation) => setLessonForm((current) => (current ? { ...current, explanation } : current))} style={[styles.input, styles.textareaLarge]} multiline textAlignVertical="top" />
+
+            <Text style={styles.sectionTitle}>Lesson guide</Text>
+
+            <Text style={styles.fieldLabel}>Summary</Text>
+            <TextInput
+              value={lessonForm.lessonSummary}
+              onChangeText={(lessonSummary) =>
+                setLessonForm((current) =>
+                  current ? { ...current, lessonSummary } : current,
+                )
+              }
+              style={[styles.input, styles.textarea]}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <Text style={styles.fieldLabel}>Build</Text>
+            <TextInput
+              value={lessonForm.lessonBuild}
+              onChangeText={(lessonBuild) =>
+                setLessonForm((current) =>
+                  current ? { ...current, lessonBuild } : current,
+                )
+              }
+              style={[styles.input, styles.textarea]}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <Text style={styles.fieldLabel}>Use</Text>
+            <TextInput
+              value={lessonForm.lessonUse}
+              onChangeText={(lessonUse) =>
+                setLessonForm((current) =>
+                  current ? { ...current, lessonUse } : current,
+                )
+              }
+              style={[styles.input, styles.textarea]}
+              multiline
+              textAlignVertical="top"
+            />
 
             <Text style={styles.fieldLabel}>AI prompt</Text>
             <TextInput value={lessonForm.aiPrompt} onChangeText={(aiPrompt) => setLessonForm((current) => (current ? { ...current, aiPrompt } : current))} style={[styles.input, styles.textarea]} multiline textAlignVertical="top" />
@@ -905,14 +1620,46 @@ export default function GrammarReviewEditorScreen({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Sketch.paper },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    paddingBottom: 14,
+  },
   headerCenter: { flex: 1, gap: 2 },
   headerTitle: { fontSize: 20, fontWeight: "700", color: Sketch.ink },
   headerSubtitle: { fontSize: 12, color: Sketch.inkMuted },
   iconButton: { minWidth: 40, height: 40, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.cardBg },
-  centerWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 8 },
-  scroll: { paddingHorizontal: 20, paddingBottom: 40, gap: 14 },
+  centerWrap: {
+    flex: 1,
+    width: "100%",
+    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  scroll: {
+    width: "100%",
+    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  rowOnlyScroll: {
+    maxWidth: DESKTOP_PAGE_WIDTHS.utility,
+    paddingHorizontal: 18,
+    gap: 10,
+  },
   card: { borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.cardBg, padding: 16, gap: 12 },
+  rowOnlyCard: { padding: 14, gap: 10 },
   metaText: { fontSize: 12, color: Sketch.inkMuted },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: Sketch.ink },
@@ -933,6 +1680,17 @@ const styles = StyleSheet.create({
   dangerButton: { borderWidth: 1, borderColor: "#D9B5AF", backgroundColor: "#FCF2F1", paddingHorizontal: 14, paddingVertical: 12, alignItems: "center", justifyContent: "center" },
   dangerButtonText: { fontSize: 13, fontWeight: "700", color: Sketch.red },
   disabledButton: { opacity: 0.6 },
+  fieldBlock: { gap: 8 },
+  rowOnlyFieldGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  rowOnlyHalfField: { width: "48.8%" },
+  rowOnlyWideField: { width: "72%" },
+  rowOnlyNarrowField: { width: "26%" },
+  rowOnlyNoteInput: { minHeight: 64 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1 },
   statusPillText: { fontSize: 12, fontWeight: "700" },
   helperText: { fontSize: 14, lineHeight: 22, color: Sketch.inkMuted },
@@ -951,16 +1709,72 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: "700", color: Sketch.ink },
   modalBody: { padding: 16, gap: 12 },
   breakdownList: { gap: 12 },
+  breakdownListCompact: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start" },
   breakdownCard: { borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.paperDark, padding: 12, gap: 10 },
+  breakdownCardCompact: { width: "48.8%", padding: 10, gap: 8 },
   breakdownHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
   breakdownTitle: { fontSize: 14, fontWeight: "700", color: Sketch.ink },
   breakdownHeaderActions: { flexDirection: "row", gap: 6 },
   miniButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.cardBg },
   miniButtonDanger: { borderColor: "#E4C4BF", backgroundColor: "#FCF2F1" },
+  suggestionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" },
+  suggestionText: { flex: 1, minWidth: 180, fontSize: 12, lineHeight: 18, color: Sketch.inkMuted },
+  miniSecondaryButton: { paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.cardBg, alignItems: "center", justifyContent: "center" },
+  miniSecondaryButtonText: { fontSize: 12, fontWeight: "700", color: Sketch.ink },
   toneEditorWrap: { gap: 10 },
   breakdownToneDots: { marginTop: 2 },
   toneSlotBlock: { gap: 8 },
+  toneSlotBlockCompact: { gap: 6 },
   commentsWrap: { gap: 10 },
+  historyWrap: { gap: 10 },
+  historyLoadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  historyList: { gap: 8 },
+  historyCard: {
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paperDark,
+  },
+  historyToggle: { padding: 10, gap: 8 },
+  historyTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  historyMeta: { flex: 1, gap: 2 },
+  historyTitle: { fontSize: 13, fontWeight: "700", color: Sketch.ink },
+  historyMetaText: { fontSize: 12, color: Sketch.inkMuted },
+  historyFieldPillRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  historyFieldPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.cardBg,
+  },
+  historyFieldPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+  },
+  historyDetails: {
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  historyFieldRow: { gap: 4 },
+  historyFieldLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+  },
+  historyBeforeAfter: { gap: 4 },
+  historyBeforeText: { fontSize: 12, lineHeight: 18, color: Sketch.inkMuted },
+  historyAfterText: { fontSize: 12, lineHeight: 18, color: Sketch.ink },
   commentCard: { borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.paperDark, padding: 12, gap: 6 },
   commentAuthor: { fontSize: 12, fontWeight: "700", color: Sketch.ink },
   commentBody: { fontSize: 14, lineHeight: 21, color: Sketch.ink },

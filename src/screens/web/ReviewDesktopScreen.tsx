@@ -348,31 +348,12 @@ export default function ReviewWebScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
+        widthVariant="wide"
         density="compact"
         scrollRef={scrollRef}
         eyebrow="Vocabulary"
         title="Review"
         subtitle="Review vocabulary, hear Thai audio, and keep your memory strong with spaced repetition."
-        toolbar={
-          <View style={styles.toolbar}>
-            <TouchableOpacity
-              style={styles.toolbarButton}
-              onPress={() => router.back()}
-              activeOpacity={0.82}
-            >
-              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
-              <Text style={styles.toolbarButtonText}>Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.toolbarButton}
-              onPress={() => router.push("/settings" as any)}
-              activeOpacity={0.82}
-            >
-              <Ionicons name="settings-outline" size={18} color={AppSketch.ink} />
-              <Text style={styles.toolbarButtonText}>Settings</Text>
-            </TouchableOpacity>
-          </View>
-        }
       >
         {loading ? (
           <DesktopPanel style={styles.statePanel}>
@@ -649,26 +630,6 @@ export default function ReviewWebScreen() {
 }
 
 const styles = StyleSheet.create({
-  toolbar: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  toolbarButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
-  },
-  toolbarButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: AppSketch.ink,
-  },
   statePanel: {
     minHeight: 280,
     alignItems: "center",
@@ -690,19 +651,19 @@ const styles = StyleSheet.create({
   },
   mainGrid: {
     flexDirection: "row",
-    gap: 20,
+    gap: 16,
     alignItems: "flex-start",
   },
   mainColumn: {
     flex: 1.2,
-    gap: 20,
+    gap: 16,
   },
   sideColumn: {
-    width: 320,
-    gap: 20,
+    width: 300,
+    gap: 16,
   },
   cardShell: {
-    gap: 18,
+    gap: 14,
   },
   cardTop: {
     flexDirection: "row",
@@ -735,26 +696,27 @@ const styles = StyleSheet.create({
     borderRadius: AppRadius.md,
   },
   flashcard: {
-    minHeight: 220,
+    minHeight: 188,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
     borderRadius: AppRadius.lg,
   },
   thaiText: {
-    fontSize: 46,
-    lineHeight: 54,
+    fontSize: 40,
+    lineHeight: 46,
     fontWeight: "700",
     color: AppSketch.ink,
     textAlign: "center",
   },
   romanText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     color: AppSketch.inkMuted,
     textAlign: "center",
   },
@@ -766,7 +728,7 @@ const styles = StyleSheet.create({
   answerArea: {
     width: "100%",
     alignItems: "center",
-    gap: 18,
+    gap: 14,
   },
   answerDivider: {
     width: "100%",
@@ -774,8 +736,8 @@ const styles = StyleSheet.create({
     backgroundColor: AppSketch.border,
   },
   englishText: {
-    fontSize: 30,
-    lineHeight: 38,
+    fontSize: 26,
+    lineHeight: 34,
     fontWeight: "600",
     color: AppSketch.ink,
     textAlign: "center",
@@ -799,8 +761,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   inlineRatingSection: {
-    gap: 14,
-    paddingTop: 8,
+    gap: 12,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: AppSketch.border,
   },
@@ -824,37 +786,38 @@ const styles = StyleSheet.create({
   },
   rateButton: {
     width: "48.9%",
-    minHeight: 88,
+    minHeight: 74,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 4,
     borderWidth: 1,
     borderRadius: AppRadius.md,
     backgroundColor: AppSketch.surface,
   },
   rateLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
   },
   rateInterval: {
     fontSize: 12,
   },
   queueStack: {
-    gap: 12,
+    gap: 10,
   },
   queueCard: {
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.background,
-    padding: 16,
-    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 2,
   },
   queueValue: {
-    fontSize: 28,
-    lineHeight: 32,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: "700",
   },
   queueLabel: {
@@ -862,11 +825,11 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
   },
   preferenceList: {
-    gap: 8,
+    gap: 6,
   },
   preferenceItem: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 20,
     color: AppSketch.ink,
   },
   summaryGrid: {

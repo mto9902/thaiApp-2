@@ -363,6 +363,23 @@ export default function GrammarDetail() {
   }
 
   const explanation = grammar.explanation || "No explanation provided yet.";
+  const lessonSections = [
+    {
+      id: "summary",
+      label: "SUMMARY",
+      text: grammar.lessonBlocks?.summary?.trim() || "",
+    },
+    {
+      id: "build",
+      label: "BUILD",
+      text: grammar.lessonBlocks?.build?.trim() || "",
+    },
+    {
+      id: "use",
+      label: "USE",
+      text: grammar.lessonBlocks?.use?.trim() || "",
+    },
+  ].filter((section) => section.text.length > 0);
   const pattern = grammar.pattern || "PATTERN + HERE";
   const example = previewExample
     ? {
@@ -394,6 +411,16 @@ export default function GrammarDetail() {
     example.breakdown,
     exampleRomanTokens,
   );
+  const focusDetails =
+    grammar.focus.details?.length > 0
+      ? grammar.focus.details
+      : [
+          {
+            particle: grammar.focus.particle,
+            romanization: grammar.focus.romanization,
+            meaning: grammar.focus.meaning,
+          },
+        ];
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
@@ -425,7 +452,24 @@ export default function GrammarDetail() {
                 <Text style={styles.keyFormText}>{keyForms.join(" / ")}</Text>
               </View>
             ) : null}
-            <Text style={styles.explanation}>{explanation}</Text>
+            {lessonSections.length > 0 ? (
+              <View style={styles.lessonSectionList}>
+                {lessonSections.map((section, index) => (
+                  <View
+                    key={section.id}
+                    style={[
+                      styles.lessonSection,
+                      index > 0 && styles.lessonSectionDivider,
+                    ]}
+                  >
+                    <Text style={styles.lessonSectionLabel}>{section.label}</Text>
+                    <Text style={styles.explanation}>{section.text}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.explanation}>{explanation}</Text>
+            )}
           </View>
         </View>
 
@@ -466,6 +510,29 @@ export default function GrammarDetail() {
                 </Text>
               </TouchableOpacity>
             )}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>FOCUS</Text>
+          <View style={styles.card}>
+            <View style={styles.focusDetailList}>
+              {focusDetails.map((detail, index) => (
+                <View
+                  key={`${detail.particle}-${index}`}
+                  style={[
+                    styles.focusDetailItem,
+                    index > 0 && styles.focusDetailItemDivider,
+                  ]}
+                >
+                  <Text style={styles.focusDetailLead}>
+                    {detail.particle}
+                    {detail.romanization ? ` (${detail.romanization})` : ""}
+                  </Text>
+                  <Text style={styles.explanation}>{detail.meaning}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -639,6 +706,40 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     lineHeight: 24,
     color: Sketch.ink,
+  },
+  lessonSectionList: {
+    gap: 14,
+  },
+  lessonSection: {
+    gap: 6,
+  },
+  lessonSectionDivider: {
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+  },
+  lessonSectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    letterSpacing: 1,
+  },
+  focusDetailList: {
+    gap: 12,
+  },
+  focusDetailItem: {
+    gap: 6,
+  },
+  focusDetailItemDivider: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Sketch.inkFaint,
+  },
+  focusDetailLead: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Sketch.ink,
+    lineHeight: 24,
   },
   keyFormBlock: {
     marginBottom: 14,

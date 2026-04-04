@@ -7,35 +7,26 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
-import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 
 function EntryCard({
   eyebrow,
   title,
   subtitle,
   footer,
-  onPlay,
   onPress,
 }: {
   eyebrow: string;
   title: string;
   subtitle: string;
   footer: string;
-  onPlay: () => void;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.entryCard} onPress={onPress} activeOpacity={0.82}>
-      <TouchableOpacity
-        style={styles.speakerButton}
-        onPress={(event) => {
-          event.stopPropagation();
-          onPlay();
-        }}
-        activeOpacity={0.82}
-      >
-        <Text style={styles.speakerButtonText}>Play</Text>
-      </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.entryCard}
+      onPress={onPress}
+      activeOpacity={0.82}
+    >
       <Text style={styles.entryEyebrow}>{eyebrow}</Text>
       <Text style={styles.entryTitle}>{title}</Text>
       <Text style={styles.entrySubtitle}>{subtitle}</Text>
@@ -49,7 +40,6 @@ function EntryCard({
 
 export default function AlphabetWeb() {
   const router = useRouter();
-  const { playSentence } = useSentenceAudio();
 
   return (
     <>
@@ -59,7 +49,11 @@ export default function AlphabetWeb() {
         title="Thai sound system"
         subtitle="Start with consonants and vowels, then move into reading practice."
         toolbar={
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.82}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.82}
+          >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         }
@@ -75,7 +69,6 @@ export default function AlphabetWeb() {
               title="Consonants"
               subtitle="Learn the four consonant classes and recognize their core sounds."
               footer="Four groups"
-              onPlay={() => void playSentence("พยัญชนะ", { speed: "slow" })}
               onPress={() => router.push("/alphabet/consonants" as any)}
             />
             <EntryCard
@@ -83,17 +76,13 @@ export default function AlphabetWeb() {
               title="Vowels"
               subtitle="Study vowel placement around the consonant and how each pattern sounds."
               footer="Six groups"
-              onPlay={() => void playSentence("สระ", { speed: "slow" })}
               onPress={() => router.push("/vowels/" as any)}
             />
-          </View>
-          <View style={styles.trainerRow}>
             <EntryCard
               eyebrow="Custom batch"
               title="Alphabet Trainer"
               subtitle="Mix consonants and vowels into a focused reading batch and practice real word shapes."
               footer="Reading practice"
-              onPlay={() => void playSentence("ฝึกอ่าน", { speed: "slow" })}
               onPress={() => router.push("/trainer" as any)}
             />
           </View>
@@ -119,10 +108,8 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: "row",
-    gap: 20,
-  },
-  trainerRow: {
-    marginTop: 20,
+    alignItems: "stretch",
+    gap: 18,
   },
   entryCard: {
     flex: 1,
@@ -130,24 +117,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 20,
-    gap: 12,
-    minHeight: 260,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    gap: 10,
+    minHeight: 220,
     ...appShadow("sm"),
-  },
-  speakerButton: {
-    alignSelf: "flex-start",
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  speakerButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: AppSketch.ink,
   },
   entryEyebrow: {
     fontSize: 12,
@@ -157,15 +131,15 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   entryTitle: {
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 28,
+    lineHeight: 32,
     fontWeight: "700",
     color: AppSketch.ink,
-    letterSpacing: -0.8,
+    letterSpacing: -0.5,
   },
   entrySubtitle: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 22,
     color: AppSketch.inkSecondary,
   },
   entryFooter: {

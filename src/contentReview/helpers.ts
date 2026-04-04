@@ -1,4 +1,5 @@
 import { GrammarPoint } from "@/src/data/grammar";
+import type { LessonBlocks } from "@/src/data/lessonBlocks";
 import { ToneName } from "@/src/utils/toneAccent";
 
 import {
@@ -34,12 +35,38 @@ export const TONE_OPTIONS: ToneName[] = [
   "rising",
 ];
 
+const EXPLICIT_ROMAN_TONE_MARKS = new Map<string, ToneName>([
+  ["\u0300", "low"],
+  ["\u0301", "high"],
+  ["\u0302", "falling"],
+  ["\u030C", "rising"],
+]);
+const LEADING_THAI_VOWELS = new Set(["เ", "แ", "โ", "ใ", "ไ"]);
+const DEPENDENT_THAI_VOWELS = new Set([
+  "ะ",
+  "ั",
+  "า",
+  "ำ",
+  "ิ",
+  "ี",
+  "ึ",
+  "ื",
+  "ุ",
+  "ู",
+  "ฤ",
+  "ฦ",
+  "ๅ",
+]);
+
 export type LessonFormState = {
   title: string;
   level: string;
   stage: string;
   explanation: string;
   pattern: string;
+  lessonSummary: string;
+  lessonBuild: string;
+  lessonUse: string;
   aiPrompt: string;
   focusParticle: string;
   focusMeaning: string;
@@ -75,11 +102,90 @@ export function createEmptyBreakdownItem(): ReviewBreakdownItem {
   };
 }
 
+export function splitBreakdownRomanizationSyllables(
+  romanization?: string | null,
+) {
+  return String(romanization ?? "")
+    .trim()
+    .split(/[\s/-]+/u)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function stripThaiToneMarks(word: string) {
+  return word.replace(/[\u0E48\u0E49\u0E4A\u0E4B]/gu, "");
+}
+
+function stripThaiSilentMarkers(word: string) {
+  return word.replace(/[\u0E01-\u0E2E]\u0E4C/gu, "").replace(/\u0E4C/gu, "");
+}
+
+export function countBreakdownThaiSyllables(thai?: string | null) {
+  const chars = Array.from(
+    stripThaiToneMarks(stripThaiSilentMarkers(String(thai ?? "").trim())),
+  );
+
+  let count = 0;
+
+  for (let index = 0; index < chars.length; index += 1) {
+    const char = chars[index];
+
+    if (LEADING_THAI_VOWELS.has(char)) {
+      count += 1;
+      continue;
+    }
+
+    if (DEPENDENT_THAI_VOWELS.has(char)) {
+      const previous = chars[index - 1];
+      if (!previous || !LEADING_THAI_VOWELS.has(previous)) {
+        count += 1;
+      }
+    }
+  }
+
+  return count;
+}
+
+export function suggestBreakdownTonesFromRomanization(
+  romanization?: string | null,
+  thai?: string | null,
+): ToneName[] {
+  const romanSyllables = splitBreakdownRomanizationSyllables(romanization);
+  const thaiSyllableCount = countBreakdownThaiSyllables(thai);
+  const shouldUseThaiFallback =
+    romanSyllables.length <= 1 && thaiSyllableCount > romanSyllables.length;
+
+  const sourceSyllables = shouldUseThaiFallback
+    ? Array.from({ length: Math.min(thaiSyllableCount, 4) }, () => "")
+    : romanSyllables.slice(0, 4);
+
+  return sourceSyllables
+    .slice(0, 4)
+    .map((syllable) => {
+      const normalized = syllable.normalize("NFD");
+      for (const [mark, tone] of EXPLICIT_ROMAN_TONE_MARKS.entries()) {
+        if (normalized.includes(mark)) {
+          return tone;
+        }
+      }
+      return "mid";
+    });
+}
+
 export function buildLessonFormState(
   point: GrammarPoint,
   lesson: ReviewLessonOverride | null,
 ): LessonFormState {
-  const source = lesson?.override ?? point;
+  const source = lesson?.override
+    ? {
+        ...point,
+        ...lesson.override,
+        example: lesson.override.example ?? point.example,
+        focus: lesson.override.focus ?? point.focus,
+        lessonBlocks: lesson.override.lessonBlocks ?? point.lessonBlocks,
+      }
+    : point;
+  const lessonBlocks = source.lessonBlocks ?? point.lessonBlocks;
 
   return {
     title: source.title ?? point.title,
@@ -87,6 +193,9 @@ export function buildLessonFormState(
     stage: source.stage ?? point.stage,
     explanation: source.explanation ?? point.explanation,
     pattern: source.pattern ?? point.pattern,
+    lessonSummary: lessonBlocks?.summary ?? source.explanation ?? point.explanation,
+    lessonBuild: lessonBlocks?.build ?? "",
+    lessonUse: lessonBlocks?.use ?? "",
     aiPrompt: source.aiPrompt ?? point.aiPrompt ?? "",
     focusParticle: source.focus?.particle ?? point.focus.particle,
     focusMeaning: source.focus?.meaning ?? point.focus.meaning,
@@ -143,6 +252,11 @@ export function cloneBreakdownItem(item: ReviewBreakdownItem): ReviewBreakdownIt
 
 export function lessonPayloadFromState(state: LessonFormState) {
   const exampleBreakdown = sanitizeBreakdownItems(state.exampleBreakdown);
+  const lessonBlocks = sanitizeLessonBlocks({
+    summary: state.lessonSummary,
+    build: state.lessonBuild,
+    use: state.lessonUse,
+  });
 
   return {
     override: {
@@ -151,6 +265,7 @@ export function lessonPayloadFromState(state: LessonFormState) {
       stage: state.stage,
       explanation: state.explanation,
       pattern: state.pattern,
+      lessonBlocks,
       aiPrompt: state.aiPrompt || undefined,
       example: {
         thai: state.exampleThai,
@@ -237,6 +352,22 @@ export function cleanBreakdownItem(item: ReviewBreakdownItem): ReviewBreakdownIt
   }
 
   return cleaned;
+}
+
+function sanitizeLessonBlocks(blocks: LessonBlocks): LessonBlocks | undefined {
+  const summary = blocks.summary.trim();
+  const build = blocks.build.trim();
+  const use = blocks.use.trim();
+
+  if (!summary && !build && !use) {
+    return undefined;
+  }
+
+  return {
+    summary,
+    build,
+    use,
+  };
 }
 
 export function formatReviewTimestamp(value?: string | null) {
