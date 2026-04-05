@@ -98,6 +98,12 @@ const REVISION_FIELD_LABELS: Record<string, string> = {
   reviewStatus: "Status",
   reviewAssigneeUserId: "Assignee",
   reviewNote: "Review note",
+  sourceExampleId: "Source row",
+  qualityFlags: "Quality flags",
+  nextWaveDecision: "Next-wave decision",
+  nextWaveAuditNote: "Audit note",
+  nextWaveAuditedByUserId: "Audited by",
+  nextWaveAuditedAt: "Audited at",
   sortOrder: "Sort order",
   toneConfidence: "Tone confidence",
   toneStatus: "Tone status",
@@ -309,6 +315,17 @@ function formatRevisionSnapshotValue(
         return "—";
       }
       return note.length > 160 ? `${note.slice(0, 157)}...` : note;
+    }
+    case "qualityFlags": {
+      const flags = Array.isArray(snapshot.qualityFlags)
+        ? snapshot.qualityFlags
+        : [];
+      if (flags.length === 0) {
+        return "â€”";
+      }
+      return flags
+        .map((flag) => (flag === "thai_weak" ? "Thai weak" : flag))
+        .join(", ");
     }
     case "sortOrder":
       return String(snapshot.sortOrder);
@@ -990,6 +1007,43 @@ export default function GrammarReviewEditorScreen({
           multiline
           textAlignVertical="top"
         />
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.fieldLabel}>Quality flags</Text>
+        <View style={styles.inlineChipRow}>
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              rowDraft.qualityFlags.includes("thai_weak") && styles.chipActive,
+            ]}
+            onPress={() =>
+              setRowDraft((current) => {
+                if (!current) {
+                  return current;
+                }
+                const hasFlag = current.qualityFlags.includes("thai_weak");
+                return {
+                  ...current,
+                  qualityFlags: hasFlag
+                    ? current.qualityFlags.filter((flag) => flag !== "thai_weak")
+                    : [...current.qualityFlags, "thai_weak"],
+                };
+              })
+            }
+            activeOpacity={0.82}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                rowDraft.qualityFlags.includes("thai_weak") &&
+                  styles.chipTextActive,
+              ]}
+            >
+              Thai weak
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>Breakdown editor</Text>

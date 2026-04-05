@@ -3,6 +3,7 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,7 +22,9 @@ import {
 import { API_BASE } from "@/src/config";
 import { countBreakdownThaiSyllables } from "@/src/contentReview/helpers";
 import {
+  type LessonProductionSummary,
   type ReviewExampleRow,
+  type ReviewNextWaveDecision,
   type ReviewerUser,
 } from "@/src/contentReview/types";
 import {
@@ -51,9 +54,22 @@ type AdminGrammarSummary = {
   approvedRowCount: number;
   hasOverride: boolean;
   overrideReviewStatus: string | null;
+  production?: LessonProductionSummary | null;
 };
 
-type SentenceIssueFilter = "all" | "missing" | "multi" | "both";
+type SentenceIssueFilter = "all" | "thai" | "missing" | "multi" | "both";
+type SentenceWorkflowFilter =
+  | "all"
+  | "published"
+  | "staged"
+  | ReviewNextWaveDecision;
+
+const NEXT_WAVE_DECISIONS: ReviewNextWaveDecision[] = [
+  "carry",
+  "revise",
+  "replace",
+  "retire",
+];
 
 function formatBreakdownPreview(row: ReviewExampleRow) {
   return row.breakdown
@@ -82,8 +98,10 @@ function getRowToneDiagnostics(row: ReviewExampleRow) {
   const hasMultiSyllableWord = row.breakdown.some(
     (item) => countBreakdownThaiSyllables(item.thai) > 1,
   );
+  const hasWeakThai = row.qualityFlags.includes("thai_weak");
 
   return {
+    hasWeakThai,
     hasMissingTone,
     hasMultiSyllableWord,
   };
@@ -92,6 +110,7 @@ function getRowToneDiagnostics(row: ReviewExampleRow) {
 function getRowToneFlags(row: ReviewExampleRow) {
   const diagnostics = getRowToneDiagnostics(row);
   return [
+    ...(diagnostics.hasWeakThai ? ["Thai weak"] : []),
     ...(diagnostics.hasMultiSyllableWord ? ["2+"] : []),
     ...(diagnostics.hasMissingTone ? ["Tone?"] : []),
   ];
@@ -167,6 +186,38 @@ function formatReviewerName(reviewer?: ReviewerUser | null) {
   return getProfileDisplayName(reviewer as any) || reviewer.email || "—";
 }
 
+function formatWorkflowStatus(value?: LessonProductionSummary["workflowStatus"] | null) {
+  switch (value) {
+    case "generated":
+      return "Generated";
+    case "reviewing":
+      return "Reviewing";
+    case "tone_review":
+      return "Tone review";
+    case "ready_to_publish":
+      return "Ready";
+    case "published":
+      return "Published";
+    default:
+      return "Not started";
+  }
+}
+
+function formatNextWaveDecision(value?: ReviewNextWaveDecision | null) {
+  switch (value) {
+    case "carry":
+      return "Carry";
+    case "revise":
+      return "Revise";
+    case "replace":
+      return "Replace";
+    case "retire":
+      return "Retire";
+    default:
+      return "—";
+  }
+}
+
 export default function AdminDashboardWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -183,10 +234,22 @@ export default function AdminDashboardWeb() {
     useState<string>("");
   const [sentenceRows, setSentenceRows] = useState<ReviewExampleRow[]>([]);
   const [sentenceReviewers, setSentenceReviewers] = useState<ReviewerUser[]>([]);
+  const [sentenceProduction, setSentenceProduction] =
+    useState<LessonProductionSummary | null>(null);
   const [sentenceRowsLoading, setSentenceRowsLoading] = useState(false);
   const [sentenceRowsError, setSentenceRowsError] = useState<string | null>(null);
   const [sentenceIssueFilter, setSentenceIssueFilter] =
     useState<SentenceIssueFilter>("all");
+  const [sentenceWorkflowFilter, setSentenceWorkflowFilter] =
+    useState<SentenceWorkflowFilter>("all");
+  const [sentenceAuditSavingId, setSentenceAuditSavingId] = useState<number | null>(
+    null,
+  );
+  const [sentenceSeedLoading, setSentenceSeedLoading] = useState(false);
+  const [sentencePublishLoading, setSentencePublishLoading] = useState(false);
+  const [sentencePublishMessage, setSentencePublishMessage] = useState<string | null>(
+    null,
+  );
 
   const columns = width >= 1500 ? 4 : width >= 1220 ? 3 : width >= 880 ? 2 : 1;
   const cardWidth =
@@ -303,10 +366,15 @@ export default function AdminDashboardWeb() {
     }
   }, [selectedSentenceGrammarId, stageSentencePoints]);
 
+  useEffect(() => {
+    setSentencePublishMessage(null);
+  }, [selectedSentenceGrammarId]);
+
   const loadSentenceRows = useCallback(async () => {
     if (!selectedSentenceGrammarId) {
       setSentenceRows([]);
       setSentenceReviewers([]);
+      setSentenceProduction(null);
       setSentenceRowsError(null);
       return;
     }
@@ -334,6 +402,7 @@ export default function AdminDashboardWeb() {
 
       const data = await res.json();
       setSentenceReviewers(Array.isArray(data?.reviewers) ? data.reviewers : []);
+      setSentenceProduction(data?.production ?? null);
       setSentenceRows(
         Array.isArray(data?.rows)
           ? [...data.rows].sort(
@@ -345,6 +414,7 @@ export default function AdminDashboardWeb() {
       console.error("Failed to load admin sentence rows:", err);
       setSentenceRows([]);
       setSentenceReviewers([]);
+      setSentenceProduction(null);
       setSentenceRowsError(
         err instanceof Error ? err.message : "Failed to load sentence rows",
       );
@@ -357,6 +427,12 @@ export default function AdminDashboardWeb() {
     void loadSentenceRows();
   }, [loadSentenceRows]);
 
+  useEffect(() => {
+    setSentenceIssueFilter("all");
+    setSentenceWorkflowFilter("all");
+    setSentencePublishMessage(null);
+  }, [selectedSentenceGrammarId]);
+
   useFocusEffect(
     useCallback(() => {
       void loadSentenceRows();
@@ -365,13 +441,22 @@ export default function AdminDashboardWeb() {
 
   const selectedSentencePoint =
     grammarPoints.find((point) => point.id === selectedSentenceGrammarId) ?? null;
+  const isSentenceSalvageStage =
+    selectedSentencePoint?.stage === "B1.1" ||
+    selectedSentencePoint?.stage === "B1.2";
   const sentenceReviewerById = useMemo(
     () => new Map(sentenceReviewers.map((reviewer) => [reviewer.id, reviewer])),
     [sentenceReviewers],
   );
+  const sentenceRowById = useMemo(
+    () => new Map(sentenceRows.map((row) => [row.id, row])),
+    [sentenceRows],
+  );
   const liveApprovedSentenceCount = useMemo(
     () =>
-      sentenceRows.filter((row) => row.reviewStatus === "approved").length,
+      sentenceRows.filter(
+        (row) => row.publishState === "published" && row.reviewStatus === "approved",
+      ).length,
     [sentenceRows],
   );
   const sentenceRowsWithDiagnostics = useMemo(
@@ -383,11 +468,15 @@ export default function AdminDashboardWeb() {
     [sentenceRows],
   );
   const sentenceIssueCounts = useMemo(() => {
+    let thai = 0;
     let missing = 0;
     let multi = 0;
     let both = 0;
 
     for (const entry of sentenceRowsWithDiagnostics) {
+      if (entry.diagnostics.hasWeakThai) {
+        thai += 1;
+      }
       if (entry.diagnostics.hasMissingTone) {
         missing += 1;
       }
@@ -404,15 +493,66 @@ export default function AdminDashboardWeb() {
 
     return {
       all: sentenceRows.length,
+      thai,
       missing,
       multi,
       both,
     };
   }, [sentenceRows.length, sentenceRowsWithDiagnostics]);
+  const sentenceWorkflowCounts = useMemo(() => {
+    const counts: Record<SentenceWorkflowFilter, number> = {
+      all: sentenceRows.length,
+      published: 0,
+      staged: 0,
+      carry: 0,
+      revise: 0,
+      replace: 0,
+      retire: 0,
+    };
+
+    for (const row of sentenceRows) {
+      if (row.publishState === "published") {
+        counts.published += 1;
+        if (row.nextWaveDecision) {
+          counts[row.nextWaveDecision] += 1;
+        }
+      }
+      if (row.publishState === "staged") {
+        counts.staged += 1;
+      }
+    }
+
+    return counts;
+  }, [sentenceRows]);
   const filteredSentenceRows = useMemo(
     () =>
-      sentenceRowsWithDiagnostics.filter(({ diagnostics }) => {
+      sentenceRowsWithDiagnostics.filter(({ row, diagnostics }) => {
+        const workflowMatches = (() => {
+          switch (sentenceWorkflowFilter) {
+            case "published":
+              return row.publishState === "published";
+            case "staged":
+              return row.publishState === "staged";
+            case "carry":
+            case "revise":
+            case "replace":
+            case "retire":
+              return (
+                row.publishState === "published" &&
+                row.nextWaveDecision === sentenceWorkflowFilter
+              );
+            default:
+              return true;
+          }
+        })();
+
+        if (!workflowMatches) {
+          return false;
+        }
+
         switch (sentenceIssueFilter) {
+          case "thai":
+            return diagnostics.hasWeakThai;
           case "missing":
             return diagnostics.hasMissingTone;
           case "multi":
@@ -425,8 +565,164 @@ export default function AdminDashboardWeb() {
             return true;
         }
       }),
-    [sentenceIssueFilter, sentenceRowsWithDiagnostics],
+    [sentenceIssueFilter, sentenceRowsWithDiagnostics, sentenceWorkflowFilter],
   );
+  const reusableSentenceCount =
+    sentenceWorkflowCounts.carry + sentenceWorkflowCounts.revise;
+  const hasActiveStagedWave =
+    (sentenceProduction?.stagedRowCount ?? 0) > 0 ||
+    (sentenceProduction?.currentWaveRowCount ?? 0) > 0;
+
+  const updateNextWaveDecision = useCallback(
+    async (rowId: number, nextWaveDecision: ReviewNextWaveDecision) => {
+      try {
+        setSentenceAuditSavingId(rowId);
+        setSentencePublishMessage(null);
+        const token = await getAuthToken();
+
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/review/examples/${rowId}/audit`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nextWaveDecision,
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to save next-wave decision");
+        }
+
+        setSentencePublishMessage(
+          `Saved ${formatNextWaveDecision(nextWaveDecision).toLowerCase()} for live row audit.`,
+        );
+        await loadSentenceRows();
+      } catch (err) {
+        console.error("Failed to update next-wave decision:", err);
+        setSentencePublishMessage(
+          err instanceof Error ? err.message : "Failed to update next-wave decision",
+        );
+      } finally {
+        setSentenceAuditSavingId(null);
+      }
+    },
+    [loadSentenceRows, router],
+  );
+
+  const seedSentenceLessonWave = useCallback(async () => {
+    if (!selectedSentenceGrammarId || !selectedSentencePoint || !isSentenceSalvageStage) {
+      return;
+    }
+
+    try {
+      setSentenceSeedLoading(true);
+      setSentencePublishMessage(null);
+      const token = await getAuthToken();
+
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      const res = await fetch(
+        `${API_BASE}/review/grammar/${selectedSentenceGrammarId}/seed-wave`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            stage: selectedSentencePoint.stage,
+          }),
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to seed staged rewrite wave");
+      }
+
+      setSentencePublishMessage(
+        `Seeded ${data?.seededCount ?? 0} rows into staged wave ${
+          data?.waveId ?? ""
+        }.`.trim(),
+      );
+      await Promise.all([loadSentenceRows(), loadData()]);
+    } catch (err) {
+      console.error("Failed to seed staged lesson wave:", err);
+      setSentencePublishMessage(
+        err instanceof Error ? err.message : "Failed to seed staged lesson wave",
+      );
+    } finally {
+      setSentenceSeedLoading(false);
+    }
+  }, [
+    isSentenceSalvageStage,
+    loadData,
+    loadSentenceRows,
+    router,
+    selectedSentenceGrammarId,
+    selectedSentencePoint,
+  ]);
+
+  const publishSentenceLesson = useCallback(async () => {
+    if (!selectedSentenceGrammarId || !sentenceProduction?.isReadyToPublish) {
+      return;
+    }
+
+    try {
+      setSentencePublishLoading(true);
+      setSentencePublishMessage(null);
+      const token = await getAuthToken();
+
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      const res = await fetch(
+        `${API_BASE}/review/grammar/${selectedSentenceGrammarId}/publish`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to publish lesson");
+      }
+
+      setSentencePublishMessage("Published staged lesson rows to live.");
+      await Promise.all([loadSentenceRows(), loadData()]);
+    } catch (err) {
+      console.error("Failed to publish lesson rows:", err);
+      setSentencePublishMessage(
+        err instanceof Error ? err.message : "Failed to publish lesson",
+      );
+    } finally {
+      setSentencePublishLoading(false);
+    }
+  }, [
+    loadData,
+    loadSentenceRows,
+    router,
+    selectedSentenceGrammarId,
+    sentenceProduction?.isReadyToPublish,
+  ]);
 
   return (
     <>
@@ -574,6 +870,7 @@ export default function AdminDashboardWeb() {
               <View style={styles.grammarGrid}>
                 {filteredPoints.map((point) => {
                   const summary = summaryById.get(point.id);
+                  const production = summary?.production ?? null;
                   return (
                     <TouchableOpacity
                       key={point.id}
@@ -591,6 +888,15 @@ export default function AdminDashboardWeb() {
                       <Text style={styles.grammarMeta}>
                         {point.id} · {summary?.rowCount ?? 0} rows
                       </Text>
+                      {production ? (
+                        <Text style={styles.grammarWorkflowMeta}>
+                          {formatWorkflowStatus(production.workflowStatus)} · live{" "}
+                          {production.livePublishedCount}/{production.finalTargetCount}
+                          {production.stagedRowCount > 0
+                            ? ` · staged ${production.stagedRowCount}`
+                            : ""}
+                        </Text>
+                      ) : null}
                       <Text style={styles.grammarPattern} numberOfLines={3}>
                         {point.pattern}
                       </Text>
@@ -624,6 +930,7 @@ export default function AdminDashboardWeb() {
                     {stageSentencePoints.map((point) => {
                       const active = selectedSentenceGrammarId === point.id;
                       const summary = summaryById.get(point.id);
+                      const production = summary?.production ?? null;
                       return (
                         <TouchableOpacity
                           key={point.id}
@@ -649,10 +956,9 @@ export default function AdminDashboardWeb() {
                               active && styles.lessonChipMetaActive,
                             ]}
                           >
-                            {active
-                              ? sentenceRows.length
-                              : (summary?.rowCount ?? 0)}{" "}
-                            rows
+                            {production
+                              ? `${formatWorkflowStatus(production.workflowStatus)} · live ${production.livePublishedCount}/${production.finalTargetCount}`
+                              : `${active ? sentenceRows.length : (summary?.rowCount ?? 0)} rows`}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -660,33 +966,220 @@ export default function AdminDashboardWeb() {
                   </ScrollView>
 
                   {selectedSentencePoint ? (
-                    <View style={styles.sentenceSummaryRow}>
-                      <View style={styles.sentenceSummaryCard}>
-                        <Text style={styles.sentenceSummaryLabel}>Lesson</Text>
-                        <Text style={styles.sentenceSummaryValue}>
-                          {selectedSentencePoint.title}
-                        </Text>
-                        <Text style={styles.sentenceSummaryHint}>
-                          {selectedSentencePoint.id}
-                        </Text>
+                    <View style={styles.sentenceSummaryStack}>
+                      <View style={styles.sentenceSummaryRow}>
+                        <View style={styles.sentenceSummaryCard}>
+                          <Text style={styles.sentenceSummaryLabel}>Lesson</Text>
+                          <Text style={styles.sentenceSummaryValue}>
+                            {selectedSentencePoint.title}
+                          </Text>
+                          <Text style={styles.sentenceSummaryHint}>
+                            {selectedSentencePoint.id}
+                          </Text>
+                        </View>
+                        <View style={styles.sentenceSummaryCard}>
+                          <Text style={styles.sentenceSummaryLabel}>Rows</Text>
+                          <Text style={styles.sentenceSummaryValue}>
+                            {filteredSentenceRows.length}
+                          </Text>
+                          <Text style={styles.sentenceSummaryHint}>
+                            {liveApprovedSentenceCount} published · {sentenceRows.length} total
+                          </Text>
+                        </View>
+                        <View style={styles.sentenceSummaryCard}>
+                          <Text style={styles.sentenceSummaryLabel}>Pattern</Text>
+                          <Text
+                            style={styles.sentenceSummaryValue}
+                            numberOfLines={2}
+                          >
+                            {selectedSentencePoint.pattern}
+                          </Text>
+                        </View>
+                        {sentenceProduction ? (
+                          <>
+                            <View style={styles.sentenceSummaryCard}>
+                              <Text style={styles.sentenceSummaryLabel}>Workflow</Text>
+                              <Text style={styles.sentenceSummaryValue}>
+                                {formatWorkflowStatus(
+                                  sentenceProduction.workflowStatus,
+                                )}
+                              </Text>
+                              <Text style={styles.sentenceSummaryHint}>
+                                wave{" "}
+                                {sentenceProduction.currentRewriteWaveId
+                                  ? sentenceProduction.currentRewriteWaveId
+                                      .split("-")
+                                      .slice(-1)[0]
+                                  : "—"}
+                              </Text>
+                            </View>
+                            <View style={styles.sentenceSummaryCard}>
+                              <Text style={styles.sentenceSummaryLabel}>Live</Text>
+                              <Text style={styles.sentenceSummaryValue}>
+                                {sentenceProduction.livePublishedCount}/
+                                {sentenceProduction.finalTargetCount}
+                              </Text>
+                              <Text style={styles.sentenceSummaryHint}>
+                                published rows
+                              </Text>
+                            </View>
+                            <View style={styles.sentenceSummaryCard}>
+                              <Text style={styles.sentenceSummaryLabel}>
+                                Staged
+                              </Text>
+                              <Text style={styles.sentenceSummaryValue}>
+                                {sentenceProduction.currentWaveReadyCount}/
+                                {sentenceProduction.finalTargetCount}
+                              </Text>
+                              <Text style={styles.sentenceSummaryHint}>
+                                ready · {sentenceProduction.currentWaveRowCount} in
+                                wave
+                              </Text>
+                            </View>
+                            {isSentenceSalvageStage ? (
+                              <View style={styles.sentenceSummaryCard}>
+                                <Text style={styles.sentenceSummaryLabel}>
+                                  Reusable
+                                </Text>
+                                <Text style={styles.sentenceSummaryValue}>
+                                  {reusableSentenceCount}
+                                </Text>
+                                <Text style={styles.sentenceSummaryHint}>
+                                  carry + revise live rows
+                                </Text>
+                              </View>
+                            ) : null}
+                          </>
+                        ) : null}
                       </View>
-                      <View style={styles.sentenceSummaryCard}>
-                        <Text style={styles.sentenceSummaryLabel}>Rows</Text>
-                        <Text style={styles.sentenceSummaryValue}>
-                          {filteredSentenceRows.length}
-                        </Text>
-                        <Text style={styles.sentenceSummaryHint}>
-                          {liveApprovedSentenceCount} published · {sentenceRows.length} total
-                        </Text>
-                      </View>
-                      <View style={styles.sentenceSummaryCard}>
-                        <Text style={styles.sentenceSummaryLabel}>Pattern</Text>
-                        <Text
-                          style={styles.sentenceSummaryValue}
-                          numberOfLines={2}
-                        >
-                          {selectedSentencePoint.pattern}
-                        </Text>
+
+                      {sentenceProduction ? (
+                        <View style={styles.productionActionRow}>
+                          <View style={styles.productionActionCopy}>
+                            <Text style={styles.productionActionTitle}>
+                              {isSentenceSalvageStage
+                                ? "Salvage workflow"
+                                : "Publish workflow"}
+                            </Text>
+                            <Text style={styles.productionActionText}>
+                              {isSentenceSalvageStage
+                                ? hasActiveStagedWave
+                                  ? sentenceProduction.isReadyToPublish
+                                    ? `This staged wave has ${sentenceProduction.currentWaveReadyCount} rows ready to replace the live lesson.`
+                                    : `This staged wave has ${sentenceProduction.currentWaveReadyCount} ready rows. Need ${sentenceProduction.remainingForPublish} more before publishing.`
+                                  : `Audit live rows first, then seed the next wave. ${reusableSentenceCount} live rows are currently marked carry or revise.`
+                                : sentenceProduction.isReadyToPublish
+                                  ? `This lesson has ${sentenceProduction.currentWaveReadyCount} staged rows that are approved and tone-reviewed.`
+                                  : `Need ${sentenceProduction.remainingForPublish} more ready staged rows before replacing the live set.`}
+                            </Text>
+                            {sentencePublishMessage ? (
+                              <Text style={styles.productionActionMessage}>
+                                {sentencePublishMessage}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <View style={styles.productionActionButtons}>
+                            {isSentenceSalvageStage ? (
+                              <TouchableOpacity
+                                style={[
+                                  styles.seedWaveButton,
+                                  (hasActiveStagedWave || sentenceSeedLoading) &&
+                                    styles.publishButtonDisabled,
+                                ]}
+                                onPress={() => void seedSentenceLessonWave()}
+                                activeOpacity={0.82}
+                                disabled={hasActiveStagedWave || sentenceSeedLoading}
+                              >
+                                <Text style={styles.seedWaveButtonText}>
+                                  {sentenceSeedLoading
+                                    ? "Seeding…"
+                                    : "Seed next wave"}
+                                </Text>
+                              </TouchableOpacity>
+                            ) : null}
+                            <TouchableOpacity
+                              style={[
+                                styles.publishButton,
+                                (!sentenceProduction.isReadyToPublish ||
+                                  sentencePublishLoading) &&
+                                  styles.publishButtonDisabled,
+                              ]}
+                              onPress={() => void publishSentenceLesson()}
+                              activeOpacity={0.82}
+                              disabled={
+                                !sentenceProduction.isReadyToPublish ||
+                                sentencePublishLoading
+                              }
+                            >
+                              <Text style={styles.publishButtonText}>
+                                {sentencePublishLoading
+                                  ? "Publishing…"
+                                  : "Publish lesson"}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {sentenceRows.length > 0 ? (
+                    <View style={styles.issueFilterStack}>
+                      <View style={styles.issueFilterRow}>
+                        {[
+                          {
+                            key: "all" as SentenceWorkflowFilter,
+                            label: "All",
+                            count: sentenceWorkflowCounts.all,
+                          },
+                          {
+                            key: "published" as SentenceWorkflowFilter,
+                            label: "Live",
+                            count: sentenceWorkflowCounts.published,
+                          },
+                          {
+                            key: "staged" as SentenceWorkflowFilter,
+                            label: "Staged",
+                            count: sentenceWorkflowCounts.staged,
+                          },
+                          ...(isSentenceSalvageStage
+                            ? NEXT_WAVE_DECISIONS.map((decision) => ({
+                                key: decision as SentenceWorkflowFilter,
+                                label: formatNextWaveDecision(decision),
+                                count: sentenceWorkflowCounts[decision],
+                              }))
+                            : []),
+                        ].map((option) => {
+                          const active = sentenceWorkflowFilter === option.key;
+                          return (
+                            <TouchableOpacity
+                              key={option.key}
+                              style={[
+                                styles.issueFilterChip,
+                                active && styles.issueFilterChipActive,
+                              ]}
+                              onPress={() => setSentenceWorkflowFilter(option.key)}
+                              activeOpacity={0.82}
+                            >
+                              <Text
+                                style={[
+                                  styles.issueFilterChipLabel,
+                                  active && styles.issueFilterChipLabelActive,
+                                ]}
+                              >
+                                {option.label}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.issueFilterChipCount,
+                                  active && styles.issueFilterChipCountActive,
+                                ]}
+                              >
+                                {option.count}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </View>
                     </View>
                   ) : null}
@@ -698,6 +1191,11 @@ export default function AdminDashboardWeb() {
                           key: "all" as const,
                           label: "All",
                           count: sentenceIssueCounts.all,
+                        },
+                        {
+                          key: "thai" as const,
+                          label: "Thai weak",
+                          count: sentenceIssueCounts.thai,
                         },
                         {
                           key: "missing" as const,
@@ -798,6 +1296,21 @@ export default function AdminDashboardWeb() {
                             Tones
                           </Text>
                           <Text
+                            style={[styles.tableHeaderText, styles.colSource]}
+                          >
+                            Source
+                          </Text>
+                          <Text
+                            style={[styles.tableHeaderText, styles.colNextWave]}
+                          >
+                            Next wave
+                          </Text>
+                          <Text
+                            style={[styles.tableHeaderText, styles.colPublish]}
+                          >
+                            Publish
+                          </Text>
+                          <Text
                             style={[styles.tableHeaderText, styles.colDifficulty]}
                           >
                             Difficulty
@@ -876,6 +1389,82 @@ export default function AdminDashboardWeb() {
                               numberOfLines={3}
                             >
                               {formatBreakdownTones(row)}
+                            </Text>
+                            <Text
+                              style={[styles.tableCellText, styles.colSource]}
+                              numberOfLines={2}
+                            >
+                              {row.sourceExampleId
+                                ? (() => {
+                                    const sourceRow = sentenceRowById.get(
+                                      row.sourceExampleId,
+                                    );
+                                    const sourceDecision = sourceRow?.nextWaveDecision
+                                      ? ` · ${formatNextWaveDecision(
+                                          sourceRow.nextWaveDecision,
+                                        )}`
+                                      : "";
+                                    return `Live #${row.sourceExampleId}${sourceDecision}`;
+                                  })()
+                                : "—"}
+                            </Text>
+                            <View style={styles.colNextWave}>
+                              {isSentenceSalvageStage &&
+                              row.publishState === "published" ? (
+                                <View style={styles.auditDecisionRow}>
+                                  {NEXT_WAVE_DECISIONS.map((decision) => {
+                                    const active = row.nextWaveDecision === decision;
+                                    const disabled = sentenceAuditSavingId === row.id;
+                                    return (
+                                      <Pressable
+                                        key={`${row.id}-${decision}`}
+                                        style={[
+                                          styles.auditDecisionChip,
+                                          active && styles.auditDecisionChipActive,
+                                          disabled && styles.auditDecisionChipDisabled,
+                                        ]}
+                                        onPress={(event) => {
+                                          event.stopPropagation?.();
+                                          if (disabled) {
+                                            return;
+                                          }
+                                          void updateNextWaveDecision(row.id, decision);
+                                        }}
+                                      >
+                                        <Text
+                                          style={[
+                                            styles.auditDecisionChipText,
+                                            active && styles.auditDecisionChipTextActive,
+                                          ]}
+                                        >
+                                          {formatNextWaveDecision(decision)}
+                                        </Text>
+                                      </Pressable>
+                                    );
+                                  })}
+                                </View>
+                              ) : (
+                                <Text
+                                  style={styles.tableCellText}
+                                  numberOfLines={2}
+                                >
+                                  {row.publishState === "staged"
+                                    ? row.sourceExampleId
+                                      ? `Seeded from #${row.sourceExampleId}`
+                                      : "Seeded"
+                                    : "—"}
+                                </Text>
+                              )}
+                            </View>
+                            <Text
+                              style={[styles.tableCellText, styles.colPublish]}
+                              numberOfLines={1}
+                            >
+                              {row.publishState === "published"
+                                ? "Live"
+                                : row.publishState === "staged"
+                                  ? "Staged"
+                                  : "Retired"}
                             </Text>
                             <Text
                               style={[
@@ -1077,6 +1666,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Sketch.inkMuted,
   },
+  grammarWorkflowMeta: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Sketch.inkMuted,
+  },
   grammarPattern: {
     fontSize: 14,
     lineHeight: 22,
@@ -1122,6 +1716,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+  },
+  sentenceSummaryStack: {
+    gap: 12,
+  },
+  issueFilterStack: {
+    gap: 8,
   },
   issueFilterRow: {
     flexDirection: "row",
@@ -1182,6 +1782,72 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Sketch.inkMuted,
   },
+  productionActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+    padding: 14,
+  },
+  productionActionCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  productionActionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  productionActionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.ink,
+  },
+  productionActionText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Sketch.inkMuted,
+  },
+  productionActionMessage: {
+    fontSize: 12,
+    color: Sketch.accent,
+  },
+  publishButton: {
+    minWidth: 140,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.accent,
+  },
+  publishButtonDisabled: {
+    opacity: 0.45,
+  },
+  publishButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.paper,
+  },
+  seedWaveButton: {
+    minWidth: 132,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.paper,
+  },
+  seedWaveButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Sketch.accent,
+  },
   sentenceLoadingWrap: {
     minHeight: 100,
     alignItems: "center",
@@ -1195,7 +1861,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   tableWrap: {
-    minWidth: 1520,
+    minWidth: 1608,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
@@ -1297,6 +1963,36 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.accent,
   },
+  auditDecisionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingVertical: 8,
+  },
+  auditDecisionChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+  },
+  auditDecisionChipActive: {
+    borderColor: Sketch.accent,
+    backgroundColor: Sketch.cardBg,
+  },
+  auditDecisionChipDisabled: {
+    opacity: 0.55,
+  },
+  auditDecisionChipText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  auditDecisionChipTextActive: {
+    color: Sketch.accent,
+  },
   colRow: {
     width: 78,
   },
@@ -1314,6 +2010,15 @@ const styles = StyleSheet.create({
   },
   colTones: {
     width: 210,
+  },
+  colSource: {
+    width: 122,
+  },
+  colNextWave: {
+    width: 222,
+  },
+  colPublish: {
+    width: 78,
   },
   colDifficulty: {
     width: 84,

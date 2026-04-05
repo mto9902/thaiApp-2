@@ -7,6 +7,7 @@ import {
   ReviewComment,
   ReviewExampleRow,
   ReviewLessonOverride,
+  ReviewRowQualityFlag,
   ReviewerUser,
   ReviewStatus,
 } from "./types";
@@ -89,6 +90,7 @@ export type RowEditorState = {
   reviewStatus: ReviewStatus;
   reviewAssigneeUserId: number | null;
   reviewNote: string;
+  qualityFlags: ReviewRowQualityFlag[];
   sortOrder: number;
 };
 
@@ -222,6 +224,7 @@ export function buildRowEditorState(row?: ReviewExampleRow | null): RowEditorSta
       reviewStatus: "flagged",
       reviewAssigneeUserId: null,
       reviewNote: "",
+      qualityFlags: [],
       sortOrder: 0,
     };
   }
@@ -236,6 +239,7 @@ export function buildRowEditorState(row?: ReviewExampleRow | null): RowEditorSta
     reviewStatus: row.reviewStatus,
     reviewAssigneeUserId: row.reviewAssigneeUserId,
     reviewNote: row.reviewNote ?? "",
+    qualityFlags: Array.isArray(row.qualityFlags) ? [...row.qualityFlags] : [],
     sortOrder: row.sortOrder,
   };
 }
@@ -296,6 +300,7 @@ export function rowPayloadFromState(state: RowEditorState) {
     reviewStatus: state.reviewStatus,
     reviewAssigneeUserId: state.reviewAssigneeUserId,
     reviewNote: state.reviewNote.trim() || null,
+    qualityFlags: state.qualityFlags,
     sortOrder: state.sortOrder,
   };
 }

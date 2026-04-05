@@ -8,6 +8,44 @@ export type ReviewStatus =
   | "needs_changes"
   | "hidden";
 
+export type ReviewPublishState = "published" | "staged" | "retired";
+export type ReviewNextWaveDecision =
+  | "carry"
+  | "revise"
+  | "replace"
+  | "retire";
+export type ReviewRowQualityFlag = "thai_weak";
+
+export type LessonProductionSummary = {
+  grammarId: string | null;
+  stage: string | null;
+  finalTargetCount: number;
+  firstPassCandidateTarget: number;
+  supplementalCandidateBatchSize: number;
+  currentRewriteWaveId: string | null;
+  lastGeneratedAt: string | null;
+  lastPublishedAt: string | null;
+  notes: string | null;
+  livePublishedCount: number;
+  publishedRowCount: number;
+  stagedRowCount: number;
+  stagedApprovedCount: number;
+  stagedReadyCount: number;
+  currentWaveRowCount: number;
+  currentWaveApprovedCount: number;
+  currentWaveReadyCount: number;
+  retiredRowCount: number;
+  remainingForPublish: number;
+  workflowStatus:
+    | "not_started"
+    | "generated"
+    | "reviewing"
+    | "tone_review"
+    | "ready_to_publish"
+    | "published";
+  isReadyToPublish: boolean;
+};
+
 export type ReviewerUser = {
   id: number;
   email: string;
@@ -64,6 +102,14 @@ export type ReviewExampleRow = {
   toneStatus: "approved" | "review";
   toneAnalysis?: ReviewToneAnalysis | null;
   reviewStatus: ReviewStatus;
+  publishState: ReviewPublishState;
+  rewriteWaveId: string | null;
+  sourceExampleId: number | null;
+  qualityFlags: ReviewRowQualityFlag[];
+  nextWaveDecision: ReviewNextWaveDecision | null;
+  nextWaveAuditNote: string | null;
+  nextWaveAuditedByUserId: number | null;
+  nextWaveAuditedAt: string | null;
   reviewAssigneeUserId: number | null;
   reviewNote: string | null;
   lastEditedByUserId: number | null;
@@ -82,6 +128,14 @@ export type ReviewExampleRevisionSnapshot = {
   reviewStatus: ReviewStatus;
   reviewAssigneeUserId: number | null;
   reviewNote: string | null;
+  publishState?: ReviewPublishState;
+  rewriteWaveId?: string | null;
+  sourceExampleId?: number | null;
+  qualityFlags?: ReviewRowQualityFlag[];
+  nextWaveDecision?: ReviewNextWaveDecision | null;
+  nextWaveAuditNote?: string | null;
+  nextWaveAuditedByUserId?: number | null;
+  nextWaveAuditedAt?: string | null;
   sortOrder: number;
   toneConfidence: number;
   toneStatus: "approved" | "review";
@@ -161,6 +215,7 @@ export type ReviewQueueResponse = {
 export type ReviewGrammarDetailResponse = {
   lesson: ReviewLessonOverride | null;
   rows: ReviewExampleRow[];
+  production?: LessonProductionSummary | null;
   reviewers: ReviewerUser[];
   lessonComments: ReviewComment[];
   exampleCommentsByExampleId: Record<string, ReviewComment[]>;
