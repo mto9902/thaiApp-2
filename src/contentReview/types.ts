@@ -14,7 +14,7 @@ export type ReviewNextWaveDecision =
   | "revise"
   | "replace"
   | "retire";
-export type ReviewRowQualityFlag = "thai_weak";
+export type ReviewRowQualityFlag = "thai_weak" | "legacy" | "new_gen";
 
 export type LessonProductionSummary = {
   grammarId: string | null;
@@ -72,6 +72,7 @@ export type ReviewBreakdownItem = {
   thai: string;
   english: string;
   romanization?: string;
+  displayThaiSegments?: string[];
   grammar?: boolean;
   tones?: ToneName[];
 };
@@ -164,6 +165,8 @@ export type ReviewLessonOverride = {
     title: string;
     level: string;
     stage: string;
+    lessonOrder?: number;
+    hiddenFromLearners?: boolean;
     explanation: string;
     pattern: string;
     lessonBlocks?: LessonBlocks;

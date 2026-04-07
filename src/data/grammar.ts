@@ -18,6 +18,7 @@ export interface WordBreakdown {
   english: string;
   tone?: ToneName;
   tones?: ToneName[];
+  displayThaiSegments?: string[];
   grammar?: boolean;
   romanization?: string;
 }
@@ -27,6 +28,7 @@ export interface GrammarPoint {
   title: string;
   level: CefrLevel;
   stage: GrammarStage;
+  hiddenFromLearners?: boolean;
   stageOrder: number;
   lessonOrder: number;
   explanation: string;
@@ -138,26 +140,26 @@ const rawGrammarPoints: RawGrammarPoint[] = [
   },
   {
     id: "natural-address-pronouns",
-    title: "Natural Address and Pronoun Dropping",
+    title: "Natural Self-Reference and Pronoun Omission",
     level: "A1",
     explanation:
-      "Thai often leaves pronouns out when the context is clear, and speakers may also use names or kinship terms such as ผม, หนู, พี่, and น้อง in place of a neutral textbook pronoun. Learners need this early because it makes everyday Thai sound more natural in both personal and professional interaction.",
-    pattern: "ผม / หนู / พี่ / น้อง + VERB / [PRONOUN OMITTED] + VERB",
+      "In everyday Thai, speakers often refer to themselves with kinship terms or roles such as พี่, หนู, แม่, ครู, or หมอ instead of a neutral textbook pronoun. Thai also frequently leaves the subject out completely when the speaker is obvious from context, especially in casual, family, and service situations.",
+    pattern: "KINSHIP TERM / ROLE + VERB / [SUBJECT OMITTED] + VERB",
     example: {
       thai: "พี่ไปก่อนนะ",
-      roman: "phi pai kon na",
-      english: "I'll go first, okay.",
+      roman: "phii bpai gawn na",
+      english: "I'll head out first, okay?",
       breakdown: [
-        w("พี่", "I / older person", "falling", true),
-        w("ไป", "go", "mid"),
-        w("ก่อน", "first / before", "mid"),
+        w("พี่", "I / older speaker", "falling", true),
+        w("ไป", "go / head out", "mid"),
+        w("ก่อน", "first / ahead", "low"),
         w("นะ", "softening particle", "high", true),
       ],
     },
     focus: {
-      particle: "ผม / หนู / พี่ / น้อง",
+      particle: "พี่ / หนู / เรา / [SUBJECT OMITTED]",
       meaning:
-        "Thai often uses context, names, or kinship terms instead of an explicit subject pronoun.",
+        "Thai often sounds more natural when the speaker uses a role or kinship word, or leaves the subject out because the context is already clear.",
     },
   },
   {
@@ -2425,114 +2427,65 @@ const rawGrammarPoints: RawGrammarPoint[] = [
 
   // C1
   {
-    id: "resultative-hai",
-    title: "Cause and Result with ทำให้",
-    level: "C1",
-    explanation:
-      "ทำให้ links a cause to its result and is common in explanation, commentary, and more academic-style reasoning.",
-    pattern: "CAUSE + ทำให้ + RESULT",
-    example: {
-      thai: "เสียงดังทำให้เด็กตื่น",
-      roman: "siang dang tham hai dek tuen",
-      english: "The loud noise made the child wake up.",
-      breakdown: [
-        w("เสียงดัง", "loud noise", "rising"),
-        w("ทำให้", "make / cause", "mid", true),
-        w("เด็ก", "child", "low"),
-        w("ตื่น", "wake up", "low"),
-      ],
-    },
-    focus: {
-      particle: "ทำให้",
-      meaning: "Cause-result connector meaning make or cause.",
-    },
-  },
-  {
-    id: "concessive-mae",
-    title: "Concession with แม้ว่า...ก็",
-    level: "C1",
-    explanation:
-      "แม้ว่า introduces a concession, while ก็ or ก็ยัง marks the main claim. This pattern helps learners express contrast without giving up the central point.",
-    pattern: "แม้ว่า + CONCESSION + ก็ + RESULT",
-    example: {
-      thai: "แม้ว่าเหนื่อยเขาก็ยังทำต่อ",
-      roman: "mae wa nueai khao ko yang tham to",
-      english: "Even though he is tired, he still keeps going.",
-      breakdown: [
-        w("แม้ว่า", "even though", "high", true),
-        w("เหนื่อย", "tired", "low"),
-        w("เขา", "he / she", "rising"),
-        w("ก็ยัง", "still", "falling", true),
-        w("ทำ", "do", "mid"),
-        w("ต่อ", "continue", "low"),
-      ],
-    },
-    focus: {
-      particle: "แม้ว่า...ก็",
-      meaning: "Concessive frame meaning even though ... still ...",
-    },
-  },
-  {
     id: "seems-like-duu",
     title: "Inference with ดูเหมือน(ว่า)",
     level: "C1",
     explanation:
-      "ดูเหมือนว่า lets speakers hedge, infer, and present a reading of the situation rather than a flat fact. That makes it valuable for more nuanced communication.",
+      "ดูเหมือน(ว่า) lets speakers present an impression rather than a flat fact. It is a compact, reusable way to sound careful, observant, and less absolute.",
     pattern: "ดูเหมือน(ว่า) + CLAUSE",
     example: {
-      thai: "ดูเหมือนว่าเขาจะไม่มา",
-      roman: "du muean wa khao cha mai ma",
-      english: "It seems that he will not come.",
+      thai: "ดูเหมือนว่าเขาจะยังไม่พร้อม",
+      roman: "duu muean wa khao cha yang mai phrom",
+      english: "It seems that he is still not ready.",
       breakdown: [
-        w("ดูเหมือน", "it seems", "mid", true),
+        w("ดูเหมือน", "seem", "mid", true),
         w("ว่า", "that", "falling", true),
         w("เขา", "he / she", "rising"),
         w("จะ", "will", "low"),
+        w("ยัง", "still", "mid"),
         w("ไม่", "not", "low"),
-        w("มา", "come", "mid"),
+        w("พร้อม", "ready", "high"),
       ],
     },
     focus: {
       particle: "ดูเหมือน(ว่า)",
-      meaning: "Hedging and inference frame meaning it seems that.",
+      meaning: "Inference frame for saying something seems to be the case.",
     },
   },
 
   // Promoted into the public C1 path
   {
     id: "no-matter-mai-waa",
-    title: "No Matter with ไม่ว่า...ก็",
+    title: "No Matter with ไม่ว่า...ก็...",
     level: "C1",
     explanation:
-      "ไม่ว่า creates a wide-scope no matter meaning. It supports generalization, reassurance, and stronger abstract argument.",
+      "ไม่ว่า opens a broad no matter meaning. It is useful when the result stays the same across different people, times, or conditions.",
     pattern: "ไม่ว่า + CONDITION + ก็ + RESULT",
     example: {
       thai: "ไม่ว่าใครก็เข้าได้",
       roman: "mai wa khrai ko khao dai",
-      english: "Anyone can come in.",
+      english: "No matter who it is, they can come in.",
       breakdown: [
         w("ไม่ว่า", "no matter", "falling", true),
         w("ใคร", "who", "mid"),
         w("ก็", "still / then", "falling", true),
-        w("เข้า", "enter", "falling"),
-        w("ได้", "can", "falling", true),
+        w("เข้าได้", "can enter", "falling"),
       ],
     },
     focus: {
-      particle: "ไม่ว่า...ก็",
-      meaning:
-        "High-level generalization frame meaning no matter ... still ...",
+      particle: "ไม่ว่า...ก็...",
+      meaning: "Generalizing frame meaning no matter ... the result stays the same.",
     },
   },
   {
     id: "even-if-tor-hai",
-    title: "Even If with ต่อให้...ก็",
+    title: "Even If with ต่อให้...ก็...",
     level: "C1",
     explanation:
-      "ต่อให้ introduces a strong hypothetical or extreme concession. It is useful for persuasive speech, sharp contrast, and emphatic advanced argument.",
+      "ต่อให้ introduces a strong hypothetical concession. It is especially useful when the speaker wants the main conclusion to stay firm despite an extreme condition.",
     pattern: "ต่อให้ + CONDITION + ก็ + RESULT",
     example: {
-      thai: "ต่อให้ฝนตกเราก็จะไป",
+      thai: "ต่อให้ฝนตก เราก็จะไป",
       roman: "to hai fon tok rao ko cha pai",
       english: "Even if it rains, we will go.",
       breakdown: [
@@ -2546,16 +2499,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "ต่อให้...ก็",
-      meaning: "Strong concessive pattern meaning even if.",
+      particle: "ต่อให้...ก็...",
+      meaning: "Strong concessive frame meaning even if ... the result still holds.",
     },
   },
   {
     id: "passive-formal",
-    title: "Formal Reception with ได้รับ",
+    title: "Formal Passive with ได้รับ",
     level: "C1",
     explanation:
-      "ได้รับ is common in formal, professional, and written Thai. It creates a more neutral and institutional passive than colloquial ถูก or โดน.",
+      "ได้รับ is common in formal, professional, and written Thai. It gives learners a compact passive-style anchor that feels neutral and institutional rather than casual.",
     pattern: "SUBJECT + ได้รับ + NOUN / ACTION",
     example: {
       thai: "บริษัทได้รับรางวัล",
@@ -2570,29 +2523,6 @@ const rawGrammarPoints: RawGrammarPoint[] = [
     focus: {
       particle: "ได้รับ",
       meaning: "Formal passive or reception verb used in official contexts.",
-    },
-  },
-  {
-    id: "the-more-ying",
-    title: "The More...The More with ยิ่ง...ยิ่ง",
-    level: "C1",
-    explanation:
-      "This paired structure expresses proportional change between two clauses. It is valuable for abstract reasoning and polished explanatory language.",
-    pattern: "ยิ่ง + CLAUSE 1 + ยิ่ง + CLAUSE 2",
-    example: {
-      thai: "ยิ่งฝึกยิ่งคล่อง",
-      roman: "ying fuk ying khlong",
-      english: "The more you practice, the more fluent you become.",
-      breakdown: [
-        w("ยิ่ง", "the more", "falling", true),
-        w("ฝึก", "practice", "low"),
-        w("ยิ่ง", "the more", "falling", true),
-        w("คล่อง", "fluent", "low"),
-      ],
-    },
-    focus: {
-      particle: "ยิ่ง...ยิ่ง",
-      meaning: "Paired frame for proportional increase or correlation.",
     },
   },
   {
@@ -2671,10 +2601,10 @@ const rawGrammarPoints: RawGrammarPoint[] = [
   },
   {
     id: "scope-thao-thi",
-    title: "Limited Evidence with เท่าที่...",
+    title: "Qualified Scope with เท่าที่",
     level: "C1",
     explanation:
-      "เท่าที่ narrows a statement to the speaker's available knowledge, evidence, or experience. It is useful for speaking carefully without overclaiming.",
+      "เท่าที่ limits a statement to the speaker's evidence, memory, or direct experience. It helps learners make careful claims without sounding absolute.",
     pattern: "เท่าที่ + KNOW / SEE / HAVE + MAIN CLAUSE",
     example: {
       thai: "เท่าที่ฉันเห็น เขายังไม่พร้อม",
@@ -2691,32 +2621,32 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "เท่าที่...",
-      meaning: "Scope marker meaning as far as or from what one knows.",
+      particle: "เท่าที่",
+      meaning: "Scope marker meaning as far as one knows, sees, or has.",
     },
   },
   {
     id: "clarification-mai-dai-pla-wa",
-    title: "Clarification with ไม่ได้หมายความว่า...",
+    title: "Clarification with ไม่ได้แปลว่า",
     level: "C1",
     explanation:
-      "ไม่ได้หมายความว่า helps speakers reject a wrong interpretation without rejecting the whole situation. It is common in careful explanation, disagreement, and clarification.",
-    pattern: "X ไม่ได้หมายความว่า Y",
+      "ไม่ได้แปลว่า rejects a wrong interpretation without rejecting the whole situation. It is clear, reusable, and easy to teach as a single clarification anchor.",
+    pattern: "X ไม่ได้แปลว่า Y",
     example: {
-      thai: "เขาเงียบไม่ได้หมายความว่าเขาโกรธ",
-      roman: "khao ngiap mai dai mai khwam wa khao krot",
-      english: "His being quiet does not mean that he is angry.",
+      thai: "เขาเงียบ ไม่ได้แปลว่าเขาโกรธ",
+      roman: "khao ngiap mai dai plae wa khao krot",
+      english: "His being quiet doesn't mean he's angry.",
       breakdown: [
         w("เขา", "he / she", "rising"),
         w("เงียบ", "quiet", "low"),
-        w("ไม่ได้หมายความว่า", "does not mean that", "low", true),
+        w("ไม่ได้แปลว่า", "doesn't mean that", "low", true),
         w("เขา", "he / she", "rising"),
         w("โกรธ", "angry", "low"),
       ],
     },
     focus: {
-      particle: "ไม่ได้หมายความว่า...",
-      meaning: "Clarifying frame meaning that does not mean that...",
+      particle: "ไม่ได้แปลว่า",
+      meaning: "Clarifying frame meaning that does not automatically mean that.",
     },
   },
   {
@@ -2749,86 +2679,61 @@ const rawGrammarPoints: RawGrammarPoint[] = [
   },
   {
     id: "evaluation-thue-wa-nap-wa",
-    title: "Evaluation with ถือว่า / นับว่า",
+    title: "Evaluation with ถือว่า",
     level: "C1",
     explanation:
-      "ถือว่า and นับว่า help speakers evaluate something as meeting a standard, counting in a category, or deserving a judgment. They are common in more formal spoken and written Thai.",
-    pattern: "SUBJECT + ถือว่า / นับว่า + EVALUATION",
+      "This lesson centers on ถือว่า as a compact way to evaluate something as acceptable, reasonable, or good enough. It is a strong app-friendly anchor because it appears naturally across speech and writing.",
+    pattern: "SUBJECT / SITUATION + ถือว่า + EVALUATION",
     example: {
-      thai: "แบบนี้ถือว่าเป็นความคืบหน้าที่ดี",
-      roman: "baep ni thue wa pen khwam khuep na thi di",
-      english: "This counts as good progress.",
+      thai: "แบบนี้ถือว่าดีแล้ว",
+      roman: "baep ni thue wa di laeo",
+      english: "This already counts as good.",
       breakdown: [
-        w("แบบนี้", "like this / this kind", "falling"),
-        w("ถือว่า", "count as / be regarded as", "rising", true),
-        w("เป็น", "be", "mid"),
-        w("ความคืบหน้า", "progress", "mid"),
-        w("ที่ดี", "that is good", "mid"),
+        w("แบบนี้", "like this / this way", "falling"),
+        w("ถือว่า", "count as / regard as", "rising", true),
+        w("ดี", "good", "mid"),
+        w("แล้ว", "already", "high", true),
       ],
     },
     focus: {
-      particle: "ถือว่า / นับว่า",
-      meaning: "Evaluation markers meaning count as or be regarded as.",
+      particle: "ถือว่า",
+      meaning: "Evaluation marker meaning count as or be regarded as.",
     },
   },
   {
     id: "scope-kor-taam",
-    title: "Concession with ...ก็ตาม",
+    title: "Regardless with ...ก็ตาม",
     level: "C1",
     explanation:
-      "ก็ตาม attaches a concession to an amount, description, or whole clause. It helps speakers say that the main conclusion stands regardless of degree or condition.",
-    pattern: "CLAUSE / QUESTION WORD + ก็ตาม",
+      "ก็ตาม is a compact concessive tail. It is easy to spot in a sentence and easy to practice because it attaches to a phrase meaning regardless of that condition or degree.",
+    pattern: "QUESTION WORD / PHRASE + ก็ตาม + RESULT",
     example: {
-      thai: "จะยากแค่ไหนก็ตาม เราต้องทำให้เสร็จ",
-      roman: "cha yak khae nai ko tam rao tong tham hai set",
-      english: "No matter how difficult it is, we have to finish it.",
+      thai: "จะยากแค่ไหนก็ตาม เราก็ต้องทำต่อ",
+      roman: "cha yak khae nai ko tam rao ko tong tham to",
+      english: "No matter how difficult it is, we still have to continue.",
       breakdown: [
-        w("จะ", "will / however", "low"),
+        w("จะ", "however / will", "low"),
         w("ยาก", "difficult", "falling"),
-        w("แค่ไหน", "how much / however", "low"),
-        w("ก็ตาม", "even so / regardless", "mid", true),
+        w("แค่ไหน", "how much", "low"),
+        w("ก็ตาม", "regardless", "mid", true),
         w("เรา", "we", "mid"),
+        w("ก็", "still", "falling", true),
         w("ต้อง", "must", "falling"),
-        w("ทำให้เสร็จ", "finish", "mid"),
+        w("ทำต่อ", "continue doing", "mid"),
       ],
     },
     focus: {
-      particle: "...ก็ตาม",
-      meaning: "Concessive tail meaning regardless or no matter even if so.",
-    },
-  },
-  {
-    id: "even-mae-tae-c1",
-    title: "Emphasis with แม้แต่...",
-    level: "C1",
-    explanation:
-      "แม้แต่ singles out an especially surprising minimum case. It helps speakers emphasize that even the least expected person or thing is included.",
-    pattern: "แม้แต่ + NOUN / PERSON + ก็ + RESULT",
-    example: {
-      thai: "แม้แต่ผู้เชี่ยวชาญก็ยังต้องตรวจอีกครั้ง",
-      roman: "mae tae phu chiao chan ko yang tong truat ik khrang",
-      english: "Even experts still have to check one more time.",
-      breakdown: [
-        w("แม้แต่", "even", "high", true),
-        w("ผู้เชี่ยวชาญ", "expert", "falling"),
-        w("ก็ยัง", "still", "falling", true),
-        w("ต้อง", "must", "falling"),
-        w("ตรวจ", "check", "low"),
-        w("อีกครั้ง", "again / once more", "low"),
-      ],
-    },
-    focus: {
-      particle: "แม้แต่...",
-      meaning: "Emphatic scope marker meaning even...",
+      particle: "ก็ตาม",
+      meaning: "Concessive tail meaning regardless of that amount, degree, or case.",
     },
   },
   {
     id: "consequence-song-phon",
-    title: "Formal Consequence with ส่งผลให้ / ก่อให้เกิด",
+    title: "Formal Result with ส่งผลให้",
     level: "C1",
     explanation:
-      "ส่งผลให้ and ก่อให้เกิด package consequences in a more formal and analytic way than everyday cause-result wording. They fit reports, commentary, and explanatory writing.",
-    pattern: "CAUSE + ส่งผลให้ / ก่อให้เกิด + RESULT",
+      "ส่งผลให้ packages a consequence in a more formal and analytic way than everyday cause-result wording. It is clear enough for app practice while still feeling properly advanced.",
+    pattern: "CAUSE + ส่งผลให้ + RESULT",
     example: {
       thai: "ความล่าช้าส่งผลให้โครงการเลื่อนออกไป",
       roman: "khwam lacha song phon hai khrongkan luean ok pai",
@@ -2841,42 +2746,43 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "ส่งผลให้ / ก่อให้เกิด",
-      meaning: "Formal consequence frame meaning result in or give rise to.",
+      particle: "ส่งผลให้",
+      meaning: "Formal result marker meaning result in or lead to.",
     },
   },
   {
     id: "cause-duay-het-thi",
-    title: "Formal Cause with ด้วยเหตุที่...จึง...",
+    title: "Formal Cause with ด้วยเหตุที่",
     level: "C1",
     explanation:
-      "ด้วยเหตุที่...จึง... frames a reason and a consequence in a formal, structured way. It is common in official explanation, reports, and academic-style argument.",
-    pattern: "ด้วยเหตุที่ + REASON + จึง + RESULT",
+      "ด้วยเหตุที่ is a formal reason marker. It often pairs with จึง, but the main teaching anchor is the opening cause phrase itself.",
+    pattern: "ด้วยเหตุที่ + REASON + (จึง) + RESULT",
     example: {
-      thai: "ด้วยเหตุที่งบประมาณจำกัด จึงต้องปรับแผน",
-      roman: "duai het thi ngoppraman chamkat chueng tong prap phaen",
-      english: "Because the budget is limited, the plan therefore has to be adjusted.",
+      thai: "ด้วยเหตุที่งบประมาณจำกัด เราจึงต้องปรับแผน",
+      roman: "duai het thi ngoppraman chamkat rao chueng tong prap phaen",
+      english: "Because the budget is limited, we therefore have to adjust the plan.",
       breakdown: [
-        w("ด้วยเหตุที่", "because of the fact that", "falling", true),
+        w("ด้วยเหตุที่", "because / due to the fact that", "falling", true),
         w("งบประมาณ", "budget", "mid"),
         w("จำกัด", "limited", "low"),
+        w("เรา", "we", "mid"),
         w("จึง", "therefore", "mid", true),
         w("ต้อง", "must", "falling"),
-        w("ปรับแผน", "adjust the plan", "mid"),
+        w("ปรับแผน", "adjust the plan", "low"),
       ],
     },
     focus: {
-      particle: "ด้วยเหตุที่...จึง...",
-      meaning: "Formal reason-result frame meaning because...therefore...",
+      particle: "ด้วยเหตุที่",
+      meaning: "Formal cause marker meaning because or due to the fact that.",
     },
   },
   {
     id: "result-extreme-thueng-khan",
-    title: "Extreme Result with ถึงขั้น / ถึงกับ",
+    title: "Extreme Result with ถึงขั้น",
     level: "C1",
     explanation:
-      "ถึงขั้น and ถึงกับ present a result as unexpectedly strong or reaching an extreme point. They help speakers evaluate impact, intensity, and consequence.",
-    pattern: "CAUSE / SITUATION + ถึงขั้น / ถึงกับ + EXTREME RESULT",
+      "ถึงขั้น presents a result as reaching a striking or extreme point. It is a clean, high-value lesson anchor because learners can recognize it instantly and reuse it across many natural situations.",
+    pattern: "CAUSE / STATE + ถึงขั้น + RESULT",
     example: {
       thai: "เขาเหนื่อยถึงขั้นพูดไม่ออก",
       roman: "khao nueai thueng khan phut mai ok",
@@ -2890,16 +2796,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "ถึงขั้น / ถึงกับ",
-      meaning: "Extreme-result marker meaning to the point of or so much that.",
+      particle: "ถึงขั้น",
+      meaning: "Extreme-result marker meaning to the point of.",
     },
   },
   {
     id: "nominalization-karn-thi",
-    title: "Event Nominalization with การที่...",
+    title: "Event Nominalization with การที่",
     level: "C1",
     explanation:
-      "การที่ turns a whole event into a noun-like subject or topic. It is useful when explaining causes, evaluating behavior, and writing more formally.",
+      "การที่ turns a whole event into a noun-like topic. It is advanced but still app-friendly because the anchor is short, frequent, and easy to spot in a sentence.",
     pattern: "การที่ + CLAUSE + MAIN CLAUSE",
     example: {
       thai: "การที่เขามาตรงเวลาช่วยให้ประชุมเริ่มได้เร็ว",
@@ -2916,40 +2822,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "การที่...",
+      particle: "การที่",
       meaning: "Nominalizing frame meaning the fact that...",
     },
   },
   {
-    id: "formal-evaluation-thue-pen",
-    title: "Formal Evaluation with ถือเป็น / เป็นการ...",
-    level: "C1",
-    explanation:
-      "ถือเป็น and เป็นการ package actions or situations as formal judgments. They are common in evaluations, official statements, and more polished explanatory Thai.",
-    pattern: "X ถือเป็น / เป็นการ + EVALUATION",
-    example: {
-      thai: "การขอโทษทันทีถือเป็นการแสดงความรับผิดชอบ",
-      roman: "kan kho thot thanthi thue pen kan sadaeng khwam rap phit chop",
-      english: "Apologizing immediately counts as showing responsibility.",
-      breakdown: [
-        w("การขอโทษทันที", "apologizing immediately", "mid"),
-        w("ถือเป็น", "count as / be considered", "rising", true),
-        w("การแสดง", "the showing", "mid"),
-        w("ความรับผิดชอบ", "responsibility", "falling"),
-      ],
-    },
-    focus: {
-      particle: "ถือเป็น / เป็นการ...",
-      meaning: "Formal evaluation frame meaning count as or constitute.",
-    },
-  },
-  {
     id: "procedural-doi",
-    title: "Formal Means with โดย...",
+    title: "Method with โดย",
     level: "C1",
     explanation:
-      "โดย packages the means, method, or manner in a compact written-style form. It is common in instructions, reports, and formal summaries of how something is done.",
-    pattern: "MAIN ACTION + โดย + METHOD / MEANS",
+      "โดย packages means or method in a compact formal way. It is short enough to teach cleanly in the app while still opening the door to more advanced written Thai.",
+    pattern: "MAIN ACTION + โดย + METHOD",
     example: {
       thai: "บริษัทลดต้นทุนโดยปรับขั้นตอนการทำงาน",
       roman: "borisat lot tonthun doi prap khan ton kan thamngan",
@@ -2964,17 +2847,17 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "โดย...",
-      meaning: "Formal means marker meaning by / through / using.",
+      particle: "โดย",
+      meaning: "Formal means marker meaning by, through, or using.",
     },
   },
   {
     id: "clarification-klao-kue",
-    title: "Reframing with กล่าวคือ / กล่าวอีกนัยหนึ่ง",
+    title: "Clarification with กล่าวคือ",
     level: "C1",
     explanation:
-      "กล่าวคือ and กล่าวอีกนัยหนึ่ง restate a point in a clearer or more precise way. They are useful for mediation, explanation, and academic-style reformulation.",
-    pattern: "STATEMENT + กล่าวคือ / กล่าวอีกนัยหนึ่ง + REFRAMING",
+      "กล่าวคือ restates a point in a clearer or more precise way. It is a better app lesson than a bundled discourse lesson because learners can track one strong written-style anchor.",
+    pattern: "STATEMENT + กล่าวคือ + CLARIFICATION",
     example: {
       thai: "ทีมยังไม่พร้อม กล่าวคือ ยังขาดทั้งเวลาและคน",
       roman: "thim yang mai phrom klao khue yang khat thang wela lae khon",
@@ -2994,16 +2877,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "กล่าวคือ / กล่าวอีกนัยหนึ่ง",
-      meaning: "Reframing marker meaning that is to say / in other words.",
+      particle: "กล่าวคือ",
+      meaning: "Clarifying marker meaning that is to say.",
     },
   },
   {
     id: "however-yangrai-kor-taam",
-    title: "Formal Contrast with อย่างไรก็ตาม",
+    title: "However with อย่างไรก็ตาม",
     level: "C1",
     explanation:
-      "อย่างไรก็ตาม introduces a qualified contrast after acknowledging the previous point. It is common in reports, argument, and more formal discussion.",
+      "อย่างไรก็ตาม introduces a careful contrast after the previous point has been acknowledged. It is concise enough for the app and useful across many advanced written-style contexts.",
     pattern: "POINT A + อย่างไรก็ตาม + POINT B",
     example: {
       thai: "ข้อเสนอนี้น่าสนใจ อย่างไรก็ตาม ยังต้องตรวจรายละเอียด",
@@ -3026,11 +2909,11 @@ const rawGrammarPoints: RawGrammarPoint[] = [
   },
   {
     id: "contrast-nai-thang-trong-kham",
-    title: "Contrast with ในทางตรงกันข้าม / ในทางกลับกัน",
+    title: "Formal Contrast with ในทางตรงกันข้าม",
     level: "C1",
     explanation:
-      "These contrast markers let speakers set two perspectives or tendencies directly against each other. They are especially useful in explanation, comparison, and analytic writing.",
-    pattern: "POINT A + ในทางตรงกันข้าม / ในทางกลับกัน + POINT B",
+      "ในทางตรงกันข้าม sets one point directly against another in a more analytic, written-style way. This lesson keeps one anchor instead of bundling several contrast markers together.",
+    pattern: "POINT A + ในทางตรงกันข้าม + POINT B",
     example: {
       thai: "ฝ่ายหนึ่งเน้นความเร็ว ในทางตรงกันข้าม อีกฝ่ายเน้นความแม่นยำ",
       roman: "fai nueng nen khwam reo nai thang trong kan kham ik fai nen khwam maenyam",
@@ -3046,41 +2929,16 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "ในทางตรงกันข้าม / ในทางกลับกัน",
-      meaning: "Formal contrast markers meaning by contrast / on the other hand.",
-    },
-  },
-  {
-    id: "framing-thang-nii",
-    title: "Document Framing with ทั้งนี้ / สำหรับ... / ในส่วนของ...",
-    level: "C1",
-    explanation:
-      "ทั้งนี้, สำหรับ..., and ในส่วนของ... help writers frame scope, add a formal note, or shift attention to a specific part of the discussion. They are useful in structured written Thai.",
-    pattern: "ทั้งนี้ / สำหรับ... / ในส่วนของ... + CLAUSE",
-    example: {
-      thai: "ทั้งนี้ บริษัทจะประกาศผลอย่างเป็นทางการภายในสัปดาห์หน้า",
-      roman: "thang ni borisat cha prakat phon yang pen thangkan phai nai sapda na",
-      english: "With that said, the company will announce the result officially within next week.",
-      breakdown: [
-        w("ทั้งนี้", "with this / in this regard", "falling", true),
-        w("บริษัท", "company", "low"),
-        w("จะ", "will", "low"),
-        w("ประกาศผล", "announce the result", "low"),
-        w("อย่างเป็นทางการ", "officially", "mid"),
-        w("ภายในสัปดาห์หน้า", "within next week", "mid"),
-      ],
-    },
-    focus: {
-      particle: "ทั้งนี้ / สำหรับ... / ในส่วนของ...",
-      meaning: "Framing markers for scope, sectioning, and formal note-taking.",
+      particle: "ในทางตรงกันข้าม",
+      meaning: "Formal contrast marker meaning by contrast.",
     },
   },
   {
     id: "case-nai-karani-thi",
-    title: "Case Framing with ในกรณีที่...",
+    title: "Case Framing with ในกรณีที่",
     level: "C1",
     explanation:
-      "ในกรณีที่ introduces a specific case or contingency in a more formal way than everyday if-clauses. It is common in instructions, procedures, and written guidance.",
+      "ในกรณีที่ introduces a specific case or contingency in a more formal way than an everyday if-clause. It is a practical C1 lesson because the phrase is fixed, recognizable, and reusable.",
     pattern: "ในกรณีที่ + CASE + MAIN CLAUSE",
     example: {
       thai: "ในกรณีที่ระบบขัดข้อง กรุณาติดต่อเจ้าหน้าที่",
@@ -3096,12 +2954,14 @@ const rawGrammarPoints: RawGrammarPoint[] = [
       ],
     },
     focus: {
-      particle: "ในกรณีที่...",
-      meaning: "Case-framing marker meaning in the event that / in the case that.",
+      particle: "ในกรณีที่",
+      meaning: "Case-framing marker meaning in the event that or in the case that.",
     },
   },
 ];
 
+// Bundled grammar points act as a seed/fallback catalog. Published lesson
+// content should come from the backend-first GrammarCatalogProvider path.
 export const grammarPoints: GrammarPoint[] = rawGrammarPoints
   .map((point) => {
     const stageConfig = GRAMMAR_STAGE_BY_ID[point.id];

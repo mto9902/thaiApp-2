@@ -63,6 +63,8 @@ export type LessonFormState = {
   title: string;
   level: string;
   stage: string;
+  lessonOrder: number;
+  hiddenFromLearners: boolean;
   explanation: string;
   pattern: string;
   lessonSummary: string;
@@ -120,6 +122,19 @@ function stripThaiToneMarks(word: string) {
 
 function stripThaiSilentMarkers(word: string) {
   return word.replace(/[\u0E01-\u0E2E]\u0E4C/gu, "").replace(/\u0E4C/gu, "");
+}
+
+function normalizeLessonOrderValue(value: unknown, fallback = 0) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number.parseInt(String(value ?? ""), 10);
+
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return fallback;
+  }
+
+  return parsed;
 }
 
 export function countBreakdownThaiSyllables(thai?: string | null) {
@@ -193,6 +208,11 @@ export function buildLessonFormState(
     title: source.title ?? point.title,
     level: source.level ?? point.level,
     stage: source.stage ?? point.stage,
+    lessonOrder: normalizeLessonOrderValue(
+      source.lessonOrder,
+      point.lessonOrder,
+    ),
+    hiddenFromLearners: source.hiddenFromLearners === true,
     explanation: source.explanation ?? point.explanation,
     pattern: source.pattern ?? point.pattern,
     lessonSummary: lessonBlocks?.summary ?? source.explanation ?? point.explanation,
@@ -249,6 +269,9 @@ export function cloneBreakdownItem(item: ReviewBreakdownItem): ReviewBreakdownIt
     thai: item.thai ?? "",
     english: item.english ?? "",
     romanization: item.romanization ?? "",
+    displayThaiSegments: Array.isArray(item.displayThaiSegments)
+      ? item.displayThaiSegments.filter(Boolean).map((segment) => segment.trim())
+      : [],
     grammar: item.grammar === true,
     tones: Array.isArray(item.tones) ? [...item.tones] : [],
   };
@@ -267,6 +290,8 @@ export function lessonPayloadFromState(state: LessonFormState) {
       title: state.title,
       level: state.level,
       stage: state.stage,
+      lessonOrder: normalizeLessonOrderValue(state.lessonOrder),
+      hiddenFromLearners: state.hiddenFromLearners,
       explanation: state.explanation,
       pattern: state.pattern,
       lessonBlocks,
@@ -352,6 +377,16 @@ export function cleanBreakdownItem(item: ReviewBreakdownItem): ReviewBreakdownIt
     cleaned.grammar = true;
   }
 
+  const displayThaiSegments = Array.isArray(item.displayThaiSegments)
+    ? item.displayThaiSegments
+        .map((segment) => String(segment ?? "").trim())
+        .filter(Boolean)
+    : [];
+
+  if (displayThaiSegments.length > 0) {
+    cleaned.displayThaiSegments = displayThaiSegments;
+  }
+
   if (Array.isArray(item.tones) && item.tones.length > 0) {
     cleaned.tones = item.tones.filter(Boolean);
   }
@@ -401,6 +436,8 @@ function isBreakdownItemBlank(item: ReviewBreakdownItem) {
     !item.thai.trim() &&
     !item.english.trim() &&
     !(item.romanization ?? "").trim() &&
+    (!Array.isArray(item.displayThaiSegments) ||
+      item.displayThaiSegments.length === 0) &&
     item.grammar !== true &&
     (!Array.isArray(item.tones) || item.tones.length === 0)
   );

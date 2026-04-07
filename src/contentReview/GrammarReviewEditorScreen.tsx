@@ -201,6 +201,14 @@ function compactTonePreview(items: ReviewBreakdownItem[] | null | undefined) {
   return preview.length > 180 ? `${preview.slice(0, 177)}...` : preview;
 }
 
+function parseLessonOrderInput(value: string, fallback: number) {
+  const parsed = Number.parseInt(value.trim(), 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
 function normalizeBreakdownForRevisionDiff(
   items: ReviewBreakdownItem[] | null | undefined,
   options: { includeTones?: boolean } = {},
@@ -324,7 +332,15 @@ function formatRevisionSnapshotValue(
         return "â€”";
       }
       return flags
-        .map((flag) => (flag === "thai_weak" ? "Thai weak" : flag))
+        .map((flag) =>
+          flag === "thai_weak"
+            ? "Thai weak"
+            : flag === "legacy"
+              ? "Legacy"
+              : flag === "new_gen"
+                ? "New Gen"
+                : flag,
+        )
         .join(", ");
     }
     case "sortOrder":
@@ -679,8 +695,8 @@ export default function GrammarReviewEditorScreen({
   surface = "full",
 }: GrammarReviewEditorProps) {
   const router = useRouter();
-  const { grammarById, refresh } = useGrammarCatalog();
-  const grammarPoint = grammarById.get(grammarId);
+  const { allGrammarById, refresh } = useGrammarCatalog();
+  const grammarPoint = allGrammarById.get(grammarId);
   const isRowOnly = surface === "rowOnly";
 
   const [loading, setLoading] = useState(true);
@@ -1012,6 +1028,74 @@ export default function GrammarReviewEditorScreen({
       <View style={styles.fieldBlock}>
         <Text style={styles.fieldLabel}>Quality flags</Text>
         <View style={styles.inlineChipRow}>
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              rowDraft.qualityFlags.includes("new_gen") && styles.chipActive,
+            ]}
+            onPress={() =>
+              setRowDraft((current) => {
+                if (!current) {
+                  return current;
+                }
+                const hasFlag = current.qualityFlags.includes("new_gen");
+                return {
+                  ...current,
+                  qualityFlags: hasFlag
+                    ? current.qualityFlags.filter((flag) => flag !== "new_gen")
+                    : [
+                        ...current.qualityFlags.filter((flag) => flag !== "legacy"),
+                        "new_gen",
+                      ],
+                };
+              })
+            }
+            activeOpacity={0.82}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                rowDraft.qualityFlags.includes("new_gen") &&
+                  styles.chipTextActive,
+              ]}
+            >
+              New Gen
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              rowDraft.qualityFlags.includes("legacy") && styles.chipActive,
+            ]}
+            onPress={() =>
+              setRowDraft((current) => {
+                if (!current) {
+                  return current;
+                }
+                const hasFlag = current.qualityFlags.includes("legacy");
+                return {
+                  ...current,
+                  qualityFlags: hasFlag
+                    ? current.qualityFlags.filter((flag) => flag !== "legacy")
+                    : [
+                        ...current.qualityFlags.filter((flag) => flag !== "new_gen"),
+                        "legacy",
+                      ],
+                };
+              })
+            }
+            activeOpacity={0.82}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                rowDraft.qualityFlags.includes("legacy") &&
+                  styles.chipTextActive,
+              ]}
+            >
+              Legacy
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.chip,
@@ -1617,17 +1701,55 @@ export default function GrammarReviewEditorScreen({
           <View style={styles.card}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Lesson review</Text>
-              {lessonReviewMeta ? (
-                <View style={[styles.statusPill, { backgroundColor: lessonReviewMeta.bg, borderColor: lessonReviewMeta.border }]}>
-                  <Text style={[styles.statusPillText, { color: lessonReviewMeta.text }]}>{REVIEW_STATUS_LABELS[lessonForm.reviewStatus]}</Text>
-                </View>
-              ) : null}
+              <View style={styles.headerPillRow}>
+                {lessonForm.hiddenFromLearners ? (
+                  <View
+                    style={[
+                      styles.statusPill,
+                      {
+                        backgroundColor: "#F3F3F1",
+                        borderColor: "#D4D4CF",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.statusPillText, { color: Sketch.inkMuted }]}
+                    >
+                      Hidden from learners
+                    </Text>
+                  </View>
+                ) : null}
+                {lessonReviewMeta ? (
+                  <View
+                    style={[
+                      styles.statusPill,
+                      {
+                        backgroundColor: lessonReviewMeta.bg,
+                        borderColor: lessonReviewMeta.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusPillText,
+                        { color: lessonReviewMeta.text },
+                      ]}
+                    >
+                      {REVIEW_STATUS_LABELS[lessonForm.reviewStatus]}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
 
             <Text style={styles.metaText}>Stage {lessonForm.stage}</Text>
             <Text style={styles.metaText}>Current reviewer {profile ? reviewerLabel({ email: profile.email, display_name: profile.display_name }) : "Unknown"}</Text>
 
-            <Text style={styles.fieldLabel}>Status</Text>
+            <Text style={styles.fieldLabel}>Review status</Text>
+            <Text style={styles.helperText}>
+              This controls the review workflow only. It does not hide the
+              lesson from learners.
+            </Text>
             <StatusPicker value={lessonForm.reviewStatus} onChange={(reviewStatus) => setLessonForm((current) => (current ? { ...current, reviewStatus } : current))} />
 
             <Text style={styles.fieldLabel}>Assignee</Text>
@@ -1650,6 +1772,84 @@ export default function GrammarReviewEditorScreen({
                   </TouchableOpacity>
                 );
               })}
+            </View>
+
+            <Text style={styles.fieldLabel}>Lesson order</Text>
+            <Text style={styles.helperText}>
+              Backend-owned order within this stage. 0 is the first lesson
+              learners see.
+            </Text>
+            <TextInput
+              value={String(lessonForm.lessonOrder)}
+              onChangeText={(value) =>
+                setLessonForm((current) =>
+                  current
+                    ? {
+                        ...current,
+                        lessonOrder: parseLessonOrderInput(
+                          value,
+                          current.lessonOrder,
+                        ),
+                      }
+                    : current,
+                )
+              }
+              style={styles.input}
+              keyboardType="number-pad"
+            />
+
+            <Text style={styles.fieldLabel}>Learner visibility</Text>
+            <Text style={styles.helperText}>
+              Hide this lesson when the content is wrong or incomplete. Hidden
+              lessons stay available in admin.
+            </Text>
+            <View style={styles.inlineChipRow}>
+              <TouchableOpacity
+                style={[
+                  styles.chip,
+                  !lessonForm.hiddenFromLearners && styles.chipActive,
+                ]}
+                onPress={() =>
+                  setLessonForm((current) =>
+                    current
+                      ? { ...current, hiddenFromLearners: false }
+                      : current,
+                  )
+                }
+                activeOpacity={0.82}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    !lessonForm.hiddenFromLearners && styles.chipTextActive,
+                  ]}
+                >
+                  Visible to learners
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.chip,
+                  lessonForm.hiddenFromLearners && styles.chipActive,
+                ]}
+                onPress={() =>
+                  setLessonForm((current) =>
+                    current
+                      ? { ...current, hiddenFromLearners: true }
+                      : current,
+                  )
+                }
+                activeOpacity={0.82}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    lessonForm.hiddenFromLearners && styles.chipTextActive,
+                  ]}
+                >
+                  Hidden from learners
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <Text style={styles.fieldLabel}>Title</Text>
@@ -1830,6 +2030,13 @@ const styles = StyleSheet.create({
   rowOnlyCard: { padding: 14, gap: 10 },
   metaText: { fontSize: 12, color: Sketch.inkMuted },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
+  headerPillRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: Sketch.ink },
   fieldLabel: { fontSize: 12, fontWeight: "700", color: Sketch.inkMuted, textTransform: "uppercase", letterSpacing: 0.7 },
   input: { borderWidth: 1, borderColor: Sketch.inkFaint, backgroundColor: Sketch.paperDark, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: Sketch.ink },
