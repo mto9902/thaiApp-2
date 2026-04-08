@@ -119,10 +119,47 @@ export default function GrammarTopicsScreen() {
 
   const levelMeta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
   const stageMeta = selectedStage ? GRAMMAR_STAGE_META[selectedStage] : null;
+  const isTemporaryMaintenance = selectedStage === "C1" || selectedLevel === "C1";
   const practiced = filtered.filter((g) =>
     isGrammarPracticed(progress[g.id]),
   ).length;
   const percentage = filtered.length > 0 ? Math.round((practiced / filtered.length) * 100) : 0;
+
+  if (isTemporaryMaintenance) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.replace(backToGrammarPathHref as any)}
+          >
+            <Ionicons name="arrow-back" size={22} color={Sketch.ink} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {selectedStage
+              ? stageMeta?.title ?? "Grammar"
+              : selectedLevel
+                ? `${selectedLevel} Grammar`
+                : "Grammar"}
+          </Text>
+          <View style={{ width: 38 }} />
+        </View>
+
+        <View style={styles.maintenanceWrap}>
+          <View style={styles.maintenanceCard}>
+            <View style={styles.maintenanceIcon}>
+              <Ionicons name="construct-outline" size={28} color={Sketch.orange} />
+            </View>
+            <Text style={styles.maintenanceTitle}>Temporarily under maintenance</Text>
+            <Text style={styles.maintenanceBody}>
+              C1 lessons are being updated right now. Please try again later.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
@@ -360,6 +397,45 @@ const styles = StyleSheet.create({
     color: Sketch.orange,
     minWidth: 32,
     textAlign: "right",
+  },
+  maintenanceWrap: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  maintenanceCard: {
+    borderWidth: 2,
+    borderColor: Sketch.ink,
+    borderRadius: 16,
+    backgroundColor: Sketch.cardBg,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    alignItems: "center",
+    gap: 12,
+    ...sketchShadow(4),
+  },
+  maintenanceIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: Sketch.ink,
+    backgroundColor: "#FFF4DB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  maintenanceTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "800",
+    color: Sketch.ink,
+    textAlign: "center",
+  },
+  maintenanceBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Sketch.inkMuted,
+    textAlign: "center",
   },
   nextButton: {
     marginTop: 12,

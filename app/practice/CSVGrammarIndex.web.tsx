@@ -135,9 +135,59 @@ export default function GrammarTopicsScreenWeb() {
 
   const levelMeta = selectedLevel ? CEFR_LEVEL_META[selectedLevel] : null;
   const stageMeta = selectedStage ? GRAMMAR_STAGE_META[selectedStage] : null;
+  const isTemporaryMaintenance = selectedStage === "C1" || selectedLevel === "C1";
 
   const columns = isWide ? 3 : isMedium ? 2 : 1;
   const cardWidth = columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
+
+  if (isTemporaryMaintenance) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <DesktopPage
+          widthVariant="wide"
+          density="compact"
+          eyebrow={selectedStage ? selectedStage : selectedLevel ? selectedLevel : "Grammar"}
+          title={
+            selectedStage
+              ? stageMeta?.title ?? "Grammar"
+              : selectedLevel
+                ? `${selectedLevel} Grammar`
+                : "Grammar Curriculum"
+          }
+          subtitle={
+            selectedStage
+              ? stageMeta?.subtitle
+              : selectedLevel
+                ? `${levelMeta?.title ?? selectedLevel} lesson track`
+                : "Browse the curriculum and open any grammar lesson from the list."
+          }
+          toolbar={
+            <TouchableOpacity
+              style={styles.topButton}
+              onPress={() => router.replace(backToGrammarPathHref as any)}
+              activeOpacity={0.82}
+            >
+              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+              <Text style={styles.topButtonText}>Back</Text>
+            </TouchableOpacity>
+          }
+        >
+          <DesktopPanel>
+            <View style={styles.maintenanceCard}>
+              <View style={styles.maintenanceBadge}>
+                <Ionicons name="construct-outline" size={24} color={AppSketch.primary} />
+              </View>
+              <Text style={styles.maintenanceTitle}>Temporarily under maintenance</Text>
+              <Text style={styles.maintenanceBody}>
+                C1 lessons are being updated right now. Please try again later.
+              </Text>
+            </View>
+          </DesktopPanel>
+        </DesktopPage>
+      </>
+    );
+  }
 
   return (
     <>
@@ -489,6 +539,38 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingTop: 8,
     paddingBottom: 10,
+  },
+  maintenanceCard: {
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.lg,
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+    alignItems: "center",
+    gap: 14,
+    ...appShadow("sm"),
+  },
+  maintenanceBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: AppRadius.full,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surfaceMuted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  maintenanceTitle: {
+    ...AppTypography.sectionTitle,
+    color: AppSketch.ink,
+    textAlign: "center",
+  },
+  maintenanceBody: {
+    ...AppTypography.body,
+    color: AppSketch.inkMuted,
+    textAlign: "center",
+    maxWidth: 420,
   },
   card: {
     borderWidth: 1,
