@@ -265,21 +265,21 @@ export default function PremiumScreen() {
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>UNLOCK MORE THAI</Text>
-          <Text style={styles.title}>Continue after the free lessons</Text>
+          <Text style={styles.title}>Upgrade this account</Text>
           <Text style={styles.subtitle}>
-            Unlock the rest of the Thai course, practice mixed sets across what
-            you study, and save unlimited bookmarks.
+            Add Keystone Access to this signed-in account so you can continue
+            through the Thai course with full study tools.
           </Text>
           {promptLabel ? (
-            <Text style={styles.contextLine}>You&apos;re trying to open: {promptLabel}</Text>
+            <Text style={styles.contextLine}>You were trying to open: {promptLabel}</Text>
           ) : null}
         </View>
 
         <View style={styles.benefitsCard}>
           {[
-            "Everything beyond the first 6 lessons",
-            "Mixed practice across studied grammar",
-            "Unlimited bookmarks",
+            "Continue past the free lessons in the Thai course",
+            "Keep mixed practice available as you progress",
+            "Save unlimited bookmarks on this account",
           ].map((benefit) => (
             <View key={benefit} style={styles.benefitRow}>
               <Ionicons name="checkmark" size={16} color={Sketch.orange} />

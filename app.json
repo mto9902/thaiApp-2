@@ -30,7 +30,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/branding/keystone-logo-source.png"
+      "favicon": "./keystone_languages_logo.png"
     },
     "plugins": [
       "expo-router",

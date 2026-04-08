@@ -7,7 +7,7 @@ type BrandMarkProps = {
   imageStyle?: ImageStyle;
 };
 
-const BRAND_MARK = require("../../assets/branding/keystone-logo-source.png");
+const BRAND_MARK = require("../../keystone_languages_logo.png");
 
 export default function BrandMark({
   size = 24,

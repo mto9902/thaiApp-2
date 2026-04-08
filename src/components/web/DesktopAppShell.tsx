@@ -5,6 +5,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppSketch, AppRadius, AppSpacing, AppTypography } from "@/constants/theme-app";
+import BrandMark from "@/src/components/BrandMark";
 import KimiIcon from "@/src/components/app/KimiIcon";
 import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 import { canAccessApp } from "@/src/utils/auth";
@@ -103,6 +104,7 @@ export default function DesktopAppShell({
               onPress={() => router.push("/" as any)}
               activeOpacity={0.9}
             >
+              <BrandMark size={28} />
               <Text style={styles.brandText}>Keystone Thai</Text>
             </TouchableOpacity>
 
@@ -253,6 +255,8 @@ const styles = StyleSheet.create({
   brandButton: {
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: AppSpacing.sm,
     minWidth: 150,
   },
   brandText: {

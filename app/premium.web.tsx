@@ -136,7 +136,6 @@ export default function PremiumWebScreen() {
     plan?: string;
     checkout?: string;
   }>();
-  const promptLabel = Array.isArray(params.label) ? params.label[0] : params.label;
   const redirectTo = Array.isArray(params.redirectTo)
     ? params.redirectTo[0]
     : params.redirectTo;
@@ -451,8 +450,8 @@ export default function PremiumWebScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
         eyebrow="Keystone Access"
-        title="Continue after the free lessons"
-        subtitle="Unlock the rest of the Thai course on web, then keep the same access across your account."
+        title="Upgrade this account"
+        subtitle="Add Keystone Access to this signed-in account so you can continue through the Thai course on web and mobile."
         toolbar={
           <TouchableOpacity
             style={styles.backButton}
@@ -473,24 +472,15 @@ export default function PremiumWebScreen() {
             <View style={[styles.heroGrid, stackHero && styles.heroGridStacked]}>
               <DesktopPanel style={styles.heroPanel}>
                 <DesktopSectionTitle
-                  title="What unlocks"
-                  caption="Keystone Access opens the rest of the Thai course and lifts the free bookmark cap."
+                  title="What this account gets"
+                  caption="Keystone Access upgrades this account with the rest of the Thai course and the full study tools."
                 />
-                {promptLabel ? (
-                  <Text style={styles.contextLine}>Trying to open: {promptLabel}</Text>
-                ) : null}
-                {requestedPlan ? (
-                  <Text style={styles.planHint}>
-                    Selected from pricing:{" "}
-                    {requestedPlan === "yearly" ? "Yearly" : "Monthly"}
-                  </Text>
-                ) : null}
                 <View style={styles.benefitsList}>
                   {[
-                    "Thai lessons beyond the first 6 lessons",
-                    "Mixed practice across studied grammar",
-                    "Unlimited bookmarks",
-                    "One account across web and mobile",
+                    "Continue past the free lessons in the Thai course",
+                    "Keep mixed practice available as you progress",
+                    "Save unlimited bookmarks on this account",
+                    "Use the same access on web and mobile",
                   ].map((item) => (
                     <View key={item} style={styles.benefitRow}>
                       <Ionicons name="checkmark" size={16} color={Sketch.accent} />
@@ -502,8 +492,8 @@ export default function PremiumWebScreen() {
 
               <DesktopPanel style={styles.statePanel}>
                 <DesktopSectionTitle
-                  title="Purchase status"
-                  caption="Web checkout is billed through Paddle and synced back to your Keystone account."
+                  title="Billing Status"
+                  caption="Payments are securely processed via Paddle for your Keystone account."
                 />
 
                 {isPremium ? (
@@ -568,10 +558,10 @@ export default function PremiumWebScreen() {
                   </>
                 ) : (
                   <>
-                    <Text style={styles.stateTitle}>Checkout is ready on web</Text>
+                    <Text style={styles.stateTitle}>Ready to upgrade?</Text>
                     <Text style={styles.bodyText}>
-                      Choose monthly or yearly below. Secure checkout opens in an
-                      overlay and this account unlocks as soon as billing syncs.
+                      Select a monthly or yearly plan below. Your account will be
+                      updated automatically as soon as your payment is complete.
                     </Text>
                     {syncMessage ? <Text style={styles.syncNote}>{syncMessage}</Text> : null}
                   </>
