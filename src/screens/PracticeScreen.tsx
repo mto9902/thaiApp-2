@@ -2,10 +2,11 @@ import { useState } from "react";
 import { ActivityIndicator, Button, Text, View } from "react-native";
 
 import { generateSentence } from "../api/generateSentence";
-import { grammarPoints } from "../data/grammar";
+import { useGrammarCatalog } from "../grammar/GrammarCatalogProvider";
 import { getRandomWords } from "../logic/sentenceGenerator";
 
 export default function PracticeScreen() {
+  const { grammarPoints } = useGrammarCatalog();
   const [sentence, setSentence] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +16,11 @@ export default function PracticeScreen() {
     try {
       const words = getRandomWords(3);
 
-      const grammar = grammarPoints[0]; // default grammar
+      const grammar = grammarPoints[0];
+      if (!grammar) {
+        setSentence("No visible grammar lessons available.");
+        return;
+      }
 
       const result = await generateSentence(words, grammar.aiPrompt);
 

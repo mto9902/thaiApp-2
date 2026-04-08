@@ -51,6 +51,7 @@ export default function GrammarTopicsScreenWeb() {
   const { level, stage } = useLocalSearchParams<{ level?: string; stage?: string }>();
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
+  const backToGrammarPathHref = "/progress";
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
@@ -162,7 +163,7 @@ export default function GrammarTopicsScreenWeb() {
         toolbar={
           <TouchableOpacity
             style={styles.topButton}
-            onPress={() => router.back()}
+            onPress={() => router.replace(backToGrammarPathHref as any)}
             activeOpacity={0.82}
           >
             <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
@@ -282,34 +283,45 @@ export default function GrammarTopicsScreenWeb() {
                       <View style={styles.stagePill}>
                         <Text style={styles.stagePillText}>{item.stage}</Text>
                       </View>
-                      {locked ? (
-                        <View style={styles.statusPill}>
-                          <Ionicons
-                            name="lock-closed-outline"
-                            size={13}
-                            color={AppSketch.primary}
-                          />
-                          <Text style={styles.statusPillText}>Access</Text>
-                        </View>
-                      ) : done ? (
-                        <View style={styles.statusPill}>
-                          <Ionicons
-                            name="checkmark"
-                            size={13}
-                            color={AppSketch.primary}
-                          />
-                          <Text style={styles.statusPillText}>Practiced</Text>
-                        </View>
-                      ) : bookmarked ? (
-                        <View style={styles.statusPill}>
-                          <Ionicons
-                            name="bookmark"
-                            size={13}
-                            color={AppSketch.primary}
-                          />
-                          <Text style={styles.statusPillText}>Saved</Text>
-                        </View>
-                      ) : null}
+                      <View style={styles.cardTopRight}>
+                        {locked ? (
+                          <View style={styles.statusPill}>
+                            <Ionicons
+                              name="lock-closed-outline"
+                              size={13}
+                              color={AppSketch.primary}
+                            />
+                            <Text style={styles.statusPillText}>Access</Text>
+                          </View>
+                        ) : null}
+                        {done ? (
+                          <View style={[styles.statusPill, styles.statusPillPracticed]}>
+                            <Ionicons
+                              name="checkmark"
+                              size={13}
+                              color="#FFFFFF"
+                            />
+                            <Text
+                              style={[
+                                styles.statusPillText,
+                                styles.statusPillTextPracticed,
+                              ]}
+                            >
+                              Practiced
+                            </Text>
+                          </View>
+                        ) : null}
+                        {bookmarked ? (
+                          <View style={styles.statusPill}>
+                            <Ionicons
+                              name="bookmark"
+                              size={13}
+                              color={AppSketch.primary}
+                            />
+                            <Text style={styles.statusPillText}>Saved</Text>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                     <Text style={styles.cardTitle}>{cardCopy.title}</Text>
                     <Text style={styles.cardPattern}>{cardCopy.pattern}</Text>
@@ -494,6 +506,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  cardTopRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
+    gap: 8,
+    minWidth: 0,
+  },
   stagePill: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -517,9 +537,18 @@ const styles = StyleSheet.create({
     borderRadius: AppRadius.full,
     backgroundColor: AppSketch.surface,
   },
+  statusPillPracticed: {
+    backgroundColor: AppSketch.primary,
+    borderColor: AppSketch.primary,
+    ...appShadow("sm"),
+  },
   statusPillText: {
     ...AppTypography.caption,
     color: AppSketch.primary,
+  },
+  statusPillTextPracticed: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   cardTitle: {
     fontSize: 21,

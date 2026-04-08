@@ -25,6 +25,7 @@ import { API_BASE } from "@/src/config";
 import {
   openPrivacyPolicy,
   openTermsOfService,
+  SUPPORT_EMAIL,
 } from "@/src/utils/legalLinks";
 import {
   getEmailLocalPart,
@@ -82,6 +83,12 @@ export default function SettingsWebScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [draftDisplayName, setDraftDisplayName] = useState("");
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportBusy, setSupportBusy] = useState(false);
+  const [supportStatus, setSupportStatus] = useState<string | null>(null);
+  const [supportBanner, setSupportBanner] = useState<string | null>(null);
   const [settings, setSettings] = useState<DesktopSettingsState>({
     showRoman: true,
     showEnglish: true,
@@ -139,6 +146,7 @@ export default function SettingsWebScreen() {
 
       setProfile(data);
       setDraftDisplayName(data.display_name ?? "");
+      setSupportEmail(data.email ?? "");
       setSettings({
         showRoman: roman !== null ? roman === "true" : true,
         showEnglish: english !== null ? english === "true" : true,
@@ -165,6 +173,12 @@ export default function SettingsWebScreen() {
     draftDisplayName.trim() !== (profile?.display_name?.trim() || "");
   const isStacked = width < 1180;
   const stackInfoCards = width < 1360;
+
+  function openSupportModal() {
+    setSupportEmail(profile?.email || supportEmail);
+    setSupportStatus(null);
+    setSupportModalVisible(true);
+  }
 
   async function updateSetting<K extends keyof DesktopSettingsState>(
     key: K,
@@ -310,6 +324,59 @@ export default function SettingsWebScreen() {
     }
   }
 
+  async function submitSupportRequest() {
+    if (supportBusy) return;
+
+    const email = supportEmail.trim();
+    const message = supportMessage.trim();
+
+    if (!email) {
+      setSupportStatus("Enter your email so we can reply.");
+      return;
+    }
+
+    if (!message) {
+      setSupportStatus("Describe the problem before sending.");
+      return;
+    }
+
+    try {
+      setSupportBusy(true);
+      setSupportStatus(null);
+      const token = await getAuthToken();
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE}/support/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email, message }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `Failed to send support request (${res.status})`);
+      }
+
+      setSupportModalVisible(false);
+      setSupportMessage("");
+      setSupportStatus(null);
+      setSupportBanner(
+        data?.deliveredByEmail === false
+          ? "Your message was saved for support review."
+          : "Your message was sent to support.",
+      );
+    } catch (err) {
+      setSupportStatus(
+        err instanceof Error ? err.message : "Failed to send support request.",
+      );
+    } finally {
+      setSupportBusy(false);
+    }
+  }
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -370,6 +437,87 @@ export default function SettingsWebScreen() {
               >
                 <Text style={styles.primaryButtonText}>
                   {savingName ? "Saving..." : "Save"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={supportModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!supportBusy) setSupportModalVisible(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              if (!supportBusy) setSupportModalVisible(false);
+            }}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Contact support</Text>
+              <TouchableOpacity
+                style={styles.modalIconBtn}
+                onPress={() => {
+                  if (!supportBusy) setSupportModalVisible(false);
+                }}
+                activeOpacity={0.82}
+                disabled={supportBusy}
+              >
+                <Ionicons name="close" size={18} color={AppSketch.inkMuted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalBody}>
+              Send a message to the Keystone team and we&apos;ll reply by email.
+            </Text>
+            <TextInput
+              value={supportEmail}
+              onChangeText={setSupportEmail}
+              placeholder={profile?.email || SUPPORT_EMAIL}
+              placeholderTextColor={AppSketch.inkFaint}
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TextInput
+              value={supportMessage}
+              onChangeText={setSupportMessage}
+              placeholder="Describe the problem"
+              placeholderTextColor={AppSketch.inkFaint}
+              style={[styles.input, styles.textArea]}
+              multiline
+              textAlignVertical="top"
+              maxLength={4000}
+            />
+            {supportStatus ? <Text style={styles.bodyText}>{supportStatus}</Text> : null}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.secondaryButton, styles.modalAction]}
+                onPress={() => setSupportModalVisible(false)}
+                activeOpacity={0.82}
+                disabled={supportBusy}
+              >
+                <Text style={styles.secondaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  styles.modalAction,
+                  supportBusy && styles.disabledButton,
+                ]}
+                onPress={() => void submitSupportRequest()}
+                activeOpacity={0.82}
+                disabled={supportBusy}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {supportBusy ? "Sending..." : "Send"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -743,6 +891,28 @@ export default function SettingsWebScreen() {
               </View>
             </DesktopPanel>
 
+            <DesktopPanel>
+              <DesktopSectionTitle
+                title="Support"
+                caption="Reach out by email when billing, access, or lesson content needs a hand."
+              />
+              <Text style={styles.bodyText}>
+                Contact the Keystone team directly and we&apos;ll reply by email.
+              </Text>
+              <View style={styles.infoCard}>
+                <Text style={styles.infoLabel}>Support email</Text>
+                <Text style={styles.infoValue}>{SUPPORT_EMAIL}</Text>
+              </View>
+              {supportBanner ? <Text style={styles.bodyText}>{supportBanner}</Text> : null}
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={openSupportModal}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.secondaryButtonText}>Contact Support</Text>
+              </TouchableOpacity>
+            </DesktopPanel>
+
             <View style={[styles.dangerGrid, isStacked && styles.stackGrid]}>
               <DesktopPanel style={styles.dangerPanel}>
                 <DesktopSectionTitle
@@ -1099,6 +1269,10 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: AppSketch.ink,
     borderRadius: AppRadius.md,
+  },
+  textArea: {
+    minHeight: 140,
+    paddingTop: 14,
   },
   modalActions: {
     flexDirection: "row",

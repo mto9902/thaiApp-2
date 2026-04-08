@@ -57,6 +57,7 @@ export default function GrammarTopicsScreen() {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
+  const backToGrammarPathHref = "/progress";
 
   useFocusEffect(
     useCallback(() => {
@@ -128,7 +129,10 @@ export default function GrammarTopicsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.replace(backToGrammarPathHref as any)}
+        >
           <Ionicons name="arrow-back" size={22} color={Sketch.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>

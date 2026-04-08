@@ -43,7 +43,7 @@ const TAB_LABELS: Record<QueueTab, string> = {
 
 export default function ContentReviewDashboard() {
   const router = useRouter();
-  const { grammarById, grammarPoints } = useGrammarCatalog();
+  const { allGrammarById, allGrammarPoints } = useGrammarCatalog();
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -104,16 +104,16 @@ export default function ContentReviewDashboard() {
   const availableStages = useMemo(
     () =>
       GRAMMAR_STAGES.filter((stage) =>
-        grammarPoints.some((point) => point.stage === stage),
+        allGrammarPoints.some((point) => point.stage === stage),
       ),
-    [grammarPoints],
+    [allGrammarPoints],
   );
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return items.filter((item) => {
-      const grammarPoint = grammarById.get(item.grammarId);
+      const grammarPoint = allGrammarById.get(item.grammarId);
       const stage = grammarPoint?.stage ?? item.stage ?? null;
       const reviewStatus = item.reviewStatus;
 
@@ -148,10 +148,10 @@ export default function ContentReviewDashboard() {
 
       return haystack.includes(query);
     });
-  }, [grammarById, items, profile?.id, search, selectedStage, selectedTab]);
+  }, [allGrammarById, items, profile?.id, search, selectedStage, selectedTab]);
 
   function renderCard(item: ReviewQueueItem) {
-    const grammarPoint = grammarById.get(item.grammarId);
+    const grammarPoint = allGrammarById.get(item.grammarId);
     const stage = grammarPoint?.stage ?? item.stage ?? "Unknown";
     const title =
       grammarPoint?.title ??

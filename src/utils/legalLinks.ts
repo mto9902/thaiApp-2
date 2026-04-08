@@ -7,6 +7,35 @@ export const SUPPORT_EMAIL = "hello@keystonelanguages.com";
 async function openExternalUrl(url: string, label: string) {
   try {
     if (Platform.OS === "web" && typeof window !== "undefined") {
+      if (url.startsWith("mailto:")) {
+        const emailAddress = url.replace(/^mailto:/, "");
+        let copied = false;
+
+        try {
+          await navigator.clipboard?.writeText?.(emailAddress);
+          copied = true;
+        } catch {
+          copied = false;
+        }
+
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+
+        window.setTimeout(() => {
+          Alert.alert(
+            "Contact Support",
+            copied
+              ? `If your email app did not open, email ${emailAddress}. We also copied it to your clipboard.`
+              : `If your email app did not open, email ${emailAddress}.`,
+          );
+        }, 150);
+        return;
+      }
+
       window.open(url, "_blank", "noopener,noreferrer");
       return;
     }

@@ -20,6 +20,7 @@ import Header, { SettingsState } from "../../../src/components/Header";
 import PremiumGateCard from "../../../src/components/PremiumGateCard";
 import ToneDots from "../../../src/components/ToneDots";
 import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
+import ToneThaiText from "../../../src/components/ToneThaiText";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
 import { AppRadius } from "@/constants/theme-app";
@@ -27,10 +28,11 @@ import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
+import { useAdjacentGrammarPoint } from "../../../src/grammar/useAdjacentGrammarPoint";
 import { useSentenceAudio } from "../../../src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
-import { saveRound } from "../../../src/utils/grammarProgress";
+import { getProgress, saveRound } from "../../../src/utils/grammarProgress";
 import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   getGrammarExerciseSettings,
@@ -41,36 +43,33 @@ import {
 } from "../../../src/utils/grammarExerciseSettings";
 import {
   getBreakdownTones,
-  getPrimaryBreakdownTone,
 } from "../../../src/utils/breakdownTones";
 import { getPracticeWordTrackingEnabled } from "../../../src/utils/practiceWordPreference";
 import {
-  getToneAccent,
   MUTED_FEEDBACK_ACCENTS,
 } from "../../../src/utils/toneAccent";
 import { getAuthToken } from "../../../src/utils/authStorage";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-function toneColor(tone?: string): string {
-  return tone ? getToneAccent(tone) : Sketch.inkMuted;
-}
-
-function getBreakdownTextColor(item: { tone?: string; tones?: string[] }): string {
-  const primaryTone = getPrimaryBreakdownTone(item);
-  return primaryTone ? toneColor(primaryTone) : Sketch.ink;
-}
-
-const MATTE_RESULT_COLORS = {
-  successTint: Sketch.cardBg,
-  successBg: "#A2B28F",
-  successBorder: "#8FA080",
-  successText: "#32402E",
-  successSubtext: "#40503B",
-  errorTint: Sketch.cardBg,
-  errorBg: "#C18B86",
-  errorBorder: "#AF7A76",
-  errorText: "#4E3231",
-  errorSubtext: "#634543",
+const EXERCISE_FEEDBACK_COLORS = {
+  correct: {
+    tint: "#F3F6FA",
+    border: Sketch.accent,
+    text: Sketch.accentDark,
+    subtext: Sketch.accent,
+  },
+  incorrect: {
+    tint: Sketch.paper,
+    border: "#D8DCDf",
+    text: Sketch.inkMuted,
+    subtext: Sketch.inkLight,
+  },
+  revealed: {
+    tint: "#F5F7FA",
+    border: "#C7D1DC",
+    text: Sketch.accentDark,
+    subtext: Sketch.accentLight,
+  },
 } as const;
 
 const CONTROL_PANEL_ACCENT = {
@@ -149,6 +148,7 @@ interface SentenceData {
     english: string;
     tone?: string;
     tones?: string[];
+    displayThaiSegments?: string[];
     grammar?: boolean;
     romanization?: string;
     roman?: string;
@@ -162,6 +162,8 @@ interface MatchOption {
   isCorrect: boolean;
 }
 
+type ResultState = "" | "correct" | "wrong" | "revealed";
+
 type StudyExample = SentenceData & {
   romanTokens: string[];
 };
@@ -173,6 +175,7 @@ type BuilderWord = {
   english: string;
   roman: string;
   tones: ReturnType<typeof getBreakdownTones>;
+  displayThaiSegments?: string[];
   rotation: number;
 };
 
@@ -267,6 +270,9 @@ export default function GrammarExercisesScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
+  const { previous, next } = useAdjacentGrammarPoint(
+    typeof id === "string" ? id : null,
+  );
   const { playSentence } = useSentenceAudio();
   const isDesktopWeb = Platform.OS === "web" && width >= 1100;
   const mixSource = Array.isArray(source) ? source[0] : source;
@@ -275,6 +281,19 @@ export default function GrammarExercisesScreen() {
   const currentPracticeRoute = hasMixSource
     ? `/practice/${id}/exercises?mix=${mixParam}${mixSource ? `&source=${mixSource}` : ""}`
     : `/practice/${id}/exercises`;
+  const singleLessonId =
+    !hasMixSource && typeof id === "string" && id.length > 0 ? id : null;
+  const exerciseBackHref = hasMixSource
+    ? mixSource === "bookmarks"
+      ? "/explore"
+      : mixSource === "progress"
+        ? "/"
+        : typeof id === "string" && id.length > 0
+          ? `/practice/${id}`
+          : "/practice/topics"
+    : typeof id === "string" && id.length > 0
+      ? `/practice/${id}`
+      : "/practice/topics";
 
   const roundRef = useRef(0);
   const mixIdsRef = useRef<string[]>([]);
@@ -307,7 +326,7 @@ export default function GrammarExercisesScreen() {
   const [mode, setMode] = useState<Mode>("breakdown");
   const [settingsReady, setSettingsReady] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<"" | "correct" | "wrong">("");
+  const [result, setResult] = useState<ResultState>("");
   const [toneGuideVisible, setToneGuideVisible] = useState(false);
   const [enabledModes, setEnabledModes] = useState<GrammarExerciseSettings>(
     DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
@@ -326,6 +345,8 @@ export default function GrammarExercisesScreen() {
     title: string;
     body: string;
   } | null>(null);
+  const [lifetimeRounds, setLifetimeRounds] = useState(0);
+  const [sessionRounds, setSessionRounds] = useState(0);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const canPlayBreakdownTiles = isDesktopWeb || wordBreakdownTTS;
   const selectedStudyExample =
@@ -336,14 +357,15 @@ export default function GrammarExercisesScreen() {
   const activeRomanTokens = selectedStudyExample?.romanTokens || romanTokens;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  function fadeIn() {
+  const showSingleLessonUtilities = Boolean(singleLessonId);
+  const fadeIn = useCallback(() => {
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }
+  }, [fadeAnim]);
 
   useEffect(() => {
     (async () => {
@@ -376,6 +398,36 @@ export default function GrammarExercisesScreen() {
     setEnabledModes(s.grammarExerciseModes);
     setMethodsGuardMessage(null);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setSessionRounds(0);
+
+    if (!singleLessonId) {
+      setLifetimeRounds(0);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getProgress(singleLessonId)
+      .then((progress) => {
+        if (!cancelled) {
+          setLifetimeRounds(progress?.rounds ?? 0);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load lesson practice count:", error);
+        if (!cancelled) {
+          setLifetimeRounds(0);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [singleLessonId]);
 
   async function togglePracticeMethod(targetMode: Mode) {
     const currentModes = enabledModesRef.current;
@@ -439,74 +491,20 @@ export default function GrammarExercisesScreen() {
     }
   }
 
-  useEffect(() => {
-    if (!settingsReady || premiumLoading) return;
-
-    const requestedGrammar =
-      typeof id === "string" ? findGrammarById(id) ?? null : null;
-    const requestedMixIds =
-      typeof mix === "string" ? mix.split(",").filter(Boolean) : [];
-
-    if (requestedMixIds.length > 0) {
-      if (
-        !isPremium &&
-        requestedMixIds.some((grammarId) =>
-          isPremiumGrammarPoint(findGrammarById(grammarId)),
-        )
-      ) {
-        mixIdsRef.current = [];
-        mixIndexRef.current = 0;
-        currentGrammarIdRef.current = requestedGrammar?.id ?? null;
-        setGrammarPoint(requestedGrammar);
-        setPremiumBlocked({
-          title:
-            mixSource === "progress"
-              ? "This study mix needs Keystone Access"
-              : "These bookmarks need Keystone Access",
-          body:
-            "This practice set includes Thai lessons beyond the free starting path. Unlock Keystone Access to keep practicing every lesson after the first 6 lessons.",
-        });
-        return;
-      }
-
-      mixIdsRef.current = requestedMixIds;
-      mixIndexRef.current = 0;
-    } else {
-      mixIdsRef.current = [];
-      mixIndexRef.current = 0;
-
-      if (
-        requestedGrammar &&
-        !isPremium &&
-        isPremiumGrammarPoint(requestedGrammar)
-      ) {
-        currentGrammarIdRef.current = requestedGrammar.id;
-        setGrammarPoint(requestedGrammar);
-        setPremiumBlocked({
-          title: "This lesson is in Keystone Access",
-          body:
-            "Unlock Keystone Access to keep practicing Thai lessons beyond the first 6 lessons, with mixed practice and unlimited bookmarks.",
-        });
-        return;
-      }
-    }
-
-    setPremiumBlocked(null);
-    modeHistoryRef.current = [];
-    fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
-  }, [id, isPremium, mix, mixSource, premiumLoading, settingsReady]);
-
-  function getRandomGrammar() {
+  const getRandomGrammar = useCallback(() => {
     return grammarPoints[Math.floor(Math.random() * grammarPoints.length)];
-  }
-  function findGrammarById(gid: string) {
+  }, [grammarPoints]);
+
+  const findGrammarById = useCallback((gid: string) => {
     return grammarPoints.find((g) => g.id === gid);
-  }
-  function getCurrentMixGrammarId(): string | null {
+  }, [grammarPoints]);
+
+  const getCurrentMixGrammarId = useCallback((): string | null => {
     if (mixIdsRef.current.length === 0) return null;
     return mixIdsRef.current[mixIndexRef.current % mixIdsRef.current.length] ?? null;
-  }
-  function grammarObject() {
+  }, []);
+
+  const grammarObject = useCallback(() => {
     if (mixIdsRef.current.length > 0) {
       const currentId = getCurrentMixGrammarId();
       return currentId ? findGrammarById(currentId) ?? null : null;
@@ -514,9 +512,9 @@ export default function GrammarExercisesScreen() {
     return typeof id === "string"
       ? findGrammarById(id) || getRandomGrammar()
       : getRandomGrammar();
-  }
+  }, [findGrammarById, getCurrentMixGrammarId, getRandomGrammar, id]);
 
-  async function fetchSentence(gid: string): Promise<SentenceData> {
+  const fetchSentence = useCallback(async (gid: string): Promise<SentenceData> => {
     const res = await getPractice(gid);
     return {
       thai: res?.thai || "",
@@ -524,12 +522,12 @@ export default function GrammarExercisesScreen() {
       english: res?.english || "",
       breakdown: res?.breakdown || [],
     };
-  }
+  }, []);
 
-  async function fetchStudyExamples(
+  const fetchStudyExamples = useCallback(async (
     gid: string,
     seed?: SentenceData,
-  ): Promise<StudyExample[]> {
+  ): Promise<StudyExample[]> => {
     const examples: StudyExample[] = [];
     const seenThai = new Set<string>();
 
@@ -559,7 +557,7 @@ export default function GrammarExercisesScreen() {
     }
 
     return examples.slice(0, STUDY_EXAMPLE_COUNT);
-  }
+  }, [fetchSentence]);
 
   async function trackWords(
     wordsToTrack: SentenceData["breakdown"],
@@ -597,6 +595,14 @@ export default function GrammarExercisesScreen() {
     const grammarId = getCurrentGrammarId();
     if (!grammarId) return;
     void saveRound(grammarId, wasCorrect);
+    if (singleLessonId && grammarId === singleLessonId) {
+      setLifetimeRounds((current) => current + 1);
+      setSessionRounds((current) => current + 1);
+    }
+  }
+
+  function continueToNextRound() {
+    void fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
   }
 
   function openCurrentGrammarLesson() {
@@ -617,7 +623,7 @@ export default function GrammarExercisesScreen() {
     return s;
   }
 
-  const fetchRound = async (nextMode: Mode) => {
+  const fetchRound = useCallback(async (nextMode: Mode) => {
     const round = ++roundRef.current;
     try {
       setLoading(true);
@@ -728,6 +734,7 @@ export default function GrammarExercisesScreen() {
             english: w.english.toUpperCase(),
             roman: perWordRoman[i] ?? "",
             tones: getBreakdownTones(w),
+            displayThaiSegments: w.displayThaiSegments,
             rotation: Math.random() * 6 - 3,
           };
         });
@@ -753,9 +760,84 @@ export default function GrammarExercisesScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    fadeIn,
+    fetchSentence,
+    fetchStudyExamples,
+    findGrammarById,
+    getCurrentMixGrammarId,
+    grammarObject,
+    mixSource,
+  ]);
+
+  useEffect(() => {
+    if (!settingsReady || premiumLoading) return;
+
+    const requestedGrammar =
+      typeof id === "string" ? findGrammarById(id) ?? null : null;
+    const requestedMixIds =
+      typeof mix === "string" ? mix.split(",").filter(Boolean) : [];
+
+    if (requestedMixIds.length > 0) {
+      if (
+        !isPremium &&
+        requestedMixIds.some((grammarId) =>
+          isPremiumGrammarPoint(findGrammarById(grammarId)),
+        )
+      ) {
+        mixIdsRef.current = [];
+        mixIndexRef.current = 0;
+        currentGrammarIdRef.current = requestedGrammar?.id ?? null;
+        setGrammarPoint(requestedGrammar);
+        setPremiumBlocked({
+          title:
+            mixSource === "progress"
+              ? "This study mix needs Keystone Access"
+              : "These bookmarks need Keystone Access",
+          body:
+            "This practice set includes Thai lessons beyond the free starting path. Unlock Keystone Access to keep practicing every lesson after the first 6 lessons.",
+        });
+        return;
+      }
+
+      mixIdsRef.current = requestedMixIds;
+      mixIndexRef.current = 0;
+    } else {
+      mixIdsRef.current = [];
+      mixIndexRef.current = 0;
+
+      if (
+        requestedGrammar &&
+        !isPremium &&
+        isPremiumGrammarPoint(requestedGrammar)
+      ) {
+        currentGrammarIdRef.current = requestedGrammar.id;
+        setGrammarPoint(requestedGrammar);
+        setPremiumBlocked({
+          title: "This lesson is in Keystone Access",
+          body:
+            "Unlock Keystone Access to keep practicing Thai lessons beyond the first 6 lessons, with mixed practice and unlimited bookmarks.",
+        });
+        return;
+      }
+    }
+
+    setPremiumBlocked(null);
+    modeHistoryRef.current = [];
+    void fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
+  }, [
+    fetchRound,
+    findGrammarById,
+    id,
+    isPremium,
+    mix,
+    mixSource,
+    premiumLoading,
+    settingsReady,
+  ]);
 
   function handleWordTap(word: BuilderWord) {
+    if (result === "revealed") return;
     setResult("");
     setBuiltSentence((previous) => {
       if (previous.some((item) => item.id === word.id)) {
@@ -765,14 +847,17 @@ export default function GrammarExercisesScreen() {
     });
   }
   function undoLastWord() {
+    if (result === "revealed") return;
     setResult("");
     setBuiltSentence((p) => p.slice(0, -1));
   }
   function resetSentence() {
+    if (result === "revealed") return;
     setResult("");
     setBuiltSentence([]);
   }
   function removeBuiltWord(wordId: number) {
+    if (result === "revealed") return;
     setResult("");
     setBuiltSentence((previous) =>
       previous.filter((item) => item.id !== wordId),
@@ -797,14 +882,24 @@ export default function GrammarExercisesScreen() {
     recordRound(ok);
     if (ok) {
       trackWords(breakdown, "wordScraps-correct", romanTokens);
-      const goNext = () =>
-        fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
       if (autoplayTTS) {
-        void playSentence(sentence, { onDone: goNext, speed: ttsSpeed });
+        void playSentence(sentence, {
+          onDone: continueToNextRound,
+          speed: ttsSpeed,
+        });
       } else {
-        setTimeout(goNext, 1200);
+        setTimeout(continueToNextRound, 1200);
       }
     }
+  }
+
+  function revealWordScrapsAnswer() {
+    if (result === "correct" || result === "revealed") return;
+    const orderedWords = [...words].sort(
+      (left, right) => left.breakdownIndex - right.breakdownIndex,
+    );
+    setBuiltSentence(orderedWords);
+    setResult("revealed");
   }
 
   function selectOption(idx: number) {
@@ -818,10 +913,7 @@ export default function GrammarExercisesScreen() {
     if (autoplayTTS) {
       void playSentence(opt.thai, {
         onDone: ok
-          ? () =>
-              fetchRound(
-                randomMode(enabledModesRef.current, modeHistoryRef.current),
-              )
+          ? continueToNextRound
           : undefined,
         speed: ttsSpeed,
       });
@@ -829,13 +921,17 @@ export default function GrammarExercisesScreen() {
     if (ok) {
       trackWords(breakdown, "matchThai-correct", romanTokens);
       if (!autoplayTTS) {
-        setTimeout(
-          () =>
-            fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current)),
-          1400,
-        );
+        setTimeout(continueToNextRound, 1400);
       }
     }
+  }
+
+  function revealMatchAnswer() {
+    if (matchRevealed) return;
+    setSelectedOption(null);
+    setMatchRevealed(true);
+    setExpandedMatchOption(null);
+    setResult("revealed");
   }
 
   function toggleMatchOptionExpanded(idx: number) {
@@ -856,6 +952,12 @@ export default function GrammarExercisesScreen() {
   const selectedWordIds = new Set(builtSentence.map((selected) => selected.id));
   const showLessonShortcut =
     (mixSource === "bookmarks" || mixSource === "progress") && Boolean(grammarPoint?.id);
+  const resultPalette =
+    result === "correct"
+      ? EXERCISE_FEEDBACK_COLORS.correct
+      : result === "revealed"
+        ? EXERCISE_FEEDBACK_COLORS.revealed
+        : EXERCISE_FEEDBACK_COLORS.incorrect;
   const practiceControls = (
     <View
       style={[
@@ -1090,6 +1192,88 @@ export default function GrammarExercisesScreen() {
             </View>
           )}
         </View>
+        {showSingleLessonUtilities ? (
+          <View style={st.lessonMetaSection}>
+            <View style={st.lessonMetaHeader}>
+              <Text style={st.lessonMetaLabel}>Practice tracker</Text>
+              <Text style={st.lessonMetaHint}>Rounds for this lesson</Text>
+            </View>
+            <View style={st.trackerRow}>
+              <View style={st.trackerCard}>
+                <Text style={st.trackerValue}>{lifetimeRounds}</Text>
+                <Text style={st.trackerCaption}>Lifetime</Text>
+              </View>
+              <View style={st.trackerCard}>
+                <Text style={st.trackerValue}>{sessionRounds}</Text>
+                <Text style={st.trackerCaption}>This session</Text>
+              </View>
+            </View>
+
+            <View style={st.lessonMetaDivider} />
+
+            <View style={st.lessonMetaHeader}>
+              <Text style={st.lessonMetaLabel}>Topic navigation</Text>
+              <Text style={st.lessonMetaHint}>Move through the course path</Text>
+            </View>
+            <View style={st.lessonNavExerciseRow}>
+              <TouchableOpacity
+                style={[
+                  st.lessonNavExerciseButton,
+                  !previous && st.lessonNavExerciseButtonDisabled,
+                ]}
+                onPress={() =>
+                  previous && router.push(`/practice/${previous.id}/exercises`)
+                }
+                activeOpacity={previous ? 0.85 : 1}
+                disabled={!previous}
+              >
+                <Text
+                  style={[
+                    st.lessonNavExerciseLabel,
+                    !previous && st.lessonNavExerciseLabelDisabled,
+                  ]}
+                >
+                  Previous topic
+                </Text>
+                <Text
+                  style={[
+                    st.lessonNavExerciseTitle,
+                    !previous && st.lessonNavExerciseTitleDisabled,
+                  ]}
+                >
+                  {previous ? previous.title : "You're at the first topic"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  st.lessonNavExerciseButton,
+                  !next && st.lessonNavExerciseButtonDisabled,
+                ]}
+                onPress={() => next && router.push(`/practice/${next.id}/exercises`)}
+                activeOpacity={next ? 0.85 : 1}
+                disabled={!next}
+              >
+                <Text
+                  style={[
+                    st.lessonNavExerciseLabel,
+                    !next && st.lessonNavExerciseLabelDisabled,
+                  ]}
+                >
+                  Next topic
+                </Text>
+                <Text
+                  style={[
+                    st.lessonNavExerciseTitle,
+                    !next && st.lessonNavExerciseTitleDisabled,
+                  ]}
+                >
+                  {next ? next.title : "You're at the last topic"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -1101,7 +1285,7 @@ export default function GrammarExercisesScreen() {
         <View style={[st.pageFrame, isDesktopWeb && st.pageFrameDesktop]}>
           <Header
             title="Practice"
-            onBack={() => router.back()}
+            onBack={() => router.replace(exerciseBackHref as any)}
             showBrandMark={false}
             showClose
           />
@@ -1131,7 +1315,7 @@ export default function GrammarExercisesScreen() {
                     : "Quick Practice"
                   : getPracticeHeaderTitle(grammarPoint)
               }
-              onBack={() => router.back()}
+              onBack={() => router.replace(exerciseBackHref as any)}
               showBrandMark={false}
               showClose
             />
@@ -1164,7 +1348,7 @@ export default function GrammarExercisesScreen() {
                   : "Quick Practice"
                 : getPracticeHeaderTitle(grammarPoint)
             }
-            onBack={() => router.back()}
+            onBack={() => router.replace(exerciseBackHref as any)}
             showBrandMark={false}
             showClose
             showWordBreakdownTtsSetting
@@ -1253,12 +1437,13 @@ export default function GrammarExercisesScreen() {
 
                         <Text style={st.studyExampleSentence}>
                           {example.breakdown.map((word, wordIndex) => (
-                            <Text
+                            <ToneThaiText
                               key={wordIndex}
-                              style={{ color: getBreakdownTextColor(word) }}
-                            >
-                              {word.thai}
-                            </Text>
+                              thai={word.thai}
+                              tones={getBreakdownTones(word)}
+                              romanization={word.romanization || word.roman}
+                              displayThaiSegments={word.displayThaiSegments}
+                            />
                           ))}
                         </Text>
 
@@ -1300,7 +1485,14 @@ export default function GrammarExercisesScreen() {
                           activeOpacity={0.8}
                         >
                           <View style={st.wordTileHeader}>
-                            <Text style={st.wordTileThai}>{w.thai}</Text>
+                            <ToneThaiText
+                              thai={w.thai}
+                              tones={getBreakdownTones(w)}
+                              romanization={activeRomanTokens[i]}
+                              displayThaiSegments={w.displayThaiSegments}
+                              style={st.wordTileThai}
+                              fallbackColor={Sketch.ink}
+                            />
                             <ToneDots
                               tones={getBreakdownTones(w)}
                               style={st.toneDots}
@@ -1323,7 +1515,14 @@ export default function GrammarExercisesScreen() {
                           style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
                         >
                           <View style={st.wordTileHeader}>
-                            <Text style={st.wordTileThai}>{w.thai}</Text>
+                            <ToneThaiText
+                              thai={w.thai}
+                              tones={getBreakdownTones(w)}
+                              romanization={activeRomanTokens[i]}
+                              displayThaiSegments={w.displayThaiSegments}
+                              style={st.wordTileThai}
+                              fallbackColor={Sketch.ink}
+                            />
                             <ToneDots
                               tones={getBreakdownTones(w)}
                               style={st.toneDots}
@@ -1383,9 +1582,13 @@ export default function GrammarExercisesScreen() {
                     st.builderZone,
                     isDesktopWeb && st.builderZoneDesktop,
                     result === "correct" && st.builderCorrect,
+                    result === "revealed" && st.builderRevealed,
                     !isDesktopWeb &&
                       result === "correct" &&
                       st.builderCorrectMobile,
+                    !isDesktopWeb &&
+                      result === "revealed" &&
+                      st.builderRevealedMobile,
                     result === "wrong" && st.builderWrong,
                     !isDesktopWeb &&
                       result === "wrong" &&
@@ -1398,10 +1601,14 @@ export default function GrammarExercisesScreen() {
                       style={[
                         st.builderPlaceholder,
                         result === "correct" && st.builderPlaceholderResultOk,
+                        result === "revealed" &&
+                          st.builderPlaceholderResultRevealed,
                         result === "wrong" && st.builderPlaceholderResultBad,
                       ]}
                     >
-                      Tap words below to build your answer
+                      {result === "revealed"
+                        ? "Answer shown below"
+                        : "Tap words below to build your answer"}
                     </Text>
                   ) : (
                     <View
@@ -1432,7 +1639,8 @@ export default function GrammarExercisesScreen() {
                                 key={`usr-${i}`}
                                 style={st.builderChip}
                                 onPress={() => removeBuiltWord(builtWord.id)}
-                                activeOpacity={0.8}
+                                activeOpacity={result === "revealed" ? 1 : 0.8}
+                                disabled={result === "revealed"}
                               >
                                 <Text style={st.builderChipText}>
                                   {builtWord.thai}
@@ -1462,25 +1670,30 @@ export default function GrammarExercisesScreen() {
                   <View
                     style={[
                       st.resultBanner,
-                      result === "correct" ? st.resultOk : st.resultBad,
+                      result === "correct"
+                        ? st.resultOk
+                        : result === "revealed"
+                          ? st.resultRevealed
+                          : st.resultBad,
                       !isDesktopWeb &&
                         (result === "correct"
                           ? st.resultOkMobile
-                          : st.resultBadMobile),
+                          : result === "revealed"
+                            ? st.resultRevealedMobile
+                            : st.resultBadMobile),
                     ]}
                   >
                     <Text
                       style={[
                         st.resultLabel,
-                        {
-                          color:
-                            result === "correct"
-                              ? MATTE_RESULT_COLORS.successText
-                              : MATTE_RESULT_COLORS.errorText,
-                        },
+                        { color: resultPalette.text },
                       ]}
                     >
-                      {result === "correct" ? "Correct" : "Incorrect"}
+                      {result === "correct"
+                        ? "Correct"
+                        : result === "revealed"
+                          ? "Answer shown"
+                          : "Incorrect"}
                     </Text>
                   </View>
                 )}
@@ -1489,14 +1702,16 @@ export default function GrammarExercisesScreen() {
                   <TouchableOpacity
                     style={st.actionBtn}
                     onPress={undoLastWord}
-                    activeOpacity={0.7}
+                    activeOpacity={result === "revealed" ? 1 : 0.7}
+                    disabled={result === "revealed"}
                   >
                     <Text style={st.actionBtnText}>Undo</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={st.actionBtn}
                     onPress={resetSentence}
-                    activeOpacity={0.7}
+                    activeOpacity={result === "revealed" ? 1 : 0.7}
+                    disabled={result === "revealed"}
                   >
                     <Text style={st.actionBtnText}>Reset</Text>
                   </TouchableOpacity>
@@ -1522,17 +1737,24 @@ export default function GrammarExercisesScreen() {
                         isUsed && st.wordTileUsed,
                       ]}
                       onPress={() => {
-                        if (isUsed) return;
+                        if (isUsed || result === "revealed") return;
                         handleWordTap(word);
                         if (autoplayTTS) {
                           playBreakdownWord(word.thai);
                         }
                       }}
-                      activeOpacity={isUsed ? 1 : 0.8}
-                      disabled={isUsed}
+                      activeOpacity={isUsed || result === "revealed" ? 1 : 0.8}
+                      disabled={isUsed || result === "revealed"}
                     >
                       <View style={st.wordTileHeader}>
-                        <Text style={st.wordTileThai}>{word.thai}</Text>
+                        <ToneThaiText
+                          thai={word.thai}
+                          tones={word.tones}
+                          romanization={word.roman}
+                          displayThaiSegments={word.displayThaiSegments}
+                          style={st.wordTileThai}
+                          fallbackColor={Sketch.ink}
+                        />
                         <ToneDots tones={word.tones} style={st.toneDots} />
                       </View>
                       {showRoman && word.roman ? (
@@ -1554,16 +1776,19 @@ export default function GrammarExercisesScreen() {
                         st.primaryBtn,
                         st.primaryBtnDesktop,
                         st.ctaButtonDesktop,
-                        result === "correct" && st.primaryBtnDisabled,
+                        (result === "correct" || result === "revealed") &&
+                          st.primaryBtnDisabled,
                       ]}
                       onPress={checkWordScraps}
-                      activeOpacity={result === "correct" ? 1 : 0.85}
-                      disabled={result === "correct"}
+                      activeOpacity={
+                        result === "correct" || result === "revealed" ? 1 : 0.85
+                      }
+                      disabled={result === "correct" || result === "revealed"}
                     >
                       <Text style={st.primaryBtnText}>Check Answer</Text>
                     </TouchableOpacity>
 
-                    {result !== "correct" ? (
+                    {result === "revealed" ? (
                       <TouchableOpacity
                         style={[
                           st.primaryBtn,
@@ -1571,14 +1796,41 @@ export default function GrammarExercisesScreen() {
                           st.primaryBtnDesktop,
                           st.ctaButtonDesktop,
                         ]}
-                        onPress={() =>
-                          fetchRound(
-                            randomMode(
-                              enabledModesRef.current,
-                              modeHistoryRef.current,
-                            ),
-                          )
-                        }
+                        onPress={continueToNextRound}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Continue
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+
+                    {result !== "correct" && result !== "revealed" ? (
+                      <TouchableOpacity
+                        style={[
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.primaryBtnDesktop,
+                          st.ctaButtonDesktop,
+                        ]}
+                        onPress={revealWordScrapsAnswer}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Show answer
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+
+                    {result !== "correct" && result !== "revealed" ? (
+                      <TouchableOpacity
+                        style={[
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.primaryBtnDesktop,
+                          st.ctaButtonDesktop,
+                        ]}
+                        onPress={continueToNextRound}
                         activeOpacity={0.85}
                       >
                         <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
@@ -1593,30 +1845,58 @@ export default function GrammarExercisesScreen() {
                       style={[
                         st.primaryBtn,
                         isDesktopWeb && st.primaryBtnDesktop,
-                        result === "correct" && st.primaryBtnDisabled,
+                        (result === "correct" || result === "revealed") &&
+                          st.primaryBtnDisabled,
                       ]}
                       onPress={checkWordScraps}
-                      activeOpacity={result === "correct" ? 1 : 0.85}
-                      disabled={result === "correct"}
+                      activeOpacity={
+                        result === "correct" || result === "revealed" ? 1 : 0.85
+                      }
+                      disabled={result === "correct" || result === "revealed"}
                     >
                       <Text style={st.primaryBtnText}>Check Answer</Text>
                     </TouchableOpacity>
 
-                    {result !== "correct" && (
+                    {result === "revealed" && (
                       <TouchableOpacity
                         style={[
                           st.primaryBtn,
                           st.secondaryBtn,
                           isDesktopWeb && st.primaryBtnDesktop,
                         ]}
-                        onPress={() =>
-                          fetchRound(
-                            randomMode(
-                              enabledModesRef.current,
-                              modeHistoryRef.current,
-                            ),
-                          )
-                        }
+                        onPress={continueToNextRound}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Continue
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {result !== "correct" && result !== "revealed" && (
+                      <TouchableOpacity
+                        style={[
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          isDesktopWeb && st.primaryBtnDesktop,
+                        ]}
+                        onPress={revealWordScrapsAnswer}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Show answer
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {result !== "correct" && result !== "revealed" && (
+                      <TouchableOpacity
+                        style={[
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          isDesktopWeb && st.primaryBtnDesktop,
+                        ]}
+                        onPress={continueToNextRound}
                         activeOpacity={0.85}
                       >
                         <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
@@ -1660,11 +1940,14 @@ export default function GrammarExercisesScreen() {
 
                     if (matchRevealed) {
                       if (isCorrect) {
-                        borderColor = MATTE_RESULT_COLORS.successBorder;
+                        borderColor = EXERCISE_FEEDBACK_COLORS.correct.border;
+                        bgColor = EXERCISE_FEEDBACK_COLORS.correct.tint;
+                      } else if (result === "revealed") {
+                        borderColor = Sketch.inkFaint;
                         bgColor = Sketch.cardBg;
                       } else if (isSelected && !isCorrect) {
-                        borderColor = MATTE_RESULT_COLORS.errorBorder;
-                        bgColor = Sketch.cardBg;
+                        borderColor = EXERCISE_FEEDBACK_COLORS.incorrect.border;
+                        bgColor = EXERCISE_FEEDBACK_COLORS.incorrect.tint;
                       } else {
                         bgColor = Sketch.paperDark;
                       }
@@ -1675,16 +1958,25 @@ export default function GrammarExercisesScreen() {
 
                     const sentenceBgColor = isCorrect && matchRevealed
                       ? isDesktopWeb
-                        ? Sketch.paperDark
+                        ? EXERCISE_FEEDBACK_COLORS.correct.tint
                         : "transparent"
+                      : result === "revealed" && matchRevealed
+                        ? isDesktopWeb
+                          ? Sketch.cardBg
+                          : "transparent"
                       : isSelected && matchRevealed && !isCorrect
                         ? isDesktopWeb
-                          ? Sketch.paperDark
+                          ? EXERCISE_FEEDBACK_COLORS.incorrect.tint
                           : "transparent"
                         : isSelected
                           ? Sketch.cardBg
                           : Sketch.paperDark;
-                    const sentenceRomanColor = Sketch.inkMuted;
+                    const sentenceRomanColor =
+                      matchRevealed && isCorrect
+                        ? EXERCISE_FEEDBACK_COLORS.correct.subtext
+                        : result === "revealed"
+                          ? EXERCISE_FEEDBACK_COLORS.revealed.subtext
+                          : Sketch.inkMuted;
 
                     return (
                       <View
@@ -1720,12 +2012,15 @@ export default function GrammarExercisesScreen() {
                             >
                               {opt.breakdown.length > 0
                                 ? opt.breakdown.map((item, itemIndex) => (
-                                    <Text
+                                    <ToneThaiText
                                       key={`${idx}-${itemIndex}-${item.thai}`}
-                                      style={{ color: getBreakdownTextColor(item) }}
-                                    >
-                                      {item.thai}
-                                    </Text>
+                                      thai={item.thai}
+                                      tones={getBreakdownTones(item)}
+                                      romanization={
+                                        item.romanization || item.roman
+                                      }
+                                      displayThaiSegments={item.displayThaiSegments}
+                                    />
                                   ))
                                 : opt.thai}
                             </Text>
@@ -1780,7 +2075,14 @@ export default function GrammarExercisesScreen() {
                                           st.matchWordTileHeaderDesktop,
                                       ]}
                                     >
-                                      <Text style={st.matchWordTileThai}>{w.thai}</Text>
+                                      <ToneThaiText
+                                        thai={w.thai}
+                                        tones={getBreakdownTones(w)}
+                                        romanization={optRomanTokens[wi]}
+                                        displayThaiSegments={w.displayThaiSegments}
+                                        style={st.matchWordTileThai}
+                                        fallbackColor={Sketch.ink}
+                                      />
                                       <ToneDots
                                         tones={getBreakdownTones(w)}
                                         style={st.toneDots}
@@ -1812,7 +2114,14 @@ export default function GrammarExercisesScreen() {
                                           st.matchWordTileHeaderDesktop,
                                       ]}
                                     >
-                                      <Text style={st.matchWordTileThai}>{w.thai}</Text>
+                                      <ToneThaiText
+                                        thai={w.thai}
+                                        tones={getBreakdownTones(w)}
+                                        romanization={optRomanTokens[wi]}
+                                        displayThaiSegments={w.displayThaiSegments}
+                                        style={st.matchWordTileThai}
+                                        fallbackColor={Sketch.ink}
+                                      />
                                       <ToneDots
                                         tones={getBreakdownTones(w)}
                                         style={st.toneDots}
@@ -1844,25 +2153,30 @@ export default function GrammarExercisesScreen() {
                   <View
                     style={[
                       st.resultBanner,
-                      result === "correct" ? st.resultOk : st.resultBad,
+                      result === "correct"
+                        ? st.resultOk
+                        : result === "revealed"
+                          ? st.resultRevealed
+                          : st.resultBad,
                       !isDesktopWeb &&
                         (result === "correct"
                           ? st.resultOkMobile
-                          : st.resultBadMobile),
+                          : result === "revealed"
+                            ? st.resultRevealedMobile
+                            : st.resultBadMobile),
                     ]}
                   >
                     <Text
                       style={[
                         st.resultLabel,
-                        {
-                          color:
-                            result === "correct"
-                              ? MATTE_RESULT_COLORS.successText
-                              : MATTE_RESULT_COLORS.errorText,
-                        },
+                        { color: resultPalette.text },
                       ]}
                     >
-                      {result === "correct" ? "Correct" : "Incorrect"}
+                      {result === "correct"
+                        ? "Correct"
+                        : result === "revealed"
+                          ? "Answer shown"
+                          : "Incorrect"}
                     </Text>
                   </View>
                 )}
@@ -1873,44 +2187,58 @@ export default function GrammarExercisesScreen() {
                   </View>
                 </View>
 
-                {matchRevealed && result === "wrong" && (
+                {matchRevealed && (result === "wrong" || result === "revealed") && (
                   <TouchableOpacity
                     style={[
                       st.primaryBtn,
                       st.secondaryBtn,
                       isDesktopWeb && st.primaryBtnDesktop,
                     ]}
-                    onPress={() =>
-                      fetchRound(
-                        randomMode(enabledModesRef.current, modeHistoryRef.current),
-                      )
-                    }
+                    onPress={continueToNextRound}
                     activeOpacity={0.85}
                   >
                     <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      {"Continue ->"}
+                      Continue
                     </Text>
                   </TouchableOpacity>
                 )}
 
                 {!matchRevealed && (
-                  <TouchableOpacity
+                  <View
                     style={[
-                      st.primaryBtn,
-                      st.secondaryBtn,
-                      isDesktopWeb && st.primaryBtnDesktop,
+                      st.matchActionRow,
+                      isDesktopWeb && st.matchActionRowDesktop,
                     ]}
-                    onPress={() =>
-                      fetchRound(
-                        randomMode(enabledModesRef.current, modeHistoryRef.current),
-                      )
-                    }
-                    activeOpacity={0.85}
                   >
-                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      Skip
-                    </Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        st.primaryBtn,
+                        st.secondaryBtn,
+                        isDesktopWeb && st.primaryBtnDesktop,
+                        isDesktopWeb && st.matchActionButtonDesktop,
+                      ]}
+                      onPress={revealMatchAnswer}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                        Show answer
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        st.primaryBtn,
+                        st.secondaryBtn,
+                        isDesktopWeb && st.primaryBtnDesktop,
+                        isDesktopWeb && st.matchActionButtonDesktop,
+                      ]}
+                      onPress={continueToNextRound}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                        Skip
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             )}
@@ -2279,6 +2607,91 @@ const st = StyleSheet.create({
   },
   displayChipTextActive: {
     color: Sketch.accentDark,
+  },
+  lessonMetaSection: {
+    marginTop: 12,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E6E1D8",
+    gap: 12,
+  },
+  lessonMetaHeader: {
+    gap: 2,
+  },
+  lessonMetaLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: Sketch.inkMuted,
+  },
+  lessonMetaHint: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: Sketch.inkLight,
+  },
+  trackerRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  trackerCard: {
+    flex: 1,
+    backgroundColor: Sketch.paper,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    gap: 4,
+  },
+  trackerValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: Sketch.accentDark,
+  },
+  trackerCaption: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+  },
+  lessonMetaDivider: {
+    height: 1,
+    backgroundColor: "#E6E1D8",
+  },
+  lessonNavExerciseRow: {
+    gap: 10,
+  },
+  lessonNavExerciseButton: {
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    backgroundColor: Sketch.paper,
+  },
+  lessonNavExerciseButtonDisabled: {
+    backgroundColor: Sketch.cardBg,
+  },
+  lessonNavExerciseLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: Sketch.accent,
+  },
+  lessonNavExerciseLabelDisabled: {
+    color: Sketch.inkMuted,
+  },
+  lessonNavExerciseTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+    color: Sketch.ink,
+  },
+  lessonNavExerciseTitleDisabled: {
+    color: Sketch.inkMuted,
   },
 
   modeHeader: {
@@ -2780,20 +3193,28 @@ const st = StyleSheet.create({
     minHeight: 72,
   },
   builderCorrect: {
-    borderColor: MATTE_RESULT_COLORS.successBorder,
+    borderColor: EXERCISE_FEEDBACK_COLORS.correct.border,
     borderStyle: "solid",
     backgroundColor: Sketch.cardBg,
   },
   builderCorrectMobile: {
-    backgroundColor: MATTE_RESULT_COLORS.successTint,
+    backgroundColor: EXERCISE_FEEDBACK_COLORS.correct.tint,
+  },
+  builderRevealed: {
+    borderColor: EXERCISE_FEEDBACK_COLORS.revealed.border,
+    borderStyle: "solid",
+    backgroundColor: Sketch.cardBg,
+  },
+  builderRevealedMobile: {
+    backgroundColor: EXERCISE_FEEDBACK_COLORS.revealed.tint,
   },
   builderWrong: {
-    borderColor: MATTE_RESULT_COLORS.errorBorder,
+    borderColor: EXERCISE_FEEDBACK_COLORS.incorrect.border,
     borderStyle: "solid",
     backgroundColor: Sketch.cardBg,
   },
   builderWrongMobile: {
-    backgroundColor: MATTE_RESULT_COLORS.errorTint,
+    backgroundColor: EXERCISE_FEEDBACK_COLORS.incorrect.tint,
   },
   builderPlaceholder: {
     fontSize: 14,
@@ -2801,11 +3222,15 @@ const st = StyleSheet.create({
     fontWeight: "500",
   },
   builderPlaceholderResultOk: {
-    color: MATTE_RESULT_COLORS.successText,
+    color: EXERCISE_FEEDBACK_COLORS.correct.text,
+    fontWeight: "600",
+  },
+  builderPlaceholderResultRevealed: {
+    color: EXERCISE_FEEDBACK_COLORS.revealed.text,
     fontWeight: "600",
   },
   builderPlaceholderResultBad: {
-    color: MATTE_RESULT_COLORS.errorText,
+    color: EXERCISE_FEEDBACK_COLORS.incorrect.text,
     fontWeight: "600",
   },
   builderWords: {
@@ -2904,17 +3329,24 @@ const st = StyleSheet.create({
   },
   resultOk: {
     backgroundColor: Sketch.cardBg,
-    borderColor: MATTE_RESULT_COLORS.successBorder,
+    borderColor: EXERCISE_FEEDBACK_COLORS.correct.border,
   },
   resultOkMobile: {
+    backgroundColor: EXERCISE_FEEDBACK_COLORS.correct.tint,
+  },
+  resultRevealed: {
     backgroundColor: Sketch.cardBg,
+    borderColor: EXERCISE_FEEDBACK_COLORS.revealed.border,
+  },
+  resultRevealedMobile: {
+    backgroundColor: EXERCISE_FEEDBACK_COLORS.revealed.tint,
   },
   resultBad: {
     backgroundColor: Sketch.cardBg,
-    borderColor: MATTE_RESULT_COLORS.errorBorder,
+    borderColor: EXERCISE_FEEDBACK_COLORS.incorrect.border,
   },
   resultBadMobile: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: EXERCISE_FEEDBACK_COLORS.incorrect.tint,
   },
   resultLabel: { fontSize: 14, fontWeight: "700", letterSpacing: 0.1 },
 
@@ -3030,6 +3462,18 @@ const st = StyleSheet.create({
   },
   matchDetailsPanel: {
     paddingTop: 10,
+  },
+  matchActionRow: {
+    gap: 10,
+  },
+  matchActionRowDesktop: {
+    width: "100%",
+    flexDirection: "row",
+    gap: 12,
+  },
+  matchActionButtonDesktop: {
+    flex: 1,
+    minWidth: 0,
   },
 
 });

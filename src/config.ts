@@ -18,7 +18,7 @@ function resolveApiBase() {
 
   const { hostname } = window.location;
   if (isLocalHostname(hostname)) {
-    return DEFAULT_REMOTE_API_BASE;
+    return "http://localhost:3000";
   }
 
   // Hosted web should prefer a same-origin proxy path so static app routes

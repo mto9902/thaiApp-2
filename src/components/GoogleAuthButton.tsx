@@ -40,7 +40,29 @@ const redirectPath =
 
 function getWebRedirectUri() {
   if (configuredWebRedirectUri) {
-    return configuredWebRedirectUri;
+    try {
+      const configuredUrl = new URL(configuredWebRedirectUri);
+
+      if (typeof window !== "undefined") {
+        const currentOrigin = window.location.origin;
+        const configuredIsLocalhost =
+          configuredUrl.hostname === "localhost" ||
+          configuredUrl.hostname === "127.0.0.1" ||
+          configuredUrl.hostname === "[::1]";
+        const currentIsLocalhost =
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1" ||
+          window.location.hostname === "[::1]";
+
+        if (configuredIsLocalhost && !currentIsLocalhost) {
+          return `${currentOrigin}/auth/callback`;
+        }
+      }
+
+      return configuredWebRedirectUri;
+    } catch {
+      return configuredWebRedirectUri;
+    }
   }
 
   if (typeof window !== "undefined") {
@@ -54,7 +76,24 @@ function getConfiguredWebOrigin() {
   if (!configuredWebRedirectUri) return null;
 
   try {
-    return new URL(configuredWebRedirectUri).origin;
+    const configuredUrl = new URL(configuredWebRedirectUri);
+
+    if (typeof window !== "undefined") {
+      const configuredIsLocalhost =
+        configuredUrl.hostname === "localhost" ||
+        configuredUrl.hostname === "127.0.0.1" ||
+        configuredUrl.hostname === "[::1]";
+      const currentIsLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "[::1]";
+
+      if (configuredIsLocalhost && !currentIsLocalhost) {
+        return window.location.origin;
+      }
+    }
+
+    return configuredUrl.origin;
   } catch {
     return null;
   }

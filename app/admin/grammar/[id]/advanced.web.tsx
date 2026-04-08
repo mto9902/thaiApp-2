@@ -39,6 +39,7 @@ type Row = {
 type Draft = {
   title: string;
   stage: (typeof GRAMMAR_STAGES)[number];
+  hiddenFromLearners: boolean;
   explanation: string;
   pattern: string;
   aiPrompt: string;
@@ -77,6 +78,7 @@ function makeDraft(point: GrammarPoint): Draft {
   return {
     title: point.title,
     stage: point.stage,
+    hiddenFromLearners: point.hiddenFromLearners === true,
     explanation: point.explanation,
     pattern: point.pattern,
     aiPrompt: point.aiPrompt ?? "",
@@ -172,8 +174,8 @@ export default function AdminGrammarEditorWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { grammarById, refresh } = useGrammarCatalog();
-  const grammarPoint = typeof id === "string" ? grammarById.get(id) : null;
+  const { allGrammarById, refresh } = useGrammarCatalog();
+  const grammarPoint = typeof id === "string" ? allGrammarById.get(id) : null;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -306,6 +308,7 @@ export default function AdminGrammarEditorWeb() {
           title: draft.title,
           level: GRAMMAR_STAGE_META[draft.stage].level,
           stage: draft.stage,
+          hiddenFromLearners: draft.hiddenFromLearners,
           explanation: draft.explanation,
           pattern: draft.pattern,
           aiPrompt: draft.aiPrompt,
@@ -534,6 +537,27 @@ export default function AdminGrammarEditorWeb() {
                       </TouchableOpacity>
                     );
                   })}
+                </View>
+                <Text style={styles.fieldLabel}>Learner visibility</Text>
+                <View style={styles.chipRow}>
+                  <TouchableOpacity
+                    style={[styles.chip, !draft.hiddenFromLearners && styles.chipActive]}
+                    onPress={() => updateDraft("hiddenFromLearners", false)}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.chipText, !draft.hiddenFromLearners && styles.chipTextActive]}>
+                      Visible to learners
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, draft.hiddenFromLearners && styles.chipActive]}
+                    onPress={() => updateDraft("hiddenFromLearners", true)}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.chipText, draft.hiddenFromLearners && styles.chipTextActive]}>
+                      Hidden from learners
+                    </Text>
+                  </TouchableOpacity>
                 </View>
                 <Text style={styles.fieldLabel}>Title</Text>
                 <TextInput value={draft.title} onChangeText={(value) => updateDraft("title", value)} style={styles.input} />

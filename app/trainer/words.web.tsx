@@ -54,9 +54,28 @@ export default function TrainerWordsWeb() {
     vowelGroups?: string;
   }>();
 
-  const difficulty = parseDifficulty(params.difficulty);
-  const consonantGroups = parseIdList(params.consonantGroups);
-  const vowelGroups = parseIdList(params.vowelGroups);
+  const difficultyParam = Array.isArray(params.difficulty)
+    ? params.difficulty[0]
+    : params.difficulty;
+  const consonantGroupsParam = Array.isArray(params.consonantGroups)
+    ? params.consonantGroups[0]
+    : params.consonantGroups;
+  const vowelGroupsParam = Array.isArray(params.vowelGroups)
+    ? params.vowelGroups[0]
+    : params.vowelGroups;
+
+  const difficulty = useMemo(
+    () => parseDifficulty(difficultyParam),
+    [difficultyParam],
+  );
+  const consonantGroups = useMemo(
+    () => parseIdList(consonantGroupsParam),
+    [consonantGroupsParam],
+  );
+  const vowelGroups = useMemo(
+    () => parseIdList(vowelGroupsParam),
+    [vowelGroupsParam],
+  );
 
   const [words, setWords] = useState<TrainerWord[]>([]);
   const [loading, setLoading] = useState(true);

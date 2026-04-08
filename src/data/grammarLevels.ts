@@ -43,7 +43,7 @@ export const CEFR_LEVEL_META: Record<
     label: "C1",
     title: "C1 Nuanced Thai",
     subtitle:
-      "Inference, concession, formal written framing, and advanced discourse control",
+      "Inference, clarification, formal linking, and controlled contrast beyond B2",
     homeTitle: "C1 Nuanced Thai",
   },
   C2: {

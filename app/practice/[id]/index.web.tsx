@@ -12,6 +12,8 @@ import {
 
 import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
+import ToneDots from "@/src/components/ToneDots";
+import ToneThaiText from "@/src/components/ToneThaiText";
 import ToneGuide, { ToneGuideButton } from "@/src/components/ToneGuide";
 import {
   DesktopPage,
@@ -20,17 +22,14 @@ import {
 } from "@/src/components/web/DesktopScaffold";
 import { API_BASE } from "@/src/config";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
+import { useAdjacentGrammarPoint } from "@/src/grammar/useAdjacentGrammarPoint";
 import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "@/src/subscription/premium";
 import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { useSubscription } from "@/src/subscription/SubscriptionProvider";
 import { isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
-import { getToneAccent } from "@/src/utils/toneAccent";
-
-function toneColor(tone?: string): string {
-  return tone ? getToneAccent(tone) : AppSketch.inkMuted;
-}
+import { getBreakdownTones } from "@/src/utils/breakdownTones";
 
 function getBreakdownRomanizations(
   romanization: string,
@@ -146,6 +145,9 @@ export default function GrammarDetailWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
+  const { previous, currentIndex, next, total } = useAdjacentGrammarPoint(
+    typeof id === "string" ? id : null,
+  );
   const { playSentence } = useSentenceAudio();
   const { isPremium, loading: premiumLoading } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
@@ -156,6 +158,9 @@ export default function GrammarDetailWeb() {
   const [previewExample, setPreviewExample] = useState<PracticePreview | null>(null);
 
   const grammar = grammarPoints.find((point) => point.id === id);
+  const backToTopicsHref = grammar?.stage
+    ? `/practice/topics?stage=${encodeURIComponent(grammar.stage)}`
+    : "/practice/topics";
   const currentGrammarIds = useMemo(
     () => new Set(grammarPoints.map((point) => point.id)),
     [grammarPoints],
@@ -282,7 +287,7 @@ export default function GrammarDetailWeb() {
           toolbar={
             <TouchableOpacity
               style={styles.topButton}
-              onPress={() => router.back()}
+              onPress={() => router.replace(backToTopicsHref as any)}
               activeOpacity={0.82}
             >
               <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
@@ -368,6 +373,68 @@ export default function GrammarDetailWeb() {
             meaning: grammar.focus.meaning,
           },
         ];
+  const lessonNavigationPanel = (
+    <DesktopPanel>
+      <DesktopSectionTitle
+        title="Topic navigation"
+        caption={
+          currentIndex >= 0 ? `Topic ${currentIndex + 1} of ${total}` : undefined
+        }
+      />
+      <View style={styles.lessonNavStack}>
+        <TouchableOpacity
+          style={[
+            styles.lessonNavCard,
+            !previous && styles.lessonNavCardDisabled,
+          ]}
+          onPress={() => previous && router.push(`/practice/${previous.id}`)}
+          activeOpacity={previous ? 0.82 : 1}
+          disabled={!previous}
+        >
+          <Text
+            style={[
+              styles.lessonNavLabel,
+              !previous && styles.lessonNavLabelDisabled,
+            ]}
+          >
+            Previous topic
+          </Text>
+          <Text
+            style={[
+              styles.lessonNavTitle,
+              !previous && styles.lessonNavTitleDisabled,
+            ]}
+          >
+            {previous ? previous.title : "You're at the first topic"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.lessonNavCard, !next && styles.lessonNavCardDisabled]}
+          onPress={() => next && router.push(`/practice/${next.id}`)}
+          activeOpacity={next ? 0.82 : 1}
+          disabled={!next}
+        >
+          <Text
+            style={[
+              styles.lessonNavLabel,
+              !next && styles.lessonNavLabelDisabled,
+            ]}
+          >
+            Next topic
+          </Text>
+          <Text
+            style={[
+              styles.lessonNavTitle,
+              !next && styles.lessonNavTitleDisabled,
+            ]}
+          >
+            {next ? next.title : "You're at the last topic"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </DesktopPanel>
+  );
 
   return (
     <>
@@ -380,7 +447,7 @@ export default function GrammarDetailWeb() {
         toolbar={
           <TouchableOpacity
             style={styles.topButton}
-            onPress={() => router.back()}
+            onPress={() => router.replace(backToTopicsHref as any)}
             activeOpacity={0.82}
           >
             <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
@@ -431,9 +498,15 @@ export default function GrammarDetailWeb() {
                 <View style={styles.exampleSentencePanel}>
                   <Text style={styles.thaiText}>
                     {example.breakdown.map((item: any, index: number) => (
-                      <Text key={index} style={{ color: toneColor(item.tone) }}>
-                        {item.thai}
-                      </Text>
+                      <ToneThaiText
+                        key={index}
+                        thai={item.thai}
+                        tones={getBreakdownTones(item)}
+                        romanization={
+                          item.romanization || item.roman || exampleRomanTokens[index]
+                        }
+                        displayThaiSegments={item.displayThaiSegments}
+                      />
                     ))}
                   </Text>
                   <TouchableOpacity
@@ -475,13 +548,20 @@ export default function GrammarDetailWeb() {
                   {example.breakdown.map((item: any, index: number) => (
                     <View key={`${item.thai}-${index}`} style={styles.wordCard}>
                       <View style={styles.wordCardTop}>
-                        <Text style={styles.wordThai}>{item.thai}</Text>
-                        {item.tone ? (
-                          <View
-                            style={[
-                              styles.toneDot,
-                              { backgroundColor: toneColor(item.tone) },
-                            ]}
+                        <ToneThaiText
+                          thai={item.thai}
+                          tones={getBreakdownTones(item)}
+                          romanization={
+                            item.romanization || item.roman || exampleRomanTokens[index]
+                          }
+                          displayThaiSegments={item.displayThaiSegments}
+                          style={styles.wordThai}
+                          fallbackColor={AppSketch.ink}
+                        />
+                        {getBreakdownTones(item).length > 0 ? (
+                          <ToneDots
+                            tones={getBreakdownTones(item)}
+                            style={styles.toneDots}
                           />
                         ) : null}
                       </View>
@@ -573,6 +653,8 @@ export default function GrammarDetailWeb() {
                 </TouchableOpacity>
               </DesktopPanel>
             )}
+
+            {lessonNavigationPanel}
           </View>
         </View>
         <ToneGuide
@@ -858,5 +940,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: AppSketch.ink,
+  },
+  lessonNavStack: {
+    gap: 12,
+  },
+  lessonNavCard: {
+    gap: 6,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.md,
+    backgroundColor: AppSketch.background,
+  },
+  lessonNavCardDisabled: {
+    backgroundColor: AppSketch.surfaceActive,
+  },
+  lessonNavLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: AppSketch.primary,
+  },
+  lessonNavLabelDisabled: {
+    color: AppSketch.inkMuted,
+  },
+  lessonNavTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    lineHeight: 22,
+    color: AppSketch.ink,
+  },
+  lessonNavTitleDisabled: {
+    color: AppSketch.inkMuted,
   },
 });

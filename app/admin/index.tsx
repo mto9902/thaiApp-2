@@ -56,7 +56,7 @@ type AdminUserSummary = {
 
 export default function AdminDashboardScreen() {
   const router = useRouter();
-  const { grammarPoints } = useGrammarCatalog();
+  const { allGrammarPoints } = useGrammarCatalog();
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -81,10 +81,10 @@ export default function AdminDashboardScreen() {
 
   const availableStages = useMemo(
     () =>
-      GRAMMAR_STAGES.filter((stage) =>
-        grammarPoints.some((point) => point.stage === stage),
-      ),
-    [grammarPoints],
+        GRAMMAR_STAGES.filter((stage) =>
+        allGrammarPoints.some((point) => point.stage === stage),
+        ),
+    [allGrammarPoints],
   );
 
   const resetCreateUserForm = useCallback(() => {
@@ -208,10 +208,10 @@ export default function AdminDashboardScreen() {
 
   const filteredPoints = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
-    const basePoints =
-      selectedStage === "All"
-        ? grammarPoints
-        : grammarPoints.filter((point) => point.stage === selectedStage);
+      const basePoints =
+        selectedStage === "All"
+        ? allGrammarPoints
+        : allGrammarPoints.filter((point) => point.stage === selectedStage);
 
     if (!query) return basePoints;
 
@@ -228,7 +228,7 @@ export default function AdminDashboardScreen() {
 
       return haystack.includes(query);
     });
-  }, [deferredSearch, grammarPoints, selectedStage]);
+  }, [allGrammarPoints, deferredSearch, selectedStage]);
 
   const createUser = useCallback(async () => {
     if (creatingUser) return;
@@ -762,7 +762,7 @@ export default function AdminDashboardScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionLabel}>Grammar Editor</Text>
                 <Text style={styles.sectionHint}>
-                  {filteredPoints.length} of {grammarPoints.length} topics
+                  {filteredPoints.length} of {allGrammarPoints.length} topics
                 </Text>
               </View>
 

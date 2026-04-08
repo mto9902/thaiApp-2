@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -20,6 +21,7 @@ import { usePremiumAccess } from "../src/subscription/usePremiumAccess";
 import {
   openPrivacyPolicy,
   openTermsOfService,
+  SUPPORT_EMAIL,
 } from "../src/utils/legalLinks";
 import {
   getEmailLocalPart,
@@ -47,6 +49,11 @@ export default function SettingsScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [draftDisplayName, setDraftDisplayName] = useState("");
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportBusy, setSupportBusy] = useState(false);
+  const [supportStatus, setSupportStatus] = useState<string | null>(null);
   const {
     busy: premiumBusy,
     isPremium,
@@ -75,6 +82,7 @@ export default function SettingsScreen() {
       const data = await res.json();
       setProfile(data);
       setDraftDisplayName(data.display_name ?? "");
+      setSupportEmail(data.email ?? "");
     } catch (err) {
       console.error("Failed to load settings profile:", err);
     } finally {
@@ -109,6 +117,12 @@ export default function SettingsScreen() {
   function openEditNameModal() {
     setDraftDisplayName(profile?.display_name ?? "");
     setEditModalVisible(true);
+  }
+
+  function openSupportModal() {
+    setSupportEmail(profile?.email || supportEmail);
+    setSupportStatus(null);
+    setSupportModalVisible(true);
   }
 
   async function saveDisplayName() {
@@ -181,6 +195,60 @@ export default function SettingsScreen() {
       console.error("Settings action failed:", err);
     } finally {
       setActionBusy(false);
+    }
+  }
+
+  async function submitSupportRequest() {
+    if (supportBusy) return;
+
+    const email = supportEmail.trim();
+    const message = supportMessage.trim();
+
+    if (!email) {
+      setSupportStatus("Enter your email so we can reply.");
+      return;
+    }
+
+    if (!message) {
+      setSupportStatus("Describe the problem before sending.");
+      return;
+    }
+
+    try {
+      setSupportBusy(true);
+      setSupportStatus(null);
+      const token = await getAuthToken();
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE}/support/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email, message }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `Failed to send support request (${res.status})`);
+      }
+
+      setSupportModalVisible(false);
+      setSupportMessage("");
+      setSupportStatus(null);
+      Alert.alert(
+        "Support request sent",
+        data?.deliveredByEmail === false
+          ? "Your message was saved for support review."
+          : "Your message was sent to support.",
+      );
+    } catch (err) {
+      const messageText =
+        err instanceof Error ? err.message : "Failed to send support request.";
+      setSupportStatus(messageText);
+    } finally {
+      setSupportBusy(false);
     }
   }
 
@@ -258,6 +326,94 @@ export default function SettingsScreen() {
               >
                 <Text style={styles.primaryBtnText}>
                   {savingName ? "Saving..." : "Save"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={supportModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!supportBusy) setSupportModalVisible(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              if (!supportBusy) setSupportModalVisible(false);
+            }}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Contact Support</Text>
+              <TouchableOpacity
+                style={styles.modalIconBtn}
+                onPress={() => {
+                  if (!supportBusy) setSupportModalVisible(false);
+                }}
+                activeOpacity={0.75}
+                disabled={supportBusy}
+              >
+                <Ionicons name="close" size={20} color={Sketch.inkMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalBody}>
+              Send a message to the Keystone team and we&apos;ll reply by email.
+            </Text>
+
+            <TextInput
+              value={supportEmail}
+              onChangeText={setSupportEmail}
+              placeholder={profile?.email || SUPPORT_EMAIL}
+              placeholderTextColor={Sketch.inkFaint}
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <TextInput
+              value={supportMessage}
+              onChangeText={setSupportMessage}
+              placeholder="Describe the problem"
+              placeholderTextColor={Sketch.inkFaint}
+              style={[styles.input, styles.textArea]}
+              multiline
+              textAlignVertical="top"
+              maxLength={4000}
+            />
+
+            {supportStatus ? (
+              <Text style={styles.helperText}>{supportStatus}</Text>
+            ) : null}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.secondaryBtn, styles.modalAction]}
+                onPress={() => setSupportModalVisible(false)}
+                activeOpacity={0.8}
+                disabled={supportBusy}
+              >
+                <Text style={styles.secondaryBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.primaryBtn,
+                  styles.modalAction,
+                  supportBusy && styles.primaryBtnDisabled,
+                ]}
+                onPress={submitSupportRequest}
+                activeOpacity={0.82}
+                disabled={supportBusy}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {supportBusy ? "Sending..." : "Send"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -443,6 +599,27 @@ export default function SettingsScreen() {
                 <Text style={styles.secondaryBtnText}>Open Privacy Policy</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Support</Text>
+          <View style={styles.card}>
+            <Text style={styles.helperText}>
+              Need help with billing, access, or lesson issues? Contact us and
+              we&apos;ll reply by email.
+            </Text>
+            <View style={styles.infoBlock}>
+              <Text style={styles.fieldLabel}>Support email</Text>
+              <Text style={styles.infoValue}>{SUPPORT_EMAIL}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={openSupportModal}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryBtnText}>Contact Support</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -739,6 +916,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: Sketch.ink,
+  },
+  textArea: {
+    minHeight: 140,
+    paddingTop: 14,
   },
   modalActions: {
     flexDirection: "row",

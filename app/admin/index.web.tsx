@@ -57,7 +57,14 @@ type AdminGrammarSummary = {
   production?: LessonProductionSummary | null;
 };
 
-type SentenceIssueFilter = "all" | "thai" | "missing" | "multi" | "both";
+type SentenceIssueFilter =
+  | "all"
+  | "thai"
+  | "new_gen"
+  | "legacy"
+  | "missing"
+  | "multi"
+  | "both";
 type SentenceWorkflowFilter =
   | "all"
   | "published"
@@ -99,8 +106,12 @@ function getRowToneDiagnostics(row: ReviewExampleRow) {
     (item) => countBreakdownThaiSyllables(item.thai) > 1,
   );
   const hasWeakThai = row.qualityFlags.includes("thai_weak");
+  const hasNewGen = row.qualityFlags.includes("new_gen");
+  const hasLegacy = row.qualityFlags.includes("legacy");
 
   return {
+    hasNewGen,
+    hasLegacy,
     hasWeakThai,
     hasMissingTone,
     hasMultiSyllableWord,
@@ -110,6 +121,8 @@ function getRowToneDiagnostics(row: ReviewExampleRow) {
 function getRowToneFlags(row: ReviewExampleRow) {
   const diagnostics = getRowToneDiagnostics(row);
   return [
+    ...(diagnostics.hasNewGen ? ["New Gen"] : []),
+    ...(diagnostics.hasLegacy ? ["Legacy"] : []),
     ...(diagnostics.hasWeakThai ? ["Thai weak"] : []),
     ...(diagnostics.hasMultiSyllableWord ? ["2+"] : []),
     ...(diagnostics.hasMissingTone ? ["Tone?"] : []),
@@ -221,7 +234,7 @@ function formatNextWaveDecision(value?: ReviewNextWaveDecision | null) {
 export default function AdminDashboardWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { grammarPoints } = useGrammarCatalog();
+  const { allGrammarPoints, refresh } = useGrammarCatalog();
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -233,6 +246,7 @@ export default function AdminDashboardWeb() {
   const [selectedSentenceGrammarId, setSelectedSentenceGrammarId] =
     useState<string>("");
   const [sentenceRows, setSentenceRows] = useState<ReviewExampleRow[]>([]);
+  const [sentenceLegacyRowCount, setSentenceLegacyRowCount] = useState(0);
   const [sentenceReviewers, setSentenceReviewers] = useState<ReviewerUser[]>([]);
   const [sentenceProduction, setSentenceProduction] =
     useState<LessonProductionSummary | null>(null);
@@ -240,11 +254,14 @@ export default function AdminDashboardWeb() {
   const [sentenceRowsError, setSentenceRowsError] = useState<string | null>(null);
   const [sentenceIssueFilter, setSentenceIssueFilter] =
     useState<SentenceIssueFilter>("all");
+  const [showLegacySentenceRows, setShowLegacySentenceRows] = useState(false);
   const [sentenceWorkflowFilter, setSentenceWorkflowFilter] =
     useState<SentenceWorkflowFilter>("all");
   const [sentenceAuditSavingId, setSentenceAuditSavingId] = useState<number | null>(
     null,
   );
+  const [lessonVisibilitySavingId, setLessonVisibilitySavingId] =
+    useState<string | null>(null);
   const [sentenceSeedLoading, setSentenceSeedLoading] = useState(false);
   const [sentencePublishLoading, setSentencePublishLoading] = useState(false);
   const [sentencePublishMessage, setSentencePublishMessage] = useState<string | null>(
@@ -258,9 +275,9 @@ export default function AdminDashboardWeb() {
   const availableStages = useMemo(
     () =>
       GRAMMAR_STAGES.filter((stage) =>
-        grammarPoints.some((point) => point.stage === stage),
+        allGrammarPoints.some((point) => point.stage === stage),
       ),
-    [grammarPoints],
+    [allGrammarPoints],
   );
 
   const loadData = useCallback(async () => {
@@ -329,11 +346,11 @@ export default function AdminDashboardWeb() {
   );
 
   const filteredPoints = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const basePoints =
-      selectedStage === "All"
-        ? grammarPoints
-        : grammarPoints.filter((point) => point.stage === selectedStage);
+      const query = search.trim().toLowerCase();
+      const basePoints =
+        selectedStage === "All"
+          ? allGrammarPoints
+          : allGrammarPoints.filter((point) => point.stage === selectedStage);
 
     if (!query) return basePoints;
 
@@ -343,14 +360,14 @@ export default function AdminDashboardWeb() {
         .toLowerCase()
         .includes(query),
     );
-  }, [grammarPoints, search, selectedStage]);
+  }, [allGrammarPoints, search, selectedStage]);
 
   const stageSentencePoints = useMemo(() => {
     if (selectedStage === "All") {
       return [];
     }
-    return grammarPoints.filter((point) => point.stage === selectedStage);
-  }, [grammarPoints, selectedStage]);
+    return allGrammarPoints.filter((point) => point.stage === selectedStage);
+  }, [allGrammarPoints, selectedStage]);
 
   useEffect(() => {
     if (stageSentencePoints.length === 0) {
@@ -368,11 +385,13 @@ export default function AdminDashboardWeb() {
 
   useEffect(() => {
     setSentencePublishMessage(null);
+    setShowLegacySentenceRows(false);
   }, [selectedSentenceGrammarId]);
 
   const loadSentenceRows = useCallback(async () => {
     if (!selectedSentenceGrammarId) {
       setSentenceRows([]);
+      setSentenceLegacyRowCount(0);
       setSentenceReviewers([]);
       setSentenceProduction(null);
       setSentenceRowsError(null);
@@ -390,7 +409,9 @@ export default function AdminDashboardWeb() {
       }
 
       const res = await fetch(
-        `${API_BASE}/review/grammar/${selectedSentenceGrammarId}`,
+        `${API_BASE}/review/grammar/${selectedSentenceGrammarId}?includeLegacy=${
+          showLegacySentenceRows || sentenceIssueFilter === "legacy" ? "1" : "0"
+        }`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -401,6 +422,7 @@ export default function AdminDashboardWeb() {
       }
 
       const data = await res.json();
+      setSentenceLegacyRowCount(Number(data?.legacyRowCount ?? 0));
       setSentenceReviewers(Array.isArray(data?.reviewers) ? data.reviewers : []);
       setSentenceProduction(data?.production ?? null);
       setSentenceRows(
@@ -413,6 +435,7 @@ export default function AdminDashboardWeb() {
     } catch (err) {
       console.error("Failed to load admin sentence rows:", err);
       setSentenceRows([]);
+      setSentenceLegacyRowCount(0);
       setSentenceReviewers([]);
       setSentenceProduction(null);
       setSentenceRowsError(
@@ -421,7 +444,12 @@ export default function AdminDashboardWeb() {
     } finally {
       setSentenceRowsLoading(false);
     }
-  }, [router, selectedSentenceGrammarId]);
+  }, [
+    router,
+    selectedSentenceGrammarId,
+    sentenceIssueFilter,
+    showLegacySentenceRows,
+  ]);
 
   useEffect(() => {
     void loadSentenceRows();
@@ -440,10 +468,15 @@ export default function AdminDashboardWeb() {
   );
 
   const selectedSentencePoint =
-    grammarPoints.find((point) => point.id === selectedSentenceGrammarId) ?? null;
+    allGrammarPoints.find((point) => point.id === selectedSentenceGrammarId) ?? null;
   const isSentenceSalvageStage =
     selectedSentencePoint?.stage === "B1.1" ||
     selectedSentencePoint?.stage === "B1.2";
+  const isSentenceLegacyAuditStage =
+    selectedSentencePoint?.stage === "A1.1" ||
+    selectedSentencePoint?.stage === "A1.2";
+  const canAuditSentenceRows =
+    isSentenceSalvageStage || isSentenceLegacyAuditStage;
   const sentenceReviewerById = useMemo(
     () => new Map(sentenceReviewers.map((reviewer) => [reviewer.id, reviewer])),
     [sentenceReviewers],
@@ -469,11 +502,19 @@ export default function AdminDashboardWeb() {
   );
   const sentenceIssueCounts = useMemo(() => {
     let thai = 0;
+    let newGen = 0;
+    let legacy = 0;
     let missing = 0;
     let multi = 0;
     let both = 0;
 
     for (const entry of sentenceRowsWithDiagnostics) {
+      if (entry.diagnostics.hasNewGen) {
+        newGen += 1;
+      }
+      if (entry.diagnostics.hasLegacy) {
+        legacy += 1;
+      }
       if (entry.diagnostics.hasWeakThai) {
         thai += 1;
       }
@@ -494,6 +535,8 @@ export default function AdminDashboardWeb() {
     return {
       all: sentenceRows.length,
       thai,
+      newGen,
+      legacy,
       missing,
       multi,
       both,
@@ -513,12 +556,12 @@ export default function AdminDashboardWeb() {
     for (const row of sentenceRows) {
       if (row.publishState === "published") {
         counts.published += 1;
-        if (row.nextWaveDecision) {
-          counts[row.nextWaveDecision] += 1;
-        }
       }
       if (row.publishState === "staged") {
         counts.staged += 1;
+      }
+      if (row.nextWaveDecision) {
+        counts[row.nextWaveDecision] += 1;
       }
     }
 
@@ -527,6 +570,15 @@ export default function AdminDashboardWeb() {
   const filteredSentenceRows = useMemo(
     () =>
       sentenceRowsWithDiagnostics.filter(({ row, diagnostics }) => {
+        const legacyVisible =
+          showLegacySentenceRows ||
+          sentenceIssueFilter === "legacy" ||
+          !diagnostics.hasLegacy;
+
+        if (!legacyVisible) {
+          return false;
+        }
+
         const workflowMatches = (() => {
           switch (sentenceWorkflowFilter) {
             case "published":
@@ -537,10 +589,7 @@ export default function AdminDashboardWeb() {
             case "revise":
             case "replace":
             case "retire":
-              return (
-                row.publishState === "published" &&
-                row.nextWaveDecision === sentenceWorkflowFilter
-              );
+              return row.nextWaveDecision === sentenceWorkflowFilter;
             default:
               return true;
           }
@@ -553,6 +602,10 @@ export default function AdminDashboardWeb() {
         switch (sentenceIssueFilter) {
           case "thai":
             return diagnostics.hasWeakThai;
+          case "new_gen":
+            return diagnostics.hasNewGen;
+          case "legacy":
+            return diagnostics.hasLegacy;
           case "missing":
             return diagnostics.hasMissingTone;
           case "multi":
@@ -565,10 +618,25 @@ export default function AdminDashboardWeb() {
             return true;
         }
       }),
-    [sentenceIssueFilter, sentenceRowsWithDiagnostics, sentenceWorkflowFilter],
+    [
+      sentenceIssueFilter,
+      sentenceRowsWithDiagnostics,
+      sentenceWorkflowFilter,
+      showLegacySentenceRows,
+    ],
   );
   const reusableSentenceCount =
     sentenceWorkflowCounts.carry + sentenceWorkflowCounts.revise;
+  const isSentenceDecisionFilterActive =
+    sentenceWorkflowFilter === "carry" ||
+    sentenceWorkflowFilter === "revise" ||
+    sentenceWorkflowFilter === "replace" ||
+    sentenceWorkflowFilter === "retire";
+  const visibleLegacyCount = showLegacySentenceRows
+    ? sentenceIssueCounts.legacy
+    : sentenceLegacyRowCount;
+  const hasSentenceArchiveControls =
+    sentenceRows.length > 0 || sentenceLegacyRowCount > 0;
   const hasActiveStagedWave =
     (sentenceProduction?.stagedRowCount ?? 0) > 0 ||
     (sentenceProduction?.currentWaveRowCount ?? 0) > 0;
@@ -602,7 +670,7 @@ export default function AdminDashboardWeb() {
         }
 
         setSentencePublishMessage(
-          `Saved ${formatNextWaveDecision(nextWaveDecision).toLowerCase()} for live row audit.`,
+          `Saved ${formatNextWaveDecision(nextWaveDecision).toLowerCase()} for row audit.`,
         );
         await loadSentenceRows();
       } catch (err) {
@@ -724,6 +792,81 @@ export default function AdminDashboardWeb() {
     sentenceProduction?.isReadyToPublish,
   ]);
 
+  const toggleSentenceLessonVisibility = useCallback(async () => {
+    if (!selectedSentencePoint || lessonVisibilitySavingId) {
+      return;
+    }
+
+    try {
+      setLessonVisibilitySavingId(selectedSentencePoint.id);
+      setSentencePublishMessage(null);
+      const token = await getAuthToken();
+
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      const nextHidden = selectedSentencePoint.hiddenFromLearners !== true;
+      const res = await fetch(`${API_BASE}/admin/grammar/${selectedSentencePoint.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          override: {
+            title: selectedSentencePoint.title,
+            level: selectedSentencePoint.level,
+            stage: selectedSentencePoint.stage,
+            hiddenFromLearners: nextHidden,
+            explanation: selectedSentencePoint.explanation,
+            pattern: selectedSentencePoint.pattern,
+            lessonBlocks: selectedSentencePoint.lessonBlocks,
+            aiPrompt: selectedSentencePoint.aiPrompt,
+            example: {
+              thai: selectedSentencePoint.example.thai,
+              roman: selectedSentencePoint.example.roman,
+              english: selectedSentencePoint.example.english,
+              breakdown: selectedSentencePoint.example.breakdown,
+            },
+            focus: {
+              particle: selectedSentencePoint.focus.particle,
+              meaning: selectedSentencePoint.focus.meaning,
+            },
+          },
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to update lesson visibility");
+      }
+
+      await refresh();
+      await Promise.all([loadData(), loadSentenceRows()]);
+      setSentencePublishMessage(
+        nextHidden
+          ? "Lesson hidden from learners."
+          : "Lesson visible to learners again.",
+      );
+    } catch (err) {
+      console.error("Failed to update lesson visibility:", err);
+      setSentencePublishMessage(
+        err instanceof Error ? err.message : "Failed to update lesson visibility",
+      );
+    } finally {
+      setLessonVisibilitySavingId(null);
+    }
+  }, [
+    lessonVisibilitySavingId,
+    loadData,
+    loadSentenceRows,
+    refresh,
+    router,
+    selectedSentencePoint,
+  ]);
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -801,7 +944,7 @@ export default function AdminDashboardWeb() {
             <DesktopPanel>
               <DesktopSectionTitle
                 title="Grammar editor"
-                caption={`${filteredPoints.length} of ${grammarPoints.length} topics`}
+                caption={`${filteredPoints.length} of ${allGrammarPoints.length} topics`}
               />
 
               <TextInput
@@ -878,12 +1021,15 @@ export default function AdminDashboardWeb() {
                       onPress={() => router.push(`/admin/grammar/${point.id}` as any)}
                       activeOpacity={0.82}
                     >
-                      <View style={styles.cardTop}>
-                        <Text style={styles.stageTag}>{point.stage}</Text>
-                        {summary?.hasOverride ? (
-                          <Text style={styles.overrideTag}>Edited</Text>
-                        ) : null}
-                      </View>
+                        <View style={styles.cardTop}>
+                          <Text style={styles.stageTag}>{point.stage}</Text>
+                          {summary?.hasOverride ? (
+                            <Text style={styles.overrideTag}>Edited</Text>
+                          ) : null}
+                          {point.hiddenFromLearners ? (
+                            <Text style={styles.hiddenTag}>Hidden</Text>
+                          ) : null}
+                        </View>
                       <Text style={styles.grammarTitle}>{point.title}</Text>
                       <Text style={styles.grammarMeta}>
                         {point.id} · {summary?.rowCount ?? 0} rows
@@ -956,6 +1102,9 @@ export default function AdminDashboardWeb() {
                               active && styles.lessonChipMetaActive,
                             ]}
                           >
+                            {point.hiddenFromLearners
+                              ? "Hidden from learners · "
+                              : ""}
                             {production
                               ? `${formatWorkflowStatus(production.workflowStatus)} · live ${production.livePublishedCount}/${production.finalTargetCount}`
                               : `${active ? sentenceRows.length : (summary?.rowCount ?? 0)} rows`}
@@ -993,6 +1142,19 @@ export default function AdminDashboardWeb() {
                             numberOfLines={2}
                           >
                             {selectedSentencePoint.pattern}
+                          </Text>
+                        </View>
+                        <View style={styles.sentenceSummaryCard}>
+                          <Text style={styles.sentenceSummaryLabel}>Learners</Text>
+                          <Text style={styles.sentenceSummaryValue}>
+                            {selectedSentencePoint.hiddenFromLearners
+                              ? "Hidden"
+                              : "Visible"}
+                          </Text>
+                          <Text style={styles.sentenceSummaryHint}>
+                            {selectedSentencePoint.hiddenFromLearners
+                              ? "Not shown in learner lists"
+                              : "Shown in learner lists"}
                           </Text>
                         </View>
                         {sentenceProduction ? (
@@ -1036,7 +1198,7 @@ export default function AdminDashboardWeb() {
                                 wave
                               </Text>
                             </View>
-                            {isSentenceSalvageStage ? (
+                            {canAuditSentenceRows ? (
                               <View style={styles.sentenceSummaryCard}>
                                 <Text style={styles.sentenceSummaryLabel}>
                                   Reusable
@@ -1045,12 +1207,55 @@ export default function AdminDashboardWeb() {
                                   {reusableSentenceCount}
                                 </Text>
                                 <Text style={styles.sentenceSummaryHint}>
-                                  carry + revise live rows
+                                  carry + revise rows
                                 </Text>
                               </View>
                             ) : null}
                           </>
                         ) : null}
+                      </View>
+
+                      <View style={styles.productionActionRow}>
+                        <View style={styles.productionActionCopy}>
+                          <Text style={styles.productionActionTitle}>
+                            Learner visibility
+                          </Text>
+                          <Text style={styles.productionActionText}>
+                            {selectedSentencePoint.hiddenFromLearners
+                              ? "This lesson is hidden from learners. It stays available in admin so you can keep editing it."
+                              : "This lesson is currently visible to learners across the curriculum."}
+                          </Text>
+                        </View>
+                        <View style={styles.productionActionButtons}>
+                          <TouchableOpacity
+                            style={[
+                              selectedSentencePoint.hiddenFromLearners
+                                ? styles.publishButton
+                                : styles.seedWaveButton,
+                              lessonVisibilitySavingId === selectedSentencePoint.id &&
+                                styles.publishButtonDisabled,
+                            ]}
+                            onPress={() => void toggleSentenceLessonVisibility()}
+                            activeOpacity={0.82}
+                            disabled={
+                              lessonVisibilitySavingId === selectedSentencePoint.id
+                            }
+                          >
+                            <Text
+                              style={
+                                selectedSentencePoint.hiddenFromLearners
+                                  ? styles.publishButtonText
+                                  : styles.seedWaveButtonText
+                              }
+                            >
+                              {lessonVisibilitySavingId === selectedSentencePoint.id
+                                ? "Saving…"
+                                : selectedSentencePoint.hiddenFromLearners
+                                  ? "Unhide lesson"
+                                  : "Hide lesson"}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
 
                       {sentenceProduction ? (
@@ -1059,6 +1264,8 @@ export default function AdminDashboardWeb() {
                             <Text style={styles.productionActionTitle}>
                               {isSentenceSalvageStage
                                 ? "Salvage workflow"
+                                : isSentenceLegacyAuditStage
+                                  ? "Legacy audit"
                                 : "Publish workflow"}
                             </Text>
                             <Text style={styles.productionActionText}>
@@ -1068,6 +1275,10 @@ export default function AdminDashboardWeb() {
                                     ? `This staged wave has ${sentenceProduction.currentWaveReadyCount} rows ready to replace the live lesson.`
                                     : `This staged wave has ${sentenceProduction.currentWaveReadyCount} ready rows. Need ${sentenceProduction.remainingForPublish} more before publishing.`
                                   : `Audit live rows first, then seed the next wave. ${reusableSentenceCount} live rows are currently marked carry or revise.`
+                                : isSentenceLegacyAuditStage
+                                  ? reusableSentenceCount > 0
+                                    ? `${reusableSentenceCount} archived rows are currently marked carry or revise. Keep only rows that already meet the new standard.`
+                                    : "Audit archived rows first. Mark production-grade rows as carry, fixable rows as revise, and weak rows as replace or retire."
                                 : sentenceProduction.isReadyToPublish
                                   ? `This lesson has ${sentenceProduction.currentWaveReadyCount} staged rows that are approved and tone-reviewed.`
                                   : `Need ${sentenceProduction.remainingForPublish} more ready staged rows before replacing the live set.`}
@@ -1142,7 +1353,7 @@ export default function AdminDashboardWeb() {
                             label: "Staged",
                             count: sentenceWorkflowCounts.staged,
                           },
-                          ...(isSentenceSalvageStage
+                          ...(canAuditSentenceRows
                             ? NEXT_WAVE_DECISIONS.map((decision) => ({
                                 key: decision as SentenceWorkflowFilter,
                                 label: formatNextWaveDecision(decision),
@@ -1184,7 +1395,54 @@ export default function AdminDashboardWeb() {
                     </View>
                   ) : null}
 
-                  {sentenceRows.length > 0 ? (
+                  {hasSentenceArchiveControls ? (
+                    <View style={styles.archivedToggleRow}>
+                      <Text style={styles.helperText}>
+                        {showLegacySentenceRows
+                          ? "Archived legacy rows are visible."
+                          : "Archived legacy rows are hidden by default."}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.issueFilterChip,
+                          showLegacySentenceRows && styles.issueFilterChipActive,
+                        ]}
+                        onPress={() =>
+                          setShowLegacySentenceRows((current) => {
+                            const next = !current;
+                            if (!next && sentenceIssueFilter === "legacy") {
+                              setSentenceIssueFilter("all");
+                            }
+                            return next;
+                          })
+                        }
+                        activeOpacity={0.82}
+                      >
+                        <Text
+                          style={[
+                            styles.issueFilterChipLabel,
+                            showLegacySentenceRows &&
+                              styles.issueFilterChipLabelActive,
+                          ]}
+                        >
+                          {showLegacySentenceRows
+                            ? "Hide archived"
+                            : "Show archived"}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.issueFilterChipCount,
+                            showLegacySentenceRows &&
+                              styles.issueFilterChipCountActive,
+                          ]}
+                        >
+                          {visibleLegacyCount}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+
+                  {hasSentenceArchiveControls ? (
                     <View style={styles.issueFilterRow}>
                       {[
                         {
@@ -1196,6 +1454,16 @@ export default function AdminDashboardWeb() {
                           key: "thai" as const,
                           label: "Thai weak",
                           count: sentenceIssueCounts.thai,
+                        },
+                        {
+                          key: "new_gen" as const,
+                          label: "New Gen",
+                          count: sentenceIssueCounts.newGen,
+                        },
+                        {
+                          key: "legacy" as const,
+                          label: "Legacy",
+                          count: visibleLegacyCount,
                         },
                         {
                           key: "missing" as const,
@@ -1221,7 +1489,12 @@ export default function AdminDashboardWeb() {
                               styles.issueFilterChip,
                               active && styles.issueFilterChipActive,
                             ]}
-                            onPress={() => setSentenceIssueFilter(filterOption.key)}
+                            onPress={() => {
+                              if (filterOption.key === "legacy") {
+                                setShowLegacySentenceRows(true);
+                              }
+                              setSentenceIssueFilter(filterOption.key);
+                            }}
                             activeOpacity={0.82}
                           >
                             <Text
@@ -1254,11 +1527,17 @@ export default function AdminDashboardWeb() {
                     <Text style={styles.helperText}>{sentenceRowsError}</Text>
                   ) : sentenceRows.length === 0 ? (
                     <Text style={styles.helperText}>
-                      No sentence rows found for this lesson yet.
+                      {sentenceLegacyRowCount > 0
+                        ? "Only archived legacy rows remain in this lesson right now."
+                        : "No sentence rows found for this lesson yet."}
                     </Text>
                   ) : filteredSentenceRows.length === 0 ? (
                     <Text style={styles.helperText}>
-                      No rows match this filter yet.
+                      {!showLegacySentenceRows &&
+                      sentenceIssueFilter !== "legacy" &&
+                      sentenceIssueCounts.legacy > 0
+                        ? "Only archived legacy rows remain in this lesson right now."
+                        : "No rows match this filter yet."}
                     </Text>
                   ) : (
                     <ScrollView
@@ -1409,51 +1688,76 @@ export default function AdminDashboardWeb() {
                                 : "—"}
                             </Text>
                             <View style={styles.colNextWave}>
-                              {isSentenceSalvageStage &&
-                              row.publishState === "published" ? (
-                                <View style={styles.auditDecisionRow}>
-                                  {NEXT_WAVE_DECISIONS.map((decision) => {
-                                    const active = row.nextWaveDecision === decision;
-                                    const disabled = sentenceAuditSavingId === row.id;
-                                    return (
-                                      <Pressable
-                                        key={`${row.id}-${decision}`}
-                                        style={[
-                                          styles.auditDecisionChip,
-                                          active && styles.auditDecisionChipActive,
-                                          disabled && styles.auditDecisionChipDisabled,
-                                        ]}
-                                        onPress={(event) => {
-                                          event.stopPropagation?.();
-                                          if (disabled) {
-                                            return;
-                                          }
-                                          void updateNextWaveDecision(row.id, decision);
-                                        }}
-                                      >
-                                        <Text
+                              {canAuditSentenceRows &&
+                              row.publishState !== "staged" &&
+                              (sentenceIssueFilter === "legacy" ||
+                                isSentenceDecisionFilterActive) ? (
+                                <View style={styles.nextWaveCellStack}>
+                                  <View style={styles.auditDecisionRow}>
+                                    {NEXT_WAVE_DECISIONS.map((decision) => {
+                                      const active = row.nextWaveDecision === decision;
+                                      const disabled = sentenceAuditSavingId === row.id;
+                                      return (
+                                        <Pressable
+                                          key={`${row.id}-${decision}`}
                                           style={[
-                                            styles.auditDecisionChipText,
-                                            active && styles.auditDecisionChipTextActive,
+                                            styles.auditDecisionChip,
+                                            active && styles.auditDecisionChipActive,
+                                            disabled && styles.auditDecisionChipDisabled,
                                           ]}
+                                          onPress={(event) => {
+                                            event.stopPropagation?.();
+                                            if (disabled) {
+                                              return;
+                                            }
+                                            void updateNextWaveDecision(row.id, decision);
+                                          }}
                                         >
-                                          {formatNextWaveDecision(decision)}
-                                        </Text>
-                                      </Pressable>
-                                    );
-                                  })}
+                                          <Text
+                                            style={[
+                                              styles.auditDecisionChipText,
+                                              active && styles.auditDecisionChipTextActive,
+                                            ]}
+                                          >
+                                            {formatNextWaveDecision(decision)}
+                                          </Text>
+                                        </Pressable>
+                                      );
+                                    })}
+                                  </View>
+                                  {row.nextWaveAuditNote ? (
+                                    <Text
+                                      style={styles.auditDecisionNote}
+                                      numberOfLines={4}
+                                    >
+                                      {row.nextWaveAuditNote}
+                                    </Text>
+                                  ) : null}
                                 </View>
                               ) : (
-                                <Text
-                                  style={styles.tableCellText}
-                                  numberOfLines={2}
-                                >
-                                  {row.publishState === "staged"
-                                    ? row.sourceExampleId
-                                      ? `Seeded from #${row.sourceExampleId}`
-                                      : "Seeded"
-                                    : "—"}
-                                </Text>
+                                <View style={styles.nextWaveCellStack}>
+                                  <Text
+                                    style={styles.tableCellText}
+                                    numberOfLines={2}
+                                  >
+                                    {row.publishState === "staged"
+                                      ? row.sourceExampleId
+                                        ? `Seeded from #${row.sourceExampleId}`
+                                        : "Seeded"
+                                      : row.nextWaveDecision
+                                        ? formatNextWaveDecision(row.nextWaveDecision)
+                                        : "—"}
+                                  </Text>
+                                  {row.publishState !== "staged" &&
+                                  row.nextWaveAuditNote ? (
+                                    <Text
+                                      style={styles.auditDecisionNote}
+                                      numberOfLines={4}
+                                    >
+                                      {row.nextWaveAuditNote}
+                                    </Text>
+                                  ) : null}
+                                </View>
                               )}
                             </View>
                             <Text
@@ -1656,6 +1960,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.inkMuted,
   },
+  hiddenTag: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.red,
+  },
   grammarTitle: {
     fontSize: 20,
     fontWeight: "700",
@@ -1722,6 +2031,13 @@ const styles = StyleSheet.create({
   },
   issueFilterStack: {
     gap: 8,
+  },
+  archivedToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
   },
   issueFilterRow: {
     flexDirection: "row",
@@ -1969,6 +2285,11 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
   },
+  nextWaveCellStack: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 4,
+  },
   auditDecisionChip: {
     paddingHorizontal: 8,
     paddingVertical: 6,
@@ -1992,6 +2313,11 @@ const styles = StyleSheet.create({
   },
   auditDecisionChipTextActive: {
     color: Sketch.accent,
+  },
+  auditDecisionNote: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Sketch.inkMuted,
   },
   colRow: {
     width: 78,

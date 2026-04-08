@@ -40,3 +40,14 @@ export function getPrimaryBreakdownTone(
   const tones = getBreakdownTones(item);
   return tones.length === 1 ? tones[0] : undefined;
 }
+
+export function getDisplayBreakdownTone(
+  item?: ToneCarrier | null,
+): ToneName | undefined {
+  const tones = getBreakdownTones(item);
+  if (tones.length > 0) {
+    return tones[0];
+  }
+
+  return normalizeToneName(item?.tone);
+}

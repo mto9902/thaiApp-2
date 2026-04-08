@@ -123,8 +123,6 @@ export const GRAMMAR_EXPLANATION_OVERRIDES: Record<string, string> = {
     "นอกจากนั้น adds another point in a more structured way than a simple and or also. It is common when listing reasons or steps.",
   "therefore-formal-jueng":
     "จึง can sound more formal and compressed than casual result markers. It works well in careful explanations, reports, and written arguments.",
-  "concessive-mae":
-    "แม้ว่า introduces a concession, and the main clause shows what still remains true. Use it when you want to admit one point without changing your main conclusion.",
   "once-phor":
     "พอ...ก็ shows that one event happened immediately after another. It often means as soon as....",
   "request-khor":
@@ -194,13 +192,13 @@ export const GRAMMAR_EXPLANATION_OVERRIDES: Record<string, string> = {
   "in-contrast-formal-nai-khana":
     "ในขณะที่ places two situations side by side in contrast. It often means while or whereas in more careful comparison.",
   "seems-like-duu":
-    "ดูเหมือนว่า softens a statement into an impression or inference. Use it when you want to say it seems like... rather than state something as a flat fact.",
+    "ดูเหมือน(ว่า) helps you present an impression rather than a flat fact. Use it when you want to sound careful and observant instead of completely certain.",
   "no-matter-mai-waa":
-    "ไม่ว่า opens a no matter meaning. It is useful when the result stays the same across many different cases.",
+    "ไม่ว่า opens a broad no matter meaning. Use it when the same result stays true across different people, times, or conditions.",
   "even-if-tor-hai":
-    "ต่อให้ introduces a strong hypothetical concession. It gives the sense of even if....",
+    "ต่อให้ introduces a strong hypothetical concession. Use it when you want the main conclusion to stay firm even under an extreme condition.",
   "passive-formal":
-    "ได้รับ is the passive you often see in workplace, public, or written Thai. It feels more neutral and institutional than colloquial passives.",
+    "ได้รับ is a compact formal passive-style anchor you often see in workplace, public, and written Thai. It feels more neutral and institutional than colloquial passives.",
   "keep-doing-ruai":
     "เรื่อยๆ adds the feeling of continuing steadily over time. Use it when something keeps happening or goes on little by little.",
   "supposed-to-khuan-ja":
@@ -344,13 +342,10 @@ export const GRAMMAR_FOCUS_ROMANIZATION_OVERRIDES: Record<string, string> = {
   "although-formal-maewaa": "máe wâa",
   "consequently-song-phal": "sòng phon hâi",
   "in-contrast-formal-nai-khana": "nai khà-nà thîi",
-  "resultative-hai": "tham hâi",
-  "concessive-mae": "máe wâa...gôr...",
   "seems-like-duu": "duu mǔean (wâa)",
   "no-matter-mai-waa": "mâi wâa...gôr...",
   "even-if-tor-hai": "tòr hâi...gôr...",
   "passive-formal": "dâi ràp",
-  "the-more-ying": "yîng...yîng...",
   "once-phor": "phor...gôr...",
   "keep-doing-ruai": "rûeai-rûeai",
   "supposed-to-khuan-ja": "khuan jà / nâa jà",

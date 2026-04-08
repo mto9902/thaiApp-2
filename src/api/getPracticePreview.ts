@@ -9,6 +9,7 @@ export type PracticePreview = {
     english: string;
     tone?: string;
     tones?: string[];
+    displayThaiSegments?: string[];
     grammar?: boolean;
     romanization?: string;
     roman?: string;

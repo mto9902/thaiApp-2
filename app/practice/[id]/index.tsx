@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
+import ToneThaiText from "@/src/components/ToneThaiText";
 import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
 import PremiumGateCard from "@/src/components/PremiumGateCard";
 import ToneDots from "@/src/components/ToneDots";
@@ -27,6 +28,7 @@ import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import { API_BASE } from "../../../src/config";
 import { GRAMMAR_STAGE_BY_ID } from "../../../src/data/grammarStages";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
+import { useAdjacentGrammarPoint } from "../../../src/grammar/useAdjacentGrammarPoint";
 import { useSentenceAudio } from "../../../src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
 import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
@@ -35,18 +37,7 @@ import { isGuestUser } from "../../../src/utils/auth";
 import { getAuthToken } from "../../../src/utils/authStorage";
 import {
   getBreakdownTones,
-  getPrimaryBreakdownTone,
 } from "../../../src/utils/breakdownTones";
-import { getToneAccent } from "../../../src/utils/toneAccent";
-
-function toneColor(tone?: string): string {
-  return tone ? getToneAccent(tone) : Sketch.inkMuted;
-}
-
-function getBreakdownTextColor(item: { tone?: string; tones?: string[] }): string {
-  const primaryTone = getPrimaryBreakdownTone(item);
-  return primaryTone ? toneColor(primaryTone) : Sketch.ink;
-}
 
 function getBreakdownRomanizations(
   romanization: string,
@@ -178,8 +169,14 @@ export default function GrammarDetail() {
     () => new Set(grammarPoints.map((point) => point.id)),
     [grammarPoints],
   );
+  const { previous, currentIndex, next, total } = useAdjacentGrammarPoint(
+    typeof id === "string" ? id : null,
+  );
 
   const grammar = grammarPoints.find((p) => p.id === id);
+  const backToTopicsHref = grammar?.stage
+    ? `/practice/topics?stage=${encodeURIComponent(grammar.stage)}`
+    : "/practice/topics";
 
   useFocusEffect(
     useCallback(() => {
@@ -312,6 +309,73 @@ export default function GrammarDetail() {
     typeof stageMeta?.lessonOrder === "number"
       ? `Topic ${String(stageMeta.lessonOrder + 1).padStart(2, "0")}`
       : "Topic";
+  const lessonNavigation = (
+    <View style={styles.section}>
+      <View style={styles.lessonNavHeader}>
+        <Text style={styles.sectionLabel}>TOPIC NAVIGATION</Text>
+        {currentIndex >= 0 ? (
+          <Text style={styles.lessonNavMeta}>
+            {currentIndex + 1} of {total}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.lessonNavRow}>
+        <TouchableOpacity
+          style={[
+            styles.lessonNavButton,
+            !previous && styles.lessonNavButtonDisabled,
+          ]}
+          onPress={() => previous && router.push(`/practice/${previous.id}`)}
+          activeOpacity={previous ? 0.82 : 1}
+          disabled={!previous}
+        >
+          <Text
+            style={[
+              styles.lessonNavLabel,
+              !previous && styles.lessonNavLabelDisabled,
+            ]}
+          >
+            Previous topic
+          </Text>
+          <Text
+            style={[
+              styles.lessonNavTitle,
+              !previous && styles.lessonNavTitleDisabled,
+            ]}
+          >
+            {previous ? previous.title : "You're at the first topic"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.lessonNavButton,
+            !next && styles.lessonNavButtonDisabled,
+          ]}
+          onPress={() => next && router.push(`/practice/${next.id}`)}
+          activeOpacity={next ? 0.82 : 1}
+          disabled={!next}
+        >
+          <Text
+            style={[
+              styles.lessonNavLabel,
+              !next && styles.lessonNavLabelDisabled,
+            ]}
+          >
+            Next topic
+          </Text>
+          <Text
+            style={[
+              styles.lessonNavTitle,
+              !next && styles.lessonNavTitleDisabled,
+            ]}
+          >
+            {next ? next.title : "You're at the last topic"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   if (isLocked && premiumLoading) {
     return (
@@ -319,7 +383,7 @@ export default function GrammarDetail() {
         <Stack.Screen options={{ headerShown: false }} />
         <Header
           title={headerTitle}
-          onBack={() => router.back()}
+          onBack={() => router.replace(backToTopicsHref as any)}
           showBrandMark={false}
           showWordBreakdownTtsSetting
           onSettingsChange={handleSettingsChange}
@@ -357,6 +421,8 @@ export default function GrammarDetail() {
             body="This lesson is beyond the free starting lessons. Unlock Keystone Access to open it, practice it, and continue through the rest of the course."
             redirectTo={`/practice/${id}`}
           />
+
+          {lessonNavigation}
         </ScrollView>
       </SafeAreaView>
     );
@@ -427,7 +493,7 @@ export default function GrammarDetail() {
       <Stack.Screen options={{ headerShown: false }} />
       <Header
         title={headerTitle}
-        onBack={() => router.back()}
+        onBack={() => router.replace(backToTopicsHref as any)}
         showBrandMark={false}
         showWordBreakdownTtsSetting
         onSettingsChange={handleSettingsChange}
@@ -552,9 +618,15 @@ export default function GrammarDetail() {
 
             <Text style={styles.thaiText}>
               {example.breakdown.map((item: any, index: number) => (
-                <Text key={index} style={{ color: getBreakdownTextColor(item) }}>
-                  {item.thai}
-                </Text>
+                <ToneThaiText
+                  key={index}
+                  thai={item.thai}
+                  tones={getBreakdownTones(item)}
+                  romanization={
+                    item.romanization || item.roman || exampleRomanTokens[index]
+                  }
+                  displayThaiSegments={item.displayThaiSegments}
+                />
               ))}
             </Text>
 
@@ -588,7 +660,16 @@ export default function GrammarDetail() {
                     activeOpacity={0.8}
                   >
                     <View style={styles.wordTileHeader}>
-                      <Text style={styles.wordTileThai}>{item.thai}</Text>
+                      <ToneThaiText
+                        thai={item.thai}
+                        tones={getBreakdownTones(item)}
+                        romanization={
+                          item.romanization || item.roman || exampleRomanTokens[index]
+                        }
+                        displayThaiSegments={item.displayThaiSegments}
+                        style={styles.wordTileThai}
+                        fallbackColor={Sketch.ink}
+                      />
                       <ToneDots
                         tones={getBreakdownTones(item)}
                         style={styles.toneDots}
@@ -607,7 +688,16 @@ export default function GrammarDetail() {
                     style={styles.wordTile}
                   >
                     <View style={styles.wordTileHeader}>
-                      <Text style={styles.wordTileThai}>{item.thai}</Text>
+                      <ToneThaiText
+                        thai={item.thai}
+                        tones={getBreakdownTones(item)}
+                        romanization={
+                          item.romanization || item.roman || exampleRomanTokens[index]
+                        }
+                        displayThaiSegments={item.displayThaiSegments}
+                        style={styles.wordTileThai}
+                        fallbackColor={Sketch.ink}
+                      />
                       <ToneDots
                         tones={getBreakdownTones(item)}
                         style={styles.toneDots}
@@ -634,6 +724,8 @@ export default function GrammarDetail() {
         >
           <Text style={styles.ctaText}>Start Practice</Text>
         </TouchableOpacity>
+
+        {lessonNavigation}
       </ScrollView>
 
       <ToneGuide
@@ -960,5 +1052,53 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     letterSpacing: 0.1,
+  },
+  lessonNavHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  lessonNavMeta: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Sketch.inkMuted,
+    letterSpacing: 0.6,
+  },
+  lessonNavRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  lessonNavButton: {
+    flex: 1,
+    backgroundColor: Sketch.cardBg,
+    borderWidth: 1,
+    borderColor: Sketch.inkFaint,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 6,
+  },
+  lessonNavButtonDisabled: {
+    backgroundColor: Sketch.paper,
+    borderColor: Sketch.inkFaint,
+  },
+  lessonNavLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Sketch.accent,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  lessonNavLabelDisabled: {
+    color: Sketch.inkMuted,
+  },
+  lessonNavTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Sketch.ink,
+    lineHeight: 20,
+  },
+  lessonNavTitleDisabled: {
+    color: Sketch.inkMuted,
   },
 });
