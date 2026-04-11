@@ -154,6 +154,7 @@ export const WEB_GLOBAL_CSS = `
      * overflow into the document instead.
      */
     html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root [data-testid="keystone-mobile-page-scroll"] {
+      box-sizing: border-box !important;
       flex: initial !important;
       flex-grow: 0 !important;
       flex-shrink: 0 !important;
@@ -162,7 +163,16 @@ export const WEB_GLOBAL_CSS = `
       min-height: 100vh;
       min-height: 100dvh;
       overflow-y: visible !important;
+      padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
       transform: none !important;
+    }
+
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root [role="tablist"] {
+      bottom: 0 !important;
+      left: 0 !important;
+      position: fixed !important;
+      right: 0 !important;
+      z-index: 1200 !important;
     }
   }
 `;
