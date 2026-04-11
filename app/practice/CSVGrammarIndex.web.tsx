@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -21,6 +21,14 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
+import {
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+} from "@/src/components/web/designSystem";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 import { API_BASE } from "@/src/config";
 import {
   CEFR_LEVEL_META,
@@ -45,10 +53,30 @@ import {
 } from "@/src/utils/grammarProgress";
 
 export default function GrammarTopicsScreenWeb() {
-  const router = useRouter();
   const { width } = useWindowDimensions();
-  const { grammarPoints } = useGrammarCatalog();
   const { level, stage } = useLocalSearchParams<{ level?: string; stage?: string }>();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return (
+      <Redirect
+        href={{
+          pathname: "/grammar-topics",
+          params: {
+            ...(level ? { level } : {}),
+            ...(stage ? { stage } : {}),
+          },
+        }}
+      />
+    );
+  }
+
+  return <DesktopGrammarTopicsScreenWeb />;
+}
+
+function DesktopGrammarTopicsScreenWeb() {
+  const router = useRouter();
+  const { level, stage } = useLocalSearchParams<{ level?: string; stage?: string }>();
+  const { grammarPoints } = useGrammarCatalog();
   const { isPremium } = useSubscription();
   const { ensurePremiumAccess } = usePremiumAccess();
   const backToGrammarPathHref = "/progress";
@@ -66,6 +94,7 @@ export default function GrammarTopicsScreenWeb() {
       ? (rawStage as PublicGrammarStage)
       : undefined;
 
+  const { width } = useWindowDimensions();
   const isWide = width >= 1200;
   const isMedium = width >= 860;
 
@@ -144,8 +173,59 @@ export default function GrammarTopicsScreenWeb() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
+        <DesktopAppShell>
+          <DesktopPage
+            density="compact"
+            eyebrow={selectedStage ? selectedStage : selectedLevel ? selectedLevel : "Grammar"}
+            title={
+              selectedStage
+                ? stageMeta?.title ?? "Grammar"
+                : selectedLevel
+                  ? `${selectedLevel} Grammar`
+                  : "Grammar Curriculum"
+            }
+            subtitle={
+              selectedStage
+                ? stageMeta?.subtitle
+                : selectedLevel
+                  ? `${levelMeta?.title ?? selectedLevel} lesson track`
+                  : "Browse the curriculum and open any grammar lesson from the list."
+            }
+            toolbar={
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.topButton,
+                  (hovered || pressed) && styles.lightButtonActive,
+                ]}
+                onPress={() => router.replace(backToGrammarPathHref as any)}
+              >
+                <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+                <Text style={styles.topButtonText}>Back</Text>
+              </Pressable>
+            }
+          >
+            <DesktopPanel>
+              <View style={styles.maintenanceCard}>
+                <View style={styles.maintenanceBadge}>
+                  <Ionicons name="construct-outline" size={24} color={AppSketch.primary} />
+                </View>
+                <Text style={styles.maintenanceTitle}>Temporarily under maintenance</Text>
+                <Text style={styles.maintenanceBody}>
+                  C1 lessons are being updated right now. Please try again later.
+                </Text>
+              </View>
+            </DesktopPanel>
+          </DesktopPage>
+        </DesktopAppShell>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <DesktopAppShell>
         <DesktopPage
-          widthVariant="wide"
           density="compact"
           eyebrow={selectedStage ? selectedStage : selectedLevel ? selectedLevel : "Grammar"}
           title={
@@ -163,65 +243,19 @@ export default function GrammarTopicsScreenWeb() {
                 : "Browse the curriculum and open any grammar lesson from the list."
           }
           toolbar={
-            <TouchableOpacity
-              style={styles.topButton}
-              onPress={() => router.replace(backToGrammarPathHref as any)}
-              activeOpacity={0.82}
-            >
-              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
-              <Text style={styles.topButtonText}>Back</Text>
-            </TouchableOpacity>
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.topButton,
+                  (hovered || pressed) && styles.lightButtonActive,
+                ]}
+                onPress={() => router.replace(backToGrammarPathHref as any)}
+              >
+                <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+                <Text style={styles.topButtonText}>Back</Text>
+              </Pressable>
           }
         >
-          <DesktopPanel>
-            <View style={styles.maintenanceCard}>
-              <View style={styles.maintenanceBadge}>
-                <Ionicons name="construct-outline" size={24} color={AppSketch.primary} />
-              </View>
-              <Text style={styles.maintenanceTitle}>Temporarily under maintenance</Text>
-              <Text style={styles.maintenanceBody}>
-                C1 lessons are being updated right now. Please try again later.
-              </Text>
-            </View>
-          </DesktopPanel>
-        </DesktopPage>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        widthVariant="wide"
-        density="compact"
-        eyebrow={selectedStage ? selectedStage : selectedLevel ? selectedLevel : "Grammar"}
-        title={
-          selectedStage
-            ? stageMeta?.title ?? "Grammar"
-            : selectedLevel
-              ? `${selectedLevel} Grammar`
-              : "Grammar Curriculum"
-        }
-        subtitle={
-          selectedStage
-            ? stageMeta?.subtitle
-            : selectedLevel
-              ? `${levelMeta?.title ?? selectedLevel} lesson track`
-              : "Browse the curriculum and open any grammar lesson from the list."
-        }
-        toolbar={
-          <TouchableOpacity
-            style={styles.topButton}
-            onPress={() => router.replace(backToGrammarPathHref as any)}
-            activeOpacity={0.82}
-          >
-            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
-            <Text style={styles.topButtonText}>Back</Text>
-          </TouchableOpacity>
-        }
-      >
-        <View style={styles.pageStack}>
+          <View style={styles.pageStack}>
           <View style={[styles.summaryGrid, !isWide && styles.stack]}>
             <DesktopPanel style={[styles.summaryPanel, styles.progressPanel]}>
               <DesktopSectionTitle
@@ -238,12 +272,9 @@ export default function GrammarTopicsScreenWeb() {
                     <View style={[styles.fill, { width: `${percentage}%` }]} />
                   </View>
                   <View style={styles.progressMetaRow}>
-                    <View style={styles.metaChip}>
-                      <Text style={styles.metaChipText}>{practiced} practiced</Text>
-                    </View>
-                    <View style={styles.metaChip}>
-                      <Text style={styles.metaChipText}>{remaining} still open</Text>
-                    </View>
+                    <Text style={styles.progressMetaText}>{practiced} practiced</Text>
+                    <Text style={styles.progressMetaDivider}>•</Text>
+                    <Text style={styles.progressMetaText}>{remaining} still open</Text>
                   </View>
                   <Text style={styles.trackHint}>
                     Keep moving through the unit one topic at a time.
@@ -258,8 +289,11 @@ export default function GrammarTopicsScreenWeb() {
                 caption="Jump to the first unpracticed topic in this view."
               />
               {nextUnlearned ? (
-                <TouchableOpacity
-                  style={styles.nextCard}
+                <Pressable
+                  style={({ hovered, pressed }) => [
+                    styles.nextCard,
+                    (hovered || pressed) && styles.cardInteractiveActive,
+                  ]}
                   onPress={() => {
                     const cardCopy = getGrammarCardCopy(nextUnlearned);
                     if (!isPremium && isPremiumGrammarPoint(nextUnlearned)) {
@@ -268,13 +302,10 @@ export default function GrammarTopicsScreenWeb() {
                     }
                     router.push(`/practice/${nextUnlearned.id}`);
                   }}
-                  activeOpacity={0.82}
                 >
                   <View style={styles.nextHeaderRow}>
                     <Text style={styles.nextLabel}>Next up</Text>
-                    <View style={styles.stagePill}>
-                      <Text style={styles.stagePillText}>{nextUnlearned.stage}</Text>
-                    </View>
+                    <Text style={styles.stageInlineLabel}>{nextUnlearned.stage}</Text>
                   </View>
                   <Text style={styles.nextTitle}>
                     {getGrammarCardCopy(nextUnlearned).title}
@@ -290,7 +321,7 @@ export default function GrammarTopicsScreenWeb() {
                       color={AppSketch.primary}
                     />
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               ) : (
                 <View style={styles.nextCard}>
                   <Text style={styles.nextTitle}>All topics practiced here.</Text>
@@ -317,9 +348,13 @@ export default function GrammarTopicsScreenWeb() {
                 const locked = isPremiumGrammarPoint(item) && !isPremium;
                 const cardCopy = getGrammarCardCopy(item);
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={item.id}
-                    style={[styles.card, { width: cardWidth }]}
+                    style={({ hovered, pressed }) => [
+                      styles.card,
+                      { width: cardWidth },
+                      (hovered || pressed) && styles.cardInteractiveActive,
+                    ]}
                     onPress={() => {
                       if (locked) {
                         void ensurePremiumAccess(cardCopy.title, `/practice/${item.id}`);
@@ -327,48 +362,38 @@ export default function GrammarTopicsScreenWeb() {
                       }
                       router.push(`/practice/${item.id}`);
                     }}
-                    activeOpacity={0.82}
                   >
                     <View style={styles.cardTop}>
-                      <View style={styles.stagePill}>
-                        <Text style={styles.stagePillText}>{item.stage}</Text>
-                      </View>
+                      <Text style={styles.stageInlineLabel}>{item.stage}</Text>
                       <View style={styles.cardTopRight}>
                         {locked ? (
-                          <View style={styles.statusPill}>
+                          <View style={styles.statusInline}>
                             <Ionicons
                               name="lock-closed-outline"
                               size={13}
                               color={AppSketch.primary}
                             />
-                            <Text style={styles.statusPillText}>Access</Text>
+                            <Text style={styles.statusInlineText}>Access</Text>
                           </View>
                         ) : null}
                         {done ? (
-                          <View style={[styles.statusPill, styles.statusPillPracticed]}>
+                          <View style={styles.statusInline}>
                             <Ionicons
                               name="checkmark"
                               size={13}
-                              color="#FFFFFF"
+                              color={AppSketch.primary}
                             />
-                            <Text
-                              style={[
-                                styles.statusPillText,
-                                styles.statusPillTextPracticed,
-                              ]}
-                            >
-                              Practiced
-                            </Text>
+                            <Text style={styles.statusInlineText}>Practiced</Text>
                           </View>
                         ) : null}
                         {bookmarked ? (
-                          <View style={styles.statusPill}>
+                          <View style={styles.statusInline}>
                             <Ionicons
                               name="bookmark"
                               size={13}
                               color={AppSketch.primary}
                             />
-                            <Text style={styles.statusPillText}>Saved</Text>
+                            <Text style={styles.statusInlineText}>Saved</Text>
                           </View>
                         ) : null}
                       </View>
@@ -377,20 +402,25 @@ export default function GrammarTopicsScreenWeb() {
                     <Text style={styles.cardPattern}>{cardCopy.pattern}</Text>
                     <Text style={styles.cardMeaning}>{cardCopy.meaning}</Text>
                     <View style={styles.cardFooter}>
-                      <Text style={styles.cardId}>{item.id}</Text>
-                      <View style={styles.cardLinkPill}>
+                      <View style={styles.cardLinkRow}>
                         <Text style={styles.cardLink}>
-                        {locked ? "Unlock" : "Open lesson"}
+                          {locked ? "Unlock" : "Open lesson"}
                         </Text>
+                        <Ionicons
+                          name="arrow-forward"
+                          size={14}
+                          color={AppSketch.primary}
+                        />
                       </View>
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               })}
             </ScrollView>
           </DesktopPanel>
-        </View>
-      </DesktopPage>
+          </View>
+        </DesktopPage>
+      </DesktopAppShell>
     </>
   );
 }
@@ -412,6 +442,12 @@ const styles = StyleSheet.create({
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  lightButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   topButtonText: {
     ...AppTypography.label,
@@ -472,18 +508,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    alignItems: "center",
   },
-  metaChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.full,
-    backgroundColor: AppSketch.surface,
-  },
-  metaChipText: {
+  progressMetaText: {
     ...AppTypography.caption,
     color: AppSketch.inkSecondary,
+  },
+  progressMetaDivider: {
+    ...AppTypography.caption,
+    color: AppSketch.inkMuted,
   },
   trackHint: {
     ...AppTypography.bodySmall,
@@ -498,6 +531,8 @@ const styles = StyleSheet.create({
     gap: 10,
     minHeight: 138,
     justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   nextHeaderRow: {
     flexDirection: "row",
@@ -580,7 +615,8 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 14,
     minHeight: 260,
-    ...appShadow("sm"),
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   cardTop: {
     flexDirection: "row",
@@ -596,40 +632,20 @@ const styles = StyleSheet.create({
     gap: 8,
     minWidth: 0,
   },
-  stagePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.full,
-    backgroundColor: AppSketch.surface,
-  },
-  stagePillText: {
+  stageInlineLabel: {
     ...AppTypography.caption,
     color: AppSketch.inkSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  statusPill: {
+  statusInline: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.full,
-    backgroundColor: AppSketch.surface,
   },
-  statusPillPracticed: {
-    backgroundColor: AppSketch.primary,
-    borderColor: AppSketch.primary,
-    ...appShadow("sm"),
-  },
-  statusPillText: {
+  statusInlineText: {
     ...AppTypography.caption,
     color: AppSketch.primary,
-  },
-  statusPillTextPracticed: {
-    color: "#FFFFFF",
     fontWeight: "700",
   },
   cardTitle: {
@@ -653,28 +669,25 @@ const styles = StyleSheet.create({
   },
   cardFooter: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: AppSketch.border,
   },
-  cardId: {
-    flex: 1,
-    ...AppTypography.caption,
-    color: AppSketch.inkMuted,
-  },
-  cardLinkPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.full,
-    backgroundColor: AppSketch.surface,
+  cardLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   cardLink: {
     ...AppTypography.labelSmall,
     color: AppSketch.primary,
+    fontWeight: "700",
+  },
+  cardInteractiveActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
 });

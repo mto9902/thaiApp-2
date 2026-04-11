@@ -5,25 +5,34 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
 import {
-  MUTED_APP_ACCENTS,
-  MUTED_FEEDBACK_ACCENTS,
-} from "../utils/toneAccent";
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
 };
 
+const SOFT_LINE = "#E5E5E5";
+const MODAL_BACKDROP = "rgba(16, 42, 67, 0.18)";
+
 export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
   const { width, height } = useWindowDimensions();
-  const isWeb = Platform.OS === "web";
+  const isDesktopWeb = Platform.OS === "web" && width >= MOBILE_WEB_BREAKPOINT;
   const sheetWidth = Math.min(860, width - 48);
   const sheetMaxHeight = Math.min(height - 56, 760);
 
@@ -34,17 +43,17 @@ export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
       transparent
       visible={visible}
     >
-      <View style={[styles.modalRoot, isWeb && styles.modalRootWeb]}>
+      <View style={[styles.modalRoot, isDesktopWeb && styles.modalRootWeb]}>
         <Pressable onPress={onClose} style={styles.backdrop} />
 
         <View
           style={[
             styles.sheet,
-            isWeb && styles.sheetWeb,
-            isWeb && { width: sheetWidth, maxHeight: sheetMaxHeight },
+            isDesktopWeb && styles.sheetWeb,
+            isDesktopWeb && { width: sheetWidth, maxHeight: sheetMaxHeight },
           ]}
         >
-          {!isWeb ? <View style={styles.handle} /> : null}
+          {!isDesktopWeb ? <View style={styles.handle} /> : null}
 
           <View style={styles.headerRow}>
             <View style={styles.headerCopy}>
@@ -56,91 +65,104 @@ export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
               </Text>
             </View>
 
-            <TouchableOpacity
-              activeOpacity={0.72}
+            <Pressable
               onPress={onClose}
-              style={[styles.closeButton, isWeb && styles.closeButtonWeb]}
+              style={({ hovered, pressed }) => [
+                styles.closeButton,
+                isDesktopWeb && styles.closeButtonWeb,
+                hovered || pressed
+                  ? isDesktopWeb
+                    ? styles.closeButtonActive
+                    : styles.closeButtonActiveMobile
+                  : null,
+              ]}
             >
               <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={[styles.sectionGrid, isWeb && styles.sectionGridWeb]}>
-              <View style={[styles.sectionCard, isWeb && styles.sectionCardWeb]}>
+            <View style={[styles.sectionGrid, isDesktopWeb && styles.sectionGridWeb]}>
+              <View style={[styles.sectionCard, isDesktopWeb && styles.sectionCardWeb]}>
                 <Text style={styles.sectionTitle}>How grading works</Text>
                 <Text style={styles.body}>
                   New words start with short steps. As you answer correctly, the
                   interval grows. If a word feels shaky, bring it back sooner.
                 </Text>
-                <View style={[styles.gradeGrid, isWeb && styles.gradeGridWeb]}>
+                <View style={[styles.gradeGrid, isDesktopWeb && styles.gradeGridWeb]}>
                   <View
                     style={[
                       styles.gradeChip,
-                      isWeb && styles.gradeChipWeb,
-                      {
-                        backgroundColor: MUTED_FEEDBACK_ACCENTS.error,
-                        borderColor: MUTED_FEEDBACK_ACCENTS.error,
-                      },
+                      isDesktopWeb && styles.gradeChipWeb,
                     ]}
                   >
-                    <Text style={styles.gradeLabelOnDark}>Again</Text>
-                    <Text style={styles.gradeTextOnDark}>
+                    <Text
+                      style={[
+                        styles.gradeLabel,
+                        { color: Sketch.ink },
+                      ]}
+                    >
+                      Again
+                    </Text>
+                    <Text style={styles.gradeText}>
                       See it again very soon.
                     </Text>
                   </View>
                   <View
                     style={[
                       styles.gradeChip,
-                      isWeb && styles.gradeChipWeb,
-                      {
-                        backgroundColor: MUTED_APP_ACCENTS.clay,
-                        borderColor: MUTED_APP_ACCENTS.clay,
-                      },
+                      isDesktopWeb && styles.gradeChipWeb,
                     ]}
                   >
-                    <Text style={styles.gradeLabelOnDark}>Hard</Text>
-                    <Text style={styles.gradeTextOnDark}>
+                    <Text
+                      style={[styles.gradeLabel, { color: Sketch.ink }]}
+                    >
+                      Hard
+                    </Text>
+                    <Text style={styles.gradeText}>
                       Keep the interval short.
                     </Text>
                   </View>
                   <View
                     style={[
                       styles.gradeChip,
-                      isWeb && styles.gradeChipWeb,
-                      {
-                        backgroundColor: MUTED_FEEDBACK_ACCENTS.success,
-                        borderColor: MUTED_FEEDBACK_ACCENTS.success,
-                      },
+                      isDesktopWeb && styles.gradeChipWeb,
                     ]}
                   >
-                    <Text style={styles.gradeLabelOnDark}>Good</Text>
-                    <Text style={styles.gradeTextOnDark}>
+                    <Text
+                      style={[
+                        styles.gradeLabel,
+                        { color: Sketch.ink },
+                      ]}
+                    >
+                      Good
+                    </Text>
+                    <Text style={styles.gradeText}>
                       Continue at the normal pace.
                     </Text>
                   </View>
                   <View
                     style={[
                       styles.gradeChip,
-                      isWeb && styles.gradeChipWeb,
-                      {
-                        backgroundColor: MUTED_APP_ACCENTS.slate,
-                        borderColor: MUTED_APP_ACCENTS.slate,
-                      },
+                      isDesktopWeb && styles.gradeChipWeb,
                     ]}
                   >
-                    <Text style={styles.gradeLabelOnDark}>Easy</Text>
-                    <Text style={styles.gradeTextOnDark}>
+                    <Text
+                      style={[styles.gradeLabel, { color: Sketch.ink }]}
+                    >
+                      Easy
+                    </Text>
+                    <Text style={styles.gradeText}>
                       Push the word further out.
                     </Text>
                   </View>
                 </View>
               </View>
 
-              <View style={[styles.sectionCard, isWeb && styles.sectionCardWeb]}>
+              <View style={[styles.sectionCard, isDesktopWeb && styles.sectionCardWeb]}>
                 <Text style={styles.sectionTitle}>New words per day</Text>
                 <Text style={styles.body}>
                   New cards are capped each day so your review queue stays
@@ -151,8 +173,8 @@ export default function VocabSrsInfoSheet({ visible, onClose }: Props) {
               <View
                 style={[
                   styles.sectionCard,
-                  isWeb && styles.sectionCardWeb,
-                  isWeb && styles.sectionCardWide,
+                  isDesktopWeb && styles.sectionCardWeb,
+                  isDesktopWeb && styles.sectionCardWide,
                 ]}
               >
                 <Text style={styles.sectionTitle}>Adding vocabulary</Text>
@@ -185,7 +207,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(15, 13, 11, 0.32)",
+    backgroundColor: MODAL_BACKDROP,
   },
   sheet: {
     backgroundColor: Sketch.paper,
@@ -203,15 +225,15 @@ const styles = StyleSheet.create({
   },
   sheetWeb: {
     alignSelf: "center",
-    borderRadius: 0,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: SOFT_LINE,
     minHeight: 0,
     paddingHorizontal: 28,
     paddingTop: 24,
     justifyContent: "flex-start",
+    backgroundColor: "#FFFFFF",
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   handle: {
     alignSelf: "center",
@@ -233,41 +255,59 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   eyebrow: {
-    color: Sketch.orange,
+    color: Sketch.inkMuted,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.9,
     textTransform: "uppercase",
+    fontFamily: WEB_BODY_FONT,
   },
   title: {
     color: Sketch.ink,
-    fontSize: 23,
-    fontWeight: "700",
-    letterSpacing: -0.4,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   subtitle: {
     color: Sketch.inkLight,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: WEB_BODY_FONT,
   },
   closeButton: {
     alignItems: "center",
-    backgroundColor: Sketch.paperDark,
-    borderColor: Sketch.inkFaint,
-    borderRadius: 0,
+    backgroundColor: "#F5F5F5",
+    borderColor: SOFT_LINE,
+    borderRadius: WEB_RADIUS.sm,
     borderWidth: 1,
     minWidth: 70,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   closeButtonWeb: {
     minWidth: 88,
-    borderRadius: 0,
+  },
+  closeButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  closeButtonActiveMobile: {
+    transform: [{ translateY: 1.25 }],
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   closeButtonText: {
-    color: Sketch.inkLight,
-    fontSize: 12,
-    fontWeight: "600",
+    color: Sketch.ink,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   scrollContent: {
     gap: 16,
@@ -283,19 +323,21 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   sectionCard: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 0,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: SOFT_LINE,
     gap: 10,
     padding: 16,
-    ...sketchShadow(3),
+    ...sketchShadow(2),
   },
   sectionCardWeb: {
     width: "48.9%",
     padding: 20,
     gap: 12,
     alignSelf: "flex-start",
+    backgroundColor: "#FFFFFF",
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   sectionCardWide: {
     width: "100%",
@@ -304,11 +346,13 @@ const styles = StyleSheet.create({
     color: Sketch.ink,
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: WEB_DISPLAY_FONT,
   },
   body: {
     color: Sketch.inkLight,
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 21,
+    fontFamily: WEB_BODY_FONT,
   },
   gradeGrid: {
     gap: 8,
@@ -319,24 +363,28 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   gradeChip: {
-    borderRadius: 0,
+    borderRadius: 16,
     borderWidth: 1,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#FFFFFF",
     gap: 3,
     paddingHorizontal: 12,
     paddingVertical: 10,
     width: "100%",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   gradeChipWeb: {
     width: "100%",
   },
-  gradeLabelOnDark: {
-    color: "#FFFFFF",
+  gradeLabel: {
     fontSize: 13,
     fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
-  gradeTextOnDark: {
-    color: "rgba(255,255,255,0.88)",
+  gradeText: {
+    color: Sketch.inkMuted,
     fontSize: 12,
     lineHeight: 18,
+    fontFamily: WEB_BODY_FONT,
   },
 });

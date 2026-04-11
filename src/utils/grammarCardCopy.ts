@@ -7,6 +7,32 @@ type GrammarCardCopy = {
   meaning: string;
 };
 
+function looksLikeInternalGrammarTag(value: string) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)+$/i.test(value.trim());
+}
+
+function humanizeGrammarTag(value: string) {
+  return value
+    .trim()
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getDisplayTitle(point: GrammarPoint) {
+  const rawTitle = point.title?.trim() || "";
+  if (!rawTitle) {
+    return humanizeGrammarTag(point.id);
+  }
+
+  if (rawTitle === point.id || looksLikeInternalGrammarTag(rawTitle)) {
+    return humanizeGrammarTag(rawTitle);
+  }
+
+  return rawTitle;
+}
+
 const CARD_COPY_OVERRIDES: Record<string, GrammarCardCopy> = {
   "cause-result-connectors": {
     title: "Cause & Result",
@@ -115,7 +141,7 @@ const CARD_COPY_OVERRIDES: Record<string, GrammarCardCopy> = {
 export function getGrammarCardCopy(point: GrammarPoint): GrammarCardCopy {
   return (
     CARD_COPY_OVERRIDES[point.id] ?? {
-      title: point.title,
+      title: getDisplayTitle(point),
       pattern: point.pattern,
       focus: point.focus.particle,
       meaning: point.focus.meaning,

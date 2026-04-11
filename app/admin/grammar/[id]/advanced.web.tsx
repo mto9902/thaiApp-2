@@ -359,7 +359,6 @@ export default function AdminGrammarEditorWeb() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <DesktopPage
-          widthVariant="wide"
           eyebrow="Admin"
           title="Lesson not found"
           subtitle="This grammar topic is not available in the current catalog."
@@ -498,7 +497,6 @@ export default function AdminGrammarEditorWeb() {
       </Modal>
 
       <DesktopPage
-        widthVariant="wide"
         eyebrow="Admin"
         title={draft ? `Edit ${draft.title}` : "Edit lesson"}
         subtitle={grammarPoint?.id ?? String(id)}

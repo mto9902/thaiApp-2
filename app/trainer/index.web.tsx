@@ -1,20 +1,27 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import AlphabetTrainerMobileScreen from "@/src/screens/mobile/AlphabetTrainerMobileScreen";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
 import {
-  DesktopPage,
-  DesktopPanel,
-  DesktopSectionTitle,
-} from "@/src/components/web/DesktopScaffold";
+  DESKTOP_PAGE_WIDTH,
+  MOBILE_WEB_BREAKPOINT,
+} from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import {
   CONSONANT_INFO,
   DIFFICULTY_META,
@@ -23,6 +30,10 @@ import {
 } from "@/src/data/trainerOptions";
 import { alphabet } from "@/src/data/alphabet";
 import { vowels } from "@/src/data/vowels";
+
+const BRAND = WEB_BRAND;
+const BODY_FONT = WEB_BODY_FONT;
+const DISPLAY_FONT = WEB_DISPLAY_FONT;
 
 function DifficultyCard({
   level,
@@ -37,8 +48,12 @@ function DifficultyCard({
 
   return (
     <Pressable
-      style={[styles.selectionCard, active && styles.selectionCardActive]}
       onPress={onPress}
+      style={({ hovered, pressed }) => [
+        styles.selectionCard,
+        active && styles.selectionCardActive,
+        (hovered || pressed) && styles.selectionCardHover,
+      ]}
     >
       <Text style={styles.selectionTitle}>{meta.label}</Text>
       <Text style={styles.selectionDescription}>
@@ -65,8 +80,13 @@ function GroupCard({
 }) {
   return (
     <Pressable
-      style={[styles.selectionCard, active && styles.selectionCardActive]}
       onPress={onPress}
+      style={({ hovered, pressed }) => [
+        styles.selectionCard,
+        styles.groupCard,
+        active && styles.selectionCardActive,
+        (hovered || pressed) && styles.selectionCardHover,
+      ]}
     >
       <Text style={styles.selectionTitle}>{title}</Text>
       <Text style={styles.groupPreview}>{preview}</Text>
@@ -81,7 +101,11 @@ export default function TrainerWeb() {
   const [consonantGroupsSelected, setConsonantGroupsSelected] = useState<number[]>([1]);
   const [vowelGroupsSelected, setVowelGroupsSelected] = useState<number[]>([1]);
 
-  const columns = width >= 1280 ? 3 : width >= 960 ? 2 : 1;
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <AlphabetTrainerMobileScreen />;
+  }
+
+  const columns = width >= 1320 ? 3 : width >= 980 ? 2 : 1;
   const cardWidth = columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
 
   function toggleSelection(
@@ -118,174 +142,268 @@ export default function TrainerWeb() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        eyebrow="Trainer"
-        title="Alphabet Trainer"
-        subtitle="Choose the letters, vowels, and difficulty you want, then launch a focused reading batch."
-        toolbar={
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.82}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        }
-      >
-        <View style={styles.pageStack}>
-          <View style={styles.summaryStrip}>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValue}>
-                {consonantCount}
-              </Text>
-              <Text style={styles.summaryLabel}>letters</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValue}>
-                {vowelCount}
-              </Text>
-              <Text style={styles.summaryLabel}>vowels</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValue}>{DIFFICULTY_META[difficulty].label}</Text>
-              <Text style={styles.summaryLabel}>difficulty</Text>
-            </View>
-          </View>
+      <DesktopAppShell>
+        <ScrollView
+          style={styles.page}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.shell}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>Trainer</Text>
+                <Text style={styles.title}>Alphabet Trainer</Text>
+                <Text style={styles.subtitle}>
+                  Choose the letters, vowels, and difficulty you want, then launch a
+                  focused reading batch.
+                </Text>
+              </View>
 
-          <View style={styles.mainGrid}>
-            <View style={styles.formColumn}>
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Difficulty"
-                  caption="Choose how simple or tricky the word batch should be."
-                />
-                <View style={styles.grid}>
-                  {(Object.keys(DIFFICULTY_META) as TrainerDifficulty[]).map((level) => (
-                    <View key={level} style={{ width: cardWidth }}>
-                      <DifficultyCard
-                        level={level}
-                        active={difficulty === level}
-                        onPress={() => setDifficulty(level)}
-                      />
+              <Pressable
+                onPress={() => router.back()}
+                style={({ hovered, pressed }) => [
+                  styles.backButton,
+                  (hovered || pressed) && styles.lightButtonActive,
+                ]}
+              >
+                <Ionicons name="arrow-back" size={18} color={BRAND.ink} />
+                <Text style={styles.backButtonText}>Back</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.summaryStrip}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{consonantCount}</Text>
+                <Text style={styles.summaryLabel}>letters</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{vowelCount}</Text>
+                <Text style={styles.summaryLabel}>vowels</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{DIFFICULTY_META[difficulty].label}</Text>
+                <Text style={styles.summaryLabel}>difficulty</Text>
+              </View>
+            </View>
+
+            <View style={styles.mainGrid}>
+              <View style={styles.formColumn}>
+                <View style={styles.surfaceCard}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionHeaderText}>
+                      <Text style={styles.sectionHeading}>Difficulty</Text>
+                      <Text style={styles.sectionSubheading}>
+                        Choose how simple or tricky the word batch should be.
+                      </Text>
                     </View>
-                  ))}
+                  </View>
+                  <View style={styles.grid}>
+                    {(Object.keys(DIFFICULTY_META) as TrainerDifficulty[]).map((level) => (
+                      <View key={level} style={{ width: cardWidth }}>
+                        <DifficultyCard
+                          level={level}
+                          active={difficulty === level}
+                          onPress={() => setDifficulty(level)}
+                        />
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </DesktopPanel>
 
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Consonant classes"
-                  caption={`${consonantCount} letters selected`}
-                />
-                <View style={styles.grid}>
-                  {CONSONANT_INFO.map((item) => {
-                    const letters = alphabet
-                      .filter((entry) => entry.group === item.id)
-                      .slice(0, 4)
-                      .map((entry) => entry.letter)
-                      .join(" ");
-                    return (
+                <View style={styles.surfaceCard}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionHeaderText}>
+                      <Text style={styles.sectionHeading}>Consonant classes</Text>
+                      <Text style={styles.sectionSubheading}>
+                        {consonantCount} letters selected
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.grid}>
+                    {CONSONANT_INFO.map((item) => {
+                      const letters = alphabet
+                        .filter((entry) => entry.group === item.id)
+                        .slice(0, 4)
+                        .map((entry) => entry.letter)
+                        .join(" ");
+
+                      return (
+                        <View key={item.id} style={{ width: cardWidth }}>
+                          <GroupCard
+                            title={item.title}
+                            preview={letters}
+                            active={consonantGroupsSelected.includes(item.id)}
+                            onPress={() =>
+                              toggleSelection(
+                                item.id,
+                                consonantGroupsSelected,
+                                setConsonantGroupsSelected,
+                              )
+                            }
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <View style={styles.surfaceCard}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionHeaderText}>
+                      <Text style={styles.sectionHeading}>Vowel groups</Text>
+                      <Text style={styles.sectionSubheading}>
+                        {vowelCount} vowels selected
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.grid}>
+                    {VOWEL_INFO.map((item) => (
                       <View key={item.id} style={{ width: cardWidth }}>
                         <GroupCard
                           title={item.title}
-                          preview={letters}
-                          active={consonantGroupsSelected.includes(item.id)}
+                          preview={item.description}
+                          active={vowelGroupsSelected.includes(item.id)}
                           onPress={() =>
                             toggleSelection(
                               item.id,
-                              consonantGroupsSelected,
-                              setConsonantGroupsSelected,
+                              vowelGroupsSelected,
+                              setVowelGroupsSelected,
                             )
                           }
                         />
                       </View>
-                    );
-                  })}
+                    ))}
+                  </View>
                 </View>
-              </DesktopPanel>
+              </View>
 
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Vowel groups"
-                  caption={`${vowelCount} vowels selected`}
-                />
-                <View style={styles.grid}>
-                  {VOWEL_INFO.map((item) => (
-                    <View key={item.id} style={{ width: cardWidth }}>
-                      <GroupCard
-                        title={item.title}
-                        preview={item.description}
-                        active={vowelGroupsSelected.includes(item.id)}
-                        onPress={() =>
-                          toggleSelection(
-                            item.id,
-                            vowelGroupsSelected,
-                            setVowelGroupsSelected,
-                          )
-                        }
-                      />
+              <View style={styles.sideColumn}>
+                <View style={styles.surfaceCard}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionHeaderText}>
+                      <Text style={styles.sectionHeading}>Current batch</Text>
+                      <Text style={styles.sectionSubheading}>
+                        Use the side rail to confirm the setup before opening the next screen.
+                      </Text>
                     </View>
-                  ))}
-                </View>
-              </DesktopPanel>
-            </View>
+                  </View>
 
-            <View style={styles.sideColumn}>
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Current batch"
-                  caption="Use the side rail to confirm the setup before opening the next screen."
-                />
-                <View style={styles.batchStat}>
-                  <Text style={styles.batchStatLabel}>Difficulty</Text>
-                  <Text style={styles.batchStatValue}>{DIFFICULTY_META[difficulty].label}</Text>
+                  <View style={styles.batchStat}>
+                    <Text style={styles.batchStatLabel}>Difficulty</Text>
+                    <Text style={styles.batchStatValue}>{DIFFICULTY_META[difficulty].label}</Text>
+                  </View>
+                  <View style={styles.batchStat}>
+                    <Text style={styles.batchStatLabel}>Consonant classes</Text>
+                    <Text style={styles.batchStatValue}>{consonantGroupsSelected.length}</Text>
+                  </View>
+                  <View style={styles.batchStat}>
+                    <Text style={styles.batchStatLabel}>Vowel groups</Text>
+                    <Text style={styles.batchStatValue}>{vowelGroupsSelected.length}</Text>
+                  </View>
+
+                  {!isValid ? (
+                    <Text style={styles.validationText}>
+                      Select at least one consonant class and one vowel group.
+                    </Text>
+                  ) : null}
+
+                  <Pressable
+                    onPress={openWordsScreen}
+                    disabled={!isValid}
+                    style={({ hovered, pressed }) => [
+                      styles.primaryButton,
+                      (hovered || pressed) && isValid && styles.primaryButtonActive,
+                      !isValid && styles.disabledButton,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonText}>Create Words</Text>
+                  </Pressable>
                 </View>
-                <View style={styles.batchStat}>
-                  <Text style={styles.batchStatLabel}>Consonant classes</Text>
-                  <Text style={styles.batchStatValue}>{consonantGroupsSelected.length}</Text>
-                </View>
-                <View style={styles.batchStat}>
-                  <Text style={styles.batchStatLabel}>Vowel groups</Text>
-                  <Text style={styles.batchStatValue}>{vowelGroupsSelected.length}</Text>
-                </View>
-                {!isValid ? (
-                  <Text style={styles.validationText}>
-                    Select at least one consonant class and one vowel group.
-                  </Text>
-                ) : null}
-                <TouchableOpacity
-                  style={[styles.primaryButton, !isValid && styles.disabledButton]}
-                  onPress={openWordsScreen}
-                  disabled={!isValid}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.primaryButtonText}>Create Words</Text>
-                </TouchableOpacity>
-              </DesktopPanel>
+              </View>
             </View>
           </View>
-        </View>
-      </DesktopPage>
+        </ScrollView>
+      </DesktopAppShell>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  pageStack: {
-    gap: 28,
+  page: {
+    flex: 1,
+    backgroundColor: BRAND.bg,
+  },
+  pageContent: {
+    paddingHorizontal: 28,
+    paddingVertical: 36,
+  },
+  shell: {
+    width: "100%",
+    maxWidth: DESKTOP_PAGE_WIDTH,
+    alignSelf: "center",
+    gap: 24,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 20,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 8,
+  },
+  eyebrow: {
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    fontFamily: BODY_FONT,
+  },
+  title: {
+    color: BRAND.ink,
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: DISPLAY_FONT,
+  },
+  subtitle: {
+    maxWidth: 760,
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 26,
+    fontFamily: BODY_FONT,
   },
   backButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: AppRadius.md,
+    minHeight: 42,
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  lightButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   backButtonText: {
+    color: BRAND.ink,
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
-    color: AppSketch.ink,
+    fontFamily: BODY_FONT,
   },
   summaryStrip: {
     flexDirection: "row",
@@ -293,23 +411,27 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.panel,
     padding: 18,
     gap: 4,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   summaryValue: {
     fontSize: 28,
     lineHeight: 32,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    color: BRAND.ink,
     letterSpacing: -0.6,
+    fontFamily: DISPLAY_FONT,
   },
   summaryLabel: {
     fontSize: 13,
-    color: AppSketch.inkMuted,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   mainGrid: {
     flexDirection: "row",
@@ -323,6 +445,38 @@ const styles = StyleSheet.create({
   sideColumn: {
     width: 320,
   },
+  surfaceCard: {
+    backgroundColor: BRAND.paper,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    padding: 24,
+    gap: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    gap: 4,
+  },
+  sectionHeading: {
+    color: BRAND.ink,
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: "800",
+    fontFamily: DISPLAY_FONT,
+  },
+  sectionSubheading: {
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 24,
+    fontFamily: BODY_FONT,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -330,71 +484,100 @@ const styles = StyleSheet.create({
   },
   selectionCard: {
     minHeight: 120,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.panel,
     padding: 16,
     gap: 10,
     justifyContent: "space-between",
+    boxShadow: WEB_CARD_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
   },
   selectionCardActive: {
-    borderColor: AppSketch.primary,
-    backgroundColor: AppSketch.background,
+    borderColor: BRAND.navy,
+    borderWidth: 1.5,
+    backgroundColor: BRAND.paper,
+  },
+  selectionCardHover: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: "0 1px 0 0 #d4d4d4, 0 1px 0 0 #d4d4d4, 0 2px 3px rgba(16, 42, 67, 0.04)" as any,
+  },
+  groupCard: {
+    minHeight: 132,
   },
   selectionTitle: {
     fontSize: 17,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    lineHeight: 24,
+    fontWeight: "800",
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   selectionDescription: {
     fontSize: 13,
     lineHeight: 21,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   groupPreview: {
     fontSize: 24,
-    lineHeight: 32,
-    color: AppSketch.inkSecondary,
+    lineHeight: 34,
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
   },
   batchStat: {
     gap: 4,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: AppSketch.border,
+    borderBottomColor: BRAND.line,
   },
   batchStatLabel: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: BODY_FONT,
   },
   batchStatValue: {
     fontSize: 20,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    lineHeight: 28,
+    fontWeight: "800",
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   validationText: {
     fontSize: 14,
     lineHeight: 22,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   primaryButton: {
-    alignItems: "center",
+    minHeight: 48,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: AppRadius.md,
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: AppSketch.primary,
-    backgroundColor: AppSketch.primary,
-    ...appShadow("sm"),
+    borderColor: "#0D2237",
+    backgroundColor: BRAND.navy,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   primaryButtonText: {
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: "700",
-    color: "#fff",
+    color: "#FFFFFF",
+    fontFamily: BODY_FONT,
   },
   disabledButton: {
     opacity: 0.5,

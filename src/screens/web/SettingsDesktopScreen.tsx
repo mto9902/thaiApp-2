@@ -7,20 +7,34 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  StyleProp,
   Text,
+  TextStyle,
   TextInput,
-  TouchableOpacity,
   useWindowDimensions,
   View,
+  ViewStyle,
 } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import { Sketch } from "@/constants/theme";
 import AccentSwitch from "@/src/components/AccentSwitch";
 import {
   DesktopPage,
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import {
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import { API_BASE } from "@/src/config";
 import {
   openPrivacyPolicy,
@@ -72,6 +86,105 @@ type DesktopSettingsState = {
   autoAddPracticeVocab: boolean;
   grammarExerciseModes: GrammarExerciseSettings;
 };
+
+type SettingsButtonProps = {
+  label: string;
+  onPress: () => void;
+  variant?: "primary" | "secondary" | "danger";
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  icon?: keyof typeof Ionicons.glyphMap;
+};
+
+type SettingsChipButtonProps = {
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+};
+
+const SOFT_LINE = "#E5E5E5";
+const SOFT_PANEL = "#FAFAFA";
+
+function SettingsButton({
+  label,
+  onPress,
+  variant = "secondary",
+  disabled,
+  style,
+  textStyle,
+  icon,
+}: SettingsButtonProps) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ hovered, pressed }) => [
+        styles.buttonBase,
+        variant === "primary"
+          ? styles.primaryButton
+          : variant === "danger"
+            ? styles.dangerButton
+            : styles.secondaryButton,
+        (hovered || pressed) &&
+          !disabled &&
+          (variant === "primary"
+            ? styles.primaryButtonActive
+            : variant === "danger"
+              ? styles.dangerButtonActive
+              : styles.secondaryButtonActive),
+        disabled && styles.disabledButton,
+        style,
+      ]}
+    >
+      {icon ? (
+        <Ionicons
+          name={icon}
+          size={16}
+          color={variant === "primary" ? "#FFFFFF" : variant === "danger" ? Sketch.accent : Sketch.ink}
+        />
+      ) : null}
+      <Text
+        selectable={false}
+        style={[
+          styles.buttonText,
+          variant === "primary"
+            ? styles.primaryButtonText
+            : variant === "danger"
+              ? styles.dangerButtonText
+              : styles.secondaryButtonText,
+          textStyle,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function SettingsChipButton({
+  label,
+  active,
+  onPress,
+}: SettingsChipButtonProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ hovered, pressed }) => [
+        styles.optionChip,
+        active && styles.optionChipActive,
+        (hovered || pressed) && styles.optionChipPressed,
+      ]}
+    >
+      <Text
+        selectable={false}
+        style={[styles.optionChipText, active && styles.optionChipTextActive]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function SettingsWebScreen() {
   const router = useRouter();
@@ -395,13 +508,15 @@ export default function SettingsWebScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit name</Text>
-              <TouchableOpacity
-                style={styles.modalIconBtn}
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.modalIconBtn,
+                  (hovered || pressed) && styles.secondaryButtonActive,
+                ]}
                 onPress={() => setEditModalVisible(false)}
-                activeOpacity={0.8}
               >
-                <Ionicons name="close" size={18} color={AppSketch.inkMuted} />
-              </TouchableOpacity>
+                <Ionicons name="close" size={18} color={Sketch.inkMuted} />
+              </Pressable>
             </View>
             <Text style={styles.modalBody}>
               Choose the name shown on your profile and account pages.
@@ -410,7 +525,7 @@ export default function SettingsWebScreen() {
               value={draftDisplayName}
               onChangeText={setDraftDisplayName}
               placeholder={getEmailLocalPart(profile?.email) || "Display name"}
-              placeholderTextColor={AppSketch.inkFaint}
+              placeholderTextColor={Sketch.inkFaint}
               style={styles.input}
               maxLength={40}
               autoCapitalize="words"
@@ -418,27 +533,18 @@ export default function SettingsWebScreen() {
               autoFocus
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.modalAction]}
+              <SettingsButton
+                label="Cancel"
                 onPress={() => setEditModalVisible(false)}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  styles.modalAction,
-                  (!hasDraftChanges || savingName) && styles.disabledButton,
-                ]}
+                style={styles.modalAction}
+              />
+              <SettingsButton
+                label={savingName ? "Saving..." : "Save"}
                 onPress={() => void saveDisplayName()}
+                variant="primary"
                 disabled={!hasDraftChanges || savingName}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {savingName ? "Saving..." : "Save"}
-                </Text>
-              </TouchableOpacity>
+                style={styles.modalAction}
+              />
             </View>
           </View>
         </View>
@@ -462,16 +568,19 @@ export default function SettingsWebScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Contact support</Text>
-              <TouchableOpacity
-                style={styles.modalIconBtn}
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.modalIconBtn,
+                  (hovered || pressed) && !supportBusy && styles.secondaryButtonActive,
+                  supportBusy && styles.disabledButton,
+                ]}
                 onPress={() => {
                   if (!supportBusy) setSupportModalVisible(false);
                 }}
-                activeOpacity={0.82}
                 disabled={supportBusy}
               >
-                <Ionicons name="close" size={18} color={AppSketch.inkMuted} />
-              </TouchableOpacity>
+                <Ionicons name="close" size={18} color={Sketch.inkMuted} />
+              </Pressable>
             </View>
             <Text style={styles.modalBody}>
               Send a message to the Keystone team and we&apos;ll reply by email.
@@ -480,7 +589,7 @@ export default function SettingsWebScreen() {
               value={supportEmail}
               onChangeText={setSupportEmail}
               placeholder={profile?.email || SUPPORT_EMAIL}
-              placeholderTextColor={AppSketch.inkFaint}
+              placeholderTextColor={Sketch.inkFaint}
               style={styles.input}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -490,7 +599,7 @@ export default function SettingsWebScreen() {
               value={supportMessage}
               onChangeText={setSupportMessage}
               placeholder="Describe the problem"
-              placeholderTextColor={AppSketch.inkFaint}
+              placeholderTextColor={Sketch.inkFaint}
               style={[styles.input, styles.textArea]}
               multiline
               textAlignVertical="top"
@@ -498,28 +607,19 @@ export default function SettingsWebScreen() {
             />
             {supportStatus ? <Text style={styles.bodyText}>{supportStatus}</Text> : null}
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.modalAction]}
+              <SettingsButton
+                label="Cancel"
                 onPress={() => setSupportModalVisible(false)}
-                activeOpacity={0.82}
                 disabled={supportBusy}
-              >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  styles.modalAction,
-                  supportBusy && styles.disabledButton,
-                ]}
+                style={styles.modalAction}
+              />
+              <SettingsButton
+                label={supportBusy ? "Sending..." : "Send"}
                 onPress={() => void submitSupportRequest()}
-                activeOpacity={0.82}
+                variant="primary"
                 disabled={supportBusy}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {supportBusy ? "Sending..." : "Send"}
-                </Text>
-              </TouchableOpacity>
+                style={styles.modalAction}
+              />
             </View>
           </View>
         </View>
@@ -543,39 +643,35 @@ export default function SettingsWebScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{confirmCopy.title}</Text>
-              <TouchableOpacity
-                style={styles.modalIconBtn}
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.modalIconBtn,
+                  (hovered || pressed) && !actionBusy && styles.secondaryButtonActive,
+                  actionBusy && styles.disabledButton,
+                ]}
                 onPress={() => {
                   if (!actionBusy) setConfirmAction(null);
                 }}
                 disabled={actionBusy}
-                activeOpacity={0.8}
               >
-                <Ionicons name="close" size={18} color={AppSketch.inkMuted} />
-              </TouchableOpacity>
+                <Ionicons name="close" size={18} color={Sketch.inkMuted} />
+              </Pressable>
             </View>
             <Text style={styles.modalBody}>{confirmCopy.body}</Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.modalAction]}
+              <SettingsButton
+                label="Cancel"
                 onPress={() => setConfirmAction(null)}
                 disabled={actionBusy}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.dangerButton,
-                  styles.modalAction,
-                  actionBusy && styles.disabledButton,
-                ]}
+                style={styles.modalAction}
+              />
+              <SettingsButton
+                label={confirmCopy.cta}
                 onPress={() => void performConfirmedAction()}
+                variant="danger"
                 disabled={actionBusy}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.dangerButtonText}>{confirmCopy.cta}</Text>
-              </TouchableOpacity>
+                style={styles.modalAction}
+              />
             </View>
           </View>
         </View>
@@ -587,19 +683,17 @@ export default function SettingsWebScreen() {
         title="Settings"
         subtitle="Manage your account, reading preferences, audio, and practice options."
         toolbar={
-          <TouchableOpacity
-            style={styles.backButton}
+          <SettingsButton
+            label="Back"
             onPress={() => router.back()}
-            activeOpacity={0.82}
-          >
-            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
+            icon="arrow-back"
+            style={styles.backButton}
+          />
         }
       >
         {loading ? (
           <DesktopPanel style={styles.loadingPanel}>
-            <ActivityIndicator size="large" color={AppSketch.inkMuted} />
+            <ActivityIndicator size="large" color={Sketch.inkMuted} />
           </DesktopPanel>
         ) : (
           <View style={styles.pageStack}>
@@ -614,13 +708,11 @@ export default function SettingsWebScreen() {
                     <Text style={styles.identityLabel}>Display name</Text>
                     <Text style={styles.identityValue}>{displayName}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.inlineButton}
+                  <SettingsButton
+                    label="Edit name"
                     onPress={() => setEditModalVisible(true)}
-                    activeOpacity={0.82}
-                  >
-                    <Text style={styles.inlineButtonText}>Edit name</Text>
-                  </TouchableOpacity>
+                    style={styles.inlineButton}
+                  />
                 </View>
                 <View
                   style={[styles.infoGrid, stackInfoCards && styles.infoGridStacked]}
@@ -628,10 +720,6 @@ export default function SettingsWebScreen() {
                   <View style={styles.infoCard}>
                     <Text style={styles.infoLabel}>Email</Text>
                     <Text style={styles.infoValue}>{profile?.email || ""}</Text>
-                  </View>
-                  <View style={styles.infoCard}>
-                    <Text style={styles.infoLabel}>User ID</Text>
-                    <Text style={styles.infoValue}>#{profile?.id || ""}</Text>
                   </View>
                 </View>
               </DesktopPanel>
@@ -658,260 +746,241 @@ export default function SettingsWebScreen() {
                           : "Use the mobile app to purchase or restore Keystone Access, then keep learning here with the same account."
                         : "Paddle web checkout is not configured for this build yet."}
                 </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    premiumBusy && styles.disabledButton,
-                  ]}
-                  onPress={() => void openSubscriptionManager()}
-                  disabled={premiumBusy}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {premiumBusy
+                <SettingsButton
+                  label={
+                    premiumBusy
                       ? "Loading..."
                       : isPremium
                         ? "Manage Keystone Access"
                         : billingProvider === "paddle" ||
                             (isSupported && canMakePurchases)
                           ? "Unlock Keystone Access"
-                          : "Keystone Access unavailable"}
-                  </Text>
-                </TouchableOpacity>
+                          : "Keystone Access unavailable"
+                  }
+                  onPress={() => void openSubscriptionManager()}
+                  variant="primary"
+                  disabled={premiumBusy}
+                />
                 {isSupported && canMakePurchases ? (
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
+                  <SettingsButton
+                    label="Restore Purchases"
                     onPress={() => void restorePremiumAccess()}
-                    activeOpacity={0.82}
-                  >
-                    <Text style={styles.secondaryButtonText}>Restore Purchases</Text>
-                  </TouchableOpacity>
+                  />
                 ) : null}
               </DesktopPanel>
             </View>
 
-            <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Learning preferences"
-                  caption="Choose how Thai, English, audio, and practice settings appear while you study."
-                />
-              <View style={styles.preferenceStack}>
-                <View style={styles.preferenceRow}>
-                  <View style={styles.preferenceCopy}>
-                    <Text style={styles.preferenceTitle}>Romanization</Text>
-                    <Text style={styles.preferenceBody}>
-                      Show phonetic transcription under Thai text.
-                    </Text>
-                  </View>
-                  <AccentSwitch
-                    value={settings.showRoman}
-                    onValueChange={(value) => void updateSetting("showRoman", value)}
-                  />
-                </View>
-
-                <View style={styles.preferenceRow}>
-                  <View style={styles.preferenceCopy}>
-                    <Text style={styles.preferenceTitle}>English translation</Text>
-                    <Text style={styles.preferenceBody}>
-                      Keep English visible on lessons and review cards.
-                    </Text>
-                  </View>
-                  <AccentSwitch
-                    value={settings.showEnglish}
-                    onValueChange={(value) => void updateSetting("showEnglish", value)}
-                  />
-                </View>
-
-                <View style={styles.preferenceRow}>
-                  <View style={styles.preferenceCopy}>
-                    <Text style={styles.preferenceTitle}>Autoplay audio</Text>
-                    <Text style={styles.preferenceBody}>
-                      Automatically play Thai sentence audio after reveal.
-                    </Text>
-                  </View>
-                  <AccentSwitch
-                    value={settings.autoplayTTS}
-                    onValueChange={(value) => void updateSetting("autoplayTTS", value)}
-                  />
-                </View>
-
-                <View style={styles.preferenceRow}>
-                  <View style={styles.preferenceCopy}>
-                    <Text style={styles.preferenceTitle}>Word breakdown TTS (Beta)</Text>
-                    <Text style={styles.preferenceBody}>
-                      Experimental word-by-word audio for grammar breakdown cards.
-                    </Text>
-                  </View>
-                  <AccentSwitch
-                    value={settings.wordBreakdownTTS}
-                    onValueChange={(value) =>
-                      void updateSetting("wordBreakdownTTS", value)
-                    }
-                  />
-                </View>
-
-                <View style={styles.preferenceRow}>
-                  <View style={styles.preferenceCopy}>
-                    <Text style={styles.preferenceTitle}>Add vocabulary</Text>
-                    <Text style={styles.preferenceBody}>
-                      Add words from grammar practice into your review deck.
-                    </Text>
-                  </View>
-                  <AccentSwitch
-                    value={settings.autoAddPracticeVocab}
-                    onValueChange={(value) =>
-                      void updateSetting("autoAddPracticeVocab", value)
-                    }
-                  />
-                </View>
-
-                <View style={styles.preferenceBlock}>
-                  <Text style={styles.preferenceTitle}>Speech speed</Text>
-                  <View style={styles.speedRow}>
-                    {(["slow", "normal", "fast"] as const).map((speed) => {
-                      const active = settings.ttsSpeed === speed;
-                      return (
-                        <TouchableOpacity
-                          key={speed}
-                          style={[styles.speedPill, active && styles.speedPillActive]}
-                          onPress={() => void updateSetting("ttsSpeed", speed)}
-                          activeOpacity={0.82}
-                        >
-                          <Text
-                            style={[
-                              styles.speedPillText,
-                              active && styles.speedPillTextActive,
-                            ]}
-                          >
-                            {speed === "slow"
-                              ? "Slow"
-                              : speed === "normal"
-                                ? "Normal"
-                                : "Fast"}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                <View style={styles.preferenceBlock}>
-                  <Text style={styles.preferenceTitle}>Grammar exercises</Text>
-                  <Text style={styles.preferenceBody}>
-                    Choose which grammar practice modes stay in rotation.
-                  </Text>
-                  <View style={styles.exerciseChipRow}>
-                    {(Object.keys(settings.grammarExerciseModes) as GrammarExerciseMode[]).map(
-                      (mode) => {
-                        const active = settings.grammarExerciseModes[mode];
-                        return (
-                          <TouchableOpacity
-                            key={mode}
-                            style={[
-                              styles.exerciseChip,
-                              active && styles.exerciseChipActive,
-                            ]}
-                            onPress={() => void updateGrammarMode(mode)}
-                            activeOpacity={0.82}
-                          >
-                            <Text
-                              style={[
-                                styles.exerciseChipText,
-                                active && styles.exerciseChipTextActive,
-                              ]}
-                            >
-                              {GRAMMAR_EXERCISE_LABELS[mode]}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      },
-                    )}
-                  </View>
-                </View>
-              </View>
-            </DesktopPanel>
-
-            {profile?.can_review_content ? (
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Content Review"
-                  caption="Review lesson content, sentence rows, tone confidence, comments, and assignees before publishing."
-                />
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => router.push("/content-review" as any)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.secondaryButtonText}>Open Review Queue</Text>
-                </TouchableOpacity>
-              </DesktopPanel>
-            ) : null}
-
-            {profile?.is_admin ? (
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Admin"
-                  caption="Edit lesson content and sentence rows from the admin console."
-                />
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => router.push("/admin" as any)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.secondaryButtonText}>Open Admin Console</Text>
-                </TouchableOpacity>
-              </DesktopPanel>
-            ) : null}
-
-            <DesktopPanel>
+            <DesktopPanel style={styles.learningPanel}>
               <DesktopSectionTitle
-                title="Legal"
-                caption="Keep the website terms and privacy policy reachable from inside the app."
+                title="Learning preferences"
+                caption="Choose how Thai, English, audio, and practice settings appear while you study."
               />
-              <Text style={styles.bodyText}>
-                Review the Keystone Languages terms and privacy policy. The
-                privacy policy also explains account deletion and how learning
-                data is handled.
-              </Text>
-              <View style={styles.legalButtonStack}>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => void openTermsOfService()}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.secondaryButtonText}>Open Terms of Service</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => void openPrivacyPolicy()}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.secondaryButtonText}>Open Privacy Policy</Text>
-                </TouchableOpacity>
+              <View style={[styles.preferenceGrid, isStacked && styles.stackGrid]}>
+                <View style={styles.preferenceGroupCard}>
+                  <Text style={styles.preferenceGroupTitle}>Reading</Text>
+                  <View style={styles.preferenceStack}>
+                    <View style={styles.preferenceRow}>
+                      <View style={styles.preferenceCopy}>
+                        <Text style={styles.preferenceTitle}>Romanization</Text>
+                        <Text style={styles.preferenceBody}>
+                          Show phonetic transcription under Thai text.
+                        </Text>
+                      </View>
+                      <AccentSwitch
+                        value={settings.showRoman}
+                        onValueChange={(value) =>
+                          void updateSetting("showRoman", value)
+                        }
+                      />
+                    </View>
+
+                    <View style={styles.preferenceRow}>
+                      <View style={styles.preferenceCopy}>
+                        <Text style={styles.preferenceTitle}>
+                          English translation
+                        </Text>
+                        <Text style={styles.preferenceBody}>
+                          Keep English visible on lessons and review cards.
+                        </Text>
+                      </View>
+                      <AccentSwitch
+                        value={settings.showEnglish}
+                        onValueChange={(value) =>
+                          void updateSetting("showEnglish", value)
+                        }
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.preferenceGroupCard}>
+                  <Text style={styles.preferenceGroupTitle}>Audio</Text>
+                  <View style={styles.preferenceStack}>
+                    <View style={styles.preferenceRow}>
+                      <View style={styles.preferenceCopy}>
+                        <Text style={styles.preferenceTitle}>Autoplay audio</Text>
+                        <Text style={styles.preferenceBody}>
+                          Automatically play Thai sentence audio after reveal.
+                        </Text>
+                      </View>
+                      <AccentSwitch
+                        value={settings.autoplayTTS}
+                        onValueChange={(value) =>
+                          void updateSetting("autoplayTTS", value)
+                        }
+                      />
+                    </View>
+
+                    <View style={styles.preferenceRow}>
+                      <View style={styles.preferenceCopy}>
+                        <Text style={styles.preferenceTitle}>
+                          Word breakdown TTS (Beta)
+                        </Text>
+                        <Text style={styles.preferenceBody}>
+                          Experimental word-by-word audio for grammar cards.
+                        </Text>
+                      </View>
+                      <AccentSwitch
+                        value={settings.wordBreakdownTTS}
+                        onValueChange={(value) =>
+                          void updateSetting("wordBreakdownTTS", value)
+                        }
+                      />
+                    </View>
+
+                    <View style={styles.preferenceBlock}>
+                      <Text style={styles.preferenceTitle}>Speech speed</Text>
+                      <View style={styles.speedRow}>
+                        {(["slow", "normal", "fast"] as const).map((speed) => {
+                          const active = settings.ttsSpeed === speed;
+                          return (
+                            <SettingsChipButton
+                              key={speed}
+                              active={active}
+                              onPress={() => void updateSetting("ttsSpeed", speed)}
+                              label={
+                                speed === "slow"
+                                  ? "Slow"
+                                  : speed === "normal"
+                                    ? "Normal"
+                                    : "Fast"
+                              }
+                            />
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.preferenceGroupCard}>
+                  <Text style={styles.preferenceGroupTitle}>Practice</Text>
+                  <View style={styles.preferenceStack}>
+                    <View style={styles.preferenceRow}>
+                      <View style={styles.preferenceCopy}>
+                        <Text style={styles.preferenceTitle}>Add vocabulary</Text>
+                        <Text style={styles.preferenceBody}>
+                          Add grammar practice words into your review deck.
+                        </Text>
+                      </View>
+                      <AccentSwitch
+                        value={settings.autoAddPracticeVocab}
+                        onValueChange={(value) =>
+                          void updateSetting("autoAddPracticeVocab", value)
+                        }
+                      />
+                    </View>
+
+                    <View style={styles.preferenceBlock}>
+                      <Text style={styles.preferenceTitle}>Grammar exercises</Text>
+                      <Text style={styles.preferenceBody}>
+                        Choose which modes stay in rotation.
+                      </Text>
+                      <View style={styles.exerciseChipRow}>
+                        {(
+                          Object.keys(
+                            settings.grammarExerciseModes,
+                          ) as GrammarExerciseMode[]
+                        ).map((mode) => {
+                          const active = settings.grammarExerciseModes[mode];
+                          return (
+                            <SettingsChipButton
+                              key={mode}
+                              active={active}
+                              onPress={() => void updateGrammarMode(mode)}
+                              label={GRAMMAR_EXERCISE_LABELS[mode]}
+                            />
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+                </View>
               </View>
             </DesktopPanel>
 
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Support"
-                caption="Reach out by email when billing, access, or lesson content needs a hand."
-              />
-              <Text style={styles.bodyText}>
-                Contact the Keystone team directly and we&apos;ll reply by email.
-              </Text>
-              <View style={styles.infoCard}>
-                <Text style={styles.infoLabel}>Support email</Text>
-                <Text style={styles.infoValue}>{SUPPORT_EMAIL}</Text>
-              </View>
-              {supportBanner ? <Text style={styles.bodyText}>{supportBanner}</Text> : null}
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={openSupportModal}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.secondaryButtonText}>Contact Support</Text>
-              </TouchableOpacity>
-            </DesktopPanel>
+            <View style={[styles.utilityGrid, isStacked && styles.stackGrid]}>
+              {profile?.can_review_content ? (
+                <DesktopPanel style={styles.utilityPanel}>
+                  <DesktopSectionTitle
+                    title="Content Review"
+                    caption="Review lesson rows, comments, tone confidence, and assignees before publishing."
+                  />
+                  <SettingsButton
+                    label="Open Review Queue"
+                    onPress={() => router.push("/content-review" as any)}
+                  />
+                </DesktopPanel>
+              ) : null}
+
+              {profile?.is_admin ? (
+                <DesktopPanel style={styles.utilityPanel}>
+                  <DesktopSectionTitle
+                    title="Admin"
+                    caption="Edit lesson content and sentence rows from the admin console."
+                  />
+                  <SettingsButton
+                    label="Open Admin Console"
+                    onPress={() => router.push("/admin" as any)}
+                  />
+                </DesktopPanel>
+              ) : null}
+
+              <DesktopPanel style={styles.utilityPanel}>
+                <DesktopSectionTitle
+                  title="Legal"
+                  caption="Terms and privacy links for the app."
+                />
+                <Text style={styles.bodyText}>
+                  Review account deletion, learning data, privacy, and terms.
+                </Text>
+                <View style={styles.legalButtonStack}>
+                  <SettingsButton
+                    label="Terms of Service"
+                    onPress={() => void openTermsOfService()}
+                  />
+                  <SettingsButton
+                    label="Privacy Policy"
+                    onPress={() => void openPrivacyPolicy()}
+                  />
+                </View>
+              </DesktopPanel>
+
+              <DesktopPanel style={styles.utilityPanel}>
+                <DesktopSectionTitle
+                  title="Support"
+                  caption="Get help with billing, access, or lesson content."
+                />
+                <View style={styles.supportEmailCard}>
+                  <Text style={styles.infoLabel}>Support email</Text>
+                  <Text style={styles.infoValue}>{SUPPORT_EMAIL}</Text>
+                </View>
+                {supportBanner ? (
+                  <Text style={styles.bodyText}>{supportBanner}</Text>
+                ) : null}
+                <SettingsButton label="Contact Support" onPress={openSupportModal} />
+              </DesktopPanel>
+            </View>
 
             <View style={[styles.dangerGrid, isStacked && styles.stackGrid]}>
               <DesktopPanel style={styles.dangerPanel}>
@@ -923,13 +992,10 @@ export default function SettingsWebScreen() {
                   Remove bookmarks, grammar progress, vocabulary progress, review
                   history, and activity data while keeping your sign-in.
                 </Text>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
+                <SettingsButton
+                  label="Reset Progress"
                   onPress={() => setConfirmAction("reset")}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.secondaryButtonText}>Reset Progress</Text>
-                </TouchableOpacity>
+                />
               </DesktopPanel>
 
               <DesktopPanel style={styles.dangerPanel}>
@@ -941,13 +1007,11 @@ export default function SettingsWebScreen() {
                   Permanently delete your account and all saved learning data.
                   This cannot be undone.
                 </Text>
-                <TouchableOpacity
-                  style={styles.dangerButton}
+                <SettingsButton
+                  label="Delete Account"
                   onPress={() => setConfirmAction("delete")}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.dangerButtonText}>Delete Account</Text>
-                </TouchableOpacity>
+                  variant="danger"
+                />
               </DesktopPanel>
             </View>
           </View>
@@ -959,25 +1023,25 @@ export default function SettingsWebScreen() {
 
 const styles = StyleSheet.create({
   pageStack: {
-    gap: 22,
+    gap: 18,
   },
   topGrid: {
     flexDirection: "row",
-    gap: 20,
+    gap: 18,
     alignItems: "stretch",
   },
   accountPanel: {
     flex: 1.08,
-    minHeight: 276,
+    minHeight: 230,
   },
   accessPanel: {
     flex: 0.92,
     gap: 16,
-    minHeight: 276,
+    minHeight: 230,
   },
   dangerGrid: {
     flexDirection: "row",
-    gap: 20,
+    gap: 18,
     alignItems: "stretch",
   },
   stackGrid: {
@@ -987,20 +1051,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
-  },
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: AppSketch.ink,
   },
   loadingPanel: {
     minHeight: 220,
@@ -1020,29 +1071,21 @@ const styles = StyleSheet.create({
   identityLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: AppSketch.inkMuted,
+    color: Sketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1.1,
+    fontFamily: WEB_BODY_FONT,
   },
   identityValue: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    color: Sketch.ink,
     letterSpacing: -0.7,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   inlineButton: {
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
-  },
-  inlineButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: AppSketch.ink,
   },
   infoGrid: {
     flexDirection: "row",
@@ -1054,43 +1097,73 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    padding: 16,
+    borderColor: SOFT_LINE,
+    backgroundColor: SOFT_PANEL,
+    padding: 18,
     gap: 6,
-    minHeight: 92,
+    minHeight: 84,
     justifyContent: "center",
-    borderRadius: AppRadius.md,
+    borderRadius: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   infoLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: AppSketch.inkMuted,
+    color: Sketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
   },
   infoValue: {
     fontSize: 17,
     lineHeight: 25,
-    color: AppSketch.ink,
-    fontWeight: "600",
+    color: Sketch.ink,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   bodyText: {
     fontSize: 15,
     lineHeight: 24,
-    color: AppSketch.inkMuted,
+    color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
+  },
+  learningPanel: {
+    gap: 16,
+  },
+  preferenceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    alignItems: "stretch",
+  },
+  preferenceGroupCard: {
+    flex: 1,
+    minWidth: 290,
+    borderWidth: 1,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    gap: 14,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  preferenceGroupTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "800",
+    color: Sketch.ink,
+    letterSpacing: -0.2,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   preferenceStack: {
-    gap: 18,
+    gap: 14,
   },
   preferenceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 18,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: AppSketch.border,
+    gap: 14,
+    minHeight: 58,
   },
   preferenceCopy: {
     flex: 1,
@@ -1099,12 +1172,14 @@ const styles = StyleSheet.create({
   preferenceTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   preferenceBody: {
     fontSize: 13,
     lineHeight: 21,
-    color: AppSketch.inkMuted,
+    color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   preferenceBlock: {
     gap: 10,
@@ -1114,98 +1189,117 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  speedPill: {
+  optionChip: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.sm,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#F5F5F5",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    userSelect: "none",
+    ...WEB_INTERACTIVE_TRANSITION,
   },
-  speedPillActive: {
-    borderColor: AppSketch.primary,
-    backgroundColor: AppSketch.background,
+  optionChipActive: {
+    borderColor: Sketch.accentDark,
+    backgroundColor: "#FFFFFF",
   },
-  speedPillText: {
+  optionChipPressed: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  optionChipText: {
     fontSize: 13,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
-  speedPillTextActive: {
-    color: AppSketch.primary,
+  optionChipTextActive: {
+    color: Sketch.ink,
   },
   exerciseChipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  exerciseChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: AppRadius.md,
+  buttonBase: {
+    minHeight: 44,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: WEB_RADIUS.sm,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-  },
-  exerciseChipActive: {
-    borderColor: AppSketch.primary,
-  },
-  exerciseChipText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: AppSketch.ink,
-  },
-  exerciseChipTextActive: {
-    color: AppSketch.primary,
-  },
-  primaryButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.primary,
-    backgroundColor: AppSketch.primary,
-    ...appShadow("sm"),
+    flexDirection: "row",
+    gap: 8,
+    userSelect: "none",
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  buttonText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
+  },
+  primaryButton: {
+    borderColor: "#0D2237",
+    backgroundColor: Sketch.accent,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   primaryButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
     color: "#fff",
   },
   secondaryButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#F5F5F5",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  secondaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    color: Sketch.ink,
   },
   legalButtonStack: {
     gap: 12,
   },
-  dangerButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: AppRadius.md,
+  utilityGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 18,
+    alignItems: "stretch",
+  },
+  utilityPanel: {
+    flex: 1,
+    minWidth: 290,
+    gap: 14,
+  },
+  supportEmailCard: {
     borderWidth: 1,
-    borderColor: AppSketch.danger,
-    backgroundColor: AppSketch.surface,
+    borderColor: SOFT_LINE,
+    backgroundColor: SOFT_PANEL,
+    padding: 16,
+    gap: 6,
+    justifyContent: "center",
+    borderRadius: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  dangerButton: {
+    borderColor: SOFT_LINE,
+    backgroundColor: "#F5F5F5",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  dangerButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   dangerButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: AppSketch.danger,
+    color: Sketch.accent,
   },
   disabledButton: {
     opacity: 0.55,
@@ -1223,13 +1317,13 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 520,
     alignSelf: "center",
-    backgroundColor: AppSketch.surface,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: AppSketch.border,
+    borderColor: SOFT_LINE,
     padding: 22,
     gap: 16,
-    borderRadius: AppRadius.lg,
-    ...appShadow("sm"),
+    borderRadius: 24,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   modalHeader: {
     flexDirection: "row",
@@ -1240,9 +1334,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     flex: 1,
     fontSize: 24,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    color: Sketch.ink,
     letterSpacing: -0.5,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   modalIconBtn: {
     width: 34,
@@ -1250,25 +1345,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.sm,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#F5F5F5",
+    borderRadius: WEB_RADIUS.sm,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   modalBody: {
     fontSize: 14,
     lineHeight: 22,
-    color: AppSketch.inkMuted,
+    color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   input: {
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: SOFT_LINE,
+    backgroundColor: SOFT_PANEL,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
     fontWeight: "500",
-    color: AppSketch.ink,
-    borderRadius: AppRadius.md,
+    color: Sketch.ink,
+    borderRadius: WEB_RADIUS.md,
+    fontFamily: WEB_BODY_FONT,
   },
   textArea: {
     minHeight: 140,

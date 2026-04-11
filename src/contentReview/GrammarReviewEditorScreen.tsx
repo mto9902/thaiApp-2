@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
-import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
+import { DESKTOP_PAGE_WIDTH } from "@/src/components/web/desktopLayout";
 import ToneDots from "@/src/components/ToneDots";
 import { API_BASE } from "@/src/config";
 import {
@@ -1993,7 +1993,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     paddingHorizontal: 24,
     paddingTop: 10,
@@ -2006,7 +2006,7 @@ const styles = StyleSheet.create({
   centerWrap: {
     flex: 1,
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
@@ -2015,14 +2015,14 @@ const styles = StyleSheet.create({
   },
   scroll: {
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     paddingHorizontal: 24,
     paddingBottom: 40,
     gap: 14,
   },
   rowOnlyScroll: {
-    maxWidth: DESKTOP_PAGE_WIDTHS.utility,
+      maxWidth: 1080,
     paddingHorizontal: 18,
     gap: 10,
   },

@@ -1,12 +1,22 @@
-import { Stack, useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Stack } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
+import TonesMobileScreen from "@/src/screens/mobile/TonesMobileScreen";
 import {
-  DesktopPage,
-  DesktopPanel,
-  DesktopSectionTitle,
-} from "@/src/components/web/DesktopScaffold";
+  DESKTOP_PAGE_WIDTH,
+  MOBILE_WEB_BREAKPOINT,
+} from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import {
   MINIMAL_PAIRS,
@@ -18,6 +28,10 @@ import {
   getToneAccent,
   getToneMarkAccent,
 } from "@/src/utils/toneAccent";
+
+const BRAND = WEB_BRAND;
+const BODY_FONT = WEB_BODY_FONT;
+const DISPLAY_FONT = WEB_DISPLAY_FONT;
 
 function getToneMarkDisplay(mark: string) {
   return mark ? `ก${mark}` : "ก";
@@ -71,21 +85,18 @@ function ToneCard({
 
       <View style={styles.exampleGrid}>
         {tone.examples.map((example, index) => (
-          <TouchableOpacity
+          <Pressable
             key={`${tone.name}-${index}`}
-            style={[
-              styles.exampleChip,
-              styles.neutralChip,
-            ]}
             onPress={() => onSpeak(example.thai)}
-            activeOpacity={0.82}
+            style={({ hovered, pressed }) => [
+              styles.exampleCard,
+              (hovered || pressed) && styles.depressedCard,
+            ]}
           >
-            <Text style={[styles.exampleThai, { color: accent }]}>
-              {example.thai}
-            </Text>
+            <Text style={[styles.exampleThai, { color: accent }]}>{example.thai}</Text>
             <Text style={styles.exampleRoman}>{example.rom}</Text>
             <Text style={styles.exampleEnglish}>{example.english}</Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
     </View>
@@ -93,8 +104,12 @@ function ToneCard({
 }
 
 export default function TonesWeb() {
-  const router = useRouter();
+  const { width } = useWindowDimensions();
   const { playSentence } = useSentenceAudio();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <TonesMobileScreen />;
+  }
 
   function speak(text: string) {
     void playSentence(text, { speed: "slow" });
@@ -103,133 +118,195 @@ export default function TonesWeb() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        eyebrow="Tones"
-        title="Thai tones"
-        subtitle="Study the five tones, hear written tone marks, and compare minimal pairs while you learn."
-        toolbar={
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.82}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        }
-      >
-        <View style={styles.pageStack}>
-          <DesktopPanel>
-            <DesktopSectionTitle
-              title="The five tones"
-              caption="Tap any example to hear it. The pitch bars give you a quick visual cue for the movement."
-            />
-            <View style={styles.toneGrid}>
-              {TONES.map((tone) => (
-                <View key={tone.name} style={styles.toneColumn}>
-                  <ToneCard tone={tone} onSpeak={speak} />
-                </View>
-              ))}
-            </View>
-          </DesktopPanel>
-
-          <View style={styles.splitRow}>
-            <DesktopPanel style={styles.leftPanel}>
-              <DesktopSectionTitle
-                title="Tone marks"
-                caption="Thai has four written tone marks. Mid tone has no written mark."
-              />
-              <View style={styles.markList}>
-                {TONE_MARKS.map((toneMark) => {
-                  const accent = getToneMarkAccent(toneMark.mark);
-                  return (
-                    <View key={toneMark.romanName} style={styles.markRow}>
-                      <View
-                        style={[
-                          styles.markBadge,
-                          styles.neutralBadge,
-                        ]}
-                      >
-                        <Text style={[styles.markSymbol, { color: accent }]}>
-                          {getToneMarkDisplay(toneMark.mark)}
-                        </Text>
-                      </View>
-                      <View style={styles.markCopy}>
-                        <Text style={styles.markName}>{toneMark.thaiName}</Text>
-                        <Text style={[styles.markRoman, { color: accent }]}>
-                          {toneMark.romanName}
-                        </Text>
-                        <Text style={styles.markDescription}>
-                          {toneMark.description}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
+      <DesktopAppShell>
+        <ScrollView
+          style={styles.page}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.shell}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>Tones</Text>
+                <Text style={styles.title}>Thai tones</Text>
+                <Text style={styles.subtitle}>
+                  Study the five tones, hear written tone marks, and compare minimal
+                  pairs while you learn.
+                </Text>
               </View>
-            </DesktopPanel>
+            </View>
 
-            <DesktopPanel style={styles.rightPanel}>
-              <DesktopSectionTitle
-                title="Minimal pairs"
-                caption="Same base sound, different tone, different meaning."
-              />
-              <View style={styles.pairGroupList}>
-                {MINIMAL_PAIRS.map((group) => (
-                  <View key={group.label} style={styles.pairGroup}>
-                    <Text style={styles.pairLabel}>{group.label}</Text>
-                    <Text style={styles.pairDescription}>{group.description}</Text>
-                    <View style={styles.pairGrid}>
-                      {group.pairs.map((pair) => {
-                        const accent = getToneAccent(pair.tone);
-                        return (
-                          <TouchableOpacity
-                            key={`${group.label}-${pair.thai}-${pair.tone}`}
-                            style={[
-                              styles.pairChip,
-                              styles.neutralChip,
-                            ]}
-                            onPress={() => speak(pair.thai)}
-                            activeOpacity={0.82}
-                          >
-                            <Text style={[styles.pairThai, { color: accent }]}>
-                              {pair.thai}
-                            </Text>
-                            <Text style={styles.pairRoman}>{pair.rom}</Text>
-                            <Text style={styles.pairEnglish}>{pair.english}</Text>
-                            <Text style={[styles.pairTone, { color: accent }]}>
-                              {pair.tone}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+            <View style={styles.surfaceCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionHeading}>The five tones</Text>
+                <Text style={styles.sectionSubheading}>
+                  Tap any example to hear it. The pitch bars give you a quick visual cue
+                  for the movement.
+                </Text>
+              </View>
+              <View style={styles.toneGrid}>
+                {TONES.map((tone) => (
+                  <View key={tone.name} style={styles.toneColumn}>
+                    <ToneCard tone={tone} onSpeak={speak} />
                   </View>
                 ))}
               </View>
-            </DesktopPanel>
+            </View>
+
+            <View style={styles.splitRow}>
+              <View style={[styles.surfaceCard, styles.leftPanel]}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeading}>Tone marks</Text>
+                  <Text style={styles.sectionSubheading}>
+                    Thai has four written tone marks. Mid tone has no written mark.
+                  </Text>
+                </View>
+                <View style={styles.markList}>
+                  {TONE_MARKS.map((toneMark) => {
+                    const accent = getToneMarkAccent(toneMark.mark);
+                    return (
+                      <View key={toneMark.romanName} style={styles.markRow}>
+                        <View style={styles.markBadge}>
+                          <Text style={[styles.markSymbol, { color: accent }]}>
+                            {getToneMarkDisplay(toneMark.mark)}
+                          </Text>
+                        </View>
+                        <View style={styles.markCopy}>
+                          <Text style={styles.markName}>{toneMark.thaiName}</Text>
+                          <Text style={[styles.markRoman, { color: accent }]}>
+                            {toneMark.romanName}
+                          </Text>
+                          <Text style={styles.markDescription}>
+                            {toneMark.description}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={[styles.surfaceCard, styles.rightPanel]}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeading}>Minimal pairs</Text>
+                  <Text style={styles.sectionSubheading}>
+                    Same base sound, different tone, different meaning.
+                  </Text>
+                </View>
+                <View style={styles.pairGroupList}>
+                  {MINIMAL_PAIRS.map((group) => (
+                    <View key={group.label} style={styles.pairGroup}>
+                      <Text style={styles.pairLabel}>{group.label}</Text>
+                      <Text style={styles.pairDescription}>{group.description}</Text>
+                      <View style={styles.pairGrid}>
+                        {group.pairs.map((pair) => {
+                          const accent = getToneAccent(pair.tone);
+                          return (
+                            <Pressable
+                              key={`${group.label}-${pair.thai}-${pair.tone}`}
+                              onPress={() => speak(pair.thai)}
+                              style={({ hovered, pressed }) => [
+                                styles.pairCard,
+                                (hovered || pressed) && styles.depressedCard,
+                              ]}
+                            >
+                              <Text style={[styles.pairThai, { color: accent }]}>
+                                {pair.thai}
+                              </Text>
+                              <Text style={styles.pairRoman}>{pair.rom}</Text>
+                              <Text style={styles.pairEnglish}>{pair.english}</Text>
+                              <Text style={[styles.pairTone, { color: accent }]}>
+                                {pair.tone}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
           </View>
-        </View>
-      </DesktopPage>
+        </ScrollView>
+      </DesktopAppShell>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  pageStack: {
-    gap: 30,
+  page: {
+    flex: 1,
+    backgroundColor: BRAND.bg,
   },
-  backButton: {
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  pageContent: {
+    paddingHorizontal: 28,
+    paddingVertical: 28,
   },
-  backButtonText: {
-    fontSize: 13,
+  shell: {
+    width: "100%",
+    maxWidth: DESKTOP_PAGE_WIDTH,
+    alignSelf: "center",
+    gap: 20,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 20,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 8,
+  },
+  eyebrow: {
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
-    color: AppSketch.ink,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    fontFamily: BODY_FONT,
+  },
+  title: {
+    color: BRAND.ink,
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: DISPLAY_FONT,
+  },
+  subtitle: {
+    maxWidth: 760,
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 26,
+    fontFamily: BODY_FONT,
+  },
+  surfaceCard: {
+    backgroundColor: BRAND.paper,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    padding: 24,
+    gap: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  sectionHeader: {
+    gap: 4,
+  },
+  sectionHeading: {
+    color: BRAND.ink,
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "800",
+    fontFamily: DISPLAY_FONT,
+  },
+  sectionSubheading: {
+    color: BRAND.inkSoft,
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: BODY_FONT,
   },
   toneGrid: {
     flexDirection: "row",
@@ -240,14 +317,14 @@ const styles = StyleSheet.create({
     width: "48.9%",
   },
   toneCard: {
-    borderRadius: AppRadius.lg,
+    borderRadius: WEB_RADIUS.lg,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
     padding: 18,
     gap: 14,
     height: "100%",
-    ...appShadow("sm"),
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   toneCardTop: {
     flexDirection: "row",
@@ -262,7 +339,8 @@ const styles = StyleSheet.create({
   },
   toneDot: {
     width: 12,
-    height: 12,
+    height: 10,
+    borderRadius: 999,
     marginTop: 8,
   },
   toneTitleText: {
@@ -271,18 +349,23 @@ const styles = StyleSheet.create({
   },
   toneName: {
     fontSize: 24,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    lineHeight: 30,
+    fontWeight: "800",
+    color: BRAND.ink,
     letterSpacing: -0.5,
+    fontFamily: DISPLAY_FONT,
   },
   toneThai: {
     fontSize: 16,
-    fontWeight: "600",
+    lineHeight: 22,
+    fontWeight: "700",
+    fontFamily: BODY_FONT,
   },
   toneDescription: {
     fontSize: 15,
     lineHeight: 24,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   pitchCurve: {
     flexDirection: "row",
@@ -292,40 +375,52 @@ const styles = StyleSheet.create({
   },
   pitchBar: {
     width: 11,
+    borderRadius: 999,
   },
   exampleGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
   },
-  exampleChip: {
+  exampleCard: {
     minWidth: 170,
     borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
     padding: 14,
     gap: 4,
     flexGrow: 1,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.md,
+    boxShadow: WEB_CARD_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
   },
-  neutralChip: {
-    backgroundColor: AppSketch.background,
-    borderColor: AppSketch.border,
+  depressedCard: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   exampleThai: {
     fontSize: 24,
+    lineHeight: 30,
     fontWeight: "700",
+    fontFamily: BODY_FONT,
   },
   exampleRoman: {
     fontSize: 13,
-    color: AppSketch.inkMuted,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   exampleEnglish: {
     fontSize: 13,
-    color: AppSketch.inkSecondary,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   splitRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 24,
+    gap: 20,
   },
   leftPanel: {
     flex: 0.9,
@@ -339,27 +434,28 @@ const styles = StyleSheet.create({
   markRow: {
     flexDirection: "row",
     gap: 14,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.lg,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
     padding: 16,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   markBadge: {
     width: 72,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
-    borderColor: AppSketch.border,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
   },
-  neutralBadge: {
-    backgroundColor: AppSketch.background,
-  },
   markSymbol: {
     fontSize: 26,
+    lineHeight: 32,
     fontWeight: "700",
+    fontFamily: BODY_FONT,
   },
   markCopy: {
     flex: 1,
@@ -367,17 +463,22 @@ const styles = StyleSheet.create({
   },
   markName: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   markRoman: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
+    fontFamily: BODY_FONT,
   },
   markDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   pairGroupList: {
     gap: 22,
@@ -387,44 +488,60 @@ const styles = StyleSheet.create({
   },
   pairLabel: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   pairDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   pairGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
   },
-  pairChip: {
+  pairCard: {
     minWidth: 170,
     borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
     padding: 14,
     gap: 4,
     flexGrow: 1,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.md,
+    boxShadow: WEB_CARD_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
   },
   pairThai: {
     fontSize: 24,
+    lineHeight: 30,
     fontWeight: "700",
+    fontFamily: BODY_FONT,
   },
   pairRoman: {
     fontSize: 13,
-    color: AppSketch.inkMuted,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   pairEnglish: {
     fontSize: 13,
-    color: AppSketch.inkSecondary,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   pairTone: {
     marginTop: 4,
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: BODY_FONT,
   },
 });

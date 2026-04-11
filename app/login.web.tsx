@@ -3,21 +3,44 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import GoogleAuthButton from "@/src/components/GoogleAuthButton";
+import {
+  WEB_BODY_FONT,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import AuthShell from "@/src/components/web/AuthShell";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 import { API_BASE } from "@/src/config";
+import LoginMobileScreen from "@/src/screens/mobile/LoginMobileScreen";
 import { clearAuthToken, setAuthToken } from "@/src/utils/authStorage";
 
 export default function LoginWeb() {
+  const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <LoginMobileScreen />;
+  }
+
+  return <LoginWebDesktop />;
+}
+
+function LoginWebDesktop() {
   const router = useRouter();
   const params = useLocalSearchParams<{ redirectTo?: string }>();
   const redirectTo = Array.isArray(params.redirectTo)
@@ -72,14 +95,11 @@ export default function LoginWeb() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <AuthShell
-        pageEyebrow="Keystone Thai"
-        pageTitle="Grammar that stays connected."
-        pageSubtitle="Come back to the same lesson flow, the same review tools, and the same progress across web and mobile."
         rightEyebrow="Sign in"
-        rightTitle="Welcome back"
-        rightSubtitle="Use your email or Google account to continue where you left off."
-        footerNote="No gamification, real understanding."
-        secondaryActionLabel="Create account"
+        rightTitle="Continue with Keystone"
+        rightSubtitle="Use your email or Google account to sign in or get started."
+        footerPrompt="Don't have an account?"
+        secondaryActionLabel="Sign up now!"
         onSecondaryActionPress={() =>
           router.push(
             (redirectTo
@@ -87,28 +107,7 @@ export default function LoginWeb() {
               : "/register") as any,
           )
         }
-        features={[
-          {
-            eyebrow: "Study",
-            title: "Pick up the next topic quickly",
-            body: "Open a lesson, hear the example, and move straight into practice without re-learning the interface.",
-          },
-          {
-            eyebrow: "Sync",
-            title: "Keep progress across devices",
-            body: "Grammar progress, bookmarks, review cards, and Keystone Access stay tied to your account.",
-          },
-          {
-            eyebrow: "Review",
-            title: "Return to saved words and lessons",
-            body: "Your vocabulary review and bookmarked grammar stay available when you switch between web and mobile.",
-          },
-          {
-            eyebrow: "Free start",
-            title: "Browse first, unlock more when ready",
-            body: "Start with the open lessons, then move into the full path only when you want deeper study.",
-          },
-        ]}
+        features={[]}
       >
         <View style={styles.form}>
           <TextInput
@@ -144,27 +143,35 @@ export default function LoginWeb() {
             onSubmitEditing={handleLogin}
           />
 
-          <TouchableOpacity
-            style={[styles.inlineLinkWrap, submitting && styles.disabledAction]}
+          <Pressable
             onPress={() => router.push("/forgot-password")}
             disabled={submitting}
+            style={({ hovered, pressed }) => [
+              styles.inlineLinkWrap,
+              submitting && styles.disabledAction,
+              (hovered || pressed) && !submitting && styles.inlineLinkWrapActive,
+            ]}
           >
             <Text style={styles.inlineLinkText}>Forgot password?</Text>
-          </TouchableOpacity>
+          </Pressable>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.primaryButton, submitting && styles.disabledAction]}
+          <Pressable
             onPress={handleLogin}
             disabled={submitting}
+            style={({ hovered, pressed }) => [
+              styles.primaryButton,
+              submitting && styles.disabledAction,
+              (hovered || pressed) && !submitting && styles.primaryButtonActive,
+            ]}
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.primaryButtonText}>Log in</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -174,9 +181,15 @@ export default function LoginWeb() {
 
           <GoogleAuthButton redirectTo={redirectTo} />
 
-          <TouchableOpacity style={styles.ghostButton} onPress={handleGuest}>
+          <Pressable
+            style={({ hovered, pressed }) => [
+              styles.ghostButton,
+              (hovered || pressed) && styles.ghostButtonActive,
+            ]}
+            onPress={handleGuest}
+          >
             <Text style={styles.ghostButtonText}>Continue as guest</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </AuthShell>
     </SafeAreaView>
@@ -199,30 +212,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: Sketch.paper,
     color: Sketch.ink,
+    borderRadius: WEB_RADIUS.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    fontFamily: WEB_BODY_FONT,
+    outlineStyle: "none" as any,
   },
   inlineLinkWrap: {
     alignSelf: "flex-end",
     marginTop: -2,
+    paddingVertical: 4,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  inlineLinkWrapActive: {
+    opacity: 0.76,
   },
   inlineLinkText: {
     fontSize: 13,
     fontWeight: "700",
     color: Sketch.accent,
+    fontFamily: WEB_BODY_FONT,
   },
   errorText: {
     fontSize: 13,
     lineHeight: 20,
     color: Sketch.red,
     marginTop: -2,
+    fontFamily: WEB_BODY_FONT,
   },
   primaryButton: {
     backgroundColor: Sketch.accent,
+    borderRadius: WEB_RADIUS.md,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Sketch.accent,
+    borderColor: Sketch.accentDark,
     marginTop: 4,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   disabledAction: {
     opacity: 0.55,
@@ -231,6 +262,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   divider: {
     flexDirection: "row",
@@ -248,18 +280,28 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
   },
   ghostButton: {
+    borderRadius: WEB_RADIUS.md,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  ghostButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   ghostButtonText: {
     fontSize: 14,
     fontWeight: "700",
     color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
   },
 });
+

@@ -1,15 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isGuestUser } from "../../../src/utils/auth";
 
 import {
   Animated,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -19,20 +24,40 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Header, { SettingsState } from "../../../src/components/Header";
 import PremiumGateCard from "../../../src/components/PremiumGateCard";
 import ToneDots from "../../../src/components/ToneDots";
-import ToneGuide, { ToneGuideButton } from "../../../src/components/ToneGuide";
 import ToneThaiText from "../../../src/components/ToneThaiText";
+import SentenceExplanationModal from "@/src/components/mobile/SentenceExplanationModal";
 
 import { Sketch, sketchShadow } from "@/constants/theme";
-import { AppRadius } from "@/constants/theme-app";
-import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
+import { AppRadius, AppSketch } from "@/constants/theme-app";
+import { DESKTOP_PAGE_WIDTH } from "@/src/components/web/desktopLayout";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
+import {
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_TONE,
+  WEB_THAI_FONT,
+} from "@/src/components/web/designSystem";
+import {
+  LIGHT_BUTTON_PRESSED,
+  SettledPressable,
+} from "@/src/screens/mobile/dashboardSurface";
+import { getSentenceExplanation } from "@/src/api/getSentenceExplanation";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
 import { useAdjacentGrammarPoint } from "../../../src/grammar/useAdjacentGrammarPoint";
 import { useSentenceAudio } from "../../../src/hooks/useSentenceAudio";
 import { isPremiumGrammarPoint } from "../../../src/subscription/premium";
+import { usePremiumAccess } from "../../../src/subscription/usePremiumAccess";
 import { useSubscription } from "../../../src/subscription/SubscriptionProvider";
-import { getProgress, saveRound } from "../../../src/utils/grammarProgress";
+import { getAllProgress, saveRound } from "../../../src/utils/grammarProgress";
 import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   getGrammarExerciseSettings,
@@ -54,7 +79,7 @@ import { getAuthToken } from "../../../src/utils/authStorage";
 const EXERCISE_FEEDBACK_COLORS = {
   correct: {
     tint: "#F3F6FA",
-    border: Sketch.accent,
+    border: AppSketch.primaryDark,
     text: Sketch.accentDark,
     subtext: Sketch.accent,
   },
@@ -66,7 +91,7 @@ const EXERCISE_FEEDBACK_COLORS = {
   },
   revealed: {
     tint: "#F5F7FA",
-    border: "#C7D1DC",
+    border: AppSketch.primaryDark,
     text: Sketch.accentDark,
     subtext: Sketch.accentLight,
   },
@@ -76,6 +101,14 @@ const CONTROL_PANEL_ACCENT = {
   border: "#5A6470",
   fill: "#3F4B58",
 } as const;
+
+const TONE_GUIDE_ITEMS = [
+  { tone: "mid", label: "mid" },
+  { tone: "low", label: "low" },
+  { tone: "falling", label: "falling" },
+  { tone: "high", label: "high" },
+  { tone: "rising", label: "rising" },
+] as const;
 
 type Mode = GrammarExerciseMode;
 const ALL_MODES: Mode[] = ["breakdown", "wordScraps", "matchThai"];
@@ -135,6 +168,88 @@ function getPracticeHeaderTitle(grammarPoint: {
   return grammarPoint?.title || "Practice";
 }
 
+function ToneGuideInlineTrigger() {
+  const [isOpen, setIsOpen] = useState(false);
+  const shellRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const shellNode = shellRef.current as
+        | { contains?: (target: EventTarget | null) => boolean }
+        | null;
+      if (shellNode?.contains?.(event.target)) return;
+      setIsOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <View ref={shellRef} style={st.toneGuideInlineTriggerRow}>
+      <SettledPressable
+        onPress={() => setIsOpen((value) => !value)}
+        style={({ hovered, pressed }: { hovered: boolean; pressed: boolean }) => [
+          st.toneGuideButton,
+          (hovered || pressed) && st.toneGuideButtonPressed,
+        ]}
+      >
+        <View style={st.toneGuideDots}>
+          {TONE_GUIDE_ITEMS.map(({ tone, label }) => (
+            <View
+              key={label}
+              style={[st.toneGuideDot, { backgroundColor: WEB_TONE[tone] }]}
+            />
+          ))}
+        </View>
+      </SettledPressable>
+      {isOpen ? (
+        <View style={st.toneGuidePopover}>
+          {TONE_GUIDE_ITEMS.map(({ tone, label }) => (
+            <View key={label} style={st.toneGuideRow}>
+              <View
+                style={[
+                  st.toneGuideDot,
+                  st.toneGuidePopoverDot,
+                  { backgroundColor: WEB_TONE[tone] },
+                ]}
+              />
+              <Text style={st.toneGuidePopoverText}>{label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function getInteractiveStateStyle(
+  variant: "light" | "navy",
+  hovered: boolean,
+  pressed: boolean,
+  disabled?: boolean,
+) {
+  if (Platform.OS !== "web" || disabled || (!hovered && !pressed)) return null;
+  return [
+    st.webInteractivePressed,
+    variant === "navy"
+      ? st.webNavyInteractivePressed
+      : st.webLightInteractivePressed,
+  ];
+}
+
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
 const PREF_AUTOPLAY_TTS = "pref_autoplay_tts";
@@ -162,6 +277,11 @@ interface MatchOption {
   isCorrect: boolean;
 }
 
+type SentenceReportStatus = {
+  kind: "success" | "error";
+  message: string;
+};
+
 type ResultState = "" | "correct" | "wrong" | "revealed";
 
 type StudyExample = SentenceData & {
@@ -179,12 +299,60 @@ type BuilderWord = {
   rotation: number;
 };
 
+type ToneDisplayItem = {
+  thai: string;
+  tone?: unknown;
+  tones?: unknown;
+  romanization?: string;
+  roman?: string;
+  displayThaiSegments?: string[] | null;
+};
+
+function BreakdownToneText({
+  breakdown,
+  style,
+}: {
+  breakdown: ToneDisplayItem[];
+  style?: StyleProp<TextStyle>;
+}) {
+  return (
+    <Text style={style}>
+      {breakdown.map((item, index) => (
+        <ToneThaiText
+          key={`${item.thai}-${index}`}
+          thai={item.thai}
+          tones={getBreakdownTones(item)}
+          romanization={item.romanization || item.roman}
+          displayThaiSegments={item.displayThaiSegments}
+          fallbackColor={Sketch.ink}
+        />
+      ))}
+    </Text>
+  );
+}
+
 function buildMatchOptions(
   correct: SentenceData,
   distractors: SentenceData[],
 ): MatchOption[] {
-  const unique = distractors.filter((d) => d.thai !== correct.thai);
-  const picked = unique.slice(0, 3);
+  const seenThai = new Set<string>([correct.thai]);
+  const picked: SentenceData[] = [];
+
+  distractors.forEach((candidate) => {
+    if (!candidate.thai || seenThai.has(candidate.thai) || picked.length >= 3) return;
+    seenThai.add(candidate.thai);
+    picked.push(candidate);
+  });
+
+  const fallbackDistractors = distractors.filter(
+    (candidate) => candidate.thai && candidate.thai !== correct.thai,
+  );
+
+  // Keep the UI at 4 options even if the backend repeats a distractor.
+  while (picked.length < 3 && fallbackDistractors.length > 0) {
+    picked.push(fallbackDistractors[picked.length % fallbackDistractors.length]);
+  }
+
   const options: MatchOption[] = [
     {
       thai: correct.thai,
@@ -204,6 +372,8 @@ function buildMatchOptions(
 
 const MAX_FREE_TILES = 4;
 const STUDY_EXAMPLE_COUNT = 3;
+const MATCH_DISTRACTOR_COUNT = 3;
+const MATCH_DISTRACTOR_FETCH_ATTEMPTS = MATCH_DISTRACTOR_COUNT * 4;
 
 function computePrefill(
   breakdown: SentenceData["breakdown"],
@@ -274,6 +444,7 @@ export default function GrammarExercisesScreen() {
     typeof id === "string" ? id : null,
   );
   const { playSentence } = useSentenceAudio();
+  const { ensurePremiumAccess } = usePremiumAccess();
   const isDesktopWeb = Platform.OS === "web" && width >= 1100;
   const mixSource = Array.isArray(source) ? source[0] : source;
   const hasMixSource = typeof mix === "string" && mix.length > 0;
@@ -300,6 +471,7 @@ export default function GrammarExercisesScreen() {
   const mixIndexRef = useRef(0);
   const currentGrammarIdRef = useRef<string | null>(null);
   const modeHistoryRef = useRef<Mode[]>([]);
+  const sentenceReportInputRef = useRef<TextInput | null>(null);
   const enabledModesRef = useRef<GrammarExerciseSettings>(
     DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   );
@@ -326,8 +498,8 @@ export default function GrammarExercisesScreen() {
   const [mode, setMode] = useState<Mode>("breakdown");
   const [settingsReady, setSettingsReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [result, setResult] = useState<ResultState>("");
-  const [toneGuideVisible, setToneGuideVisible] = useState(false);
   const [enabledModes, setEnabledModes] = useState<GrammarExerciseSettings>(
     DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   );
@@ -341,6 +513,17 @@ export default function GrammarExercisesScreen() {
   const [wordBreakdownTTS, setWordBreakdownTTS] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState<"slow" | "normal" | "fast">("slow");
   const [autoAddPracticeVocab, setAutoAddPracticeVocab] = useState(true);
+  const [sentenceReportOpen, setSentenceReportOpen] = useState(false);
+  const [sentenceReportDraft, setSentenceReportDraft] = useState("");
+  const [sentenceReportBusy, setSentenceReportBusy] = useState(false);
+  const [sentenceReportStatus, setSentenceReportStatus] =
+    useState<SentenceReportStatus | null>(null);
+  const [sentenceReportTarget, setSentenceReportTarget] =
+    useState<SentenceData | null>(null);
+  const [sentenceExplanationOpen, setSentenceExplanationOpen] = useState(false);
+  const [sentenceExplanationLoading, setSentenceExplanationLoading] = useState(false);
+  const [sentenceExplanationError, setSentenceExplanationError] = useState<string | null>(null);
+  const [sentenceExplanation, setSentenceExplanation] = useState<string | null>(null);
   const [premiumBlocked, setPremiumBlocked] = useState<{
     title: string;
     body: string;
@@ -349,12 +532,27 @@ export default function GrammarExercisesScreen() {
   const [sessionRounds, setSessionRounds] = useState(0);
   const { isPremium, loading: premiumLoading } = useSubscription();
   const canPlayBreakdownTiles = isDesktopWeb || wordBreakdownTTS;
+  const BreakdownTilePressable = isDesktopWeb ? Pressable : SettledPressable;
   const selectedStudyExample =
     mode === "breakdown"
       ? studyExamples[selectedStudyIndex] || studyExamples[0] || null
       : null;
   const activeBreakdown = selectedStudyExample?.breakdown || breakdown;
   const activeRomanTokens = selectedStudyExample?.romanTokens || romanTokens;
+  const activeSentenceReportTarget: SentenceData | null =
+    mode === "breakdown"
+      ? selectedStudyExample
+      : sentence
+        ? {
+            thai: sentence,
+            romanization: romanTokens.join(" ").trim(),
+            english: translation,
+            breakdown,
+          }
+        : null;
+  const activeSentenceExplanationTarget: SentenceData | null =
+    mode === "breakdown" ? null : activeSentenceReportTarget;
+  const sentenceReportSent = sentenceReportStatus?.kind === "success";
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const showSingleLessonUtilities = Boolean(singleLessonId);
@@ -366,6 +564,251 @@ export default function GrammarExercisesScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  useEffect(() => {
+    setSentenceReportOpen(false);
+    setSentenceReportDraft("");
+    setSentenceReportStatus(null);
+    setSentenceReportTarget(null);
+  }, [grammarPoint?.id, mode, sentence, translation, selectedStudyIndex]);
+
+  useEffect(() => {
+    setSentenceExplanationOpen(false);
+    setSentenceExplanationLoading(false);
+    setSentenceExplanationError(null);
+    setSentenceExplanation(null);
+  }, [
+    grammarPoint?.id,
+    mode,
+    result,
+    matchRevealed,
+    activeSentenceExplanationTarget?.english,
+    activeSentenceExplanationTarget?.romanization,
+    activeSentenceExplanationTarget?.thai,
+  ]);
+
+  useEffect(() => {
+    if (!sentenceReportOpen) return;
+    const timeout = setTimeout(() => {
+      sentenceReportInputRef.current?.focus?.();
+    }, 40);
+    return () => clearTimeout(timeout);
+  }, [sentenceReportOpen]);
+
+  const openSentenceReport = useCallback((target: SentenceData | null) => {
+    setSentenceReportTarget(target);
+    setSentenceReportDraft("");
+    setSentenceReportStatus(null);
+    setSentenceReportOpen(true);
+  }, []);
+
+  const requestSentenceExplanation = useCallback(async () => {
+    if (sentenceExplanationLoading) return;
+
+    setSentenceExplanationOpen(true);
+    setSentenceExplanationLoading(true);
+    setSentenceExplanationError(null);
+    setSentenceExplanation(null);
+
+    try {
+      if (!grammarPoint) {
+        throw new Error("No lesson is ready to explain yet.");
+      }
+
+      const revealReady =
+        mode === "wordScraps"
+          ? result === "revealed"
+          : mode === "matchThai"
+            ? matchRevealed && (result === "wrong" || result === "revealed")
+            : false;
+
+      if (!revealReady || !activeSentenceExplanationTarget) {
+        throw new Error("Reveal an answer first, then ask for an explanation.");
+      }
+
+      const explanation = await getSentenceExplanation({
+        grammar: {
+          id: grammarPoint.id,
+          title: grammarPoint.title,
+          level: grammarPoint.level,
+          stage: grammarPoint.stage,
+          pattern: grammarPoint.pattern,
+          explanation: grammarPoint.explanation,
+          focus: grammarPoint.focus,
+        },
+        sentence: activeSentenceExplanationTarget,
+      });
+
+      setSentenceExplanation(explanation);
+    } catch (error) {
+      setSentenceExplanationError(
+        error instanceof Error
+          ? error.message
+          : "We could not generate an explanation right now.",
+      );
+      setSentenceExplanation(null);
+    } finally {
+      setSentenceExplanationLoading(false);
+    }
+  }, [
+    activeSentenceExplanationTarget,
+    grammarPoint,
+    matchRevealed,
+    mode,
+    result,
+    sentenceExplanationLoading,
+  ]);
+
+  const submitSentenceReport = useCallback(async () => {
+    if (sentenceReportBusy) return;
+
+    const message = sentenceReportDraft.trim();
+    if (!message) {
+      setSentenceReportStatus({
+        kind: "error",
+        message: "Add a short note before sending.",
+      });
+      return;
+    }
+
+    const token = await getAuthToken();
+    const isGuest = await isGuestUser();
+    if (!token || isGuest) {
+      setSentenceReportStatus({
+        kind: "error",
+        message: "Sign in to report sentence issues.",
+      });
+      return;
+    }
+
+    let accountEmail = "";
+    try {
+      const meRes = await fetch(`${API_BASE}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (meRes.ok) {
+        const meData = await meRes.json().catch(() => null);
+        if (typeof meData?.email === "string") {
+          accountEmail = meData.email.trim().toLowerCase();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load report email:", error);
+    }
+
+    if (!accountEmail) {
+      setSentenceReportStatus({
+        kind: "error",
+        message: "We couldn't confirm your account email. Please sign in again.",
+      });
+      return;
+    }
+
+    const contextLines = [
+      "[Practice exercise sentence report]",
+      `Lesson: ${grammarPoint?.title ?? "Unknown"} (${grammarPoint?.id ?? "unknown"})`,
+      `Stage: ${grammarPoint?.stage ?? "unknown"}`,
+      `Mode: ${mode}`,
+    ];
+
+    if (sentenceReportTarget?.thai) {
+      contextLines.push(`Thai: ${sentenceReportTarget.thai}`);
+    }
+    if (sentenceReportTarget?.romanization) {
+      contextLines.push(`Romanization: ${sentenceReportTarget.romanization}`);
+    }
+    if (sentenceReportTarget?.english) {
+      contextLines.push(`English: ${sentenceReportTarget.english}`);
+    }
+    if (sentenceReportTarget?.breakdown?.length) {
+      contextLines.push(
+        `Breakdown: ${sentenceReportTarget.breakdown
+          .map((item) => `${item.thai}=${item.english}`)
+          .join(" | ")}`,
+      );
+    }
+    if (mode === "matchThai" && matchOptions.length) {
+      contextLines.push("Match options:");
+      matchOptions.forEach((option, index) => {
+        contextLines.push(`${index + 1}. ${option.thai}${option.isCorrect ? " [correct]" : ""}`);
+      });
+    }
+
+    try {
+      setSentenceReportBusy(true);
+      setSentenceReportStatus(null);
+
+      const res = await fetch(`${API_BASE}/support/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: accountEmail,
+          message: [message, ...contextLines].join("\n\n"),
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `Failed to send report (${res.status})`);
+      }
+
+      setSentenceReportDraft("");
+      setSentenceReportStatus({
+        kind: "success",
+        message:
+          data?.deliveredByEmail === false
+            ? "Thank you for your input. We are always trying to make our content better, and your note has been saved for review."
+            : "Thank you for your input. We are always trying to make our content better, and this kind of report really helps us improve it.",
+      });
+    } catch (error) {
+      setSentenceReportStatus({
+        kind: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to send report.",
+      });
+    } finally {
+      setSentenceReportBusy(false);
+    }
+  }, [
+    grammarPoint?.id,
+    grammarPoint?.stage,
+    grammarPoint?.title,
+    matchOptions,
+    mode,
+    sentenceReportBusy,
+    sentenceReportDraft,
+    sentenceReportTarget,
+  ]);
+
+  function renderSentenceReportTrigger(target?: SentenceData | null) {
+    return (
+      <Pressable
+        onPress={() => openSentenceReport(target ?? activeSentenceReportTarget)}
+        style={({ hovered, pressed }) => [
+          st.sentenceReportAlertButton,
+          getInteractiveStateStyle("light", hovered, pressed),
+        ]}
+      >
+        <Text style={st.sentenceReportAlertText}>!</Text>
+      </Pressable>
+    );
+  }
+
+  const openExerciseTopic = useCallback(
+    async (point: (typeof grammarPoints)[number] | null | undefined) => {
+      if (!point) return;
+      const route = `/practice/${point.id}/exercises`;
+      if (!isPremium && isPremiumGrammarPoint(point)) {
+        await ensurePremiumAccess("this lesson", route);
+        return;
+      }
+      router.push(route as any);
+    },
+    [ensurePremiumAccess, isPremium, router],
+  );
 
   useEffect(() => {
     (async () => {
@@ -411,10 +854,10 @@ export default function GrammarExercisesScreen() {
       };
     }
 
-    void getProgress(singleLessonId)
-      .then((progress) => {
+    void getAllProgress()
+      .then((progressMap) => {
         if (!cancelled) {
-          setLifetimeRounds(progress?.rounds ?? 0);
+          setLifetimeRounds(progressMap[singleLessonId]?.rounds ?? 0);
         }
       })
       .catch((error) => {
@@ -464,30 +907,6 @@ export default function GrammarExercisesScreen() {
       enabledModesRef.current = currentModes;
       setEnabledModes(currentModes);
       setMethodsGuardMessage("Couldn't update your practice methods.");
-    }
-  }
-
-  async function toggleDisplaySetting(target: "roman" | "english") {
-    const isRoman = target === "roman";
-    const storageKey = isRoman ? PREF_ROMANIZATION : PREF_ENGLISH;
-    const currentValue = isRoman ? showRoman : showEnglish;
-    const nextValue = !currentValue;
-
-    if (isRoman) {
-      setShowRoman(nextValue);
-    } else {
-      setShowEnglish(nextValue);
-    }
-
-    try {
-      await AsyncStorage.setItem(storageKey, String(nextValue));
-    } catch (error) {
-      console.error("Failed to update display setting:", error);
-      if (isRoman) {
-        setShowRoman(currentValue);
-      } else {
-        setShowEnglish(currentValue);
-      }
     }
   }
 
@@ -559,11 +978,46 @@ export default function GrammarExercisesScreen() {
     return examples.slice(0, STUDY_EXAMPLE_COUNT);
   }, [fetchSentence]);
 
-  async function trackWords(
+  const fetchMatchDistractors = useCallback(async (
+    gid: string,
+    correct: SentenceData,
+  ): Promise<SentenceData[]> => {
+    const distractors: SentenceData[] = [];
+    const seenThai = new Set<string>([correct.thai]);
+
+    const addDistractor = (candidate: SentenceData | null | undefined) => {
+      if (!candidate?.thai || seenThai.has(candidate.thai)) return;
+      seenThai.add(candidate.thai);
+      distractors.push(candidate);
+    };
+
+    let attempts = 0;
+    while (
+      distractors.length < MATCH_DISTRACTOR_COUNT &&
+      attempts < MATCH_DISTRACTOR_FETCH_ATTEMPTS
+    ) {
+      addDistractor(await fetchSentence(gid));
+      attempts += 1;
+    }
+
+    const baseDistractors = [...distractors];
+    while (
+      distractors.length < MATCH_DISTRACTOR_COUNT &&
+      baseDistractors.length > 0
+    ) {
+      distractors.push(
+        baseDistractors[distractors.length % baseDistractors.length],
+      );
+    }
+
+    return distractors.slice(0, MATCH_DISTRACTOR_COUNT);
+  }, [fetchSentence]);
+
+  const trackWords = useCallback(async (
     wordsToTrack: SentenceData["breakdown"],
     trigger: string,
     romanTokensForWords?: string[],
-  ) {
+  ) => {
     if (!autoAddPracticeVocab) return;
 
     const guest = await isGuestUser();
@@ -585,13 +1039,13 @@ export default function GrammarExercisesScreen() {
     } catch (err) {
       console.error("[SRS] trackWords failed:", err);
     }
-  }
+  }, [autoAddPracticeVocab]);
 
   function getCurrentGrammarId(): string | null {
     return currentGrammarIdRef.current;
   }
 
-  function recordRound(wasCorrect: boolean) {
+  const recordRound = useCallback((wasCorrect: boolean) => {
     const grammarId = getCurrentGrammarId();
     if (!grammarId) return;
     void saveRound(grammarId, wasCorrect);
@@ -599,11 +1053,7 @@ export default function GrammarExercisesScreen() {
       setLifetimeRounds((current) => current + 1);
       setSessionRounds((current) => current + 1);
     }
-  }
-
-  function continueToNextRound() {
-    void fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
-  }
+  }, [singleLessonId]);
 
   function openCurrentGrammarLesson() {
     const grammarId = getCurrentGrammarId();
@@ -627,8 +1077,12 @@ export default function GrammarExercisesScreen() {
     const round = ++roundRef.current;
     try {
       setLoading(true);
+      setLoadError(null);
       setMethodsGuardMessage(null);
       setResult("");
+      setBuiltSentence([]);
+      setPrefilled([]);
+      setWords([]);
       setSelectedOption(null);
       setMatchRevealed(false);
       setExpandedMatchOption(null);
@@ -744,11 +1198,7 @@ export default function GrammarExercisesScreen() {
       }
 
       if (nextMode === "matchThai") {
-        const extras = await Promise.all([
-          fetchSentence(gobj.id),
-          fetchSentence(gobj.id),
-          fetchSentence(gobj.id),
-        ]);
+        const extras = await fetchMatchDistractors(gobj.id, main);
         setMatchOptions(buildMatchOptions(main, extras));
       }
 
@@ -757,18 +1207,28 @@ export default function GrammarExercisesScreen() {
       fadeIn();
     } catch (err) {
       console.error(`[Round ${round}] fetchRound FAILED:`, err);
+      setLoadError(
+        err instanceof Error
+          ? err.message
+          : "We couldn't generate practice right now.",
+      );
     } finally {
       setLoading(false);
     }
   }, [
     fadeIn,
     fetchSentence,
+    fetchMatchDistractors,
     fetchStudyExamples,
     findGrammarById,
     getCurrentMixGrammarId,
     grammarObject,
     mixSource,
   ]);
+
+  const continueToNextRound = useCallback(() => {
+    void fetchRound(randomMode(enabledModesRef.current, modeHistoryRef.current));
+  }, [fetchRound]);
 
   useEffect(() => {
     if (!settingsReady || premiumLoading) return;
@@ -864,8 +1324,8 @@ export default function GrammarExercisesScreen() {
     );
   }
 
-  function checkWordScraps() {
-    if (result === "correct") return;
+  const evaluateWordScraps = useCallback(() => {
+    if (result !== "") return;
     const fullSentence: string[] = [];
     let userIdx = 0;
     for (let i = 0; i < prefilled.length; i++) {
@@ -891,7 +1351,20 @@ export default function GrammarExercisesScreen() {
         setTimeout(continueToNextRound, 1200);
       }
     }
-  }
+  }, [
+    autoplayTTS,
+    breakdown,
+    builtSentence,
+    continueToNextRound,
+    playSentence,
+    prefilled,
+    recordRound,
+    result,
+    romanTokens,
+    sentence,
+    trackWords,
+    ttsSpeed,
+  ]);
 
   function revealWordScrapsAnswer() {
     if (result === "correct" || result === "revealed") return;
@@ -950,6 +1423,10 @@ export default function GrammarExercisesScreen() {
       ? `${GRAMMAR_EXERCISE_LABELS[mode]} will finish this round, then turn off.`
       : null;
   const selectedWordIds = new Set(builtSentence.map((selected) => selected.id));
+  const freeBuilderSlotCount = useMemo(
+    () => prefilled.reduce((count, slot) => count + (slot === null ? 1 : 0), 0),
+    [prefilled],
+  );
   const showLessonShortcut =
     (mixSource === "bookmarks" || mixSource === "progress") && Boolean(grammarPoint?.id);
   const resultPalette =
@@ -958,68 +1435,87 @@ export default function GrammarExercisesScreen() {
       : result === "revealed"
         ? EXERCISE_FEEDBACK_COLORS.revealed
         : EXERCISE_FEEDBACK_COLORS.incorrect;
+
+  useEffect(() => {
+    if (mode !== "wordScraps") return;
+    if (loading) return;
+    if (result !== "") return;
+    if (freeBuilderSlotCount === 0) return;
+    if (builtSentence.length !== freeBuilderSlotCount) return;
+
+    evaluateWordScraps();
+  }, [
+    builtSentence,
+    evaluateWordScraps,
+    freeBuilderSlotCount,
+    loading,
+    mode,
+    result,
+  ]);
+
   const practiceControls = (
     <View
       style={[
         st.methodsPanel,
-        isDesktopWeb ? st.methodsPanelSidebarDesktop : st.methodsPanelDesktop,
+        !isDesktopWeb && st.methodsPanelMobile,
+        isDesktopWeb && st.methodsPanelSidebarDesktop,
       ]}
     >
-      <View
-        style={[
-          st.methodsCard,
-          isDesktopWeb && st.methodsCardSidebarDesktop,
-          !isDesktopWeb && st.methodsCardDesktop,
-        ]}
-      >
+        <View
+          style={[
+            st.methodsCard,
+            !isDesktopWeb && st.methodsCardMobile,
+            isDesktopWeb && st.methodsCardSidebarDesktop,
+          ]}
+        >
         <View
           style={[
             st.methodsHeaderRow,
+            !isDesktopWeb && st.methodsHeaderRowMobile,
             isDesktopWeb && st.methodsHeaderRowSidebar,
           ]}
         >
           <View style={st.methodsHeaderText}>
-            <Text style={st.methodsEyebrow}>Practice controls</Text>
-            <Text style={st.methodsSubcopy}>
-              Choose how this lesson appears.
-            </Text>
-          </View>
-          <View
-            style={[
-              st.methodsActions,
-              isDesktopWeb && st.methodsActionsSidebar,
-            ]}
-          >
-            <Text style={st.methodsMeta}>Saved in settings</Text>
-            <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
+            <Text style={st.methodsEyebrow}>Practice mode</Text>
           </View>
         </View>
         <View
-          style={[st.methodsRow, isDesktopWeb && st.methodsRowDesktopSidebar]}
+          style={[
+            st.methodsRow,
+            !isDesktopWeb && st.methodsRowMobile,
+            isDesktopWeb && st.methodsRowDesktopSidebar,
+          ]}
         >
           {ALL_MODES.map((practiceMode) => {
             const isEnabled = enabledModes[practiceMode];
             const isCurrent = mode === practiceMode;
             const isCurrentRoundOnly = isCurrent && !isEnabled;
-            const showCurrentBadge = isCurrent;
+            const showCurrentBadge = isDesktopWeb && isCurrent;
 
             return (
-              <TouchableOpacity
+              <Pressable
                 key={practiceMode}
-                style={[
+                style={({ hovered, pressed }) => [
                   st.methodChip,
+                  !isDesktopWeb && st.methodChipMobile,
                   isCurrent && st.methodChipCurrent,
                   !isEnabled && !isCurrentRoundOnly && st.methodChipDisabled,
                   isDesktopWeb && st.methodChipSidebarDesktop,
+                  getInteractiveStateStyle(
+                    "light",
+                    hovered,
+                    pressed,
+                    !isEnabled && !isCurrentRoundOnly,
+                  ),
                 ]}
                 onPress={() => void togglePracticeMethod(practiceMode)}
-                activeOpacity={0.85}
               >
-                <View style={st.methodChipRow}>
+                <View style={[st.methodChipRow, !isDesktopWeb && st.methodChipRowMobile]}>
                   <View style={st.methodChipCopy}>
                     <Text
                       style={[
                         st.methodChipLabel,
+                        !isDesktopWeb && st.methodChipLabelMobile,
                         isCurrent && st.methodChipLabelCurrent,
                         !isEnabled &&
                           !isCurrentRoundOnly &&
@@ -1066,7 +1562,7 @@ export default function GrammarExercisesScreen() {
                     </View>
                   ) : null}
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </View>
@@ -1082,118 +1578,187 @@ export default function GrammarExercisesScreen() {
             {methodsNote}
           </Text>
         ) : null}
-        <View
-          style={[
-            st.displayRow,
-            isDesktopWeb && st.displayRowSidebarDesktop,
+        {isDesktopWeb && showSingleLessonUtilities ? renderLessonUtilities() : null}
+      </View>
+    </View>
+  );
+
+  function renderLessonUtilities() {
+    if (!showSingleLessonUtilities) return null;
+    const mobileTopicNavigation = (
+      <View style={[st.lessonNavExerciseRow, st.lessonNavExerciseRowMobileCompact]}>
+        <Pressable
+          style={({ hovered, pressed }) => [
+            st.lessonNavExerciseButton,
+            st.lessonNavExerciseButtonMobile,
+            st.lessonNavExerciseButtonMobileCompact,
+            !previous && st.lessonNavExerciseButtonDisabled,
+            getInteractiveStateStyle("light", hovered, pressed, !previous),
           ]}
+          onPress={() => void openExerciseTopic(previous)}
+          disabled={!previous}
         >
-          <Text style={st.displayLabel}>Display</Text>
-          {isDesktopWeb ? (
-            <View style={st.displayOptionList}>
-              <TouchableOpacity
-                style={[
-                  st.displayOptionRow,
-                  showRoman && st.displayOptionRowActive,
-                ]}
-                onPress={() => void toggleDisplaySetting("roman")}
-                activeOpacity={0.85}
-              >
-                <Text
-                  style={[
-                    st.displayOptionLabel,
-                    showRoman && st.displayOptionLabelActive,
-                  ]}
-                >
-                  Romanization
-                </Text>
-                  <View
-                    style={[
-                      st.displayOptionCheck,
-                      showRoman && st.displayOptionCheckActive,
-                    ]}
-                  >
-                    {showRoman ? (
-                      <Ionicons name="checkmark" size={13} color="#FFFFFF" />
-                    ) : null}
-                  </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  st.displayOptionRow,
-                  showEnglish && st.displayOptionRowActive,
-                ]}
-                onPress={() => void toggleDisplaySetting("english")}
-                activeOpacity={0.85}
-              >
-                <Text
-                  style={[
-                    st.displayOptionLabel,
-                    showEnglish && st.displayOptionLabelActive,
-                  ]}
-                >
-                  Translation
-                </Text>
-                  <View
-                    style={[
-                      st.displayOptionCheck,
-                      showEnglish && st.displayOptionCheckActive,
-                    ]}
-                  >
-                    {showEnglish ? (
-                      <Ionicons name="checkmark" size={13} color="#FFFFFF" />
-                    ) : null}
-                  </View>
-              </TouchableOpacity>
+          <Text
+            style={[
+              st.lessonNavExerciseCompactLabel,
+              !previous && st.lessonNavExerciseLabelDisabled,
+            ]}
+          >
+            Previous
+          </Text>
+          <Text
+            numberOfLines={2}
+            style={[
+              st.lessonNavExerciseCompactTitle,
+              !previous && st.lessonNavExerciseTitleDisabled,
+            ]}
+          >
+            {previous ? previous.title : "First topic"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            st.lessonNavExerciseButton,
+            st.lessonNavExerciseButtonMobile,
+            st.lessonNavExerciseButtonMobileCompact,
+            !next && st.lessonNavExerciseButtonDisabled,
+            getInteractiveStateStyle("light", hovered, pressed, !next),
+          ]}
+          onPress={() => void openExerciseTopic(next)}
+          disabled={!next}
+        >
+          <Text
+            style={[
+              st.lessonNavExerciseCompactLabel,
+              !next && st.lessonNavExerciseLabelDisabled,
+            ]}
+          >
+            Next
+          </Text>
+          <Text
+            numberOfLines={2}
+            style={[
+              st.lessonNavExerciseCompactTitle,
+              !next && st.lessonNavExerciseTitleDisabled,
+            ]}
+          >
+            {next ? next.title : "Last topic"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+
+    const topicNavigation = (
+      <View
+        style={[
+          st.lessonNavExerciseRow,
+          !isDesktopWeb && st.lessonNavExerciseRowMobile,
+          isDesktopWeb && st.lessonNavExerciseRowDesktop,
+        ]}
+      >
+        <Pressable
+          style={({ hovered, pressed }) => [
+            st.lessonNavExerciseButton,
+            !isDesktopWeb && st.lessonNavExerciseButtonMobile,
+            isDesktopWeb && st.lessonNavExerciseButtonDesktop,
+            !previous && st.lessonNavExerciseButtonDisabled,
+            getInteractiveStateStyle("light", hovered, pressed, !previous),
+          ]}
+          onPress={() => void openExerciseTopic(previous)}
+          disabled={!previous}
+        >
+          <Text
+            style={[
+              st.lessonNavExerciseLabel,
+              !previous && st.lessonNavExerciseLabelDisabled,
+            ]}
+          >
+            Previous topic
+          </Text>
+          <Text
+            style={[
+              st.lessonNavExerciseTitle,
+              !previous && st.lessonNavExerciseTitleDisabled,
+            ]}
+          >
+            {previous ? previous.title : "You're at the first topic"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={({ hovered, pressed }) => [
+            st.lessonNavExerciseButton,
+            !isDesktopWeb && st.lessonNavExerciseButtonMobile,
+            isDesktopWeb && st.lessonNavExerciseButtonDesktop,
+            !next && st.lessonNavExerciseButtonDisabled,
+            getInteractiveStateStyle("light", hovered, pressed, !next),
+          ]}
+          onPress={() => void openExerciseTopic(next)}
+          disabled={!next}
+        >
+          <Text
+            style={[
+              st.lessonNavExerciseLabel,
+              !next && st.lessonNavExerciseLabelDisabled,
+            ]}
+          >
+            Next topic
+          </Text>
+          <Text
+            style={[
+              st.lessonNavExerciseTitle,
+              !next && st.lessonNavExerciseTitleDisabled,
+            ]}
+          >
+            {next ? next.title : "You're at the last topic"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+
+    if (!isDesktopWeb) {
+      return (
+        <View style={st.mobileLessonUtilitiesWrap}>
+          <View style={st.mobileLessonUtilitiesCard}>
+            <View style={[st.lessonMetaSection, st.lessonMetaSectionMobile]}>
+              <View style={st.lessonMetaHeader}>
+                <Text style={st.lessonMetaLabel}>Practice tracker</Text>
+              </View>
+              <View style={[st.trackerRow, st.trackerRowMobileCompact]}>
+                <View style={[st.trackerCard, st.trackerCardMobileCompact]}>
+                  <Text style={[st.trackerValue, st.trackerValueMobileCompact]}>
+                    {lifetimeRounds}
+                  </Text>
+                  <Text style={[st.trackerCaption, st.trackerCaptionMobileCompact]}>
+                    Lifetime
+                  </Text>
+                </View>
+                <View style={[st.trackerCard, st.trackerCardMobileCompact]}>
+                  <Text style={[st.trackerValue, st.trackerValueMobileCompact]}>
+                    {sessionRounds}
+                  </Text>
+                  <Text style={[st.trackerCaption, st.trackerCaptionMobileCompact]}>
+                    This session
+                  </Text>
+                </View>
+              </View>
+              <View style={st.lessonMetaDivider} />
+              {mobileTopicNavigation}
             </View>
-          ) : (
-            <View
-              style={[
-                st.displayChipRow,
-                isDesktopWeb && st.displayChipRowSidebarDesktop,
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  st.displayChip,
-                  showRoman && st.displayChipActive,
-                  isDesktopWeb && st.displayChipSidebarDesktop,
-                ]}
-                onPress={() => void toggleDisplaySetting("roman")}
-                activeOpacity={0.85}
-              >
-                <Text
-                  style={[
-                    st.displayChipText,
-                    showRoman && st.displayChipTextActive,
-                  ]}
-                >
-                  Romanization
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  st.displayChip,
-                  showEnglish && st.displayChipActive,
-                  isDesktopWeb && st.displayChipSidebarDesktop,
-                ]}
-                onPress={() => void toggleDisplaySetting("english")}
-                activeOpacity={0.85}
-              >
-                <Text
-                  style={[
-                    st.displayChipText,
-                    showEnglish && st.displayChipTextActive,
-                  ]}
-                >
-                  Translation
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          </View>
         </View>
-        {showSingleLessonUtilities ? (
-          <View style={st.lessonMetaSection}>
+      );
+    }
+
+    return (
+      <View>
+        <View>
+          <View
+            style={[
+              st.lessonMetaSection,
+            ]}
+          >
             <View style={st.lessonMetaHeader}>
               <Text style={st.lessonMetaLabel}>Practice tracker</Text>
               <Text style={st.lessonMetaHint}>Rounds for this lesson</Text>
@@ -1215,72 +1780,19 @@ export default function GrammarExercisesScreen() {
               <Text style={st.lessonMetaLabel}>Topic navigation</Text>
               <Text style={st.lessonMetaHint}>Move through the course path</Text>
             </View>
-            <View style={st.lessonNavExerciseRow}>
-              <TouchableOpacity
-                style={[
-                  st.lessonNavExerciseButton,
-                  !previous && st.lessonNavExerciseButtonDisabled,
-                ]}
-                onPress={() =>
-                  previous && router.push(`/practice/${previous.id}/exercises`)
-                }
-                activeOpacity={previous ? 0.85 : 1}
-                disabled={!previous}
-              >
-                <Text
-                  style={[
-                    st.lessonNavExerciseLabel,
-                    !previous && st.lessonNavExerciseLabelDisabled,
-                  ]}
-                >
-                  Previous topic
-                </Text>
-                <Text
-                  style={[
-                    st.lessonNavExerciseTitle,
-                    !previous && st.lessonNavExerciseTitleDisabled,
-                  ]}
-                >
-                  {previous ? previous.title : "You're at the first topic"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  st.lessonNavExerciseButton,
-                  !next && st.lessonNavExerciseButtonDisabled,
-                ]}
-                onPress={() => next && router.push(`/practice/${next.id}/exercises`)}
-                activeOpacity={next ? 0.85 : 1}
-                disabled={!next}
-              >
-                <Text
-                  style={[
-                    st.lessonNavExerciseLabel,
-                    !next && st.lessonNavExerciseLabelDisabled,
-                  ]}
-                >
-                  Next topic
-                </Text>
-                <Text
-                  style={[
-                    st.lessonNavExerciseTitle,
-                    !next && st.lessonNavExerciseTitleDisabled,
-                  ]}
-                >
-                  {next ? next.title : "You're at the last topic"}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {topicNavigation}
           </View>
-        ) : null}
+        </View>
       </View>
-    </View>
-  );
+    );
+  }
 
   if (premiumLoading) {
-    return (
-      <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
+    const loadingScreen = (
+      <SafeAreaView
+        edges={isDesktopWeb ? ["bottom"] : ["top", "bottom"]}
+        style={st.safe}
+      >
         <Stack.Screen options={{ headerShown: false }} />
         <View style={[st.pageFrame, isDesktopWeb && st.pageFrameDesktop]}>
           <Header
@@ -1296,11 +1808,19 @@ export default function GrammarExercisesScreen() {
         </View>
       </SafeAreaView>
     );
+    return isDesktopWeb ? (
+      <DesktopAppShell>{loadingScreen}</DesktopAppShell>
+    ) : (
+      loadingScreen
+    );
   }
 
   if (premiumBlocked) {
-    return (
-      <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
+    const premiumBlockedScreen = (
+      <SafeAreaView
+        edges={isDesktopWeb ? ["bottom"] : ["top", "bottom"]}
+        style={st.safe}
+      >
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView
           contentContainerStyle={[st.scroll, isDesktopWeb && st.scrollDesktop]}
@@ -1330,10 +1850,18 @@ export default function GrammarExercisesScreen() {
         </ScrollView>
       </SafeAreaView>
     );
+    return isDesktopWeb ? (
+      <DesktopAppShell>{premiumBlockedScreen}</DesktopAppShell>
+    ) : (
+      premiumBlockedScreen
+    );
   }
 
-  return (
-    <SafeAreaView edges={["top", "bottom"]} style={st.safe}>
+  const exerciseScreen = (
+    <SafeAreaView
+      edges={isDesktopWeb ? ["bottom"] : ["top", "bottom"]}
+      style={st.safe}
+    >
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         contentContainerStyle={[st.scroll, isDesktopWeb && st.scrollDesktop]}
@@ -1360,6 +1888,26 @@ export default function GrammarExercisesScreen() {
             <View style={st.loadingPulse} />
             <Text style={st.loadingLabel}>Generating...</Text>
           </View>
+        ) : loadError ? (
+          <View style={st.loadingWrap}>
+            <Text style={st.loadingLabel}>{loadError}</Text>
+            <Pressable
+              style={({ hovered, pressed }) => [
+                st.primaryBtn,
+                st.secondaryBtn,
+                getInteractiveStateStyle("light", hovered, pressed),
+              ]}
+              onPress={() =>
+                void fetchRound(
+                  randomMode(enabledModesRef.current, modeHistoryRef.current),
+                )
+              }
+            >
+              <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                Try again
+              </Text>
+            </Pressable>
+          </View>
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
             <View
@@ -1373,23 +1921,50 @@ export default function GrammarExercisesScreen() {
 
             {/* Mode header */}
             <View style={[st.modeHeader, isDesktopWeb && st.modeHeaderDesktop]}>
-              <View style={st.modeTagRow}>
-                <View style={st.modeTag}>
-                  <Text style={st.modeTagText}>{meta.tag}</Text>
+              <View style={[st.modeTitleRow, !isDesktopWeb && st.modeTitleRowMobile]}>
+                <Text style={[st.modeTitle, !isDesktopWeb && st.modeTitleMobile]}>
+                  {meta.title}
+                </Text>
+                <View
+                  style={[
+                    st.modeHeaderActions,
+                    !isDesktopWeb && st.modeHeaderActionsMobile,
+                  ]}
+                >
+                  {renderSentenceReportTrigger()}
+                  <ToneGuideInlineTrigger />
+                  {isDesktopWeb && showLessonShortcut ? (
+                    <TouchableOpacity
+                      style={[
+                        st.lessonShortcut,
+                        !isDesktopWeb && st.lessonShortcutMobile,
+                      ]}
+                      onPress={openCurrentGrammarLesson}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[
+                          st.lessonShortcutText,
+                          !isDesktopWeb && st.lessonShortcutTextMobile,
+                        ]}
+                      >
+                        Open lesson
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </View>
-              <View style={st.modeTitleRow}>
-                <Text style={st.modeTitle}>{meta.title}</Text>
-                {showLessonShortcut ? (
-                  <TouchableOpacity
-                    style={st.lessonShortcut}
-                    onPress={openCurrentGrammarLesson}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={st.lessonShortcutText}>Open lesson</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
+              {!isDesktopWeb && showLessonShortcut ? (
+                <TouchableOpacity
+                  style={[st.lessonShortcut, st.lessonShortcutMobile, st.modeHeaderLessonShortcutMobile]}
+                  onPress={openCurrentGrammarLesson}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[st.lessonShortcutText, st.lessonShortcutTextMobile]}>
+                    Open lesson
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
             {/* ── BREAKDOWN (Study) ── */}
@@ -1418,34 +1993,43 @@ export default function GrammarExercisesScreen() {
                           <Text style={st.studyExampleEyebrow}>
                             Example {index + 1}
                           </Text>
-                          <TouchableOpacity
-                            style={st.studyExampleAudio}
-                            onPress={() =>
-                              void playSentence(example.thai, {
-                                speed: ttsSpeed,
-                              })
-                            }
-                            activeOpacity={0.75}
-                          >
-                            <Ionicons
-                              name="volume-medium-outline"
-                              size={16}
-                              color={Sketch.inkLight}
-                            />
-                          </TouchableOpacity>
+                        <View style={st.studyExampleHeaderActions}>
+                            <TouchableOpacity
+                              style={st.studyExampleAudio}
+                              onPress={() =>
+                                void playSentence(example.thai, {
+                                  speed: ttsSpeed,
+                                })
+                              }
+                              activeOpacity={0.75}
+                            >
+                              <Ionicons
+                                name="volume-medium-outline"
+                                size={16}
+                                color={Sketch.inkLight}
+                              />
+                            </TouchableOpacity>
+                          </View>
                         </View>
 
-                        <Text style={st.studyExampleSentence}>
-                          {example.breakdown.map((word, wordIndex) => (
-                            <ToneThaiText
-                              key={wordIndex}
-                              thai={word.thai}
-                              tones={getBreakdownTones(word)}
-                              romanization={word.romanization || word.roman}
-                              displayThaiSegments={word.displayThaiSegments}
-                            />
-                          ))}
-                        </Text>
+                        {isDesktopWeb ? (
+                          <Text style={st.studyExampleSentence}>
+                            {example.breakdown.map((word, wordIndex) => (
+                              <ToneThaiText
+                                key={wordIndex}
+                                thai={word.thai}
+                                tones={getBreakdownTones(word)}
+                                romanization={word.romanization || word.roman}
+                                displayThaiSegments={word.displayThaiSegments}
+                              />
+                            ))}
+                          </Text>
+                        ) : (
+                          <BreakdownToneText
+                            breakdown={example.breakdown}
+                            style={st.studyExampleSentence}
+                          />
+                        )}
 
                         {showRoman && example.romanization ? (
                           <Text style={st.studyExampleRoman}>
@@ -1475,24 +2059,45 @@ export default function GrammarExercisesScreen() {
                       Tap another example above to inspect it.
                     </Text>
                   </View>
-                  <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
+                  <View
+                    style={[
+                      st.tileRow,
+                      isDesktopWeb && st.tileRowDesktop,
+                      isDesktopWeb && st.tileRowDesktopCentered,
+                    ]}
+                  >
                     {activeBreakdown.map((w, i) => (
                       canPlayBreakdownTiles ? (
-                        <TouchableOpacity
+                        <BreakdownTilePressable
                           key={i}
-                          style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
+                          style={({ hovered, pressed }) => [
+                            st.wordTile,
+                            isDesktopWeb && st.wordTileDesktop,
+                            !isDesktopWeb && pressed ? st.wordTilePressed : null,
+                            getInteractiveStateStyle("light", hovered, pressed),
+                          ]}
                           onPress={() => playBreakdownWord(w.thai)}
-                          activeOpacity={0.8}
                         >
                           <View style={st.wordTileHeader}>
-                            <ToneThaiText
-                              thai={w.thai}
-                              tones={getBreakdownTones(w)}
-                              romanization={activeRomanTokens[i]}
-                              displayThaiSegments={w.displayThaiSegments}
-                              style={st.wordTileThai}
-                              fallbackColor={Sketch.ink}
-                            />
+                            {isDesktopWeb ? (
+                              <ToneThaiText
+                                thai={w.thai}
+                                tones={getBreakdownTones(w)}
+                                romanization={activeRomanTokens[i]}
+                                displayThaiSegments={w.displayThaiSegments}
+                                style={st.wordTileThai}
+                                fallbackColor={Sketch.ink}
+                              />
+                            ) : (
+                              <ToneThaiText
+                                thai={w.thai}
+                                tones={getBreakdownTones(w)}
+                                romanization={activeRomanTokens[i]}
+                                displayThaiSegments={w.displayThaiSegments}
+                                style={st.wordTileThai}
+                                fallbackColor={Sketch.ink}
+                              />
+                            )}
                             <ToneDots
                               tones={getBreakdownTones(w)}
                               style={st.toneDots}
@@ -1508,21 +2113,32 @@ export default function GrammarExercisesScreen() {
                               {w.english.toUpperCase()}
                             </Text>
                           )}
-                        </TouchableOpacity>
+                        </BreakdownTilePressable>
                       ) : (
                         <View
                           key={i}
                           style={[st.wordTile, isDesktopWeb && st.wordTileDesktop]}
                         >
                           <View style={st.wordTileHeader}>
-                            <ToneThaiText
-                              thai={w.thai}
-                              tones={getBreakdownTones(w)}
-                              romanization={activeRomanTokens[i]}
-                              displayThaiSegments={w.displayThaiSegments}
-                              style={st.wordTileThai}
-                              fallbackColor={Sketch.ink}
-                            />
+                            {isDesktopWeb ? (
+                              <ToneThaiText
+                                thai={w.thai}
+                                tones={getBreakdownTones(w)}
+                                romanization={activeRomanTokens[i]}
+                                displayThaiSegments={w.displayThaiSegments}
+                                style={st.wordTileThai}
+                                fallbackColor={Sketch.ink}
+                              />
+                            ) : (
+                              <ToneThaiText
+                                thai={w.thai}
+                                tones={getBreakdownTones(w)}
+                                romanization={activeRomanTokens[i]}
+                                displayThaiSegments={w.displayThaiSegments}
+                                style={st.wordTileThai}
+                                fallbackColor={Sketch.ink}
+                              />
+                            )}
                             <ToneDots
                               tones={getBreakdownTones(w)}
                               style={st.toneDots}
@@ -1544,8 +2160,12 @@ export default function GrammarExercisesScreen() {
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  style={[st.primaryBtn, isDesktopWeb && st.primaryBtnDesktop]}
+                <Pressable
+                  style={({ hovered, pressed }) => [
+                    st.primaryBtn,
+                    isDesktopWeb && st.primaryBtnDesktop,
+                    getInteractiveStateStyle("navy", hovered, pressed),
+                  ]}
                   onPress={() => {
                     trackWords(
                       studyExamples.length > 0
@@ -1559,10 +2179,9 @@ export default function GrammarExercisesScreen() {
                       randomMode(enabledModesRef.current, modeHistoryRef.current),
                     );
                   }}
-                  activeOpacity={0.85}
                 >
                   <Text style={st.primaryBtnText}>Continue</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
 
@@ -1571,12 +2190,23 @@ export default function GrammarExercisesScreen() {
               <View style={[st.exerciseWrap, isDesktopWeb && st.exerciseWrapDesktop]}>
                 <View style={[st.buildCard, isDesktopWeb && st.buildCardDesktop]}>
                   <View style={[st.promptCard, isDesktopWeb && st.promptCardDesktopCompact]}>
-                  <Text style={st.promptLabel}>TRANSLATE INTO THAI</Text>
-                  <Text style={st.promptText}>{translation}</Text>
+                    <View
+                      style={[
+                        st.promptCardHeaderRow,
+                        isDesktopWeb && st.promptCardHeaderRowDesktop,
+                      ]}
+                    >
+                      <View style={st.promptCardTextBlock}>
+                        <Text style={st.promptLabel}>TRANSLATE INTO THAI</Text>
+                        <Text style={st.promptText}>{translation}</Text>
+                      </View>
+                    </View>
                   </View>
 
-                  <View style={st.buildSection}>
-                    <Text style={st.buildSectionLabel}>Your answer</Text>
+                <View style={st.buildSection}>
+                    {isDesktopWeb ? (
+                      <Text style={st.buildSectionLabel}>Your answer</Text>
+                    ) : null}
                     <View
                   style={[
                     st.builderZone,
@@ -1622,30 +2252,76 @@ export default function GrammarExercisesScreen() {
                         let userIdx = 0;
                         for (let i = 0; i < prefilled.length; i++) {
                           if (prefilled[i] !== null) {
+                            const lockedWord = breakdown[i];
                             chips.push(
                               <View
                                 key={`pre-${i}`}
-                                style={st.builderChipLocked}
+                                style={[st.wordTile, st.builderTile, st.builderTileLocked]}
                               >
-                                <Text style={st.builderChipLockedText}>
-                                  {prefilled[i]}
-                                </Text>
+                                <View
+                                  style={[
+                                    st.builderTileContent,
+                                    st.builderTileContentMuted,
+                                  ]}
+                                >
+                                  <View style={st.builderTileHeader}>
+                                    <ToneThaiText
+                                      thai={lockedWord.thai}
+                                      tones={getBreakdownTones(lockedWord)}
+                                      romanization={romanTokens[i]}
+                                      displayThaiSegments={lockedWord.displayThaiSegments}
+                                      style={st.builderTileThai}
+                                      fallbackColor={Sketch.inkMuted}
+                                    />
+                                  </View>
+                                  {showRoman && romanTokens[i] ? (
+                                    <Text style={st.builderTileRoman}>{romanTokens[i]}</Text>
+                                  ) : null}
+                                  {showEnglish && lockedWord.english ? (
+                                    <Text style={st.builderTileEng}>{lockedWord.english}</Text>
+                                  ) : null}
+                                </View>
                               </View>,
                             );
                           } else if (userIdx < builtSentence.length) {
                             const builtWord = builtSentence[userIdx];
+                            const answerWord = breakdown[builtWord.breakdownIndex];
                             chips.push(
-                              <TouchableOpacity
+                              <Pressable
                                 key={`usr-${i}`}
-                                style={st.builderChip}
+                                style={({ hovered, pressed }) => [
+                                  st.wordTile,
+                                  st.builderTile,
+                                  !isDesktopWeb && pressed ? st.wordTilePressed : null,
+                                  getInteractiveStateStyle(
+                                    "light",
+                                    hovered,
+                                    pressed,
+                                    result === "revealed",
+                                  ),
+                                ]}
                                 onPress={() => removeBuiltWord(builtWord.id)}
-                                activeOpacity={result === "revealed" ? 1 : 0.8}
                                 disabled={result === "revealed"}
                               >
-                                <Text style={st.builderChipText}>
-                                  {builtWord.thai}
-                                </Text>
-                              </TouchableOpacity>,
+                                <View style={st.builderTileContent}>
+                                  <View style={st.builderTileHeader}>
+                                    <ToneThaiText
+                                      thai={builtWord.thai}
+                                      tones={builtWord.tones}
+                                      romanization={builtWord.roman}
+                                      displayThaiSegments={builtWord.displayThaiSegments}
+                                      style={st.builderTileThai}
+                                      fallbackColor={Sketch.ink}
+                                    />
+                                  </View>
+                                  {showRoman && builtWord.roman ? (
+                                    <Text style={st.builderTileRoman}>{builtWord.roman}</Text>
+                                  ) : null}
+                                  {showEnglish && answerWord?.english ? (
+                                    <Text style={st.builderTileEng}>{answerWord.english}</Text>
+                                  ) : null}
+                                </View>
+                              </Pressable>,
                             );
                             userIdx++;
                           } else {
@@ -1699,22 +2375,26 @@ export default function GrammarExercisesScreen() {
                 )}
 
                 <View style={[st.actionRow, isDesktopWeb && st.actionRowDesktop]}>
-                  <TouchableOpacity
-                    style={st.actionBtn}
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      st.actionBtn,
+                      getInteractiveStateStyle("light", hovered, pressed, result === "revealed"),
+                    ]}
                     onPress={undoLastWord}
-                    activeOpacity={result === "revealed" ? 1 : 0.7}
                     disabled={result === "revealed"}
                   >
                     <Text style={st.actionBtnText}>Undo</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={st.actionBtn}
+                  </Pressable>
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      st.actionBtn,
+                      getInteractiveStateStyle("light", hovered, pressed, result === "revealed"),
+                    ]}
                     onPress={resetSentence}
-                    activeOpacity={result === "revealed" ? 1 : 0.7}
                     disabled={result === "revealed"}
                   >
                     <Text style={st.actionBtnText}>Reset</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
 
                 {/* wordScraps tiles — same style as breakdown word tiles */}
@@ -1722,19 +2402,24 @@ export default function GrammarExercisesScreen() {
 
                 <View style={st.availableWordsHeader}>
                   <Text style={st.buildSectionLabel}>Available words</Text>
-                  <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
                 </View>
 
                 <View style={[st.tileRow, isDesktopWeb && st.tileRowDesktop]}>
                   {words.map((word) => {
                     const isUsed = selectedWordIds.has(word.id);
                     return (
-                    <TouchableOpacity
+                    <Pressable
                       key={word.id}
-                      style={[
+                      style={({ hovered, pressed }) => [
                         st.wordTile,
                         isDesktopWeb && st.wordTileDesktop,
                         isUsed && st.wordTileUsed,
+                        getInteractiveStateStyle(
+                          "light",
+                          hovered,
+                          pressed,
+                          isUsed || result === "revealed",
+                        ),
                       ]}
                       onPress={() => {
                         if (isUsed || result === "revealed") return;
@@ -1743,18 +2428,28 @@ export default function GrammarExercisesScreen() {
                           playBreakdownWord(word.thai);
                         }
                       }}
-                      activeOpacity={isUsed || result === "revealed" ? 1 : 0.8}
                       disabled={isUsed || result === "revealed"}
                     >
                       <View style={st.wordTileHeader}>
-                        <ToneThaiText
-                          thai={word.thai}
-                          tones={word.tones}
-                          romanization={word.roman}
-                          displayThaiSegments={word.displayThaiSegments}
-                          style={st.wordTileThai}
-                          fallbackColor={Sketch.ink}
-                        />
+                        {isDesktopWeb ? (
+                          <ToneThaiText
+                            thai={word.thai}
+                            tones={word.tones}
+                            romanization={word.roman}
+                            displayThaiSegments={word.displayThaiSegments}
+                            style={st.wordTileThai}
+                            fallbackColor={Sketch.ink}
+                          />
+                        ) : (
+                          <ToneThaiText
+                            thai={word.thai}
+                            tones={word.tones}
+                            romanization={word.roman}
+                            displayThaiSegments={word.displayThaiSegments}
+                            style={st.wordTileThai}
+                            fallbackColor={Sketch.ink}
+                          />
+                        )}
                         <ToneDots tones={word.tones} style={st.toneDots} />
                       </View>
                       {showRoman && word.roman ? (
@@ -1763,7 +2458,7 @@ export default function GrammarExercisesScreen() {
                       {showEnglish && (
                         <Text style={st.wordTileEng}>{word.english}</Text>
                       )}
-                    </TouchableOpacity>
+                    </Pressable>
                     );
                   })}
                 </View>
@@ -1771,138 +2466,152 @@ export default function GrammarExercisesScreen() {
 
                 {isDesktopWeb ? (
                   <View style={st.ctaRowDesktop}>
-                    <TouchableOpacity
-                      style={[
-                        st.primaryBtn,
-                        st.primaryBtnDesktop,
-                        st.ctaButtonDesktop,
-                        (result === "correct" || result === "revealed") &&
-                          st.primaryBtnDisabled,
-                      ]}
-                      onPress={checkWordScraps}
-                      activeOpacity={
-                        result === "correct" || result === "revealed" ? 1 : 0.85
-                      }
-                      disabled={result === "correct" || result === "revealed"}
-                    >
-                      <Text style={st.primaryBtnText}>Check Answer</Text>
-                    </TouchableOpacity>
-
                     {result === "revealed" ? (
-                      <TouchableOpacity
-                        style={[
-                          st.primaryBtn,
-                          st.secondaryBtn,
-                          st.primaryBtnDesktop,
-                          st.ctaButtonDesktop,
-                        ]}
-                        onPress={continueToNextRound}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                          Continue
-                        </Text>
-                      </TouchableOpacity>
+                      <>
+                        <Pressable
+                          style={({ hovered, pressed }) => [
+                            st.primaryBtn,
+                            st.secondaryBtn,
+                            st.primaryBtnDesktop,
+                            st.ctaButtonDesktop,
+                            getInteractiveStateStyle("light", hovered, pressed),
+                          ]}
+                          onPress={continueToNextRound}
+                        >
+                          <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                            Continue
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={({ hovered, pressed }) => [
+                            st.primaryBtn,
+                            st.secondaryBtn,
+                            st.primaryBtnDesktop,
+                            st.ctaButtonDesktop,
+                            sentenceExplanationLoading && st.primaryBtnDisabled,
+                            getInteractiveStateStyle(
+                              "light",
+                              hovered,
+                              pressed,
+                              sentenceExplanationLoading,
+                            ),
+                          ]}
+                          onPress={() => {
+                            void requestSentenceExplanation();
+                          }}
+                          disabled={sentenceExplanationLoading}
+                        >
+                          <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                            {sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                          </Text>
+                        </Pressable>
+                      </>
                     ) : null}
 
                     {result !== "correct" && result !== "revealed" ? (
-                      <TouchableOpacity
-                        style={[
+                      <Pressable
+                        style={({ hovered, pressed }) => [
                           st.primaryBtn,
                           st.secondaryBtn,
                           st.primaryBtnDesktop,
                           st.ctaButtonDesktop,
+                          getInteractiveStateStyle("light", hovered, pressed),
                         ]}
                         onPress={revealWordScrapsAnswer}
-                        activeOpacity={0.85}
                       >
                         <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
                           Show answer
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ) : null}
 
                     {result !== "correct" && result !== "revealed" ? (
-                      <TouchableOpacity
-                        style={[
+                      <Pressable
+                        style={({ hovered, pressed }) => [
                           st.primaryBtn,
                           st.secondaryBtn,
                           st.primaryBtnDesktop,
                           st.ctaButtonDesktop,
+                          getInteractiveStateStyle("light", hovered, pressed),
                         ]}
                         onPress={continueToNextRound}
-                        activeOpacity={0.85}
                       >
                         <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
                           Skip
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ) : null}
                   </View>
                 ) : (
                   <>
-                    <TouchableOpacity
-                      style={[
-                        st.primaryBtn,
-                        isDesktopWeb && st.primaryBtnDesktop,
-                        (result === "correct" || result === "revealed") &&
-                          st.primaryBtnDisabled,
-                      ]}
-                      onPress={checkWordScraps}
-                      activeOpacity={
-                        result === "correct" || result === "revealed" ? 1 : 0.85
-                      }
-                      disabled={result === "correct" || result === "revealed"}
-                    >
-                      <Text style={st.primaryBtnText}>Check Answer</Text>
-                    </TouchableOpacity>
-
                     {result === "revealed" && (
-                      <TouchableOpacity
-                        style={[
-                          st.primaryBtn,
-                          st.secondaryBtn,
-                          isDesktopWeb && st.primaryBtnDesktop,
-                        ]}
-                        onPress={continueToNextRound}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                          Continue
-                        </Text>
-                      </TouchableOpacity>
+                      <View style={st.revealedActionRow}>
+                        <Pressable
+                          style={({ hovered, pressed }) => [
+                            st.primaryBtn,
+                            st.secondaryBtn,
+                            st.revealedActionButton,
+                            isDesktopWeb && st.primaryBtnDesktop,
+                            getInteractiveStateStyle("light", hovered, pressed),
+                          ]}
+                          onPress={continueToNextRound}
+                        >
+                          <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                            Continue
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={({ hovered, pressed }) => [
+                            st.primaryBtn,
+                            st.secondaryBtn,
+                            st.revealedActionButton,
+                            isDesktopWeb && st.primaryBtnDesktop,
+                            sentenceExplanationLoading && st.primaryBtnDisabled,
+                            getInteractiveStateStyle(
+                              "light",
+                              hovered,
+                              pressed,
+                              sentenceExplanationLoading,
+                            ),
+                          ]}
+                          onPress={() => {
+                            void requestSentenceExplanation();
+                          }}
+                          disabled={sentenceExplanationLoading}
+                        >
+                          <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                            {sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                          </Text>
+                        </Pressable>
+                      </View>
                     )}
 
                     {result !== "correct" && result !== "revealed" && (
-                      <TouchableOpacity
-                        style={[
-                          st.primaryBtn,
-                          st.secondaryBtn,
-                          isDesktopWeb && st.primaryBtnDesktop,
-                        ]}
-                        onPress={revealWordScrapsAnswer}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                          Show answer
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                      <View style={st.mobilePrimaryActionStack}>
+                        <Pressable
+                          style={({ hovered, pressed }) => [
+                            st.primaryBtn,
+                            st.secondaryBtn,
+                            st.mobilePrimaryActionButton,
+                            getInteractiveStateStyle("light", hovered, pressed),
+                          ]}
+                          onPress={revealWordScrapsAnswer}
+                        >
+                          <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                            Show answer
+                          </Text>
+                        </Pressable>
 
-                    {result !== "correct" && result !== "revealed" && (
-                      <TouchableOpacity
-                        style={[
-                          st.primaryBtn,
-                          st.secondaryBtn,
-                          isDesktopWeb && st.primaryBtnDesktop,
-                        ]}
-                        onPress={continueToNextRound}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                          Skip
-                        </Text>
-                      </TouchableOpacity>
+                        <Pressable
+                          style={({ pressed }) => [
+                            st.mobileInlineActionButton,
+                            pressed && st.mobileInlineActionButtonPressed,
+                          ]}
+                          onPress={continueToNextRound}
+                        >
+                          <Text style={st.mobileInlineActionText}>Skip</Text>
+                        </Pressable>
+                      </View>
                     )}
                   </>
                 )}
@@ -1919,11 +2628,22 @@ export default function GrammarExercisesScreen() {
                       isDesktopWeb && st.promptCardDesktopCompact,
                     ]}
                   >
-                  <Text style={st.promptLabel}>CHOOSE THE SENTENCE FOR</Text>
-                  <Text style={st.promptText}>{translation}</Text>
+                    <View
+                      style={[
+                        st.promptCardHeaderRow,
+                        isDesktopWeb && st.promptCardHeaderRowDesktop,
+                      ]}
+                    >
+                      <View style={st.promptCardTextBlock}>
+                        <Text style={st.promptLabel}>CHOOSE THE SENTENCE FOR</Text>
+                        <Text style={st.promptText}>{translation}</Text>
+                      </View>
+                    </View>
                   </View>
 
-                  <Text style={st.matchHelperText}>Select the correct answer</Text>
+                  {isDesktopWeb ? (
+                    <Text style={st.matchHelperText}>Select the correct answer</Text>
+                  ) : null}
 
                   <View style={[st.matchList, isDesktopWeb && st.matchListDesktop]}>
                   {matchOptions.map((opt, idx) => {
@@ -1936,15 +2656,17 @@ export default function GrammarExercisesScreen() {
                     );
 
                     let borderColor = Sketch.inkFaint;
-                    let bgColor = Sketch.cardBg;
+                    let bgColor = AppSketch.surface;
+                    let optionBorderWidth = 1;
 
                     if (matchRevealed) {
                       if (isCorrect) {
                         borderColor = EXERCISE_FEEDBACK_COLORS.correct.border;
-                        bgColor = EXERCISE_FEEDBACK_COLORS.correct.tint;
+                        bgColor = AppSketch.surface;
+                        optionBorderWidth = 2;
                       } else if (result === "revealed") {
                         borderColor = Sketch.inkFaint;
-                        bgColor = Sketch.cardBg;
+                        bgColor = AppSketch.surface;
                       } else if (isSelected && !isCorrect) {
                         borderColor = EXERCISE_FEEDBACK_COLORS.incorrect.border;
                         bgColor = EXERCISE_FEEDBACK_COLORS.incorrect.tint;
@@ -1953,13 +2675,11 @@ export default function GrammarExercisesScreen() {
                       }
                     } else if (isSelected) {
                       borderColor = MUTED_FEEDBACK_ACCENTS.selectedBorder;
-                      bgColor = Sketch.cardBg;
+                      bgColor = AppSketch.surface;
                     }
 
                     const sentenceBgColor = isCorrect && matchRevealed
-                      ? isDesktopWeb
-                        ? EXERCISE_FEEDBACK_COLORS.correct.tint
-                        : "transparent"
+                      ? "transparent"
                       : result === "revealed" && matchRevealed
                         ? isDesktopWeb
                           ? Sketch.cardBg
@@ -1984,7 +2704,11 @@ export default function GrammarExercisesScreen() {
                         style={[
                           st.optionCard,
                           isDesktopWeb && st.optionCardDesktop,
-                          { borderColor, backgroundColor: bgColor },
+                          {
+                            borderColor,
+                            backgroundColor: bgColor,
+                            borderWidth: optionBorderWidth,
+                          },
                         ]}
                       >
                         <View
@@ -2004,14 +2728,15 @@ export default function GrammarExercisesScreen() {
                             activeOpacity={matchRevealed ? 1 : 0.85}
                             disabled={matchRevealed}
                           >
-                            <Text
-                              style={[
-                                st.matchSentenceText,
-                                isDesktopWeb && st.matchSentenceTextDesktop,
-                              ]}
-                            >
-                              {opt.breakdown.length > 0
-                                ? opt.breakdown.map((item, itemIndex) => (
+                            {opt.breakdown.length > 0 ? (
+                              isDesktopWeb ? (
+                                <Text
+                                  style={[
+                                    st.matchSentenceText,
+                                    isDesktopWeb && st.matchSentenceTextDesktop,
+                                  ]}
+                                >
+                                  {opt.breakdown.map((item, itemIndex) => (
                                     <ToneThaiText
                                       key={`${idx}-${itemIndex}-${item.thai}`}
                                       thai={item.thai}
@@ -2021,9 +2746,24 @@ export default function GrammarExercisesScreen() {
                                       }
                                       displayThaiSegments={item.displayThaiSegments}
                                     />
-                                  ))
-                                : opt.thai}
-                            </Text>
+                                  ))}
+                                </Text>
+                              ) : (
+                                <BreakdownToneText
+                                  breakdown={opt.breakdown}
+                                  style={st.matchSentenceText}
+                                />
+                              )
+                            ) : (
+                              <Text
+                                style={[
+                                  st.matchSentenceText,
+                                  isDesktopWeb && st.matchSentenceTextDesktop,
+                                ]}
+                              >
+                                {opt.thai}
+                              </Text>
+                            )}
                             {showRoman && opt.romanization ? (
                               <Text
                                 style={[
@@ -2037,36 +2777,48 @@ export default function GrammarExercisesScreen() {
                             ) : null}
                           </TouchableOpacity>
                           <View style={st.matchOptionControls}>
-                            <TouchableOpacity
-                              style={[
+                            <Pressable
+                              style={({ hovered, pressed }) => [
                                 st.matchExpandButton,
                                 isExpanded && st.matchExpandButtonActive,
+                                getInteractiveStateStyle("light", hovered, pressed),
                               ]}
                               onPress={() => toggleMatchOptionExpanded(idx)}
-                              activeOpacity={0.8}
                             >
                               <Ionicons
                                 name={isExpanded ? "chevron-up" : "chevron-down"}
                                 size={18}
                                 color={isExpanded ? Sketch.ink : Sketch.inkLight}
                               />
-                            </TouchableOpacity>
+                            </Pressable>
                           </View>
                         </View>
 
                         {isExpanded && (
                           <View style={st.matchDetailsPanel}>
-                            <View style={st.matchTileRow}>
+                            <View
+                              style={[
+                                st.matchTileRow,
+                                isDesktopWeb && st.matchTileRowDesktopCentered,
+                              ]}
+                            >
                                 {opt.breakdown.map((w, wi) => (
                                   canPlayBreakdownTiles ? (
-                                    <TouchableOpacity
+                                    <BreakdownTilePressable
                                       key={wi}
-                                      style={[
+                                      style={({ hovered, pressed }) => [
                                         st.matchWordTile,
                                         isDesktopWeb && st.matchWordTileDesktop,
+                                        !isDesktopWeb && pressed
+                                          ? st.matchWordTilePressed
+                                          : null,
+                                        getInteractiveStateStyle(
+                                          "light",
+                                          hovered,
+                                          pressed,
+                                        ),
                                       ]}
                                       onPress={() => playBreakdownWord(w.thai)}
-                                      activeOpacity={0.8}
                                     >
                                     <View
                                       style={[
@@ -2075,14 +2827,25 @@ export default function GrammarExercisesScreen() {
                                           st.matchWordTileHeaderDesktop,
                                       ]}
                                     >
-                                      <ToneThaiText
-                                        thai={w.thai}
-                                        tones={getBreakdownTones(w)}
-                                        romanization={optRomanTokens[wi]}
-                                        displayThaiSegments={w.displayThaiSegments}
-                                        style={st.matchWordTileThai}
-                                        fallbackColor={Sketch.ink}
-                                      />
+                                      {isDesktopWeb ? (
+                                        <ToneThaiText
+                                          thai={w.thai}
+                                          tones={getBreakdownTones(w)}
+                                          romanization={optRomanTokens[wi]}
+                                          displayThaiSegments={w.displayThaiSegments}
+                                          style={st.matchWordTileThai}
+                                          fallbackColor={Sketch.ink}
+                                        />
+                                      ) : (
+                                        <ToneThaiText
+                                          thai={w.thai}
+                                          tones={getBreakdownTones(w)}
+                                          romanization={optRomanTokens[wi]}
+                                          displayThaiSegments={w.displayThaiSegments}
+                                          style={st.matchWordTileThai}
+                                          fallbackColor={Sketch.ink}
+                                        />
+                                      )}
                                       <ToneDots
                                         tones={getBreakdownTones(w)}
                                         style={st.toneDots}
@@ -2098,7 +2861,7 @@ export default function GrammarExercisesScreen() {
                                         {w.english.toUpperCase()}
                                       </Text>
                                     )}
-                                  </TouchableOpacity>
+                                  </BreakdownTilePressable>
                                 ) : (
                                   <View
                                     key={wi}
@@ -2114,14 +2877,25 @@ export default function GrammarExercisesScreen() {
                                           st.matchWordTileHeaderDesktop,
                                       ]}
                                     >
-                                      <ToneThaiText
-                                        thai={w.thai}
-                                        tones={getBreakdownTones(w)}
-                                        romanization={optRomanTokens[wi]}
-                                        displayThaiSegments={w.displayThaiSegments}
-                                        style={st.matchWordTileThai}
-                                        fallbackColor={Sketch.ink}
-                                      />
+                                      {isDesktopWeb ? (
+                                        <ToneThaiText
+                                          thai={w.thai}
+                                          tones={getBreakdownTones(w)}
+                                          romanization={optRomanTokens[wi]}
+                                          displayThaiSegments={w.displayThaiSegments}
+                                          style={st.matchWordTileThai}
+                                          fallbackColor={Sketch.ink}
+                                        />
+                                      ) : (
+                                        <ToneThaiText
+                                          thai={w.thai}
+                                          tones={getBreakdownTones(w)}
+                                          romanization={optRomanTokens[wi]}
+                                          displayThaiSegments={w.displayThaiSegments}
+                                          style={st.matchWordTileThai}
+                                          fallbackColor={Sketch.ink}
+                                        />
+                                      )}
                                       <ToneDots
                                         tones={getBreakdownTones(w)}
                                         style={st.toneDots}
@@ -2181,67 +2955,145 @@ export default function GrammarExercisesScreen() {
                   </View>
                 )}
 
-                  <View style={st.availableWordsHeader}>
-                    <View />
-                    <ToneGuideButton onPress={() => setToneGuideVisible(true)} />
-                  </View>
+                  {!isDesktopWeb ? <View style={st.availableWordsHeader}><View /></View> : null}
                 </View>
 
                 {matchRevealed && (result === "wrong" || result === "revealed") && (
-                  <TouchableOpacity
-                    style={[
-                      st.primaryBtn,
-                      st.secondaryBtn,
-                      isDesktopWeb && st.primaryBtnDesktop,
-                    ]}
-                    onPress={continueToNextRound}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                      Continue
-                    </Text>
-                  </TouchableOpacity>
+                  isDesktopWeb ? (
+                    <View style={st.ctaRowDesktop}>
+                      <Pressable
+                        style={({ hovered, pressed }) => [
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.primaryBtnDesktop,
+                          st.ctaButtonDesktop,
+                          getInteractiveStateStyle("light", hovered, pressed),
+                        ]}
+                        onPress={continueToNextRound}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Continue
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ hovered, pressed }) => [
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.primaryBtnDesktop,
+                          st.ctaButtonDesktop,
+                          sentenceExplanationLoading && st.primaryBtnDisabled,
+                          getInteractiveStateStyle(
+                            "light",
+                            hovered,
+                            pressed,
+                            sentenceExplanationLoading,
+                          ),
+                        ]}
+                        onPress={() => {
+                          void requestSentenceExplanation();
+                        }}
+                        disabled={sentenceExplanationLoading}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          {sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <View style={st.revealedActionRow}>
+                      <Pressable
+                        style={({ hovered, pressed }) => [
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.revealedActionButton,
+                          getInteractiveStateStyle("light", hovered, pressed),
+                        ]}
+                        onPress={continueToNextRound}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Continue
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ hovered, pressed }) => [
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          st.revealedActionButton,
+                          sentenceExplanationLoading && st.primaryBtnDisabled,
+                          getInteractiveStateStyle(
+                            "light",
+                            hovered,
+                            pressed,
+                            sentenceExplanationLoading,
+                          ),
+                        ]}
+                        onPress={() => {
+                          void requestSentenceExplanation();
+                        }}
+                        disabled={sentenceExplanationLoading}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          {sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )
                 )}
 
                 {!matchRevealed && (
                   <View
                     style={[
+                      !isDesktopWeb && st.mobilePrimaryActionStack,
                       st.matchActionRow,
                       isDesktopWeb && st.matchActionRowDesktop,
                     ]}
                   >
-                    <TouchableOpacity
-                      style={[
+                    <Pressable
+                      style={({ hovered, pressed }) => [
                         st.primaryBtn,
                         st.secondaryBtn,
+                        !isDesktopWeb && st.mobilePrimaryActionButton,
                         isDesktopWeb && st.primaryBtnDesktop,
                         isDesktopWeb && st.matchActionButtonDesktop,
+                        getInteractiveStateStyle("light", hovered, pressed),
                       ]}
                       onPress={revealMatchAnswer}
-                      activeOpacity={0.85}
                     >
                       <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
                         Show answer
                       </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        st.primaryBtn,
-                        st.secondaryBtn,
-                        isDesktopWeb && st.primaryBtnDesktop,
-                        isDesktopWeb && st.matchActionButtonDesktop,
-                      ]}
-                      onPress={continueToNextRound}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
-                        Skip
-                      </Text>
-                    </TouchableOpacity>
+                    </Pressable>
+                    {isDesktopWeb ? (
+                      <Pressable
+                        style={({ hovered, pressed }) => [
+                          st.primaryBtn,
+                          st.secondaryBtn,
+                          isDesktopWeb && st.primaryBtnDesktop,
+                          isDesktopWeb && st.matchActionButtonDesktop,
+                          getInteractiveStateStyle("light", hovered, pressed),
+                        ]}
+                        onPress={continueToNextRound}
+                      >
+                        <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                          Skip
+                        </Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        style={({ pressed }) => [
+                          st.mobileInlineActionButton,
+                          pressed && st.mobileInlineActionButtonPressed,
+                        ]}
+                        onPress={continueToNextRound}
+                      >
+                        <Text style={st.mobileInlineActionText}>Skip</Text>
+                      </Pressable>
+                    )}
                   </View>
                 )}
               </View>
             )}
+              {!isDesktopWeb ? renderLessonUtilities() : null}
               </View>
               {isDesktopWeb ? practiceControls : null}
             </View>
@@ -2250,11 +3102,115 @@ export default function GrammarExercisesScreen() {
         </View>
       </ScrollView>
 
-      <ToneGuide
-        visible={toneGuideVisible}
-        onClose={() => setToneGuideVisible(false)}
+      <Modal
+        visible={sentenceReportOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSentenceReportOpen(false)}
+      >
+        <Pressable
+          style={st.reportModalBackdrop}
+          onPress={() => setSentenceReportOpen(false)}
+        >
+          <Pressable style={st.reportModalCard} onPress={() => {}}>
+            <View style={st.reportModalHeader}>
+              <Text style={st.reportModalTitle}>Report sentence issue</Text>
+              <Pressable
+                onPress={() => setSentenceReportOpen(false)}
+                style={({ hovered, pressed }) => [
+                  st.reportModalClose,
+                  getInteractiveStateStyle("light", hovered, pressed),
+                ]}
+              >
+                <Ionicons name="close" size={18} color={Sketch.ink} />
+              </Pressable>
+            </View>
+
+            {!sentenceReportSent ? (
+              <TextInput
+                ref={sentenceReportInputRef}
+                value={sentenceReportDraft}
+                onChangeText={setSentenceReportDraft}
+                  placeholder="Example: Tone color is wrong, audio doesn't match, or translation is unnatural."
+                placeholderTextColor="#8D8D8D"
+                style={st.reportModalInput}
+                editable={!sentenceReportBusy}
+                multiline
+                textAlignVertical="top"
+              />
+            ) : null}
+
+            {sentenceReportStatus ? (
+              <Text
+                style={[
+                  st.sentenceReportStatus,
+                  sentenceReportStatus.kind === "success" &&
+                    st.sentenceReportStatusSuccess,
+                  sentenceReportStatus.kind === "error" &&
+                    st.sentenceReportStatusError,
+                ]}
+              >
+                {sentenceReportStatus.message}
+              </Text>
+            ) : null}
+
+            <View style={st.reportModalActions}>
+              <Pressable
+                onPress={() => setSentenceReportOpen(false)}
+                disabled={sentenceReportBusy}
+                style={({ hovered, pressed }) => [
+                  st.reportModalSecondaryButton,
+                  getInteractiveStateStyle(
+                    "light",
+                    hovered,
+                    pressed,
+                    sentenceReportBusy,
+                  ),
+                ]}
+              >
+                <Text style={st.reportModalSecondaryButtonText}>
+                  {sentenceReportSent ? "Close" : "Cancel"}
+                </Text>
+              </Pressable>
+              {!sentenceReportSent ? (
+                <Pressable
+                  onPress={() => {
+                    void submitSentenceReport();
+                  }}
+                  disabled={sentenceReportBusy}
+                  style={({ hovered, pressed }) => [
+                    st.reportModalSendButton,
+                    getInteractiveStateStyle(
+                      "navy",
+                      hovered,
+                      pressed,
+                      sentenceReportBusy,
+                    ),
+                  ]}
+                >
+                  <Text style={st.reportModalSendButtonText}>
+                    {sentenceReportBusy ? "Sending..." : "Send"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <SentenceExplanationModal
+        visible={sentenceExplanationOpen}
+        loading={sentenceExplanationLoading}
+        error={sentenceExplanationError}
+        explanation={sentenceExplanation}
+        onClose={() => setSentenceExplanationOpen(false)}
       />
     </SafeAreaView>
+  );
+  return isDesktopWeb ? (
+    <DesktopAppShell>{exerciseScreen}</DesktopAppShell>
+  ) : (
+    exerciseScreen
   );
 }
 
@@ -2268,7 +3224,7 @@ const st = StyleSheet.create({
   },
   pageFrameDesktop: {
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.wide,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     paddingHorizontal: 12,
   },
@@ -2296,8 +3252,11 @@ const st = StyleSheet.create({
   },
 
   methodsPanel: {
+    width: "100%",
+  },
+  methodsPanelMobile: {
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 10,
   },
   methodsPanelDesktop: {
     width: "100%",
@@ -2314,25 +3273,38 @@ const st = StyleSheet.create({
     },
   methodsCard: {
     gap: 14,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderWidth: 1,
-    borderColor: "#E6E1D8",
+    borderColor: AppSketch.border,
     borderRadius: AppRadius.lg,
     padding: 16,
-    ...sketchShadow(1),
+    boxShadow: WEB_CARD_SHADOW as any,
+    overflow: "visible",
+    position: "relative",
+    zIndex: 1,
   },
-  methodsCardDesktop: {
-    padding: 18,
+  methodsCardMobile: {
+    padding: 14,
+    gap: 10,
   },
   methodsCardSidebarDesktop: {
     gap: 12,
     padding: 14,
+    zIndex: 20,
   },
   methodsHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 16,
+    position: "relative",
+    zIndex: 4,
+    overflow: "visible",
+  },
+  methodsHeaderRowMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 0,
   },
   methodsHeaderRowSidebar: {
     flexDirection: "column",
@@ -2348,16 +3320,25 @@ const st = StyleSheet.create({
     fontWeight: "600",
     color: Sketch.inkMuted,
     letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
   },
   methodsSubcopy: {
     fontSize: 13,
     lineHeight: 18,
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   methodsActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    position: "relative",
+    zIndex: 5,
+    overflow: "visible",
+  },
+  methodsActionsMobile: {
+    width: "100%",
+    justifyContent: "flex-end",
   },
   methodsActionsSidebar: {
     justifyContent: "space-between",
@@ -2368,11 +3349,15 @@ const st = StyleSheet.create({
     fontSize: 12,
     color: Sketch.inkMuted,
     fontWeight: "500",
+    fontFamily: WEB_BODY_FONT,
   },
   methodsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  methodsRowMobile: {
+    gap: 8,
   },
   methodsRowDesktopSidebar: {
     flexDirection: "column",
@@ -2385,10 +3370,18 @@ const st = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#DED8CE",
+    borderColor: AppSketch.border,
     borderRadius: AppRadius.md,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  methodChipMobile: {
+    flex: 0,
+    flexBasis: "31%",
+    minWidth: 0,
+    paddingHorizontal: 10,
   },
   methodChipDesktop: {
     cursor: "pointer",
@@ -2399,18 +3392,22 @@ const st = StyleSheet.create({
     flex: 0,
   },
   methodChipCurrent: {
-    borderColor: CONTROL_PANEL_ACCENT.border,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   methodChipDisabled: {
-    backgroundColor: Sketch.paper,
-    borderColor: "#E6E1D8",
+    backgroundColor: AppSketch.surface,
+    borderColor: AppSketch.border,
+    opacity: 0.6,
   },
   methodChipRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+  },
+  methodChipRowMobile: {
+    justifyContent: "center",
   },
   methodChipCopy: {
     flex: 1,
@@ -2420,11 +3417,16 @@ const st = StyleSheet.create({
     fontSize: 11,
     color: Sketch.inkMuted,
     fontWeight: "500",
+    fontFamily: WEB_BODY_FONT,
   },
   methodChipLabel: {
     fontSize: 14,
     fontWeight: "700",
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
+  },
+  methodChipLabelMobile: {
+    textAlign: "center",
   },
   methodChipLabelCurrent: {
     color: Sketch.accentDark,
@@ -2458,8 +3460,8 @@ const st = StyleSheet.create({
     height: 24,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#D8D4CE",
-    backgroundColor: "#E7E4DF",
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.borderLight,
     paddingHorizontal: 2,
     justifyContent: "center",
   },
@@ -2469,7 +3471,7 @@ const st = StyleSheet.create({
     alignItems: "flex-end",
   },
   methodTogglePending: {
-    borderColor: "#D8D4CE",
+    borderColor: AppSketch.border,
   },
   methodToggleKnob: {
     width: 18,
@@ -2477,7 +3479,7 @@ const st = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D8D4CE",
+    borderColor: AppSketch.border,
   },
   methodToggleKnobOn: {
     backgroundColor: "#FFFFFF",
@@ -2485,7 +3487,7 @@ const st = StyleSheet.create({
   },
   methodToggleKnobPending: {
     backgroundColor: "#FFFFFF",
-    borderColor: "#D8D4CE",
+    borderColor: AppSketch.border,
   },
   methodsNote: {
     fontSize: 12,
@@ -2505,7 +3507,13 @@ const st = StyleSheet.create({
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Sketch.inkFaint,
+    borderTopColor: AppSketch.border,
+  },
+  displayRowMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    justifyContent: "flex-start",
+    gap: 10,
   },
   displayRowDesktop: {
     alignItems: "center",
@@ -2520,6 +3528,7 @@ const st = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   displayChipRow: {
     flexDirection: "row",
@@ -2527,6 +3536,11 @@ const st = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 8,
     flex: 1,
+  },
+  displayChipRowMobile: {
+    justifyContent: "flex-start",
+    width: "100%",
+    flex: 0,
   },
   displayChipRowSidebarDesktop: {
     width: "100%",
@@ -2541,10 +3555,16 @@ const st = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     borderRadius: AppRadius.md,
-    backgroundColor: Sketch.paper,
+    backgroundColor: AppSketch.surface,
     justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  displayChipMobile: {
+    flex: 1,
+    minWidth: 0,
   },
   displayChipDesktop: {
     cursor: "pointer",
@@ -2561,23 +3581,26 @@ const st = StyleSheet.create({
     width: "100%",
     minHeight: 44,
     borderWidth: 1,
-    borderColor: "#DED8CE",
+    borderColor: AppSketch.border,
     borderRadius: AppRadius.md,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   displayOptionRowActive: {
-    borderColor: CONTROL_PANEL_ACCENT.border,
+    borderColor: AppSketch.border,
   },
   displayOptionLabel: {
     fontSize: 13,
     fontWeight: "600",
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   displayOptionLabelActive: {
     color: Sketch.ink,
@@ -2587,8 +3610,8 @@ const st = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#D8D4CE",
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2597,13 +3620,14 @@ const st = StyleSheet.create({
     backgroundColor: CONTROL_PANEL_ACCENT.fill,
   },
   displayChipActive: {
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
   },
   displayChipText: {
     fontSize: 12,
     fontWeight: "600",
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   displayChipTextActive: {
     color: Sketch.accentDark,
@@ -2612,8 +3636,13 @@ const st = StyleSheet.create({
     marginTop: 12,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: "#E6E1D8",
+    borderTopColor: AppSketch.border,
     gap: 12,
+  },
+  lessonMetaSectionMobile: {
+    marginTop: 0,
+    paddingTop: 0,
+    borderTopWidth: 0,
   },
   lessonMetaHeader: {
     gap: 2,
@@ -2624,43 +3653,89 @@ const st = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: "uppercase",
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonMetaHint: {
     fontSize: 12,
     fontWeight: "500",
     color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
   },
   trackerRow: {
     flexDirection: "row",
     gap: 10,
   },
+  trackerRowMobileCompact: {
+    gap: 8,
+  },
+  mobileLessonUtilitiesWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    gap: 10,
+  },
+  mobileLessonUtilitiesCard: {
+    backgroundColor: AppSketch.surface,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.lg,
+    padding: 14,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
   trackerCard: {
     flex: 1,
-    backgroundColor: Sketch.paper,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     paddingVertical: 12,
     paddingHorizontal: 12,
     alignItems: "center",
     gap: 4,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  trackerCardMobileCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    gap: 2,
   },
   trackerValue: {
     fontSize: 24,
     fontWeight: "800",
     color: Sketch.accentDark,
+    fontFamily: WEB_DISPLAY_FONT,
+  },
+  trackerValueMobileCompact: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   trackerCaption: {
     fontSize: 12,
     fontWeight: "600",
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
+  },
+  trackerCaptionMobileCompact: {
+    fontSize: 11,
   },
   lessonMetaDivider: {
     height: 1,
-    backgroundColor: "#E6E1D8",
+    backgroundColor: AppSketch.border,
   },
   lessonNavExerciseRow: {
     gap: 10,
+  },
+  lessonNavExerciseRowMobile: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  lessonNavExerciseRowMobileCompact: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
+  },
+  lessonNavExerciseRowDesktop: {
+    flexDirection: "row",
+    alignItems: "stretch",
   },
   lessonNavExerciseButton: {
     gap: 6,
@@ -2668,18 +3743,34 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  lessonNavExerciseButtonMobile: {
+    flex: 1,
+    minWidth: 0,
+  },
+  lessonNavExerciseButtonMobileCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  lessonNavExerciseButtonDesktop: {
+    flex: 1,
   },
   lessonNavExerciseButtonDisabled: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
+    opacity: 0.6,
   },
   lessonNavExerciseLabel: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: Sketch.accent,
+    color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonNavExerciseLabelDisabled: {
     color: Sketch.inkMuted,
@@ -2689,6 +3780,21 @@ const st = StyleSheet.create({
     fontWeight: "600",
     lineHeight: 18,
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
+  },
+  lessonNavExerciseCompactLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    letterSpacing: 0.5,
+    fontFamily: WEB_BODY_FONT,
+  },
+  lessonNavExerciseCompactTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+    color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonNavExerciseTitleDisabled: {
     color: Sketch.inkMuted,
@@ -2698,6 +3804,9 @@ const st = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 4,
+    position: "relative",
+    zIndex: 8,
+    overflow: "visible",
   },
   modeHeaderDesktop: {
     width: "100%",
@@ -2733,20 +3842,63 @@ const st = StyleSheet.create({
     color: Sketch.ink,
     letterSpacing: -0.2,
   },
+  modeTitleMobile: {
+    flex: 1,
+    minWidth: 0,
+  },
   modeTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+    position: "relative",
+    zIndex: 9,
+    overflow: "visible",
+  },
+  modeTitleRowMobile: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  modeHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  },
+  modeHeaderActionsMobile: {
+    width: "auto",
+    justifyContent: "flex-end",
+    gap: 8,
   },
   lessonShortcut: {
     paddingVertical: 2,
+  },
+  lessonShortcutMobile: {
+    minHeight: 40,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   lessonShortcutText: {
     fontSize: 13,
     fontWeight: "700",
     color: Sketch.accentDark,
     letterSpacing: 0.1,
+  },
+  lessonShortcutTextMobile: {
+    color: Sketch.ink,
+  },
+  modeHeaderLessonShortcutMobile: {
+    alignSelf: "flex-start",
+    marginTop: 10,
   },
   exerciseWrap: {
     paddingHorizontal: 20,
@@ -2871,6 +4023,11 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
+  studyExampleHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   studyExampleEyebrow: {
     fontSize: 11,
     fontWeight: "600",
@@ -2947,6 +4104,9 @@ const st = StyleSheet.create({
     gap: 12,
     justifyContent: "flex-start",
   },
+  tileRowDesktopCentered: {
+    justifyContent: "center",
+  },
   matchTileRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -2954,23 +4114,31 @@ const st = StyleSheet.create({
     alignSelf: "stretch",
     justifyContent: "flex-start",
   },
+  matchTileRowDesktopCentered: {
+    justifyContent: "center",
+  },
   wordTile: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: AppRadius.md,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignItems: "flex-start",
     alignSelf: "flex-start",
     minWidth: 64,
     maxWidth: "100%",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   wordTileDesktop: {
     minWidth: 128,
     paddingVertical: 12,
     paddingHorizontal: 16,
     cursor: "pointer",
+  },
+  wordTilePressed: {
+    ...LIGHT_BUTTON_PRESSED,
   },
   wordTileUsed: {
     opacity: 0.38,
@@ -2986,18 +4154,21 @@ const st = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
     flexShrink: 1,
+    fontFamily: WEB_THAI_FONT,
   },
   matchWordTile: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: AppRadius.md,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     paddingVertical: 8,
     paddingHorizontal: 10,
     alignItems: "flex-start",
     alignSelf: "flex-start",
     minWidth: 0,
     maxWidth: "100%",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   matchWordTileDesktop: {
     minWidth: 92,
@@ -3005,6 +4176,9 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: "center",
     cursor: "pointer",
+  },
+  matchWordTilePressed: {
+    ...LIGHT_BUTTON_PRESSED,
   },
   matchWordTileHeader: {
     flexDirection: "row",
@@ -3020,6 +4194,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
     color: Sketch.ink,
     flexShrink: 1,
+    fontFamily: WEB_THAI_FONT,
   },
   matchWordTileRoman: {
     fontSize: 9,
@@ -3066,13 +4241,15 @@ const st = StyleSheet.create({
   },
 
   primaryBtn: {
-    backgroundColor: Sketch.accent,
+    backgroundColor: AppSketch.primary,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.accent,
+    borderColor: AppSketch.primaryDark,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   primaryBtnDesktop: {
     alignSelf: "flex-start",
@@ -3087,22 +4264,33 @@ const st = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
     letterSpacing: 0.1,
+    fontFamily: WEB_BODY_FONT,
   },
   secondaryBtn: {
-    backgroundColor: Sketch.cardBg,
-    borderColor: Sketch.inkFaint,
+    backgroundColor: AppSketch.surface,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  webInteractivePressed: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+  },
+  webLightInteractivePressed: {
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  webNavyInteractivePressed: {
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   secondaryBtnText: {
-    color: Sketch.inkLight,
+    color: Sketch.ink,
   },
   promptCard: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    ...sketchShadow(2),
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   promptCardDesktop: {
     width: "100%",
@@ -3117,6 +4305,29 @@ const st = StyleSheet.create({
     alignSelf: "stretch",
     paddingVertical: 18,
     paddingHorizontal: 18,
+    overflow: "visible",
+    position: "relative",
+    zIndex: 8,
+  },
+  promptCardHeaderRow: {
+    gap: 12,
+  },
+  promptCardHeaderRowDesktop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 20,
+    overflow: "visible",
+  },
+  promptCardTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  promptCardActionCluster: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
   },
   promptLabel: {
     fontSize: 11,
@@ -3124,21 +4335,26 @@ const st = StyleSheet.create({
     color: Sketch.inkMuted,
     letterSpacing: 1,
     marginBottom: 6,
+    fontFamily: WEB_BODY_FONT,
   },
   promptText: {
     fontSize: 17,
     fontWeight: "600",
     color: Sketch.ink,
     lineHeight: 24,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   buildCard: {
     gap: 16,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     padding: 18,
-    ...sketchShadow(2),
+    boxShadow: WEB_CARD_SHADOW as any,
+    overflow: "visible",
+    position: "relative",
+    zIndex: 1,
   },
   buildCardDesktop: {
     gap: 18,
@@ -3151,16 +4367,20 @@ const st = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
   },
   availableWordsHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+    position: "relative",
+    zIndex: 5,
+    overflow: "visible",
   },
   buildDivider: {
     height: 1,
-    backgroundColor: Sketch.inkFaint,
+    backgroundColor: AppSketch.border,
   },
 
   progressTrack: {
@@ -3178,7 +4398,7 @@ const st = StyleSheet.create({
   },
 
   builderZone: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.lg,
     minHeight: 80,
     paddingVertical: 16,
@@ -3186,7 +4406,7 @@ const st = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#D8D8D4",
+    borderColor: AppSketch.border,
   },
   builderZoneDesktop: {
     width: "100%",
@@ -3195,18 +4415,20 @@ const st = StyleSheet.create({
   builderCorrect: {
     borderColor: EXERCISE_FEEDBACK_COLORS.correct.border,
     borderStyle: "solid",
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
+    borderWidth: 2,
   },
   builderCorrectMobile: {
-    backgroundColor: EXERCISE_FEEDBACK_COLORS.correct.tint,
+    backgroundColor: AppSketch.surface,
   },
   builderRevealed: {
     borderColor: EXERCISE_FEEDBACK_COLORS.revealed.border,
     borderStyle: "solid",
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
+    borderWidth: 2,
   },
   builderRevealedMobile: {
-    backgroundColor: EXERCISE_FEEDBACK_COLORS.revealed.tint,
+    backgroundColor: AppSketch.surface,
   },
   builderWrong: {
     borderColor: EXERCISE_FEEDBACK_COLORS.incorrect.border,
@@ -3220,6 +4442,7 @@ const st = StyleSheet.create({
     fontSize: 14,
     color: Sketch.inkMuted,
     fontWeight: "500",
+    fontFamily: WEB_BODY_FONT,
   },
   builderPlaceholderResultOk: {
     color: EXERCISE_FEEDBACK_COLORS.correct.text,
@@ -3234,55 +4457,115 @@ const st = StyleSheet.create({
     fontWeight: "600",
   },
   builderWords: {
+    width: "100%",
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
+    alignSelf: "stretch",
     gap: 8,
   },
   builderWordsDesktop: {
-    justifyContent: "flex-start",
-    alignSelf: "stretch",
+    width: "100%",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  builderTile: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  builderTileLocked: {
+    backgroundColor: "#F5F5F5",
+  },
+  builderTileContent: {
+    alignItems: "center",
+    alignSelf: "center",
+  },
+  builderTileContentMuted: {
+    opacity: 0.58,
+  },
+  builderTileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  builderTileThai: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Sketch.ink,
+    textAlign: "center",
+    fontFamily: WEB_THAI_FONT,
+  },
+  builderTileRoman: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: Sketch.inkMuted,
+    opacity: 0.9,
+    marginTop: 4,
+    letterSpacing: 0.3,
+    textAlign: "center",
+    alignSelf: "center",
+  },
+  builderTileEng: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: Sketch.inkLight,
+    opacity: 0.9,
+    marginTop: 3,
+    letterSpacing: 0.5,
+    textAlign: "center",
+    alignSelf: "center",
   },
   builderChip: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: AppRadius.md,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderWidth: 1.5,
-    borderColor: Sketch.ink,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   builderChipText: {
     fontSize: 22,
     fontWeight: "800",
     color: Sketch.ink,
+    fontFamily: WEB_THAI_FONT,
   },
   builderChipLocked: {
-    backgroundColor: Sketch.paper,
-    borderRadius: AppRadius.md,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderWidth: 1.5,
-    borderColor: "#D4D4CF",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   builderChipLockedText: {
     fontSize: 22,
     fontWeight: "800",
     color: Sketch.inkMuted,
+    fontFamily: WEB_THAI_FONT,
   },
   builderSlotEmpty: {
-    backgroundColor: Sketch.paper,
-    borderRadius: AppRadius.md,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderWidth: 1.5,
-    borderColor: "#D4D4CF",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
     minWidth: 44,
     alignItems: "center" as const,
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   builderSlotEmptyText: {
     fontSize: 22,
+    lineHeight: 22,
     fontWeight: "800",
     color: Sketch.inkFaint,
+    textAlign: "center",
+    fontFamily: WEB_THAI_FONT,
   },
 
   actionRow: { flexDirection: "row", gap: 10 },
@@ -3296,6 +4579,8 @@ const st = StyleSheet.create({
     alignItems: "stretch",
     gap: 12,
     marginTop: 4,
+    position: "relative",
+    zIndex: 0,
   },
   ctaButtonDesktop: {
     flex: 1,
@@ -3304,17 +4589,20 @@ const st = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   actionBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: Sketch.inkLight,
+    color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
 
   resultBanner: {
@@ -3326,20 +4614,23 @@ const st = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
+    backgroundColor: AppSketch.surface,
   },
   resultOk: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderColor: EXERCISE_FEEDBACK_COLORS.correct.border,
+    borderWidth: 2,
   },
   resultOkMobile: {
-    backgroundColor: EXERCISE_FEEDBACK_COLORS.correct.tint,
+    backgroundColor: AppSketch.surface,
   },
   resultRevealed: {
-    backgroundColor: Sketch.cardBg,
-    borderColor: EXERCISE_FEEDBACK_COLORS.revealed.border,
+    backgroundColor: AppSketch.surface,
+    borderColor: AppSketch.border,
+    borderWidth: 1,
   },
   resultRevealedMobile: {
-    backgroundColor: EXERCISE_FEEDBACK_COLORS.revealed.tint,
+    backgroundColor: AppSketch.surface,
   },
   resultBad: {
     backgroundColor: Sketch.cardBg,
@@ -3352,12 +4643,15 @@ const st = StyleSheet.create({
 
   matchCard: {
     gap: 16,
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     padding: 18,
-    ...sketchShadow(2),
+    boxShadow: WEB_CARD_SHADOW as any,
+    overflow: "visible",
+    position: "relative",
+    zIndex: 1,
   },
   matchCardDesktop: {
     gap: 18,
@@ -3367,6 +4661,7 @@ const st = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
   },
   matchList: {
     gap: 12,
@@ -3383,13 +4678,13 @@ const st = StyleSheet.create({
     gap: 12,
   },
   optionCard: {
-    backgroundColor: Sketch.cardBg,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
     padding: 14,
     gap: 8,
-    ...sketchShadow(1),
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   optionCardDesktop: {
     width: "48.9%",
@@ -3426,6 +4721,7 @@ const st = StyleSheet.create({
     color: Sketch.ink,
     textAlign: "left",
     width: "100%",
+    fontFamily: WEB_THAI_FONT,
   },
   matchSentenceTextDesktop: {
     textAlign: "left",
@@ -3436,6 +4732,7 @@ const st = StyleSheet.create({
     color: Sketch.inkMuted,
     textAlign: "left",
     width: "100%",
+    fontFamily: WEB_BODY_FONT,
   },
   matchSentenceRomanDesktop: {
     textAlign: "left",
@@ -3451,10 +4748,12 @@ const st = StyleSheet.create({
     height: 32,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   matchExpandButtonActive: {
     borderColor: MUTED_FEEDBACK_ACCENTS.selectedBorder,
@@ -3464,16 +4763,279 @@ const st = StyleSheet.create({
     paddingTop: 10,
   },
   matchActionRow: {
+    flexDirection: "row",
     gap: 10,
+  },
+  mobilePrimaryActionStack: {
+    width: "100%",
+    alignItems: "stretch",
+    gap: 4,
+  },
+  mobilePrimaryActionButton: {
+    width: "100%",
+    alignSelf: "stretch",
+  },
+  mobileInlineActionButton: {
+    alignSelf: "center",
+    minHeight: 34,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mobileInlineActionButtonPressed: {
+    opacity: 0.55,
+  },
+  mobileInlineActionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Sketch.inkMuted,
+    letterSpacing: 0.1,
+    fontFamily: WEB_BODY_FONT,
+  },
+  secondaryActionRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  secondaryActionButton: {
+    flex: 1,
+    minWidth: 0,
+  },
+  revealedActionRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  revealedActionButton: {
+    flex: 1,
+    minWidth: 0,
   },
   matchActionRowDesktop: {
     width: "100%",
     flexDirection: "row",
     gap: 12,
+    position: "relative",
+    zIndex: 0,
   },
   matchActionButtonDesktop: {
     flex: 1,
     minWidth: 0,
+  },
+  toneGuideShell: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    zIndex: 120,
+  },
+  toneGuideStandaloneLabel: {
+    color: Sketch.inkMuted,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    fontFamily: WEB_BODY_FONT,
+    transform: [{ translateY: 1 }],
+  },
+  toneGuideInlineTriggerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    position: "relative",
+    overflow: "visible",
+  },
+  toneGuideButton: {
+    minHeight: 36,
+    borderRadius: 12,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  toneGuideHover: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  toneGuideButtonPressed: {
+    ...(Platform.OS === "web"
+      ? {
+          transform: WEB_DEPRESSED_TRANSFORM as any,
+          boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+        }
+      : LIGHT_BUTTON_PRESSED),
+  },
+  toneGuidePopover: {
+    position: "absolute",
+    top: 46,
+    right: 0,
+    zIndex: 300,
+    minWidth: 150,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+    boxShadow: "0 12px 26px rgba(16, 42, 67, 0.08)" as any,
+  },
+  toneGuideRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  toneGuidePopoverDot: {
+    borderWidth: 1,
+    borderColor: "rgba(16, 42, 67, 0.08)",
+  },
+  toneGuidePopoverText: {
+    color: Sketch.ink,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "500",
+    fontFamily: WEB_BODY_FONT,
+  },
+  sentenceReportAlertButton: {
+    width: 40,
+    height: 40,
+    minWidth: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  sentenceReportAlertText: {
+    color: Sketch.ink,
+    fontSize: 18,
+    lineHeight: 20,
+    fontWeight: "800",
+    fontFamily: WEB_DISPLAY_FONT,
+  },
+  sentenceReportStatus: {
+    color: Sketch.inkMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: WEB_BODY_FONT,
+  },
+  sentenceReportStatusSuccess: {
+    color: Sketch.ink,
+  },
+  sentenceReportStatusError: {
+    color: Sketch.inkMuted,
+  },
+  reportModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(16,42,67,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  reportModalCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 14,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  reportModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  reportModalTitle: {
+    color: Sketch.ink,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "800",
+    fontFamily: WEB_DISPLAY_FONT,
+  },
+  reportModalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  reportModalInput: {
+    minHeight: 120,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: Sketch.ink,
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: WEB_BODY_FONT,
+  },
+  reportModalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 10,
+  },
+  reportModalSecondaryButton: {
+    height: 40,
+    minHeight: 40,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  reportModalSecondaryButtonText: {
+    color: Sketch.ink,
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
+  },
+  reportModalSendButton: {
+    height: 40,
+    minHeight: 40,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: AppSketch.primaryDark,
+    backgroundColor: AppSketch.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+  },
+  reportModalSendButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
+  },
+  toneGuideDots: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  toneGuideDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 
 });

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, StyleSheet } from "react-native";
 
 import { AppSketch } from "@/constants/theme-app";
 
@@ -8,11 +9,50 @@ type AccentSwitchProps = {
   disabled?: boolean;
 };
 
+const TRACK_WIDTH = 44;
+const TRACK_HEIGHT = 24;
+const THUMB_SIZE = 18;
+const TRACK_PADDING = 2;
+const THUMB_TRAVEL = TRACK_WIDTH - THUMB_SIZE - TRACK_PADDING * 2;
+
 export default function AccentSwitch({
   value,
   onValueChange,
   disabled = false,
 }: AccentSwitchProps) {
+  const progress = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: value ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progress, value]);
+
+  const trackAnimatedStyle = {
+    backgroundColor: progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [AppSketch.border, AppSketch.primary],
+    }),
+    borderColor: progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [AppSketch.border, AppSketch.primary],
+    }),
+  };
+
+  const thumbAnimatedStyle = {
+    transform: [
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, THUMB_TRAVEL],
+        }),
+      },
+    ],
+  };
+
   return (
     <Pressable
       accessibilityRole="switch"
@@ -20,15 +60,21 @@ export default function AccentSwitch({
       disabled={disabled}
       onPress={() => onValueChange(!value)}
       style={[
-        styles.track,
-        value ? styles.trackOn : styles.trackOff,
+        styles.root,
         disabled && styles.trackDisabled,
       ]}
     >
-      <View
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.track,
+          trackAnimatedStyle,
+        ]}
+      />
+      <Animated.View
         style={[
           styles.thumb,
-          value ? styles.thumbOn : styles.thumbOff,
+          thumbAnimatedStyle,
           disabled && styles.thumbDisabled,
         ]}
       />
@@ -37,40 +83,35 @@ export default function AccentSwitch({
 }
 
 const styles = StyleSheet.create({
+  root: {
+    position: "relative",
+    width: TRACK_WIDTH,
+    height: TRACK_HEIGHT,
+  },
   track: {
-    width: 44,
-    height: 24,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: TRACK_WIDTH,
+    height: TRACK_HEIGHT,
     borderRadius: 999,
     borderWidth: 1,
-    justifyContent: "center",
-    paddingHorizontal: 2,
-  },
-  trackOn: {
-    backgroundColor: AppSketch.primary,
-    borderColor: AppSketch.primary,
-    alignItems: "flex-end",
-  },
-  trackOff: {
     backgroundColor: AppSketch.border,
-    borderColor: AppSketch.border,
-    alignItems: "flex-start",
   },
   trackDisabled: {
     opacity: 0.45,
   },
   thumb: {
-    width: 18,
-    height: 18,
+    position: "absolute",
+    top: TRACK_PADDING,
+    left: TRACK_PADDING,
+    zIndex: 1,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
     borderRadius: 999,
     borderWidth: 1,
-  },
-  thumbOn: {
     backgroundColor: AppSketch.surface,
     borderColor: "rgba(0,0,0,0.08)",
-  },
-  thumbOff: {
-    backgroundColor: AppSketch.surface,
-    borderColor: "rgba(0,0,0,0.06)",
   },
   thumbDisabled: {
     opacity: 0.9,

@@ -15,18 +15,13 @@ import {
   AppTypography,
   appShadow,
 } from "@/constants/theme-app";
-import {
-  DesktopWidthVariant,
-  resolveDesktopPageWidth,
-} from "@/src/components/web/desktopLayout";
+import { resolveDesktopPageWidth } from "@/src/components/web/desktopLayout";
 
 type DesktopPageProps = PropsWithChildren<{
   eyebrow?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   toolbar?: ReactNode;
-  widthVariant?: DesktopWidthVariant;
-  maxWidth?: number;
   density?: "primary" | "compact";
   contentStyle?: StyleProp<ViewStyle>;
   scrollRef?: RefObject<ScrollView | null>;
@@ -41,15 +36,14 @@ export function DesktopPage({
   title,
   subtitle,
   toolbar,
-  widthVariant = "standard",
-  maxWidth,
   density = "primary",
   contentStyle,
   scrollRef,
   children,
 }: DesktopPageProps) {
   const compact = density === "compact";
-  const resolvedWidth = resolveDesktopPageWidth(widthVariant, maxWidth);
+  const resolvedWidth = resolveDesktopPageWidth();
+  const hasHeader = Boolean(eyebrow || title || subtitle || toolbar);
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safe}>
@@ -65,18 +59,22 @@ export function DesktopPage({
             { maxWidth: resolvedWidth },
           ]}
         >
-          <View style={[styles.header, compact && styles.headerCompact]}>
-            <View style={[styles.headerText, compact && styles.headerTextCompact]}>
-              {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-              <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
-              {subtitle ? (
-                <Text style={[styles.subtitle, compact && styles.subtitleCompact]}>
-                  {subtitle}
-                </Text>
-              ) : null}
+          {hasHeader ? (
+            <View style={[styles.header, compact && styles.headerCompact]}>
+              <View style={[styles.headerText, compact && styles.headerTextCompact]}>
+                {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+                {title ? (
+                  <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
+                ) : null}
+                {subtitle ? (
+                  <Text style={[styles.subtitle, compact && styles.subtitleCompact]}>
+                    {subtitle}
+                  </Text>
+                ) : null}
+              </View>
+              {toolbar ? <View style={styles.toolbar}>{toolbar}</View> : null}
             </View>
-            {toolbar ? <View style={styles.toolbar}>{toolbar}</View> : null}
-          </View>
+          ) : null}
           <View style={contentStyle}>{children}</View>
         </View>
       </ScrollView>
@@ -114,21 +112,21 @@ const styles = StyleSheet.create({
     backgroundColor: AppSketch.background,
   },
   scroll: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 44,
   },
   scrollCompact: {
-    paddingTop: 18,
-    paddingBottom: 32,
+    paddingTop: 20,
+    paddingBottom: 34,
   },
   container: {
     width: "100%",
     alignSelf: "center",
-    gap: 22,
+    gap: 24,
   },
   containerCompact: {
-    gap: 18,
+    gap: 20,
   },
   header: {
     flexDirection: "row",
@@ -174,15 +172,16 @@ const styles = StyleSheet.create({
   toolbar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   panel: {
     backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.lg,
+    borderRadius: AppRadius.xl,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    padding: 22,
-    gap: 16,
+    padding: 24,
+    gap: 18,
+    overflow: "visible",
     ...appShadow("sm"),
   },
   sectionHeader: {
@@ -190,6 +189,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 16,
+    position: "relative",
+    zIndex: 4,
+    overflow: "visible",
   },
   sectionHeaderText: {
     flex: 1,
@@ -208,5 +210,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    position: "relative",
+    zIndex: 5,
+    overflow: "visible",
   },
 });

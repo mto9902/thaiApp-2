@@ -47,6 +47,7 @@ declare global {
   interface Window {
     Paddle?: PaddleInstance;
     __keystonePaddleInitialized?: boolean;
+    __keystonePaddleConfigKey?: string;
   }
 }
 
@@ -241,8 +242,12 @@ export async function ensurePaddleInitialized() {
   }
 
   const paddle = await loadPaddleScript();
+  const configKey = `${config.environment}:${config.clientToken}:${config.monthlyPriceId}:${config.yearlyPriceId}`;
 
-  if (!window.__keystonePaddleInitialized) {
+  if (
+    !window.__keystonePaddleInitialized ||
+    window.__keystonePaddleConfigKey !== configKey
+  ) {
     if (config.environment === "sandbox") {
       paddle.Environment?.set("sandbox");
     }
@@ -252,6 +257,7 @@ export async function ensurePaddleInitialized() {
       eventCallback: buildPaddleEventCallback(),
     });
     window.__keystonePaddleInitialized = true;
+    window.__keystonePaddleConfigKey = configKey;
   }
 
   return paddle;

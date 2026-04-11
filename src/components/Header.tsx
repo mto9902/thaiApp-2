@@ -3,14 +3,25 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { Sketch } from "@/constants/theme";
+import { AppRadius, AppSketch } from "@/constants/theme-app";
+import {
+  WEB_CARD_SHADOW,
+  WEB_BODY_FONT,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+} from "@/src/components/web/designSystem";
 import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   getGrammarExerciseSettings,
@@ -25,6 +36,17 @@ import {
 } from "../utils/practiceWordPreference";
 import AccentSwitch from "./AccentSwitch";
 import BrandMark from "./BrandMark";
+
+const IS_WEB = Platform.OS === "web";
+const BODY_FONT = IS_WEB ? WEB_BODY_FONT : undefined;
+const DISPLAY_FONT = IS_WEB ? WEB_DISPLAY_FONT : undefined;
+const WEB_LIGHT_BASE = IS_WEB
+  ? ({ boxShadow: WEB_LIGHT_BUTTON_SHADOW as any, ...WEB_INTERACTIVE_TRANSITION } as const)
+  : {};
+const WEB_NAVY_BASE = IS_WEB
+  ? ({ boxShadow: WEB_NAVY_BUTTON_SHADOW as any, ...WEB_INTERACTIVE_TRANSITION } as const)
+  : {};
+const WEB_CARD_BASE = IS_WEB ? ({ boxShadow: WEB_CARD_SHADOW as any } as const) : {};
 
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_ENGLISH = "pref_show_english";
@@ -181,11 +203,37 @@ export default function Header({
     { label: "Fast", value: "fast" },
   ];
 
+  const getInteractiveStateStyle = (
+    variant: "light" | "navy",
+    hovered: boolean,
+    pressed: boolean,
+  ) =>
+    IS_WEB && (hovered || pressed)
+      ? ({
+          transform: WEB_DEPRESSED_TRANSFORM as any,
+          boxShadow:
+            variant === "navy"
+              ? (WEB_NAVY_BUTTON_PRESSED as any)
+              : (WEB_LIGHT_BUTTON_PRESSED as any),
+        } as const)
+      : null;
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.iconButton} onPress={onBack}>
-        <Ionicons name={showClose ? "close" : "arrow-back"} size={22} color={Sketch.ink} />
-      </TouchableOpacity>
+      <Pressable
+        style={({ hovered, pressed }) => [
+          styles.iconButton,
+          WEB_LIGHT_BASE,
+          getInteractiveStateStyle("light", hovered, pressed),
+        ]}
+        onPress={onBack}
+      >
+        <Ionicons
+          name={showClose ? "close" : "arrow-back"}
+          size={18}
+          color={AppSketch.ink}
+        />
+      </Pressable>
 
       <View style={styles.titleWrap}>
         {showBrandMark ? <BrandMark size={24} /> : null}
@@ -195,11 +243,18 @@ export default function Header({
       </View>
 
       {showSettings ? (
-        <TouchableOpacity style={styles.iconButton} onPress={() => setModalVisible(true)}>
-          <Ionicons name="settings-outline" size={22} color={Sketch.inkLight} />
-        </TouchableOpacity>
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.iconButton,
+            WEB_LIGHT_BASE,
+            getInteractiveStateStyle("light", hovered, pressed),
+          ]}
+          onPress={() => setModalVisible(true)}
+        >
+          <Ionicons name="settings-outline" size={18} color={AppSketch.ink} />
+        </Pressable>
       ) : (
-        <View style={{ width: 38 }} />
+        <View style={styles.iconButtonPlaceholder} />
       )}
 
       <Modal
@@ -212,143 +267,151 @@ export default function Header({
           style={styles.backdrop}
           onPress={() => setModalVisible(false)}
         >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+          <Pressable style={[styles.modalCard, WEB_CARD_BASE]} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Settings</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={Sketch.ink} />
-              </TouchableOpacity>
+              <Pressable
+                onPress={() => setModalVisible(false)}
+                style={({ hovered, pressed }) => [
+                  styles.modalCloseButton,
+                  WEB_LIGHT_BASE,
+                  getInteractiveStateStyle("light", hovered, pressed),
+                ]}
+              >
+                <Ionicons name="close" size={18} color={AppSketch.ink} />
+              </Pressable>
             </View>
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.modalBody}
             >
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Romanization</Text>
-                  <Text style={styles.settingDesc}>Show phonetic transcription</Text>
-                </View>
-                <AccentSwitch
-                  value={settings.showRoman}
-                  onValueChange={(v) => updateSetting("showRoman", v)}
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>English Translation</Text>
-                  <Text style={styles.settingDesc}>Show English meaning</Text>
-                </View>
-                <AccentSwitch
-                  value={settings.showEnglish}
-                  onValueChange={(v) => updateSetting("showEnglish", v)}
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Autoplay Audio</Text>
-                  <Text style={styles.settingDesc}>Auto-speak Thai sentences</Text>
-                </View>
-                <AccentSwitch
-                  value={settings.autoplayTTS}
-                  onValueChange={(v) => updateSetting("autoplayTTS", v)}
-                />
-              </View>
-
-              {showWordBreakdownTtsSetting ? (
-                <View style={styles.settingRow}>
+              <View style={styles.sectionStack}>
+                <View style={styles.settingCard}>
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingLabel}>Word Breakdown TTS (Beta)</Text>
+                    <Text style={styles.settingLabel}>Romanization</Text>
+                    <Text style={styles.settingDesc}>Show phonetic transcription</Text>
+                  </View>
+                  <AccentSwitch
+                    value={settings.showRoman}
+                    onValueChange={(v) => updateSetting("showRoman", v)}
+                  />
+                </View>
+
+                <View style={styles.settingCard}>
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingLabel}>English Translation</Text>
+                    <Text style={styles.settingDesc}>Show English meaning</Text>
+                  </View>
+                  <AccentSwitch
+                    value={settings.showEnglish}
+                    onValueChange={(v) => updateSetting("showEnglish", v)}
+                  />
+                </View>
+
+                <View style={styles.settingCard}>
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingLabel}>Autoplay Audio</Text>
+                    <Text style={styles.settingDesc}>Auto-speak Thai sentences</Text>
+                  </View>
+                  <AccentSwitch
+                    value={settings.autoplayTTS}
+                    onValueChange={(v) => updateSetting("autoplayTTS", v)}
+                  />
+                </View>
+
+                {showWordBreakdownTtsSetting ? (
+                  <View style={styles.settingCard}>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingLabel}>Word Breakdown TTS (Beta)</Text>
+                      <Text style={styles.settingDesc}>
+                        Experimental word-by-word audio for grammar breakdown cards. Some voices may sound off.
+                      </Text>
+                    </View>
+                    <AccentSwitch
+                      value={settings.wordBreakdownTTS}
+                      onValueChange={(v) => updateSetting("wordBreakdownTTS", v)}
+                    />
+                  </View>
+                ) : null}
+
+                <View style={styles.settingCard}>
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingLabel}>Add Vocabulary</Text>
                     <Text style={styles.settingDesc}>
-                      Experimental word-by-word audio for grammar breakdown cards. Some voices may sound off.
+                      Add words from grammar practice to your review deck
                     </Text>
                   </View>
                   <AccentSwitch
-                    value={settings.wordBreakdownTTS}
-                    onValueChange={(v) => updateSetting("wordBreakdownTTS", v)}
+                    value={settings.autoAddPracticeVocab}
+                    onValueChange={(v) => void updateSetting("autoAddPracticeVocab", v)}
                   />
                 </View>
-              ) : null}
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Add Vocabulary</Text>
-                  <Text style={styles.settingDesc}>
-                    Add words from grammar practice to your review deck
-                  </Text>
-                </View>
-                <AccentSwitch
-                  value={settings.autoAddPracticeVocab}
-                  onValueChange={(v) => void updateSetting("autoAddPracticeVocab", v)}
-                />
               </View>
 
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Speech Speed</Text>
-                  <Text style={styles.settingDesc}>Text-to-speech pace</Text>
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeading}>
+                  <Text style={styles.sectionTitle}>Speech Speed</Text>
+                  <Text style={styles.sectionDesc}>Text-to-speech pace</Text>
                 </View>
                 <View style={styles.speedRow}>
-                  {speedOptions.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.value}
-                      style={[
-                        styles.speedPill,
-                        settings.ttsSpeed === opt.value && styles.speedPillActive,
-                      ]}
-                      onPress={() => void updateSetting("ttsSpeed", opt.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.speedPillText,
-                          settings.ttsSpeed === opt.value && styles.speedPillTextActive,
+                  {speedOptions.map((opt) => {
+                    const active = settings.ttsSpeed === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        style={({ hovered, pressed }) => [
+                          styles.speedButton,
+                          WEB_LIGHT_BASE,
+                          active && styles.speedButtonActive,
+                          active && WEB_NAVY_BASE,
+                          getInteractiveStateStyle(active ? "navy" : "light", hovered, pressed),
                         ]}
+                        onPress={() => void updateSetting("ttsSpeed", opt.value)}
                       >
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.speedButtonText,
+                            active && styles.speedButtonTextActive,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
 
-              <View style={styles.extraSettingsSection}>
-                <Text style={styles.extraSettingsTitle}>Grammar Exercises</Text>
-                <Text style={styles.extraSettingsDesc}>
-                  Choose which grammar practice modes stay in rotation.
-                </Text>
-                <View style={styles.extraSettingsBody}>
-                  <View style={styles.exerciseChipRow}>
-                    {(
-                      Object.keys(settings.grammarExerciseModes) as GrammarExerciseMode[]
-                    ).map((mode) => {
-                      const active = settings.grammarExerciseModes[mode];
-                      return (
-                        <TouchableOpacity
-                          key={mode}
-                          style={[
-                            styles.exerciseChip,
-                            active && styles.exerciseChipActive,
-                          ]}
-                          onPress={() => void updateGrammarExerciseMode(mode)}
-                          activeOpacity={0.85}
-                        >
-                          <Text
-                            style={[
-                              styles.exerciseChipText,
-                              active && styles.exerciseChipTextActive,
-                            ]}
-                          >
-                            {GRAMMAR_EXERCISE_LABELS[mode]}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                  <Text style={styles.exerciseHint}>
-                    Keep at least one exercise on
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeading}>
+                  <Text style={styles.sectionTitle}>Grammar Exercises</Text>
+                  <Text style={styles.sectionDesc}>
+                    Choose which grammar practice modes stay in rotation.
                   </Text>
                 </View>
+                <View style={styles.sectionStack}>
+                  {(
+                    Object.keys(settings.grammarExerciseModes) as GrammarExerciseMode[]
+                  ).map((mode) => (
+                    <View key={mode} style={styles.settingCard}>
+                      <View style={styles.settingInfo}>
+                        <Text
+                          style={styles.settingLabel}
+                        >
+                          {GRAMMAR_EXERCISE_LABELS[mode]}
+                        </Text>
+                        <Text style={styles.settingDesc}>
+                          Include this practice mode in the lesson rotation.
+                        </Text>
+                      </View>
+                      <AccentSwitch
+                        value={settings.grammarExerciseModes[mode]}
+                        onValueChange={() => void updateGrammarExerciseMode(mode)}
+                      />
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.exerciseHint}>Keep at least one exercise on</Text>
               </View>
             </ScrollView>
           </Pressable>
@@ -369,10 +432,18 @@ const styles = StyleSheet.create({
   },
 
   iconButton: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
+  },
+  iconButtonPlaceholder: {
+    width: 40,
+    height: 40,
   },
 
   titleWrap: {
@@ -385,118 +456,140 @@ const styles = StyleSheet.create({
   },
 
   titleText: {
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: 17,
-    color: Sketch.ink,
+    color: AppSketch.ink,
     flexShrink: 1,
     textAlign: "center",
+    fontFamily: BODY_FONT,
   },
 
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(16,42,67,0.18)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalCard: {
-    backgroundColor: Sketch.cardBg,
-    borderRadius: 0,
-    padding: 24,
+    backgroundColor: AppSketch.surface,
+    borderRadius: AppRadius.xl,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 460,
     maxHeight: "85%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 10,
+    gap: 12,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: Sketch.ink,
+    fontWeight: "800",
+    lineHeight: 26,
+    color: AppSketch.ink,
+    fontFamily: DISPLAY_FONT,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalBody: {
     paddingBottom: 4,
+    gap: 14,
   },
-
-  settingRow: {
+  sectionStack: {
+    gap: 10,
+  },
+  sectionBlock: {
+    gap: 10,
+  },
+  sectionHeading: {
+    gap: 3,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: "800",
+    color: AppSketch.ink,
+    fontFamily: DISPLAY_FONT,
+  },
+  sectionDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: AppSketch.inkMuted,
+    fontFamily: BODY_FONT,
+  },
+  settingCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Sketch.inkFaint,
-  },
-  settingInfo: { flex: 1, marginRight: 12 },
-  settingLabel: { fontSize: 15, fontWeight: "500", color: Sketch.ink },
-  settingDesc: { fontSize: 12, fontWeight: "400", color: Sketch.inkMuted, marginTop: 2 },
-
-  speedRow: { flexDirection: "row", gap: 4 },
-  speedPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 0,
-    backgroundColor: Sketch.paperDark,
-  },
-  speedPillActive: {
-    backgroundColor: Sketch.ink,
-  },
-  speedPillText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: Sketch.inkMuted,
-  },
-  speedPillTextActive: {
-    color: "white",
-  },
-  extraSettingsSection: {
-    marginTop: 16,
-    gap: 10,
-  },
-  extraSettingsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Sketch.ink,
-  },
-  extraSettingsDesc: {
-    fontSize: 12,
-    color: Sketch.inkMuted,
-    lineHeight: 18,
-  },
-  extraSettingsBody: {
-    gap: 10,
-  },
-  exerciseChipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  exerciseChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 0,
-    backgroundColor: Sketch.paperDark,
+    gap: 12,
+    borderRadius: AppRadius.lg,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
+    borderColor: AppSketch.border,
+    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    ...WEB_LIGHT_BASE,
   },
-  exerciseChipActive: {
-    backgroundColor: Sketch.orange + "12",
-    borderColor: Sketch.orange,
+  settingInfo: { flex: 1, marginRight: 12, gap: 3 },
+  settingLabel: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "700",
+    color: AppSketch.ink,
+    fontFamily: BODY_FONT,
   },
-  exerciseChipText: {
+  settingDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "400",
+    color: AppSketch.inkMuted,
+    fontFamily: BODY_FONT,
+  },
+  speedRow: { flexDirection: "row", gap: 8 },
+  speedButton: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  speedButtonActive: {
+    borderColor: AppSketch.primaryDark,
+    backgroundColor: AppSketch.primary,
+  },
+  speedButtonText: {
     fontSize: 13,
-    fontWeight: "500",
-    color: Sketch.inkLight,
+    fontWeight: "700",
+    color: AppSketch.ink,
+    fontFamily: BODY_FONT,
   },
-  exerciseChipTextActive: {
-    color: Sketch.orange,
-    fontWeight: "600",
+  speedButtonTextActive: {
+    color: "white",
   },
   exerciseHint: {
     fontSize: 12,
-    color: Sketch.inkMuted,
+    lineHeight: 18,
+    color: AppSketch.inkMuted,
+    fontFamily: BODY_FONT,
   },
 });

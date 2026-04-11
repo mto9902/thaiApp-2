@@ -1,25 +1,39 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import { AppRadius, AppSketch } from "@/constants/theme-app";
 import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
 import ToneDots from "@/src/components/ToneDots";
 import ToneThaiText from "@/src/components/ToneThaiText";
-import ToneGuide, { ToneGuideButton } from "@/src/components/ToneGuide";
 import {
   DesktopPage,
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_TONE,
+  WEB_THAI_FONT,
+} from "@/src/components/web/designSystem";
 import { API_BASE } from "@/src/config";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { useAdjacentGrammarPoint } from "@/src/grammar/useAdjacentGrammarPoint";
@@ -30,6 +44,14 @@ import { useSubscription } from "@/src/subscription/SubscriptionProvider";
 import { isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
 import { getBreakdownTones } from "@/src/utils/breakdownTones";
+
+const TONE_GUIDE_ITEMS = [
+  { tone: "mid", label: "mid" },
+  { tone: "low", label: "low" },
+  { tone: "falling", label: "falling" },
+  { tone: "high", label: "high" },
+  { tone: "rising", label: "rising" },
+] as const;
 
 function getBreakdownRomanizations(
   romanization: string,
@@ -140,7 +162,94 @@ function getKeyForms(
   });
 }
 
+function ToneGuideDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+  const shellRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const shellNode = shellRef.current as
+        | { contains?: (target: EventTarget | null) => boolean }
+        | null;
+      if (shellNode?.contains?.(event.target)) return;
+      setIsOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <View ref={shellRef} style={styles.toneGuideShell}>
+      <Text style={styles.toneGuideStandaloneLabel}>Tone guide</Text>
+      <Pressable
+        onPress={() => setIsOpen((value) => !value)}
+        aria-expanded={isOpen}
+        style={({ hovered, pressed }) => [
+          styles.toneGuideButton,
+          (hovered || pressed) && styles.lightButtonActive,
+        ]}
+      >
+        <View style={styles.toneGuideDots}>
+          {TONE_GUIDE_ITEMS.map(({ tone, label }) => (
+            <View
+              key={label}
+              style={[
+                styles.toneGuideDot,
+                { backgroundColor: WEB_TONE[tone] },
+              ]}
+            />
+          ))}
+        </View>
+      </Pressable>
+      {isOpen ? (
+        <View style={styles.toneGuidePopover}>
+          {TONE_GUIDE_ITEMS.map(({ tone, label }) => (
+            <View key={label} style={styles.toneGuideRow}>
+              <View
+                style={[
+                  styles.toneGuideDot,
+                  styles.toneGuidePopoverDot,
+                  { backgroundColor: WEB_TONE[tone] },
+                ]}
+              />
+              <Text style={styles.toneGuidePopoverText}>{label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function GrammarDetailWeb() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    if (!id) {
+      return <Redirect href="/grammar-topics" />;
+    }
+
+    return <Redirect href={`/grammar-lesson/${id}` as any} />;
+  }
+
+  return <DesktopGrammarDetailWeb />;
+}
+
+function DesktopGrammarDetailWeb() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -153,7 +262,6 @@ export default function GrammarDetailWeb() {
   const { ensurePremiumAccess } = usePremiumAccess();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkCount, setBookmarkCount] = useState(0);
-  const [toneGuideVisible, setToneGuideVisible] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [previewExample, setPreviewExample] = useState<PracticePreview | null>(null);
 
@@ -275,30 +383,46 @@ export default function GrammarDetailWeb() {
     }
   }
 
+  const openGrammarTopic = useCallback(
+    async (point: (typeof grammarPoints)[number] | null | undefined) => {
+      if (!point) return;
+      const route = `/practice/${point.id}`;
+      if (!isPremium && isPremiumGrammarPoint(point)) {
+        await ensurePremiumAccess("this lesson", route);
+        return;
+      }
+      router.push(route as any);
+    },
+    [ensurePremiumAccess, isPremium, router],
+  );
+
   if (!grammar) {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <DesktopPage
-          widthVariant="wide"
-          eyebrow="Grammar"
-          title="Lesson not found"
-          subtitle="This grammar topic is not available in the current catalog."
-          toolbar={
-            <TouchableOpacity
-              style={styles.topButton}
-              onPress={() => router.replace(backToTopicsHref as any)}
-              activeOpacity={0.82}
-            >
-              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
-              <Text style={styles.topButtonText}>Back</Text>
-            </TouchableOpacity>
-          }
-        >
-          <DesktopPanel>
-            <Text style={styles.bodyText}>Grammar point not found.</Text>
-          </DesktopPanel>
-        </DesktopPage>
+        <DesktopAppShell>
+          <DesktopPage
+            eyebrow="Grammar"
+            title="Lesson not found"
+            subtitle="This grammar topic is not available in the current catalog."
+            toolbar={
+              <Pressable
+                onPress={() => router.replace(backToTopicsHref as any)}
+                style={({ hovered, pressed }) => [
+                  styles.topButton,
+                  (hovered || pressed) && styles.lightButtonActive,
+                ]}
+              >
+                <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+                <Text style={styles.topButtonText}>Back</Text>
+              </Pressable>
+            }
+          >
+            <DesktopPanel>
+              <Text style={styles.bodyText}>Grammar point not found.</Text>
+            </DesktopPanel>
+          </DesktopPage>
+        </DesktopAppShell>
       </>
     );
   }
@@ -309,16 +433,17 @@ export default function GrammarDetailWeb() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <DesktopPage
-          widthVariant="wide"
-          eyebrow={grammar.stage}
-          title={grammar.title}
-          subtitle="Checking your Keystone Access status."
-        >
-          <DesktopPanel>
-            <Text style={styles.bodyText}>Checking Keystone Access...</Text>
-          </DesktopPanel>
-        </DesktopPage>
+        <DesktopAppShell>
+          <DesktopPage
+            eyebrow={grammar.stage}
+            title={grammar.title}
+            subtitle="Checking your Keystone Access status."
+          >
+            <DesktopPanel>
+              <Text style={styles.bodyText}>Checking Keystone Access...</Text>
+            </DesktopPanel>
+          </DesktopPage>
+        </DesktopAppShell>
       </>
     );
   }
@@ -382,14 +507,14 @@ export default function GrammarDetailWeb() {
         }
       />
       <View style={styles.lessonNavStack}>
-        <TouchableOpacity
-          style={[
+        <Pressable
+          onPress={() => void openGrammarTopic(previous)}
+          disabled={!previous}
+          style={({ hovered, pressed }) => [
             styles.lessonNavCard,
             !previous && styles.lessonNavCardDisabled,
+            previous && (hovered || pressed) && styles.cardInteractiveActive,
           ]}
-          onPress={() => previous && router.push(`/practice/${previous.id}`)}
-          activeOpacity={previous ? 0.82 : 1}
-          disabled={!previous}
         >
           <Text
             style={[
@@ -407,13 +532,16 @@ export default function GrammarDetailWeb() {
           >
             {previous ? previous.title : "You're at the first topic"}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
-          style={[styles.lessonNavCard, !next && styles.lessonNavCardDisabled]}
-          onPress={() => next && router.push(`/practice/${next.id}`)}
-          activeOpacity={next ? 0.82 : 1}
+        <Pressable
+          onPress={() => void openGrammarTopic(next)}
           disabled={!next}
+          style={({ hovered, pressed }) => [
+            styles.lessonNavCard,
+            !next && styles.lessonNavCardDisabled,
+            next && (hovered || pressed) && styles.cardInteractiveActive,
+          ]}
         >
           <Text
             style={[
@@ -431,7 +559,7 @@ export default function GrammarDetailWeb() {
           >
             {next ? next.title : "You're at the last topic"}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </DesktopPanel>
   );
@@ -439,29 +567,31 @@ export default function GrammarDetailWeb() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        widthVariant="wide"
-        eyebrow={grammar.stage}
-        title={grammar.title}
-        subtitle="Study the grammar point, hear the example, and move straight into practice."
-        toolbar={
-          <TouchableOpacity
-            style={styles.topButton}
-            onPress={() => router.replace(backToTopicsHref as any)}
-            activeOpacity={0.82}
-          >
-            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
-            <Text style={styles.topButtonText}>Back</Text>
-          </TouchableOpacity>
-        }
-      >
-        <View style={[styles.layout, !isWide && styles.stack]}>
-          <View style={styles.mainColumn}>
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Concept"
-                caption="Read what the pattern does, how it is built, and where it shows up before moving into the example."
-              />
+      <DesktopAppShell>
+        <DesktopPage
+          eyebrow={grammar.stage}
+          title={grammar.title}
+          subtitle="Study the grammar point, hear the example, and move straight into practice."
+          toolbar={
+            <Pressable
+              onPress={() => router.replace(backToTopicsHref as any)}
+              style={({ hovered, pressed }) => [
+                styles.topButton,
+                (hovered || pressed) && styles.lightButtonActive,
+              ]}
+            >
+              <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+              <Text style={styles.topButtonText}>Back</Text>
+            </Pressable>
+          }
+        >
+          <View style={[styles.layout, !isWide && styles.stack]}>
+            <View style={styles.mainColumn}>
+              <DesktopPanel>
+                <DesktopSectionTitle
+                  title="Concept"
+                  caption="Read what the pattern does, how it is built, and where it shows up before moving into the example."
+                />
               {keyForms.length > 0 ? (
                 <View style={styles.keyFormBlock}>
                   <Text style={styles.keyFormLabel}>Key form</Text>
@@ -492,7 +622,7 @@ export default function GrammarDetailWeb() {
               <DesktopSectionTitle
                 title="Example"
                 caption="Read, hear, and inspect the sentence structure."
-                action={<ToneGuideButton onPress={() => setToneGuideVisible(true)} />}
+                action={<ToneGuideDropdown />}
               />
               <View style={[styles.exampleHero, !isWide && styles.exampleHeroStack]}>
                 <View style={styles.exampleSentencePanel}>
@@ -509,10 +639,12 @@ export default function GrammarDetailWeb() {
                       />
                     ))}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.audioButton}
+                  <Pressable
                     onPress={() => void playSentence(example.thai)}
-                    activeOpacity={0.82}
+                    style={({ hovered, pressed }) => [
+                      styles.audioButton,
+                      (hovered || pressed) && styles.lightButtonActive,
+                    ]}
                   >
                     <Ionicons
                       name="volume-medium-outline"
@@ -520,7 +652,7 @@ export default function GrammarDetailWeb() {
                       color={AppSketch.ink}
                     />
                     <Text style={styles.audioButtonText}>Play sentence</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
 
                 <View
@@ -546,7 +678,14 @@ export default function GrammarDetailWeb() {
                 <Text style={styles.breakdownLabel}>Sentence breakdown</Text>
                 <View style={styles.breakdownGrid}>
                   {example.breakdown.map((item: any, index: number) => (
-                    <View key={`${item.thai}-${index}`} style={styles.wordCard}>
+                    <Pressable
+                      key={`${item.thai}-${index}`}
+                      onPress={() => void playSentence(item.thai)}
+                      style={({ hovered, pressed }) => [
+                        styles.wordCard,
+                        (hovered || pressed) && styles.cardInteractiveActive,
+                      ]}
+                    >
                       <View style={styles.wordCardTop}>
                         <ToneThaiText
                           thai={item.thai}
@@ -571,97 +710,102 @@ export default function GrammarDetailWeb() {
                       <Text style={styles.wordEnglish}>
                         {String(item.english).toUpperCase()}
                       </Text>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               </View>
-            </DesktopPanel>
-          </View>
-
-          <View style={styles.sideColumn}>
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Pattern"
-                caption="Core structure to notice before practice."
-              />
-              <Text style={styles.patternText}>{grammar.pattern}</Text>
-              <View style={styles.sideMetaBlock}>
-                <Text style={styles.sideMetaLabel}>Focus</Text>
-                <View style={styles.focusDetailList}>
-                  {focusDetails.map((detail, index) => (
-                    <View
-                      key={`${detail.particle}-${index}`}
-                      style={[
-                        styles.focusDetailItem,
-                        index > 0 && styles.focusDetailItemDivider,
-                      ]}
-                    >
-                      <Text style={styles.sideMetaValue}>
-                        {detail.particle}
-                        {detail.romanization ? ` (${detail.romanization})` : ""}
-                      </Text>
-                      <Text style={styles.sideMetaBody}>{detail.meaning}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </DesktopPanel>
-
-            {isLocked ? (
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Keystone Access"
-                  caption="This lesson is beyond the free starting lessons."
-                />
-                <Text style={styles.bodyText}>
-                  Unlock Keystone Access to open this lesson, practice it, and continue through the rest of the course.
-                </Text>
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => void ensurePremiumAccess(grammar.title, `/practice/${id}`)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.primaryButtonText}>Unlock lesson</Text>
-                </TouchableOpacity>
               </DesktopPanel>
-            ) : (
+            </View>
+
+            <View style={styles.sideColumn}>
               <DesktopPanel>
                 <DesktopSectionTitle
-                  title="Actions"
-                  caption={isGuest ? "Log in to save bookmarks." : "Keep this lesson handy or jump into practice."}
+                  title="Pattern"
+                  caption="Core structure to notice before practice."
                 />
-                <TouchableOpacity
-                  style={styles.primaryButton}
-            onPress={() => router.push(`/practice/${id}/exercises`)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.primaryButtonText}>Start practice</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={isGuest ? undefined : toggleBookmark}
-                  activeOpacity={isGuest ? 1 : 0.82}
-                >
-                  <Ionicons
-                    name={bookmarked ? "bookmark" : "bookmark-outline"}
-                    size={16}
-                    color={bookmarked ? AppSketch.primary : AppSketch.inkMuted}
+                <Text style={styles.patternText}>{grammar.pattern}</Text>
+                <View style={styles.sideMetaBlock}>
+                  <Text style={styles.sideMetaLabel}>Focus</Text>
+                  <View style={styles.focusDetailList}>
+                    {focusDetails.map((detail, index) => (
+                      <View
+                        key={`${detail.particle}-${index}`}
+                        style={[
+                          styles.focusDetailItem,
+                          index > 0 && styles.focusDetailItemDivider,
+                        ]}
+                      >
+                        <Text style={styles.sideMetaValue}>
+                          {detail.particle}
+                          {detail.romanization ? ` (${detail.romanization})` : ""}
+                        </Text>
+                        <Text style={styles.sideMetaBody}>{detail.meaning}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </DesktopPanel>
+
+              {isLocked ? (
+                <DesktopPanel>
+                  <DesktopSectionTitle
+                    title="Keystone Access"
+                    caption="This lesson is beyond the free starting lessons."
                   />
-                  <Text style={styles.secondaryButtonText}>
-                    {isGuest ? "Log in to save" : bookmarked ? "Saved" : "Save lesson"}
+                  <Text style={styles.bodyText}>
+                    Unlock Keystone Access to open this lesson, practice it, and continue through the rest of the course.
                   </Text>
-                </TouchableOpacity>
-              </DesktopPanel>
-            )}
+                  <Pressable
+                    onPress={() => void ensurePremiumAccess(grammar.title, `/practice/${id}`)}
+                    style={({ hovered, pressed }) => [
+                      styles.primaryButton,
+                      (hovered || pressed) && styles.primaryButtonActive,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonText}>Unlock lesson</Text>
+                  </Pressable>
+                </DesktopPanel>
+              ) : (
+                <DesktopPanel>
+                  <DesktopSectionTitle
+                    title="Actions"
+                    caption={isGuest ? "Log in to save bookmarks." : "Keep this lesson handy or jump into practice."}
+                  />
+                  <Pressable
+                    onPress={() => router.push(`/practice/${id}/exercises`)}
+                    style={({ hovered, pressed }) => [
+                      styles.primaryButton,
+                      (hovered || pressed) && styles.primaryButtonActive,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonText}>Start practice</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={isGuest ? undefined : toggleBookmark}
+                    disabled={isGuest}
+                    style={({ hovered, pressed }) => [
+                      styles.secondaryButton,
+                      isGuest && styles.secondaryButtonDisabled,
+                      !isGuest && (hovered || pressed) && styles.lightButtonActive,
+                    ]}
+                  >
+                    <Ionicons
+                      name={bookmarked ? "bookmark" : "bookmark-outline"}
+                      size={16}
+                      color={bookmarked ? AppSketch.primary : AppSketch.inkMuted}
+                    />
+                    <Text style={styles.secondaryButtonText}>
+                      {isGuest ? "Log in to save" : bookmarked ? "Saved" : "Save lesson"}
+                    </Text>
+                  </Pressable>
+                </DesktopPanel>
+              )}
 
-            {lessonNavigationPanel}
+              {lessonNavigationPanel}
+            </View>
           </View>
-        </View>
-        <ToneGuide
-          visible={toneGuideVisible}
-          onClose={() => setToneGuideVisible(false)}
-        />
-      </DesktopPage>
+        </DesktopPage>
+      </DesktopAppShell>
     </>
   );
 }
@@ -691,18 +835,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
+    backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  lightButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   topButtonText: {
     fontSize: 13,
     fontWeight: "700",
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   bodyText: {
     fontSize: 16,
     lineHeight: 28,
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonSectionList: {
     gap: 18,
@@ -721,11 +873,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
     color: AppSketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonSectionText: {
     fontSize: 16,
     lineHeight: 28,
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   keyFormBlock: {
     marginBottom: 18,
@@ -740,17 +894,20 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: AppSketch.inkMuted,
     marginBottom: 8,
+    fontFamily: WEB_BODY_FONT,
   },
   keyFormText: {
     fontSize: 16,
     lineHeight: 26,
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   thaiText: {
     fontSize: 42,
     lineHeight: 56,
     fontWeight: "700",
     color: AppSketch.ink,
+    fontFamily: WEB_THAI_FONT as any,
   },
   exampleHero: {
     flexDirection: "row",
@@ -764,11 +921,12 @@ const styles = StyleSheet.create({
     flex: 1.1,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
+    backgroundColor: AppSketch.surface,
     padding: 24,
     gap: 20,
     justifyContent: "space-between",
     borderRadius: AppRadius.lg,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   exampleMetaRail: {
     width: 320,
@@ -787,11 +945,14 @@ const styles = StyleSheet.create({
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   audioButtonText: {
     fontSize: 13,
     fontWeight: "700",
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   exampleInfoCard: {
     borderWidth: 1,
@@ -800,6 +961,7 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 8,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   exampleInfoLabel: {
     fontSize: 11,
@@ -807,17 +969,20 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
   },
   exampleInfoLead: {
     fontSize: 22,
     lineHeight: 32,
     color: AppSketch.ink,
     fontWeight: "600",
+    fontFamily: WEB_BODY_FONT,
   },
   exampleInfoBody: {
     fontSize: 18,
     lineHeight: 28,
     color: AppSketch.inkSecondary,
+    fontFamily: WEB_BODY_FONT,
   },
   breakdownSection: {
     gap: 14,
@@ -828,6 +993,7 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1.1,
+    fontFamily: WEB_BODY_FONT,
   },
   breakdownGrid: {
     flexDirection: "row",
@@ -843,6 +1009,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 6,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   wordCardTop: {
     flexDirection: "row",
@@ -857,12 +1024,14 @@ const styles = StyleSheet.create({
   wordRoman: {
     fontSize: 12,
     color: AppSketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   wordEnglish: {
     fontSize: 12,
     fontWeight: "700",
     color: AppSketch.inkSecondary,
     letterSpacing: 0.6,
+    fontFamily: WEB_BODY_FONT,
   },
   toneDot: {
     width: 10,
@@ -873,6 +1042,7 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     fontWeight: "700",
     color: AppSketch.ink,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   sideMetaBlock: {
     paddingTop: 6,
@@ -897,16 +1067,19 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
   },
   sideMetaValue: {
     fontSize: 20,
     fontWeight: "700",
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   sideMetaBody: {
     fontSize: 15,
     lineHeight: 24,
     color: AppSketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   primaryButton: {
     alignItems: "center",
@@ -914,15 +1087,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: AppSketch.primary,
+    borderColor: AppSketch.primaryDark,
     backgroundColor: AppSketch.primary,
     borderRadius: AppRadius.md,
-    ...appShadow("sm"),
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   primaryButtonText: {
     fontSize: 14,
     fontWeight: "700",
     color: "#fff",
+    fontFamily: WEB_BODY_FONT,
   },
   secondaryButton: {
     flexDirection: "row",
@@ -935,32 +1114,114 @@ const styles = StyleSheet.create({
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.62,
   },
   secondaryButtonText: {
     fontSize: 13,
     fontWeight: "700",
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonNavStack: {
+    flexDirection: "row",
     gap: 12,
   },
   lessonNavCard: {
+    flex: 1,
     gap: 6,
     padding: 16,
     borderWidth: 1,
     borderColor: AppSketch.border,
     borderRadius: AppRadius.md,
-    backgroundColor: AppSketch.background,
+    backgroundColor: AppSketch.surface,
+    boxShadow: WEB_CARD_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   lessonNavCardDisabled: {
-    backgroundColor: AppSketch.surfaceActive,
+    opacity: 0.6,
+  },
+  cardInteractiveActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  toneGuideShell: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    zIndex: 40,
+  },
+  toneGuideStandaloneLabel: {
+    color: AppSketch.inkSecondary,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    fontFamily: WEB_BODY_FONT,
+    transform: [{ translateY: 1 }],
+  },
+  toneGuideButton: {
+    minHeight: 36,
+    borderRadius: 12,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  toneGuidePopover: {
+    position: "absolute",
+    top: 46,
+    right: 0,
+    zIndex: 120,
+    minWidth: 150,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    backgroundColor: AppSketch.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+    boxShadow: "0 12px 26px rgba(16, 42, 67, 0.08)" as any,
+  },
+  toneGuideRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  toneGuidePopoverDot: {
+    borderWidth: 1,
+    borderColor: "rgba(16, 42, 67, 0.08)",
+  },
+  toneGuidePopoverText: {
+    color: AppSketch.ink,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "500",
+    fontFamily: WEB_BODY_FONT,
+  },
+  toneGuideDots: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  toneGuideDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   lessonNavLabel: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: AppSketch.primary,
+    color: AppSketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonNavLabelDisabled: {
     color: AppSketch.inkMuted,
@@ -970,6 +1231,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     lineHeight: 22,
     color: AppSketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   lessonNavTitleDisabled: {
     color: AppSketch.inkMuted,

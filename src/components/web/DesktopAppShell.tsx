@@ -1,13 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import React, { PropsWithChildren, useCallback, useEffect, useMemo, useState } from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppSketch, AppRadius, AppSpacing, AppTypography } from "@/constants/theme-app";
 import BrandMark from "@/src/components/BrandMark";
 import KimiIcon from "@/src/components/app/KimiIcon";
-import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
+import {
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+} from "@/src/components/web/designSystem";
+import { DESKTOP_PAGE_WIDTH } from "@/src/components/web/desktopLayout";
 import { canAccessApp } from "@/src/utils/auth";
 
 type NavItem = {
@@ -17,6 +23,8 @@ type NavItem = {
   customIcon?: "alphabet" | "numbers";
   badge?: number;
 };
+
+const SHOW_NAV_ICONS = false;
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -52,11 +60,6 @@ const TOOLS_ITEMS: NavItem[] = [
     href: "/numbers/",
     customIcon: "numbers",
   },
-  {
-    label: "Tones",
-    href: "/tones/",
-    icon: "musical-notes-outline",
-  },
 ];
 
 export default function DesktopAppShell({
@@ -81,14 +84,16 @@ export default function DesktopAppShell({
 
   const activeHref = useMemo(() => {
     if (pathname === "/" || pathname === "") return "/";
+    if (pathname.startsWith("/practice")) return "/progress";
     if (pathname.startsWith("/progress")) return "/progress";
     if (pathname.startsWith("/explore")) return "/explore";
     if (pathname.startsWith("/review")) return "/review";
     if (pathname.startsWith("/profile")) return "/profile";
     if (pathname.startsWith("/settings")) return "/settings";
     if (pathname.startsWith("/alphabet")) return "/alphabet/";
+    if (pathname.startsWith("/vowels")) return "/alphabet/";
+    if (pathname.startsWith("/trainer")) return "/alphabet/";
     if (pathname.startsWith("/numbers")) return "/numbers/";
-    if (pathname.startsWith("/tones")) return "/tones/";
     return "/";
   }, [pathname]);
 
@@ -99,42 +104,50 @@ export default function DesktopAppShell({
       <View style={styles.shell}>
         <View style={styles.topbar}>
           <View style={styles.topbarInner}>
-            <TouchableOpacity
-              style={styles.brandButton}
+            <Pressable
               onPress={() => router.push("/" as any)}
-              activeOpacity={0.9}
+              style={({ hovered, pressed }) => [
+                styles.brandButton,
+                (hovered || pressed) && styles.brandButtonHover,
+              ]}
             >
               <BrandMark size={28} />
               <Text style={styles.brandText}>Keystone Thai</Text>
-            </TouchableOpacity>
+            </Pressable>
 
             <View style={styles.navCluster}>
               <View style={styles.navList}>
                 {NAV_ITEMS.map((item) => {
                   const active = activeHref === item.href;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={item.href}
-                      style={[styles.navItem, active && styles.navItemActive]}
                       onPress={() => router.push(item.href as any)}
-                      activeOpacity={0.85}
+                      style={({ hovered, pressed }) => [
+                        styles.navItem,
+                        !SHOW_NAV_ICONS && styles.navItemTextOnly,
+                        active && styles.navItemActive,
+                        (hovered || pressed) && styles.navItemHover,
+                      ]}
                     >
-                      <View style={styles.navIcon}>
-                        {item.customIcon ? (
-                          <KimiIcon
-                            name={item.customIcon}
-                            size={17}
-                            color={active ? AppSketch.primary : AppSketch.inkMuted}
-                          />
-                        ) : (
-                          <Ionicons
-                            name={item.icon as keyof typeof Ionicons.glyphMap}
-                            size={17}
-                            color={active ? AppSketch.primary : AppSketch.inkMuted}
-                            style={styles.navIconGlyph}
-                          />
-                        )}
-                      </View>
+                      {SHOW_NAV_ICONS ? (
+                        <View style={styles.navIcon}>
+                          {item.customIcon ? (
+                            <KimiIcon
+                              name={item.customIcon}
+                              size={17}
+                              color={active ? AppSketch.primary : AppSketch.inkMuted}
+                            />
+                          ) : (
+                            <Ionicons
+                              name={item.icon as keyof typeof Ionicons.glyphMap}
+                              size={17}
+                              color={active ? AppSketch.primary : AppSketch.inkMuted}
+                              style={styles.navIconGlyph}
+                            />
+                          )}
+                        </View>
+                      ) : null}
                       <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                         {item.label}
                       </Text>
@@ -143,7 +156,7 @@ export default function DesktopAppShell({
                           <Text style={styles.badgeText}>{item.badge}</Text>
                         </View>
                       ) : null}
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -154,57 +167,71 @@ export default function DesktopAppShell({
                 {TOOLS_ITEMS.map((item) => {
                   const active = activeHref === item.href;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={item.href}
-                      style={[styles.toolLink, active && styles.toolLinkActive]}
                       onPress={() => router.push(item.href as any)}
-                      activeOpacity={0.85}
+                      style={({ hovered, pressed }) => [
+                        styles.toolLink,
+                        !SHOW_NAV_ICONS && styles.toolLinkTextOnly,
+                        active && styles.toolLinkActive,
+                        (hovered || pressed) && styles.toolLinkHover,
+                      ]}
                     >
-                      {item.customIcon ? (
-                        <KimiIcon
-                          name={item.customIcon}
-                          size={16}
-                          color={active ? AppSketch.primary : AppSketch.inkMuted}
-                        />
-                      ) : (
-                        <Ionicons
-                          name={item.icon as keyof typeof Ionicons.glyphMap}
-                          size={16}
-                          color={active ? AppSketch.primary : AppSketch.inkMuted}
-                        />
-                      )}
+                      {SHOW_NAV_ICONS ? (
+                        item.customIcon ? (
+                          <KimiIcon
+                            name={item.customIcon}
+                            size={16}
+                            color={active ? AppSketch.primary : AppSketch.inkMuted}
+                          />
+                        ) : (
+                          <Ionicons
+                            name={item.icon as keyof typeof Ionicons.glyphMap}
+                            size={16}
+                            color={active ? AppSketch.primary : AppSketch.inkMuted}
+                          />
+                        )
+                      ) : null}
                       <Text style={[styles.toolLabel, active && styles.navLabelActive]}>
                         {item.label}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
             </View>
 
             <View style={styles.accountRow}>
-              <TouchableOpacity
-                style={styles.profileButton}
+              <Pressable
                 onPress={() => router.push("/profile" as any)}
-                activeOpacity={0.85}
+                style={({ hovered, pressed }) => [
+                  styles.profileButton,
+                  (hovered || pressed) && styles.profileButtonActive,
+                ]}
               >
                 <View style={styles.avatar}>
-                  <Ionicons name="person" size={14} color={AppSketch.inkMuted} />
+                  <Ionicons
+                    name="person-outline"
+                    size={16}
+                    color={AppSketch.inkMuted}
+                  />
                 </View>
                 <Text style={styles.userLabel}>Profile</Text>
-              </TouchableOpacity>
+              </Pressable>
 
-              <TouchableOpacity
-                style={styles.settingsItem}
+              <Pressable
                 onPress={() => router.push("/settings" as any)}
-                activeOpacity={0.85}
+                style={({ hovered, pressed }) => [
+                  styles.settingsItem,
+                  (hovered || pressed) && styles.settingsItemActive,
+                ]}
               >
                 <Ionicons
                   name="settings-outline"
                   size={16}
                   color={AppSketch.inkMuted}
                 />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -241,7 +268,7 @@ const styles = StyleSheet.create({
   },
   topbarInner: {
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+    maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     minHeight: 72,
     paddingHorizontal: AppSpacing.xl,
@@ -258,6 +285,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: AppSpacing.sm,
     minWidth: 150,
+    borderRadius: AppRadius.md,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  brandButtonHover: {
+    opacity: 0.92,
   },
   brandText: {
     ...AppTypography.subheading,
@@ -282,12 +316,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: AppRadius.xs,
+    borderRadius: AppRadius.md,
     gap: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  navItemTextOnly: {
+    gap: 0,
   },
   navItemActive: {
     backgroundColor: AppSketch.surface,
-    borderWidth: 1,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  navItemHover: {
+    opacity: 0.96,
+    backgroundColor: AppSketch.surface,
     borderColor: AppSketch.border,
   },
   navIcon: {
@@ -337,11 +382,22 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: AppRadius.xs,
+    borderRadius: AppRadius.md,
+    borderWidth: 1,
+    borderColor: "transparent",
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  toolLinkTextOnly: {
+    gap: 0,
   },
   toolLinkActive: {
     backgroundColor: AppSketch.surface,
-    borderWidth: 1,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  toolLinkHover: {
+    opacity: 0.96,
+    backgroundColor: AppSketch.surface,
     borderColor: AppSketch.border,
   },
   toolLabel: {
@@ -359,16 +415,23 @@ const styles = StyleSheet.create({
   profileButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: AppRadius.xs,
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: AppRadius.md,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  profileButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: AppRadius.xs,
-    backgroundColor: AppSketch.borderLight,
+    width: 16,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -377,8 +440,20 @@ const styles = StyleSheet.create({
     color: AppSketch.inkSecondary,
   },
   settingsItem: {
-    padding: 8,
-    borderRadius: AppRadius.xs,
+    width: 40,
+    height: 40,
+    borderRadius: AppRadius.md,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    alignItems: "center",
+    justifyContent: "center",
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  settingsItemActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
 
   contentShell: {

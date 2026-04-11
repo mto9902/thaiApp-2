@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import { API_BASE } from "@/src/config";
-import { DESKTOP_PAGE_WIDTHS } from "@/src/components/web/desktopLayout";
+import { DESKTOP_PAGE_WIDTH } from "@/src/components/web/desktopLayout";
 import {
   REVIEW_STATUS_LABELS,
 } from "@/src/contentReview/helpers";
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     paddingHorizontal: 24,
     paddingTop: 10,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   centerWrap: {
     flex: 1,
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     width: "100%",
-    maxWidth: DESKTOP_PAGE_WIDTHS.standard,
+      maxWidth: DESKTOP_PAGE_WIDTH,
     alignSelf: "center",
     paddingHorizontal: 24,
     paddingBottom: 40,

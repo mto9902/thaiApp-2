@@ -3,25 +3,28 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
 
 import {
-  AppRadius,
-  AppSketch,
-  AppSpacing,
-  AppTypography,
-  appShadow,
-} from "@/constants/theme-app";
-import {
   DesktopPage,
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND as BRAND,
+  WEB_CARD_SHADOW as CARD_SHADOW,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED as LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW as LIGHT_BUTTON,
+} from "@/src/components/web/designSystem";
 import {
   GRAMMAR_STAGE_META,
   PUBLIC_GRAMMAR_STAGES,
@@ -32,6 +35,7 @@ import {
   GrammarProgressData,
   isGrammarPracticed,
 } from "@/src/utils/grammarProgress";
+import GrammarStatsMobileScreen from "@/src/screens/mobile/GrammarStatsMobileScreen";
 
 type StageSummary = {
   stage: string;
@@ -78,13 +82,23 @@ function MetricCard({
 }
 
 export default function GrammarStatsWebScreen() {
-  const router = useRouter();
   const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <GrammarStatsMobileScreen />;
+  }
+
+  return <DesktopGrammarStatsContent />;
+}
+
+function DesktopGrammarStatsContent() {
+  const router = useRouter();
   const { grammarPoints } = useGrammarCatalog();
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<Record<string, GrammarProgressData>>(
     {},
   );
+  const { width } = useWindowDimensions();
 
   useEffect(() => {
     (async () => {
@@ -162,29 +176,31 @@ export default function GrammarStatsWebScreen() {
         subtitle="Track how much grammar you have practiced, where your strongest coverage is, and which units still need attention."
         density="compact"
         toolbar={
-          <TouchableOpacity
-            style={styles.backButton}
+          <Pressable
             onPress={() => router.back()}
-            activeOpacity={0.82}
+            style={({ hovered, pressed }) => [
+              styles.backButton,
+              (hovered || pressed) && styles.backButtonActive,
+            ]}
           >
-            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={BRAND.ink} />
             <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
+          </Pressable>
         }
       >
         {loading ? (
           <DesktopPanel style={styles.loadingPanel}>
-            <ActivityIndicator size="large" color={AppSketch.inkMuted} />
+            <ActivityIndicator size="large" color={BRAND.inkSoft} />
           </DesktopPanel>
         ) : (
           <View style={styles.pageStack}>
             <View style={[styles.summaryStrip, compactMetrics && styles.summaryStripWrap]}>
               <View style={styles.heroCard}>
-                <Text style={styles.heroLabel}>Topics practiced</Text>
+                <Text style={styles.metricLabel}>Topics practiced</Text>
                 <Text style={styles.heroValue}>
                   {practicedEntries.length}/{grammarPoints.length}
                 </Text>
-                <Text style={styles.heroSubtitle}>active curriculum coverage</Text>
+                <Text style={styles.metricDetail}>active curriculum coverage</Text>
               </View>
 
               <MetricCard
@@ -267,16 +283,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    minHeight: 44,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    boxShadow: LIGHT_BUTTON as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  backButtonActive: {
+    transform: [{ translateY: 1.6 }],
+    boxShadow: LIGHT_BUTTON_PRESSED as any,
   },
   backButtonText: {
-    ...AppTypography.label,
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   loadingPanel: {
     minHeight: 220,
@@ -285,7 +311,7 @@ const styles = StyleSheet.create({
   },
   summaryStrip: {
     flexDirection: "row",
-    gap: AppSpacing.md,
+    gap: 16,
   },
   summaryStripWrap: {
     flexWrap: "wrap",
@@ -294,69 +320,67 @@ const styles = StyleSheet.create({
     flex: 1.16,
     minWidth: 260,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.lg,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    backgroundColor: BRAND.paper,
     padding: 22,
     gap: 6,
-    ...appShadow("sm"),
-  },
-  heroLabel: {
-    ...AppTypography.captionSmall,
-    color: AppSketch.inkMuted,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
-  heroValue: {
-    fontSize: 42,
-    lineHeight: 46,
-    fontWeight: "700",
-    color: AppSketch.ink,
-    letterSpacing: -1,
-  },
-  heroSubtitle: {
-    ...AppTypography.bodySmall,
-    color: AppSketch.inkMuted,
+    boxShadow: CARD_SHADOW as any,
   },
   metricCard: {
     flex: 0.92,
     minWidth: 190,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.lg,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    backgroundColor: BRAND.paper,
     padding: 20,
     gap: 4,
-    ...appShadow("sm"),
+    boxShadow: CARD_SHADOW as any,
   },
   metricLabel: {
-    ...AppTypography.captionSmall,
-    color: AppSketch.inkMuted,
+    color: BRAND.muted,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.9,
+    letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
+  },
+  heroValue: {
+    color: BRAND.ink,
+    fontSize: 42,
+    lineHeight: 46,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   metricValue: {
+    color: BRAND.ink,
     fontSize: 30,
     lineHeight: 34,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    fontFamily: WEB_DISPLAY_FONT,
   },
   metricDetail: {
-    ...AppTypography.caption,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontSize: 13,
+    lineHeight: 20,
+    fontFamily: WEB_BODY_FONT,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: AppSpacing.md,
+    gap: 16,
   },
   stageCard: {
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.lg,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    backgroundColor: BRAND.paper,
     padding: 18,
     gap: 12,
+    boxShadow: CARD_SHADOW as any,
   },
   stageCardTop: {
     flexDirection: "row",
@@ -365,21 +389,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   stageTag: {
-    ...AppTypography.captionSmall,
-    color: AppSketch.primary,
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 0.9,
     textTransform: "uppercase",
+    fontFamily: WEB_BODY_FONT,
   },
   stageRounds: {
-    ...AppTypography.caption,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   stageTitle: {
-    ...AppTypography.subheading,
-    color: AppSketch.ink,
-    letterSpacing: -0.25,
+    color: BRAND.ink,
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   stageProgressRow: {
     flexDirection: "row",
@@ -389,21 +419,23 @@ const styles = StyleSheet.create({
   stageTrack: {
     flex: 1,
     height: 7,
-    backgroundColor: AppSketch.borderLight,
-    borderRadius: AppRadius.full,
+    backgroundColor: "#E8EBEF",
+    borderRadius: 999,
     overflow: "hidden",
   },
   stageFill: {
     height: "100%",
-    backgroundColor: AppSketch.primary,
-    borderRadius: AppRadius.full,
+    backgroundColor: BRAND.navy,
+    borderRadius: 999,
   },
   stagePercent: {
     minWidth: 42,
     textAlign: "right",
-    ...AppTypography.caption,
-    color: AppSketch.primary,
+    color: BRAND.ink,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   stageMetaRow: {
     flexDirection: "row",
@@ -412,7 +444,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   stageMeta: {
-    ...AppTypography.caption,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: WEB_BODY_FONT,
   },
 });

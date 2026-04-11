@@ -3,32 +3,36 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
 
-import {
-  AppRadius,
-  AppSketch,
-  AppSpacing,
-  AppTypography,
-  appShadow,
-} from "@/constants/theme-app";
 import VocabSrsInfoSheet from "@/src/components/VocabSrsInfoSheet";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 import {
   DesktopPage,
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND as BRAND,
+  WEB_CARD_SHADOW as CARD_SHADOW,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED as LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW as LIGHT_BUTTON,
+} from "@/src/components/web/designSystem";
 import { API_BASE } from "@/src/config";
 import {
   getPracticeWordTrackingEnabled,
   setPracticeWordTrackingEnabled,
 } from "@/src/utils/practiceWordPreference";
 import { getAuthToken } from "@/src/utils/authStorage";
+import VocabStatsMobileScreen from "@/src/screens/mobile/VocabStatsMobileScreen";
 
 type VocabStatsData = {
   total_words: number;
@@ -81,14 +85,24 @@ function DeckStateCard({
 }
 
 export default function VocabStatsWebScreen() {
-  const router = useRouter();
   const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <VocabStatsMobileScreen />;
+  }
+
+  return <DesktopVocabStatsContent />;
+}
+
+function DesktopVocabStatsContent() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<VocabStatsData | null>(null);
   const [progress, setProgress] = useState<VocabProgressData | null>(null);
   const [trackPracticeVocab, setTrackPracticeVocab] = useState(true);
   const [savingPreference, setSavingPreference] = useState(false);
   const [showSrsInfo, setShowSrsInfo] = useState(false);
+  const { width } = useWindowDimensions();
 
   const compactMetrics = width < 1260;
   const stackMainGrid = width < 1180;
@@ -160,19 +174,21 @@ export default function VocabStatsWebScreen() {
         subtitle="Track your review queue, deck growth, and the way grammar practice feeds vocabulary into SRS."
         density="compact"
         toolbar={
-          <TouchableOpacity
-            style={styles.backButton}
+          <Pressable
             onPress={() => router.back()}
-            activeOpacity={0.82}
+            style={({ hovered, pressed }) => [
+              styles.backButton,
+              (hovered || pressed) && styles.backButtonActive,
+            ]}
           >
-            <Ionicons name="arrow-back" size={18} color={AppSketch.ink} />
+            <Ionicons name="arrow-back" size={18} color={BRAND.ink} />
             <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
+          </Pressable>
         }
       >
         {loading ? (
           <DesktopPanel style={styles.loadingPanel}>
-            <ActivityIndicator size="large" color={AppSketch.inkMuted} />
+            <ActivityIndicator size="large" color={BRAND.inkSoft} />
           </DesktopPanel>
         ) : !stats ? (
           <DesktopPanel style={styles.loadingPanel}>
@@ -182,9 +198,9 @@ export default function VocabStatsWebScreen() {
           <View style={styles.pageStack}>
             <View style={[styles.summaryStrip, compactMetrics && styles.summaryStripWrap]}>
               <View style={styles.heroCard}>
-                <Text style={styles.heroLabel}>Vocabulary overview</Text>
+                <Text style={styles.metricLabel}>Vocabulary overview</Text>
                 <Text style={styles.heroValue}>{stats.total_words || 0}</Text>
-                <Text style={styles.heroSubtitle}>tracked words in your deck</Text>
+                <Text style={styles.metricDetail}>tracked words in your deck</Text>
               </View>
 
               <MetricCard
@@ -215,13 +231,15 @@ export default function VocabStatsWebScreen() {
                   title="Adding vocab"
                   caption="Words from grammar practice can be added to your review deck automatically."
                   action={
-                    <TouchableOpacity
-                      style={styles.infoButton}
+                    <Pressable
                       onPress={() => setShowSrsInfo(true)}
-                      activeOpacity={0.82}
+                      style={({ hovered, pressed }) => [
+                        styles.infoButton,
+                        (hovered || pressed) && styles.infoButtonActive,
+                      ]}
                     >
-                      <Text style={styles.infoButtonText}>What is SRS?</Text>
-                    </TouchableOpacity>
+                      <Text style={styles.infoButtonText}>How SRS works</Text>
+                    </Pressable>
                   }
                 />
 
@@ -239,14 +257,17 @@ export default function VocabStatsWebScreen() {
                     </Text>
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.preferenceToggleWrap}
+                  <Pressable
                     onPress={() => {
                       if (savingPreference) return;
                       void togglePracticeWordTracking(!trackPracticeVocab);
                     }}
-                    activeOpacity={0.85}
                     disabled={savingPreference}
+                    style={({ hovered, pressed }) => [
+                      styles.preferenceToggleWrap,
+                      (hovered || pressed) && styles.preferenceToggleWrapActive,
+                      savingPreference && styles.preferenceToggleWrapDisabled,
+                    ]}
                   >
                     <View
                       style={[
@@ -264,7 +285,7 @@ export default function VocabStatsWebScreen() {
                     <Text style={styles.preferenceToggleLabel}>
                       {savingPreference ? "Saving..." : trackPracticeVocab ? "On" : "Off"}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               </DesktopPanel>
 
@@ -304,16 +325,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    minHeight: 44,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    boxShadow: LIGHT_BUTTON as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  backButtonActive: {
+    transform: [{ translateY: 1.6 }],
+    boxShadow: LIGHT_BUTTON_PRESSED as any,
   },
   backButtonText: {
-    ...AppTypography.label,
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   loadingPanel: {
     minHeight: 220,
@@ -321,12 +352,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emptyText: {
-    ...AppTypography.body,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: WEB_BODY_FONT,
   },
   summaryStrip: {
     flexDirection: "row",
-    gap: AppSpacing.md,
+    gap: 16,
   },
   summaryStripWrap: {
     flexWrap: "wrap",
@@ -335,61 +368,58 @@ const styles = StyleSheet.create({
     flex: 1.18,
     minWidth: 260,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.lg,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    backgroundColor: BRAND.paper,
     padding: 22,
     gap: 6,
-    ...appShadow("sm"),
-  },
-  heroLabel: {
-    ...AppTypography.captionSmall,
-    color: AppSketch.inkMuted,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
-  heroValue: {
-    fontSize: 42,
-    lineHeight: 46,
-    fontWeight: "700",
-    color: AppSketch.ink,
-    letterSpacing: -1,
-  },
-  heroSubtitle: {
-    ...AppTypography.bodySmall,
-    color: AppSketch.inkMuted,
+    boxShadow: CARD_SHADOW as any,
   },
   metricCard: {
     flex: 0.92,
     minWidth: 190,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    borderRadius: AppRadius.lg,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    backgroundColor: BRAND.paper,
     padding: 20,
     gap: 4,
-    ...appShadow("sm"),
+    boxShadow: CARD_SHADOW as any,
   },
   metricLabel: {
-    ...AppTypography.captionSmall,
-    color: AppSketch.inkMuted,
+    color: BRAND.muted,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.9,
+    letterSpacing: 1,
+    fontFamily: WEB_BODY_FONT,
+  },
+  heroValue: {
+    color: BRAND.ink,
+    fontSize: 42,
+    lineHeight: 46,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   metricValue: {
+    color: BRAND.ink,
     fontSize: 30,
     lineHeight: 34,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    fontFamily: WEB_DISPLAY_FONT,
   },
   metricDetail: {
-    ...AppTypography.caption,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontSize: 13,
+    lineHeight: 20,
+    fontFamily: WEB_BODY_FONT,
   },
   mainGrid: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: AppSpacing.md,
+    gap: 16,
   },
   mainGridStack: {
     flexDirection: "column",
@@ -403,58 +433,79 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   infoButton: {
+    minHeight: 38,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 14,
+    paddingVertical: 0,
+    justifyContent: "center",
+    boxShadow: LIGHT_BUTTON as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  infoButtonActive: {
+    transform: [{ translateY: 1.6 }],
+    boxShadow: LIGHT_BUTTON_PRESSED as any,
   },
   infoButtonText: {
-    ...AppTypography.caption,
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   preferenceBody: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: AppSpacing.lg,
+    gap: 24,
   },
   preferenceCopy: {
     flex: 1,
     gap: 8,
   },
   preferenceText: {
-    ...AppTypography.bodySmall,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: WEB_BODY_FONT,
     maxWidth: 560,
   },
   preferenceStatus: {
-    ...AppTypography.captionSmall,
-    color: AppSketch.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.9,
+    color: BRAND.ink,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    fontFamily: WEB_BODY_FONT,
   },
   preferenceToggleWrap: {
     minWidth: 112,
     alignItems: "center",
     gap: 8,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  preferenceToggleWrapActive: {
+    opacity: 0.92,
+  },
+  preferenceToggleWrapDisabled: {
+    opacity: 0.55,
   },
   preferenceToggle: {
     width: 52,
     height: 30,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#D8D4CE",
-    backgroundColor: "#E7E4DF",
+    borderColor: BRAND.line,
+    backgroundColor: "#E7EAEF",
     paddingHorizontal: 3,
     justifyContent: "center",
   },
   preferenceToggleOn: {
-    borderColor: "#5A6470",
-    backgroundColor: "#3F4B58",
+    borderColor: BRAND.navy,
+    backgroundColor: "#405165",
     alignItems: "flex-end",
   },
   preferenceToggleKnob: {
@@ -463,39 +514,44 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D8D4CE",
+    borderColor: BRAND.line,
   },
   preferenceToggleKnobOn: {
     borderColor: "#FFFFFF",
   },
   preferenceToggleLabel: {
-    ...AppTypography.caption,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   deckGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: AppSpacing.sm,
+    gap: 10,
   },
   deckCard: {
     width: "48.6%",
     minWidth: 180,
     borderWidth: 1,
-    borderColor: AppSketch.borderLight,
-    borderRadius: AppRadius.md,
-    backgroundColor: AppSketch.background,
+    borderColor: BRAND.line,
+    borderRadius: 16,
+    backgroundColor: BRAND.panel,
     padding: 16,
     gap: 4,
   },
   deckCardValue: {
+    color: BRAND.ink,
     fontSize: 28,
     lineHeight: 32,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    fontFamily: WEB_DISPLAY_FONT,
   },
   deckCardLabel: {
-    ...AppTypography.caption,
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: WEB_BODY_FONT,
   },
 });

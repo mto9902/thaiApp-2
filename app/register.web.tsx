@@ -4,18 +4,29 @@ import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import TermsAgreement from "@/src/components/TermsAgreement";
+import {
+  WEB_BODY_FONT,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import AuthShell from "@/src/components/web/AuthShell";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 import { API_BASE } from "@/src/config";
+import RegisterMobileScreen from "@/src/screens/mobile/RegisterMobileScreen";
 import { setAuthToken } from "@/src/utils/authStorage";
 
 function isValidEmail(email: string): boolean {
@@ -27,6 +38,16 @@ function isValidPassword(password: string): boolean {
 }
 
 export default function RegisterWeb() {
+  const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <RegisterMobileScreen />;
+  }
+
+  return <RegisterWebDesktop />;
+}
+
+function RegisterWebDesktop() {
   const router = useRouter();
   const params = useLocalSearchParams<{ redirectTo?: string }>();
   const redirectTo = Array.isArray(params.redirectTo)
@@ -192,21 +213,24 @@ export default function RegisterWeb() {
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              (!acceptedTerms || submitting) && styles.disabledAction,
-            ]}
+          <Pressable
             onPress={handleRegister}
             disabled={!acceptedTerms || submitting}
-            activeOpacity={acceptedTerms && !submitting ? 0.82 : 1}
+            style={({ hovered, pressed }) => [
+              styles.primaryButton,
+              (!acceptedTerms || submitting) && styles.disabledAction,
+              (hovered || pressed) &&
+                acceptedTerms &&
+                !submitting &&
+                styles.primaryButtonActive,
+            ]}
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.primaryButtonText}>Create account</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </AuthShell>
     </SafeAreaView>
@@ -230,6 +254,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: Sketch.paper,
     color: Sketch.ink,
+    borderRadius: WEB_RADIUS.md,
+    fontFamily: WEB_BODY_FONT,
+    outlineStyle: "none" as any,
   },
   helperText: {
     fontSize: 12,
@@ -237,6 +264,7 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     marginTop: -4,
     marginBottom: 8,
+    fontFamily: WEB_BODY_FONT,
   },
   validationText: {
     fontSize: 12,
@@ -244,6 +272,7 @@ const styles = StyleSheet.create({
     color: Sketch.red,
     marginTop: -4,
     marginBottom: 8,
+    fontFamily: WEB_BODY_FONT,
   },
   errorText: {
     fontSize: 12,
@@ -251,13 +280,23 @@ const styles = StyleSheet.create({
     color: Sketch.red,
     marginTop: 4,
     marginBottom: 10,
+    fontFamily: WEB_BODY_FONT,
   },
   primaryButton: {
     backgroundColor: Sketch.accent,
+    borderRadius: WEB_RADIUS.md,
     paddingVertical: 15,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: Sketch.accentDark,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   disabledAction: {
     opacity: 0.5,
@@ -266,5 +305,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 15,
+    fontFamily: WEB_BODY_FONT,
   },
 });

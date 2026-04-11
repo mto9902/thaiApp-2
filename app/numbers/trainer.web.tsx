@@ -5,19 +5,34 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
 import AccentSwitch from "@/src/components/AccentSwitch";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
+import NumbersTrainerMobileScreen from "@/src/screens/mobile/NumbersTrainerMobileScreen";
 import {
-  DesktopPage,
-  DesktopPanel,
-  DesktopSectionTitle,
-} from "@/src/components/web/DesktopScaffold";
+  DESKTOP_PAGE_WIDTH,
+  MOBILE_WEB_BREAKPOINT,
+} from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+  WEB_SENTENCE_SHADOW,
+} from "@/src/components/web/designSystem";
 import {
   createNumbersTrainerQuestion,
   NumbersTrainerOption,
@@ -28,6 +43,10 @@ import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 const PREF_AUTOPLAY_TTS = "pref_autoplay_tts";
 const PREF_ROMANIZATION = "pref_show_romanization";
 const PREF_TTS_SPEED = "pref_tts_speed";
+
+const BRAND = WEB_BRAND;
+const BODY_FONT = WEB_BODY_FONT;
+const DISPLAY_FONT = WEB_DISPLAY_FONT;
 
 function OptionCard({
   option,
@@ -40,20 +59,33 @@ function OptionCard({
   state: "idle" | "correct" | "incorrect" | "revealed";
   onPress: () => void;
 }) {
+  const isMutedIncorrect = state === "incorrect";
+  const stateStyle =
+    state === "correct" || state === "revealed"
+      ? styles.optionCardCorrect
+      : state === "incorrect"
+        ? styles.optionCardIncorrect
+        : null;
+
   return (
     <Pressable
-      style={[
-        styles.optionCard,
-        state === "correct" && styles.optionCardCorrect,
-        state === "incorrect" && styles.optionCardIncorrect,
-        state === "revealed" && styles.optionCardRevealed,
-      ]}
       onPress={onPress}
       disabled={state !== "idle"}
+      style={({ hovered, pressed }) => [
+        styles.optionCard,
+        stateStyle,
+        state === "idle" && (hovered || pressed) && styles.optionCardHover,
+      ]}
     >
-      <Text style={styles.optionPrimary}>{option.primary}</Text>
+      <Text style={[styles.optionPrimary, isMutedIncorrect && styles.optionPrimaryMuted]}>
+        {option.primary}
+      </Text>
       {showRoman && option.secondary ? (
-        <Text style={styles.optionSecondary}>{option.secondary}</Text>
+        <Text
+          style={[styles.optionSecondary, isMutedIncorrect && styles.optionSecondaryMuted]}
+        >
+          {option.secondary}
+        </Text>
       ) : null}
     </Pressable>
   );
@@ -61,6 +93,7 @@ function OptionCard({
 
 export default function NumbersTrainerWeb() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { playSentence } = useSentenceAudio();
   const [question, setQuestion] = useState<NumbersTrainerQuestion>(() =>
     createNumbersTrainerQuestion("read"),
@@ -95,7 +128,7 @@ export default function NumbersTrainerWeb() {
           setTtsSpeed(speedRaw);
         }
       } catch {
-        // Ignore settings load failure and keep defaults.
+        // Keep defaults if settings fail to load.
       }
     }
 
@@ -129,136 +162,162 @@ export default function NumbersTrainerWeb() {
 
   function optionState(optionId: string) {
     if (!selectedId) return "idle" as const;
-    if (optionId === question.correctOptionId) return "revealed" as const;
-    if (optionId === selectedId && selectedId !== question.correctOptionId) {
-      return "incorrect" as const;
+    if (optionId === question.correctOptionId) {
+      return selectedId === question.correctOptionId ? ("correct" as const) : ("revealed" as const);
     }
-    if (optionId === selectedId && selectedId === question.correctOptionId) {
-      return "correct" as const;
-    }
+    if (optionId === selectedId) return "incorrect" as const;
     return "idle" as const;
+  }
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <NumbersTrainerMobileScreen />;
   }
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        widthVariant="wide"
-        eyebrow="Numbers trainer"
-        title="Practice Thai Numbers"
-        subtitle="Practice reading digits, Thai numerals, and bigger number patterns."
-        toolbar={
-          <View style={styles.toolbar}>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => setShowSettings(true)}
-              activeOpacity={0.82}
-            >
-              <Ionicons name="settings-outline" size={18} color={AppSketch.inkSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      >
-        <View style={styles.pageGrid}>
-          <View style={styles.sideColumn}>
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title="Prompt audio"
-                caption="Use the same Thai audio path as the rest of the app."
-              />
-              <TouchableOpacity
-                style={styles.audioPanelButton}
-                onPress={() => void playSentence(question.audioText, { speed: ttsSpeed })}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="volume-medium-outline" size={18} color={AppSketch.primary} />
-                <Text style={styles.audioPanelButtonText}>Hear the Thai</Text>
-              </TouchableOpacity>
-            </DesktopPanel>
-          </View>
-
-          <View style={styles.mainColumn}>
-            <DesktopPanel>
-              <DesktopSectionTitle
-                title={question.promptTitle}
-                caption={question.promptHint}
-              />
-
-              <View style={styles.promptCard}>
-                <Text style={styles.promptEyebrow}>{question.eyebrow}</Text>
-                <Text style={styles.promptPrimary}>{question.promptPrimary}</Text>
-                {question.promptSecondary ? (
-                  <Text style={styles.promptSecondary}>{question.promptSecondary}</Text>
-                ) : null}
-                {question.promptTertiary ? (
-                  <Text style={styles.promptTertiary}>{question.promptTertiary}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.optionsGrid}>
-                {question.options.map((option) => (
-                  <OptionCard
-                    key={option.id}
-                    option={option}
-                    showRoman={showRoman}
-                    state={optionState(option.id)}
-                    onPress={() => handleOptionPress(option.id)}
-                  />
-                ))}
-              </View>
-
-              {!selectedId ? (
-                <TouchableOpacity
-                  style={styles.skipButton}
-                  onPress={loadQuestion}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.skipButtonText}>Skip</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              {result ? (
-                <View
-                  style={[
-                    styles.feedbackCard,
-                    result === "correct"
-                      ? styles.feedbackCardCorrect
-                      : styles.feedbackCardIncorrect,
-                  ]}
-                >
-                  <Text style={styles.feedbackTitle}>
-                    {result === "correct" ? "Correct" : "Not quite"}
-                  </Text>
-                  <Text style={styles.feedbackBody}>{question.feedback}</Text>
-                </View>
-              ) : null}
-
-              <TouchableOpacity
-                style={[styles.nextButton, !result && styles.nextButtonDisabled]}
-                onPress={loadQuestion}
-                activeOpacity={0.82}
-                disabled={!result}
-              >
-                <Text
-                  style={[
-                    styles.nextButtonText,
-                    !result && styles.nextButtonTextDisabled,
-                  ]}
-                >
-                  Next
+      <DesktopAppShell>
+        <ScrollView
+          style={styles.page}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.shell}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>Numbers trainer</Text>
+                <Text style={styles.title}>Practice Thai Numbers</Text>
+                <Text style={styles.subtitle}>
+                  Practice reading digits, Thai numerals, and bigger number patterns.
                 </Text>
-              </TouchableOpacity>
-            </DesktopPanel>
+              </View>
+              <View style={styles.toolbar}>
+                <Pressable
+                  onPress={() => setShowSettings(true)}
+                  style={({ hovered, pressed }) => [
+                    styles.iconButton,
+                    (hovered || pressed) && styles.lightButtonActive,
+                  ]}
+                >
+                  <Ionicons name="settings-outline" size={18} color={BRAND.ink} />
+                </Pressable>
+                <Pressable
+                  onPress={() => router.back()}
+                  style={({ hovered, pressed }) => [
+                    styles.secondaryButton,
+                    (hovered || pressed) && styles.lightButtonActive,
+                  ]}
+                >
+                  <Text style={styles.secondaryButtonText}>Back</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.pageGrid}>
+              <View style={styles.sideColumn}>
+                <View style={styles.surfaceCard}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeading}>Audio</Text>
+                    <Text style={styles.sectionSubheading}>
+                      Listen first if you want to hear the full number before answering.
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => void playSentence(question.audioText, { speed: ttsSpeed })}
+                    style={({ hovered, pressed }) => [
+                      styles.lightButtonWide,
+                      (hovered || pressed) && styles.lightButtonActive,
+                    ]}
+                  >
+                    <Ionicons name="volume-medium-outline" size={18} color={BRAND.ink} />
+                    <Text style={styles.lightButtonWideText}>Play audio</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.mainColumn}>
+                <View style={styles.surfaceCard}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeading}>{question.promptTitle}</Text>
+                    <Text style={styles.sectionSubheading}>{question.promptHint}</Text>
+                  </View>
+
+                  <View style={styles.promptCard}>
+                    <Text style={styles.promptEyebrow}>{question.eyebrow}</Text>
+                    <Text style={styles.promptPrimary}>{question.promptPrimary}</Text>
+                    {question.promptSecondary ? (
+                      <Text style={styles.promptSecondary}>{question.promptSecondary}</Text>
+                    ) : null}
+                    {question.promptTertiary ? (
+                      <Text style={styles.promptTertiary}>{question.promptTertiary}</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.optionsGrid}>
+                    {question.options.map((option) => (
+                      <OptionCard
+                        key={option.id}
+                        option={option}
+                        showRoman={showRoman}
+                        state={optionState(option.id)}
+                        onPress={() => handleOptionPress(option.id)}
+                      />
+                    ))}
+                  </View>
+
+                  {!selectedId ? (
+                    <Pressable
+                      onPress={loadQuestion}
+                      style={({ hovered, pressed }) => [
+                        styles.lightButtonWide,
+                        styles.utilityButton,
+                        (hovered || pressed) && styles.lightButtonActive,
+                      ]}
+                    >
+                      <Text style={styles.lightButtonWideText}>Skip</Text>
+                    </Pressable>
+                  ) : null}
+
+                  {result ? (
+                    <View
+                      style={[
+                        styles.feedbackCard,
+                        result === "correct"
+                          ? styles.feedbackCardCorrect
+                          : styles.feedbackCardIncorrect,
+                      ]}
+                    >
+                      <Text style={styles.feedbackTitle}>
+                        {result === "correct" ? "Correct" : "Not quite"}
+                      </Text>
+                      <Text style={styles.feedbackBody}>{question.feedback}</Text>
+                    </View>
+                  ) : null}
+
+                  <Pressable
+                    onPress={loadQuestion}
+                    disabled={!result}
+                    style={({ hovered, pressed }) => [
+                      styles.primaryButton,
+                      !result && styles.primaryButtonDisabled,
+                      result && (hovered || pressed) && styles.primaryButtonActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.primaryButtonText,
+                        !result && styles.primaryButtonTextDisabled,
+                      ]}
+                    >
+                      Next
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
           </View>
-        </View>
-      </DesktopPage>
+        </ScrollView>
+      </DesktopAppShell>
 
       <Modal
         visible={showSettings}
@@ -270,24 +329,32 @@ export default function NumbersTrainerWeb() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Settings</Text>
-              <TouchableOpacity onPress={() => setShowSettings(false)} activeOpacity={0.82}>
-                <Ionicons name="close" size={22} color={AppSketch.ink} />
-              </TouchableOpacity>
+              <Pressable
+                onPress={() => setShowSettings(false)}
+                style={({ hovered, pressed }) => [
+                  styles.iconButton,
+                  (hovered || pressed) && styles.lightButtonActive,
+                ]}
+              >
+                <Ionicons name="close" size={18} color={BRAND.ink} />
+              </Pressable>
             </View>
+
             <View style={styles.settingRow}>
               <View style={styles.settingCopy}>
                 <Text style={styles.settingLabel}>Romanization</Text>
                 <Text style={styles.settingDescription}>
-                  Show phonetic transcription on answer cards.
+                  Show phonetic reading on the answer cards.
                 </Text>
               </View>
               <AccentSwitch value={showRoman} onValueChange={handleRomanizationChange} />
             </View>
+
             <View style={styles.settingRow}>
               <View style={styles.settingCopy}>
-                <Text style={styles.settingLabel}>Autoplay Audio</Text>
+                <Text style={styles.settingLabel}>Autoplay audio</Text>
                 <Text style={styles.settingDescription}>
-                  Automatically play the answer card you tap.
+                  Play the number you tapped automatically.
                 </Text>
               </View>
               <AccentSwitch value={autoplayTTS} onValueChange={handleAutoplayChange} />
@@ -300,33 +367,44 @@ export default function NumbersTrainerWeb() {
 }
 
 const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: BRAND.bg },
+  pageContent: { paddingHorizontal: 28, paddingVertical: 28 },
+  shell: { width: "100%", maxWidth: DESKTOP_PAGE_WIDTH, alignSelf: "center", gap: 20 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 20,
+  },
+  headerCopy: { flex: 1, gap: 8 },
+  eyebrow: {
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    fontFamily: BODY_FONT,
+  },
+  title: {
+    color: BRAND.ink,
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: DISPLAY_FONT,
+  },
+  subtitle: {
+    maxWidth: 760,
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 26,
+    fontFamily: BODY_FONT,
+  },
   toolbar: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: AppSketch.ink,
   },
   pageGrid: {
     flexDirection: "row",
@@ -334,70 +412,177 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   sideColumn: {
-    width: 250,
-    gap: 16,
+    width: 260,
   },
   mainColumn: {
     flex: 1,
   },
-  audioPanelButton: {
+  surfaceCard: {
+    backgroundColor: BRAND.paper,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    padding: 24,
+    gap: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  sectionHeader: {
+    gap: 4,
+  },
+  sectionHeading: {
+    color: BRAND.ink,
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "800",
+    fontFamily: DISPLAY_FONT,
+  },
+  sectionSubheading: {
+    color: BRAND.inkSoft,
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: BODY_FONT,
+  },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  secondaryButton: {
+    minHeight: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  secondaryButtonText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
+  },
+  lightButtonWide: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    paddingVertical: 14,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
   },
-  audioPanelButtonText: {
+  lightButtonWideText: {
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
+  },
+  primaryButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#0D2237",
+    backgroundColor: BRAND.navy,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    fontFamily: BODY_FONT,
+  },
+  primaryButtonDisabled: {
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  primaryButtonTextDisabled: {
+    color: BRAND.inkSoft,
+  },
+  lightButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   promptCard: {
     alignItems: "center",
     gap: 6,
-    paddingVertical: 20,
+    paddingVertical: 22,
     paddingHorizontal: 18,
-    borderRadius: AppRadius.lg,
+    borderRadius: WEB_RADIUS.lg,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    ...appShadow("sm"),
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
+    boxShadow: WEB_SENTENCE_SHADOW as any,
   },
   promptEyebrow: {
     fontSize: 11,
+    lineHeight: 14,
     fontWeight: "700",
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
     letterSpacing: 1.1,
     textTransform: "uppercase",
+    fontFamily: BODY_FONT,
   },
   promptPrimary: {
     fontSize: 44,
     lineHeight: 50,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    fontWeight: "800",
+    color: BRAND.ink,
     letterSpacing: -1.1,
+    fontFamily: DISPLAY_FONT,
   },
   promptSecondary: {
     fontSize: 26,
     lineHeight: 32,
     fontWeight: "700",
-    color: AppSketch.primary,
+    color: BRAND.navy,
     textAlign: "center",
+    fontFamily: BODY_FONT,
   },
   promptTertiary: {
     maxWidth: 760,
     fontSize: 18,
     lineHeight: 26,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
     textAlign: "center",
+    fontFamily: BODY_FONT,
   },
   optionsGrid: {
-    marginTop: 16,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 14,
@@ -405,97 +590,80 @@ const styles = StyleSheet.create({
   optionCard: {
     width: "48.8%",
     minHeight: 96,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.lg,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 6,
     justifyContent: "center",
+    boxShadow: WEB_CARD_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  optionCardHover: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   optionCardCorrect: {
-    borderColor: AppSketch.success,
+    borderColor: BRAND.navy,
+    borderWidth: 2,
+    backgroundColor: BRAND.paper,
   },
   optionCardIncorrect: {
-    borderColor: AppSketch.danger,
-  },
-  optionCardRevealed: {
-    borderColor: AppSketch.success,
-    backgroundColor: AppSketch.background,
+    borderColor: BRAND.edge,
+    backgroundColor: BRAND.panel,
   },
   optionPrimary: {
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
+  },
+  optionPrimaryMuted: {
+    color: BRAND.muted,
   },
   optionSecondary: {
     fontSize: 12,
     lineHeight: 18,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
-  skipButton: {
-    marginTop: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+  optionSecondaryMuted: {
+    color: BRAND.muted,
   },
-  skipButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: AppSketch.inkMuted,
+  utilityButton: {
+    marginTop: 2,
   },
   feedbackCard: {
-    marginTop: 16,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
+    borderRadius: WEB_RADIUS.lg,
     padding: 14,
     gap: 4,
-    backgroundColor: AppSketch.background,
   },
   feedbackCardCorrect: {
-    borderColor: AppSketch.success,
+    borderWidth: 2,
+    borderColor: BRAND.navy,
+    backgroundColor: BRAND.paper,
   },
   feedbackCardIncorrect: {
-    borderColor: AppSketch.danger,
+    borderWidth: 1,
+    borderColor: BRAND.edge,
+    backgroundColor: BRAND.panel,
   },
   feedbackTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    lineHeight: 24,
+    fontWeight: "800",
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   feedbackBody: {
     fontSize: 14,
     lineHeight: 22,
-    color: AppSketch.inkSecondary,
-  },
-  nextButton: {
-    marginTop: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: AppRadius.md,
-    borderWidth: 1,
-    borderColor: AppSketch.primary,
-    backgroundColor: AppSketch.primary,
-    ...appShadow("sm"),
-  },
-  nextButtonDisabled: {
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-  },
-  nextButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  nextButtonTextDisabled: {
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   modalBackdrop: {
     flex: 1,
@@ -506,14 +674,14 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: "100%",
-    maxWidth: 420,
-    borderRadius: AppRadius.lg,
+    maxWidth: 440,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
     padding: 22,
-    gap: 20,
-    ...appShadow("sm"),
+    gap: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   modalHeader: {
     flexDirection: "row",
@@ -521,10 +689,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: AppSketch.ink,
-    letterSpacing: -0.5,
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: "800",
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   settingRow: {
     flexDirection: "row",
@@ -532,7 +701,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
     borderTopWidth: 1,
-    borderTopColor: AppSketch.border,
+    borderTopColor: BRAND.line,
     paddingTop: 18,
   },
   settingCopy: {
@@ -541,12 +710,15 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
+    lineHeight: 22,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
   },
   settingDescription: {
     fontSize: 13,
     lineHeight: 20,
-    color: AppSketch.inkSecondary,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
 });

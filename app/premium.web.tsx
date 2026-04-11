@@ -4,10 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
+  StyleProp,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  TextStyle,
   View,
+  ViewStyle,
   useWindowDimensions,
 } from "react-native";
 
@@ -17,7 +20,21 @@ import {
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import {
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 import { API_BASE } from "@/src/config";
+import PremiumMobileScreen from "@/src/screens/mobile/PremiumMobileScreen";
 import {
   consumeRecentPaddleCheckout,
   isWebCheckoutPlan,
@@ -57,6 +74,66 @@ type WebPlanSwitchPreview = WebBillingSummary & {
   immediateCharge?: BillingMoney | null;
   recurringCharge?: BillingMoney | null;
 };
+
+type BillingActionButtonProps = {
+  label: string;
+  onPress: () => void;
+  variant?: "primary" | "secondary";
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  icon?: keyof typeof Ionicons.glyphMap;
+};
+
+const SOFT_LINE = "#E5E5E5";
+
+function BillingActionButton({
+  label,
+  onPress,
+  variant = "secondary",
+  disabled,
+  style,
+  textStyle,
+  icon,
+}: BillingActionButtonProps) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ hovered, pressed }) => [
+        styles.buttonBase,
+        variant === "primary" ? styles.primaryButton : styles.secondaryButton,
+        (hovered || pressed) &&
+          !disabled &&
+          (variant === "primary"
+            ? styles.primaryButtonActive
+            : styles.secondaryButtonActive),
+        disabled && styles.disabledButton,
+        style,
+      ]}
+    >
+      {icon ? (
+        <Ionicons
+          name={icon}
+          size={16}
+          color={variant === "primary" ? "#FFFFFF" : Sketch.ink}
+        />
+      ) : null}
+      <Text
+        selectable={false}
+        style={[
+          styles.buttonText,
+          variant === "primary"
+            ? styles.primaryButtonText
+            : styles.secondaryButtonText,
+          textStyle,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 async function fetchAuthenticatedBillingJson<T>(
   path: string,
@@ -127,7 +204,35 @@ function formatBillingDate(value?: string | null) {
   }
 }
 
+function parsePriceLabelAmount(priceLabel: string) {
+  const numeric = Number(priceLabel.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function formatCompactMonthlyEquivalent(amount: number) {
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
+  const rounded =
+    Math.abs(amount - Math.round(amount)) < 0.05
+      ? String(Math.round(amount))
+      : amount.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+
+  return `$${rounded}/month billed yearly`;
+}
+
 export default function PremiumWebScreen() {
+  const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <PremiumMobileScreen />;
+  }
+
+  return <PremiumWebDesktopScreen />;
+}
+
+function PremiumWebDesktopScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{
@@ -145,7 +250,7 @@ export default function PremiumWebScreen() {
     : params.checkout;
   const requestedPlan = isWebCheckoutPlan(requestedPlanParam)
     ? requestedPlanParam
-    : "yearly";
+    : "monthly";
   const [recentCheckoutCompletion] = useState(() => consumeRecentPaddleCheckout());
   const completedCheckout =
     checkoutParam === "success" || Boolean(recentCheckoutCompletion);
@@ -330,15 +435,25 @@ export default function PremiumWebScreen() {
   }, [billingProvider, checkingGuest, isPremium, loadBillingSummary]);
 
   const orderedPlans = useMemo(() => {
-    const priority: Record<WebCheckoutPlan, number> = {
-      yearly: requestedPlan === "yearly" ? 0 : 1,
-      monthly: requestedPlan === "monthly" ? 0 : 1,
-    };
+    const plansById = new Map(WEB_CHECKOUT_PLANS.map((plan) => [plan.id, plan]));
+    return (["monthly", "yearly"] as const)
+      .map((planId) => plansById.get(planId))
+      .filter(Boolean) as typeof WEB_CHECKOUT_PLANS;
+  }, []);
 
-    return [...WEB_CHECKOUT_PLANS].sort(
-      (a, b) => priority[a.id] - priority[b.id],
-    );
-  }, [requestedPlan]);
+  const yearlyMonthlyEquivalent = useMemo(() => {
+    const yearlyPlan = WEB_CHECKOUT_PLANS.find((plan) => plan.id === "yearly");
+    if (!yearlyPlan) {
+      return null;
+    }
+
+    const yearlyAmount = parsePriceLabelAmount(yearlyPlan.priceLabel);
+    if (yearlyAmount == null) {
+      return null;
+    }
+
+    return formatCompactMonthlyEquivalent(yearlyAmount / 12);
+  }, []);
 
   const handleCheckout = useCallback(
     async (plan: WebCheckoutPlan) => {
@@ -453,14 +568,12 @@ export default function PremiumWebScreen() {
         title="Upgrade this account"
         subtitle="Add Keystone Access to this signed-in account so you can continue through the Thai course on web and mobile."
         toolbar={
-          <TouchableOpacity
-            style={styles.backButton}
+          <BillingActionButton
+            label="Back"
             onPress={() => router.back()}
-            activeOpacity={0.82}
-          >
-            <Ionicons name="arrow-back" size={18} color={Sketch.ink} />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
+            icon="arrow-back"
+            style={styles.backButton}
+          />
         }
       >
         {checkingGuest ? (
@@ -514,32 +627,24 @@ export default function PremiumWebScreen() {
                     ) : billingSummaryMessage ? (
                       <Text style={styles.syncNote}>{billingSummaryMessage}</Text>
                     ) : null}
-                    <TouchableOpacity
-                      style={[
-                        styles.primaryButton,
-                        manageBillingBusy && styles.primaryButtonDisabled,
-                      ]}
-                      onPress={() => void handleManageBilling()}
-                      disabled={manageBillingBusy}
-                      activeOpacity={0.82}
-                    >
-                      <Text style={styles.primaryButtonText}>
-                        {manageBillingBusy
+                    <BillingActionButton
+                      label={
+                        manageBillingBusy
                           ? "Opening billing portal..."
-                          : "Manage subscription"}
-                      </Text>
-                    </TouchableOpacity>
+                          : "Manage subscription"
+                      }
+                      onPress={() => void handleManageBilling()}
+                      variant="primary"
+                      disabled={manageBillingBusy}
+                    />
                     {manageBillingMessage ? (
                       <Text style={styles.syncNote}>{manageBillingMessage}</Text>
                     ) : null}
                     {redirectTo ? (
-                      <TouchableOpacity
-                        style={styles.secondaryButton}
+                      <BillingActionButton
+                        label="Continue"
                         onPress={() => router.replace(redirectTo as any)}
-                        activeOpacity={0.82}
-                      >
-                        <Text style={styles.secondaryButtonText}>Continue</Text>
-                      </TouchableOpacity>
+                      />
                     ) : null}
                   </>
                 ) : syncingCheckout ? (
@@ -635,33 +740,35 @@ export default function PremiumWebScreen() {
                           <View style={styles.planTitleRow}>
                             <Text style={styles.planTitle}>{plan.title}</Text>
                             {plan.badge ? (
-                              <View style={styles.planBadge}>
-                                <Text style={styles.planBadgeText}>{plan.badge}</Text>
+                              <View style={styles.planTag}>
+                                <Text style={styles.planTagText}>{plan.badge}</Text>
                               </View>
                             ) : null}
                             {isCurrentPlan ? (
-                              <View style={styles.planCurrentBadge}>
-                                <Text style={styles.planCurrentBadgeText}>
-                                  Current plan
-                                </Text>
+                              <View style={styles.planTag}>
+                                <Text style={styles.planTagText}>Current plan</Text>
                               </View>
                             ) : null}
                           </View>
                           <Text style={styles.planSupport}>{plan.supportText}</Text>
                         </View>
-                        <Text style={styles.planPrice}>
-                          {plan.priceLabel}
-                          <Text style={styles.planCadence}>{plan.cadenceLabel}</Text>
-                        </Text>
+                        <View style={styles.planPriceWrap}>
+                          <Text style={styles.planPrice}>
+                            {plan.priceLabel}
+                            <Text style={styles.planCadence}>{plan.cadenceLabel}</Text>
+                          </Text>
+                          {plan.id === "yearly" && yearlyMonthlyEquivalent ? (
+                            <Text style={styles.planEquivalent}>
+                              {yearlyMonthlyEquivalent}
+                            </Text>
+                          ) : null}
+                        </View>
                       </View>
 
                       <Text style={styles.planDetail}>{plan.detailText}</Text>
 
-                      <TouchableOpacity
-                        style={[
-                          styles.primaryButton,
-                          disablePlanButton && styles.disabledButton,
-                        ]}
+                      <BillingActionButton
+                        label={planButtonLabel}
                         onPress={() =>
                           isPremium
                             ? isSwitchTarget
@@ -669,11 +776,9 @@ export default function PremiumWebScreen() {
                               : undefined
                             : void handleCheckout(plan.id)
                         }
-                        activeOpacity={0.82}
+                        variant="primary"
                         disabled={disablePlanButton}
-                      >
-                        <Text style={styles.primaryButtonText}>{planButtonLabel}</Text>
-                      </TouchableOpacity>
+                      />
 
                       {isShowingSwitchPreview ? (
                         <View style={styles.switchPreviewCard}>
@@ -693,32 +798,23 @@ export default function PremiumWebScreen() {
                                 : "The new billing cadence takes effect as soon as you confirm."}
                           </Text>
                           <View style={styles.switchPreviewActions}>
-                            <TouchableOpacity
-                              style={[
-                                styles.primaryButton,
-                                styles.switchActionButton,
-                                switchConfirmBusy && styles.disabledButton,
-                              ]}
-                              onPress={() => void handleConfirmSwitch()}
-                              disabled={switchConfirmBusy}
-                              activeOpacity={0.82}
-                            >
-                              <Text style={styles.primaryButtonText}>
-                                {switchConfirmBusy
+                            <BillingActionButton
+                              label={
+                                switchConfirmBusy
                                   ? "Switching..."
-                                  : `Confirm ${plan.id}`}
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.secondaryButton, styles.switchActionButton]}
+                                  : `Confirm ${plan.id}`
+                              }
+                              onPress={() => void handleConfirmSwitch()}
+                              variant="primary"
+                              disabled={switchConfirmBusy}
+                              style={styles.switchActionButton}
+                            />
+                            <BillingActionButton
+                              label="Keep current plan"
                               onPress={() => setSwitchPreview(null)}
                               disabled={switchConfirmBusy}
-                              activeOpacity={0.82}
-                            >
-                              <Text style={styles.secondaryButtonText}>
-                                Keep current plan
-                              </Text>
-                            </TouchableOpacity>
+                              style={styles.switchActionButton}
+                            />
                           </View>
                         </View>
                       ) : null}
@@ -750,7 +846,7 @@ export default function PremiumWebScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create<Record<string, any>>({
   pageStack: {
     gap: 28,
   },
@@ -769,19 +865,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
-  },
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.ink,
   },
   loadingPanel: {
     minHeight: 220,
@@ -792,11 +876,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: Sketch.accent,
+    fontFamily: WEB_BODY_FONT,
   },
   planHint: {
     fontSize: 13,
     fontWeight: "700",
     color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
   },
   benefitsList: {
     gap: 12,
@@ -810,13 +896,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Sketch.ink,
     fontWeight: "500",
+    fontFamily: WEB_BODY_FONT,
   },
   stateTitle: {
     fontSize: 26,
     lineHeight: 32,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Sketch.ink,
     letterSpacing: -0.6,
+    fontFamily: WEB_DISPLAY_FONT,
   },
   loadingState: {
     gap: 12,
@@ -825,41 +913,56 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   syncNote: {
     fontSize: 13,
     lineHeight: 21,
     color: Sketch.accent,
+    fontFamily: WEB_BODY_FONT,
   },
-  primaryButton: {
+  buttonBase: {
+    minHeight: 44,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: WEB_RADIUS.sm,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    flexDirection: "row",
+    gap: 8,
+    userSelect: "none",
+    outlineStyle: "none",
+    ...WEB_INTERACTIVE_TRANSITION,
   },
-  primaryButtonDisabled: {
-    opacity: 0.72,
+  primaryButton: {
+    borderColor: Sketch.accentDark,
+    backgroundColor: Sketch.accent,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   primaryButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
     color: "#fff",
   },
   secondaryButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#F5F5F5",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  secondaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  buttonText: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "700",
+    fontFamily: WEB_BODY_FONT,
   },
   secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
     color: Sketch.ink,
   },
   disabledButton: {
@@ -869,18 +972,22 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 16,
     borderWidth: 1,
-    borderColor: Sketch.line,
-    backgroundColor: Sketch.cardBg,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#FAFAFA",
+    borderRadius: WEB_RADIUS.lg,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   switchPreviewTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   switchPreviewText: {
     fontSize: 14,
     lineHeight: 22,
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   switchPreviewActions: {
     flexDirection: "row",
@@ -898,15 +1005,16 @@ const styles = StyleSheet.create({
   },
   planCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
-    padding: 18,
-    gap: 14,
+    borderColor: SOFT_LINE,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 22,
+    gap: 16,
     minHeight: 212,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   planCardSelected: {
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.cardBg,
+    borderColor: SOFT_LINE,
   },
   planTop: {
     flexDirection: "row",
@@ -927,55 +1035,66 @@ const styles = StyleSheet.create({
   planTitle: {
     fontSize: 24,
     lineHeight: 30,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Sketch.ink,
     letterSpacing: -0.5,
+    fontFamily: WEB_DISPLAY_FONT,
   },
-  planBadge: {
+  planTag: {
+    minHeight: 30,
     alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "rgba(196, 97, 60, 0.18)",
-    backgroundColor: "rgba(196, 97, 60, 0.08)",
+    borderColor: SOFT_LINE,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
-  planBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.accent,
-  },
-  planCurrentBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.paper,
-  },
-  planCurrentBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Sketch.accent,
+  planTagText: {
+    color: Sketch.inkLight,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+    fontFamily: WEB_BODY_FONT,
   },
   planSupport: {
     fontSize: 14,
     lineHeight: 22,
+    color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
+  },
+  planEquivalent: {
+    fontSize: 12,
+    lineHeight: 18,
     color: Sketch.inkMuted,
+    fontWeight: "600",
+    fontFamily: WEB_BODY_FONT,
   },
   planPrice: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Sketch.ink,
+    fontFamily: WEB_DISPLAY_FONT,
+  },
+  planPriceWrap: {
+    alignItems: "flex-end",
+    gap: 4,
   },
   planCadence: {
     fontSize: 13,
     fontWeight: "600",
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   planDetail: {
     fontSize: 13,
     fontWeight: "700",
-    color: Sketch.accent,
+    lineHeight: 20,
+    color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   legalNote: {
     fontSize: 13,

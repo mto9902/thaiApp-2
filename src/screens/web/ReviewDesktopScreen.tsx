@@ -5,21 +5,30 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import { AppRadius, AppSketch } from "@/constants/theme-app";
 import { submitVocabAnswer } from "@/src/api/submitVocabAnswer";
+import AccentSwitch from "@/src/components/AccentSwitch";
 import VocabSrsInfoSheet from "@/src/components/VocabSrsInfoSheet";
 import {
   DesktopPage,
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import {
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+} from "@/src/components/web/designSystem";
 import { API_BASE } from "@/src/config";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
 import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
@@ -99,6 +108,21 @@ function timeUntil(nextDueAt: string) {
     Math.max(new Date(nextDueAt).getTime() - Date.now(), 1000) / 1000,
   );
   return waitSecs >= 60 ? `${Math.ceil(waitSecs / 60)} min` : `${waitSecs}s`;
+}
+
+function getInteractiveStateStyle(
+  variant: "light" | "navy",
+  hovered: boolean,
+  pressed: boolean,
+  disabled?: boolean,
+) {
+  if (disabled || (!hovered && !pressed)) return null;
+  return [
+    styles.webInteractivePressed,
+    variant === "navy"
+      ? styles.webNavyInteractivePressed
+      : styles.webLightInteractivePressed,
+  ];
 }
 
 export default function ReviewWebScreen() {
@@ -276,6 +300,29 @@ export default function ReviewWebScreen() {
     }, [loadPrefs]),
   );
 
+  const toggleRomanization = useCallback(async () => {
+    const next = !showRoman;
+    setShowRoman(next);
+    await AsyncStorage.setItem(PREF_ROMANIZATION, String(next));
+  }, [showRoman]);
+
+  const toggleEnglish = useCallback(async () => {
+    const next = !showEnglish;
+    setShowEnglish(next);
+    await AsyncStorage.setItem(PREF_ENGLISH, String(next));
+  }, [showEnglish]);
+
+  const toggleAutoplay = useCallback(async () => {
+    const next = !autoplayTTS;
+    setAutoplayTTS(next);
+    await AsyncStorage.setItem(PREF_AUTOPLAY_TTS, String(next));
+  }, [autoplayTTS]);
+
+  const updateSpeed = useCallback(async (next: "slow" | "normal" | "fast") => {
+    setTtsSpeed(next);
+    await AsyncStorage.setItem(PREF_TTS_SPEED, next);
+  }, []);
+
   async function handleRate(grade: "again" | "hard" | "good" | "easy") {
     if (!card || isSubmitting) return;
     sessionAnsweredRef.current = true;
@@ -348,8 +395,6 @@ export default function ReviewWebScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <DesktopPage
-        widthVariant="wide"
-        density="compact"
         scrollRef={scrollRef}
         eyebrow="Vocabulary"
         title="Review"
@@ -366,13 +411,15 @@ export default function ReviewWebScreen() {
               Vocabulary review uses spaced repetition, so it needs an account to
               remember your learning state.
             </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <Pressable
+              style={({ hovered, pressed }) => [
+                styles.primaryButton,
+                getInteractiveStateStyle("navy", hovered, pressed),
+              ]}
               onPress={() => router.push("/login" as any)}
-              activeOpacity={0.82}
             >
               <Text style={styles.primaryButtonText}>Log in</Text>
-            </TouchableOpacity>
+            </Pressable>
           </DesktopPanel>
         ) : summary ? (
           <DesktopPanel>
@@ -395,8 +442,11 @@ export default function ReviewWebScreen() {
               </View>
             </View>
             <View style={styles.summaryActionRow}>
-              <TouchableOpacity
-                style={styles.primaryButton}
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.primaryButton,
+                  getInteractiveStateStyle("navy", hovered, pressed),
+                ]}
                 onPress={() =>
                   router.push(
                     (nextGrammarPoint
@@ -404,17 +454,18 @@ export default function ReviewWebScreen() {
                       : "/progress") as any,
                   )
                 }
-                activeOpacity={0.82}
-            >
-              <Text style={styles.primaryButtonText}>Continue learning grammar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.secondaryButton}
-                onPress={() => router.replace("/(tabs)" as any)}
-                activeOpacity={0.82}
               >
-                <Text style={styles.secondaryButtonText}>Back home</Text>
-              </TouchableOpacity>
+              <Text style={styles.primaryButtonText}>Continue learning grammar</Text>
+            </Pressable>
+            <Pressable
+              style={({ hovered, pressed }) => [
+                styles.secondaryButton,
+                getInteractiveStateStyle("light", hovered, pressed),
+              ]}
+              onPress={() => router.replace("/(tabs)" as any)}
+            >
+              <Text style={styles.secondaryButtonText}>Back home</Text>
+            </Pressable>
             </View>
           </DesktopPanel>
         ) : !card && waitingPayload ? (
@@ -430,8 +481,11 @@ export default function ReviewWebScreen() {
             <Text style={styles.stateBody}>
               There are no review cards waiting for you right now.
             </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <Pressable
+              style={({ hovered, pressed }) => [
+                styles.primaryButton,
+                getInteractiveStateStyle("navy", hovered, pressed),
+              ]}
               onPress={() =>
                 router.push(
                   (nextGrammarPoint
@@ -439,50 +493,71 @@ export default function ReviewWebScreen() {
                     : "/progress") as any,
                 )
               }
-              activeOpacity={0.82}
             >
               <Text style={styles.primaryButtonText}>Continue learning grammar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.secondaryButton}
+            </Pressable>
+            <Pressable
+              style={({ hovered, pressed }) => [
+                styles.secondaryButton,
+                getInteractiveStateStyle("light", hovered, pressed),
+              ]}
               onPress={() => router.replace("/(tabs)" as any)}
-              activeOpacity={0.82}
             >
               <Text style={styles.secondaryButtonText}>Back home</Text>
-            </TouchableOpacity>
+            </Pressable>
           </DesktopPanel>
         ) : (
-          <View style={styles.mainGrid}>
-            <View style={styles.mainColumn}>
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Review card"
-                  caption="Reveal the meaning, hear the Thai, and rate how well you knew it."
-                />
-                <View style={styles.cardShell}>
-                  <View style={styles.cardTop}>
+          <View style={styles.reviewStack}>
+            <View style={styles.queueGrid}>
+              {[
+                { label: "New", count: counts.newCount, color: MUTED_APP_ACCENTS.slate },
+                { label: "Learning", count: counts.learningCount, color: MUTED_APP_ACCENTS.clay },
+                { label: "Review", count: counts.reviewCount, color: MUTED_APP_ACCENTS.sage },
+              ].map((item) => (
+                <View key={item.label} style={styles.queueCard}>
+                  <Text style={[styles.queueValue, { color: item.color }]}>{item.count}</Text>
+                  <Text style={styles.queueLabel}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.reviewGrid}>
+              <DesktopPanel style={styles.reviewPanel}>
+                <View style={styles.reviewPanelHeader}>
+                  <DesktopSectionTitle
+                    title="Review card"
+                    caption="Reveal the meaning, hear the Thai, and rate how well you knew it."
+                  />
+                  <View style={styles.cardToolbar}>
                     <View style={styles.stateBadge}>
                       <Text style={styles.stateBadgeText}>
                         {formatStateLabel(currentState)}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.speakerButton}
+                    <Pressable
+                      style={({ hovered, pressed }) => [
+                        styles.speakerButton,
+                        getInteractiveStateStyle("light", hovered, pressed),
+                      ]}
                       onPress={() => speak(card.thai)}
-                      activeOpacity={0.82}
                     >
                       <Ionicons
                         name="volume-medium-outline"
                         size={18}
                         color={AppSketch.ink}
                       />
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
+                </View>
 
-                  <TouchableOpacity
-                    style={styles.flashcard}
+                <View style={styles.cardShell}>
+
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      styles.flashcard,
+                      !revealed && getInteractiveStateStyle("light", hovered, pressed),
+                    ]}
                     onPress={!revealed ? handleReveal : undefined}
-                    activeOpacity={revealed ? 1 : 0.9}
                   >
                     <Text style={styles.thaiText}>{card.thai}</Text>
                     {showRoman && card.romanization ? (
@@ -502,7 +577,7 @@ export default function ReviewWebScreen() {
                         )}
                       </Animated.View>
                     )}
-                  </TouchableOpacity>
+                  </Pressable>
 
                   {feedbackType ? (
                     <View
@@ -541,11 +616,18 @@ export default function ReviewWebScreen() {
                       </View>
                       <View style={styles.ratingGrid}>
                         {ratingOptions.map((item) => (
-                          <TouchableOpacity
+                          <Pressable
                             key={item.grade}
-                            style={[styles.rateButton, { borderColor: item.color }]}
+                            style={({ hovered, pressed }) => [
+                              styles.rateButton,
+                              getInteractiveStateStyle(
+                                "light",
+                                hovered,
+                                pressed,
+                                isSubmitting,
+                              ),
+                            ]}
                             onPress={() => void handleRate(item.grade)}
-                            activeOpacity={0.82}
                             disabled={isSubmitting}
                           >
                             <Text style={[styles.rateLabel, { color: item.color }]}>
@@ -554,67 +636,84 @@ export default function ReviewWebScreen() {
                             <Text style={[styles.rateInterval, { color: item.color }]}>
                               {item.interval}
                             </Text>
-                          </TouchableOpacity>
+                          </Pressable>
                         ))}
                       </View>
                     </View>
                   ) : null}
                 </View>
               </DesktopPanel>
-            </View>
 
-            <View style={styles.sideColumn}>
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="Queue"
-                  caption="See how many new, learning, and review cards are waiting."
-                />
-                <View style={styles.queueStack}>
-                  {[
-                    { label: "New", count: counts.newCount, color: MUTED_APP_ACCENTS.slate },
-                    { label: "Learning", count: counts.learningCount, color: MUTED_APP_ACCENTS.clay },
-                    { label: "Review", count: counts.reviewCount, color: MUTED_APP_ACCENTS.sage },
-                  ].map((item) => (
-                    <View key={item.label} style={styles.queueCard}>
-                      <Text style={[styles.queueValue, { color: item.color }]}>{item.count}</Text>
-                      <Text style={styles.queueLabel}>{item.label}</Text>
-                    </View>
-                  ))}
-                </View>
-              </DesktopPanel>
-
-              <DesktopPanel>
+              <DesktopPanel style={styles.displayPanel}>
                 <DesktopSectionTitle
                   title="Display"
-                  caption="See the review settings that affect how cards are shown."
+                  caption="Change how review cards are shown."
                 />
                 <View style={styles.preferenceList}>
-                  <Text style={styles.preferenceItem}>Romanization: {showRoman ? "On" : "Off"}</Text>
-                  <Text style={styles.preferenceItem}>English: {showEnglish ? "On" : "Off"}</Text>
-                  <Text style={styles.preferenceItem}>Autoplay audio: {autoplayTTS ? "On" : "Off"}</Text>
-                  <Text style={styles.preferenceItem}>Speech speed: {ttsSpeed}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => router.push("/settings" as any)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.secondaryButtonText}>Open settings</Text>
-                </TouchableOpacity>
-              </DesktopPanel>
+                  <View style={styles.preferenceRow}>
+                    <View style={styles.preferenceCopy}>
+                      <Text style={styles.preferenceLabel}>Romanization</Text>
+                      <Text style={styles.preferenceHint}>Show phonetic reading under Thai.</Text>
+                    </View>
+                    <AccentSwitch value={showRoman} onValueChange={() => void toggleRomanization()} />
+                  </View>
 
-              <DesktopPanel>
-                <DesktopSectionTitle
-                  title="SRS"
-                  caption="See how spaced repetition schedules your next review."
-                />
-                <TouchableOpacity
-                  style={styles.secondaryButton}
+                  <View style={styles.preferenceRow}>
+                    <View style={styles.preferenceCopy}>
+                      <Text style={styles.preferenceLabel}>English</Text>
+                      <Text style={styles.preferenceHint}>Keep the meaning visible after reveal.</Text>
+                    </View>
+                    <AccentSwitch value={showEnglish} onValueChange={() => void toggleEnglish()} />
+                  </View>
+
+                  <View style={styles.preferenceRow}>
+                    <View style={styles.preferenceCopy}>
+                      <Text style={styles.preferenceLabel}>Autoplay audio</Text>
+                      <Text style={styles.preferenceHint}>Play Thai audio after you reveal a card.</Text>
+                    </View>
+                    <AccentSwitch value={autoplayTTS} onValueChange={() => void toggleAutoplay()} />
+                  </View>
+
+                  <View style={styles.speedSection}>
+                    <Text style={styles.preferenceLabel}>Speech speed</Text>
+                    <View style={styles.speedRow}>
+                      {(["slow", "normal", "fast"] as const).map((speed) => (
+                        <Pressable
+                          key={speed}
+                          style={({ hovered, pressed }) => [
+                            ttsSpeed === speed ? styles.primaryButton : styles.secondaryButton,
+                            styles.speedButton,
+                            getInteractiveStateStyle(
+                              ttsSpeed === speed ? "navy" : "light",
+                              hovered,
+                              pressed,
+                            ),
+                          ]}
+                          onPress={() => void updateSpeed(speed)}
+                        >
+                          <Text
+                            style={
+                              ttsSpeed === speed
+                                ? styles.primaryButtonText
+                                : styles.secondaryButtonText
+                            }
+                          >
+                            {speed.charAt(0).toUpperCase() + speed.slice(1)}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+                <Pressable
+                  style={({ hovered, pressed }) => [
+                    styles.secondaryButton,
+                    getInteractiveStateStyle("light", hovered, pressed),
+                  ]}
                   onPress={() => setShowSrsInfo(true)}
-                  activeOpacity={0.82}
                 >
                   <Text style={styles.secondaryButtonText}>How SRS works</Text>
-                </TouchableOpacity>
+                </Pressable>
               </DesktopPanel>
             </View>
           </View>
@@ -649,41 +748,49 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
     textAlign: "center",
   },
-  mainGrid: {
+  reviewStack: {
+    gap: 16,
+  },
+  reviewGrid: {
     flexDirection: "row",
     gap: 16,
     alignItems: "flex-start",
   },
-  mainColumn: {
-    flex: 1.2,
+  reviewPanel: {
+    flex: 1,
+  },
+  displayPanel: {
+    width: 380,
     gap: 16,
   },
-  sideColumn: {
-    width: 300,
-    gap: 16,
+  reviewPanelHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 18,
+  },
+  cardToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   cardShell: {
     gap: 14,
   },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
   stateBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    borderRadius: 0,
   },
   stateBadgeText: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
-    letterSpacing: 0.7,
+    letterSpacing: 1.1,
     color: AppSketch.inkMuted,
+    textTransform: "uppercase",
   },
   speakerButton: {
     width: 42,
@@ -694,6 +801,8 @@ const styles = StyleSheet.create({
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
     borderRadius: AppRadius.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   flashcard: {
     minHeight: 188,
@@ -706,6 +815,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderRadius: AppRadius.lg,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   thaiText: {
     fontSize: 40,
@@ -748,7 +859,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: AppRadius.md,
     borderWidth: 1,
-    backgroundColor: AppSketch.background,
+    backgroundColor: AppSketch.surface,
   },
   feedbackChipPromoted: {
     borderColor: MUTED_FEEDBACK_ACCENTS.successBorder,
@@ -793,8 +904,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     borderWidth: 1,
+    borderColor: AppSketch.border,
     borderRadius: AppRadius.md,
     backgroundColor: AppSketch.surface,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   rateLabel: {
     fontSize: 14,
@@ -803,21 +917,24 @@ const styles = StyleSheet.create({
   rateInterval: {
     fontSize: 12,
   },
-  queueStack: {
+  queueGrid: {
+    flexDirection: "row",
     gap: 10,
   },
   queueCard: {
+    flex: 1,
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 2,
+    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 4,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   queueValue: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 32,
+    lineHeight: 36,
     fontWeight: "700",
   },
   queueLabel: {
@@ -825,12 +942,48 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
   },
   preferenceList: {
-    gap: 6,
+    gap: 10,
   },
-  preferenceItem: {
-    fontSize: 13,
-    lineHeight: 20,
+  preferenceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: AppSketch.border,
+    borderRadius: AppRadius.md,
+    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+  },
+  preferenceCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  preferenceLabel: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "700",
     color: AppSketch.ink,
+  },
+  preferenceHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: AppSketch.inkMuted,
+  },
+  speedSection: {
+    gap: 10,
+  },
+  speedRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  speedButton: {
+    flex: 1,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
   summaryGrid: {
     flexDirection: "row",
@@ -841,9 +994,10 @@ const styles = StyleSheet.create({
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
+    backgroundColor: "#FAFAFA",
     padding: 18,
     gap: 6,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   summaryValue: {
     fontSize: 34,
@@ -869,7 +1023,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppSketch.primary,
     backgroundColor: AppSketch.primary,
-    ...appShadow("sm"),
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   primaryButtonText: {
     fontSize: 14,
@@ -885,10 +1040,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "700",
     color: AppSketch.ink,
+  },
+  webInteractivePressed: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+  },
+  webLightInteractivePressed: {
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
+  webNavyInteractivePressed: {
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
 });

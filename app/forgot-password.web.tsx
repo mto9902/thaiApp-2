@@ -2,23 +2,46 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Sketch } from "@/constants/theme";
 import AuthShell from "@/src/components/web/AuthShell";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import { API_BASE } from "@/src/config";
+import ForgotPasswordMobileScreen from "@/src/screens/mobile/ForgotPasswordMobileScreen";
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export default function ForgotPasswordWeb() {
+  const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <ForgotPasswordMobileScreen />;
+  }
+
+  return <ForgotPasswordWebDesktop />;
+}
+
+function ForgotPasswordWebDesktop() {
   const router = useRouter();
   const emailInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
@@ -68,9 +91,6 @@ export default function ForgotPasswordWeb() {
         rightEyebrow="Reset password"
         rightTitle="Reset your password"
         rightSubtitle="Enter your account email. We’ll send you a link to choose a new password."
-        footerNote="The reset link expires automatically for security."
-        secondaryActionLabel="Back to login"
-        onSecondaryActionPress={() => router.replace("/login")}
         features={[
           {
             eyebrow: "Step 1",
@@ -116,18 +136,21 @@ export default function ForgotPasswordWeb() {
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <TouchableOpacity
-                style={[styles.primaryButton, loading && styles.disabledAction]}
+              <Pressable
                 onPress={handleSubmit}
-                activeOpacity={0.82}
                 disabled={loading}
+                style={({ hovered, pressed }) => [
+                  styles.primaryButton,
+                  loading && styles.disabledAction,
+                  (hovered || pressed) && !loading && styles.primaryButtonActive,
+                ]}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Text style={styles.primaryButtonText}>Send reset link</Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </>
           ) : (
             <View style={styles.successCard}>
@@ -142,12 +165,15 @@ export default function ForgotPasswordWeb() {
             </View>
           )}
 
-          <TouchableOpacity
+          <Pressable
             onPress={() => router.replace("/login")}
-            style={styles.secondaryLink}
+            style={({ hovered, pressed }) => [
+              styles.secondaryLink,
+              (hovered || pressed) && styles.secondaryLinkActive,
+            ]}
           >
             <Text style={styles.secondaryLinkText}>Back to login</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </AuthShell>
     </SafeAreaView>
@@ -170,26 +196,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: Sketch.paper,
     color: Sketch.ink,
+    borderRadius: WEB_RADIUS.md,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    fontFamily: WEB_BODY_FONT,
+    outlineStyle: "none" as any,
   },
   errorText: {
     fontSize: 13,
     lineHeight: 20,
     color: Sketch.red,
     marginTop: -2,
+    fontFamily: WEB_BODY_FONT,
   },
   primaryButton: {
     backgroundColor: Sketch.accent,
+    borderRadius: WEB_RADIUS.md,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Sketch.accent,
+    borderColor: Sketch.accentDark,
     marginTop: 4,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   primaryButtonText: {
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 15,
+    fontFamily: WEB_BODY_FONT,
   },
   disabledAction: {
     opacity: 0.55,
@@ -198,8 +237,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     backgroundColor: Sketch.paper,
+    borderRadius: WEB_RADIUS.lg,
     padding: 22,
     gap: 8,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   successEyebrow: {
     fontSize: 11,
@@ -207,30 +248,40 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
+    fontFamily: WEB_BODY_FONT,
   },
   successTitle: {
     fontSize: 24,
     lineHeight: 28,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   successBody: {
     fontSize: 15,
     lineHeight: 24,
     color: Sketch.inkLight,
+    fontFamily: WEB_BODY_FONT,
   },
   successHint: {
     fontSize: 14,
     lineHeight: 22,
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   secondaryLink: {
+    alignSelf: "center",
     paddingVertical: 4,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  secondaryLinkActive: {
+    opacity: 0.76,
   },
   secondaryLinkText: {
     textAlign: "center",
     fontSize: 14,
     fontWeight: "700",
     color: Sketch.accent,
+    fontFamily: WEB_BODY_FONT,
   },
 });

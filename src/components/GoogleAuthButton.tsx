@@ -1,5 +1,15 @@
 import { Sketch } from "@/constants/theme";
 import TermsAgreement from "@/src/components/TermsAgreement";
+import {
+  WEB_BODY_FONT,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GoogleSignin,
@@ -23,6 +33,12 @@ import {
 } from "react-native";
 import { API_BASE } from "../config";
 import { setAuthToken } from "../utils/authStorage";
+import {
+  BRAND,
+  CARD_SHADOW,
+  SurfaceButton,
+  SURFACE_SHADOW,
+} from "@/src/screens/mobile/dashboardSurface";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -107,6 +123,7 @@ type PendingGoogleConsent = {
 
 type GoogleAuthButtonProps = {
   redirectTo?: string | null;
+  variant?: "default" | "mobile";
 };
 
 function getNativeGoogleWebClientId() {
@@ -166,7 +183,11 @@ function useGoogleTokenExchange(redirectTo?: string | null) {
   );
 }
 
-function GoogleAuthButtonWeb({ redirectTo }: GoogleAuthButtonProps) {
+function GoogleAuthButtonWeb({
+  redirectTo,
+  variant = "default",
+}: GoogleAuthButtonProps) {
+  const isMobileVariant = variant === "mobile";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -311,7 +332,7 @@ function GoogleAuthButtonWeb({ redirectTo }: GoogleAuthButtonProps) {
               }
             }}
           />
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, isMobileVariant && styles.mobileModalCard]}>
             <Text style={styles.modalTitle}>Agree to Continue</Text>
             <Text style={styles.modalBody}>
               Before we create your Keystone account with Google, please agree
@@ -319,7 +340,7 @@ function GoogleAuthButtonWeb({ redirectTo }: GoogleAuthButtonProps) {
             </Text>
 
             {pendingConsent ? (
-              <View style={styles.accountCard}>
+              <View style={[styles.accountCard, isMobileVariant && styles.mobileAccountCard]}>
                 <Text style={styles.accountLabel}>Google account</Text>
                 <Text style={styles.accountName}>
                   {pendingConsent.displayName?.trim() || pendingConsent.email}
@@ -331,54 +352,93 @@ function GoogleAuthButtonWeb({ redirectTo }: GoogleAuthButtonProps) {
             <TermsAgreement
               accepted={acceptedTerms}
               onToggle={() => setAcceptedTerms((current) => !current)}
+              variant={isMobileVariant ? "mobile" : "default"}
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.modalAction]}
-                onPress={() => {
-                  setPendingConsent(null);
-                  setAcceptedTerms(false);
-                }}
-                activeOpacity={0.82}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  styles.modalAction,
-                  (!acceptedTerms || isSubmitting) && styles.primaryButtonDisabled,
-                ]}
-                onPress={handleConsentContinue}
-                activeOpacity={0.82}
-                disabled={!acceptedTerms || isSubmitting}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {isSubmitting ? "Creating account..." : "Agree and Continue"}
-                </Text>
-              </TouchableOpacity>
+              {isMobileVariant ? (
+                <>
+                  <SurfaceButton
+                    label="Cancel"
+                    onPress={() => {
+                      setPendingConsent(null);
+                      setAcceptedTerms(false);
+                    }}
+                    disabled={isSubmitting}
+                    style={styles.modalAction}
+                  />
+                  <SurfaceButton
+                    label={isSubmitting ? "Creating account..." : "Agree and Continue"}
+                    onPress={() => void handleConsentContinue()}
+                    variant="primary"
+                    disabled={!acceptedTerms || isSubmitting}
+                    style={styles.modalAction}
+                  />
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, styles.modalAction]}
+                    onPress={() => {
+                      setPendingConsent(null);
+                      setAcceptedTerms(false);
+                    }}
+                    activeOpacity={0.82}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.secondaryButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      styles.modalAction,
+                      (!acceptedTerms || isSubmitting) && styles.primaryButtonDisabled,
+                    ]}
+                    onPress={handleConsentContinue}
+                    activeOpacity={0.82}
+                    disabled={!acceptedTerms || isSubmitting}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {isSubmitting ? "Creating account..." : "Agree and Continue"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
       </Modal>
 
-      <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
-        onPress={handlePress}
-        activeOpacity={0.85}
-        disabled={!request || isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
-        </Text>
-      </TouchableOpacity>
+      {isMobileVariant ? (
+        <SurfaceButton
+          label={isSubmitting ? "Connecting to Google..." : "Continue with Google"}
+          onPress={() => void handlePress()}
+          disabled={!request || isSubmitting}
+        />
+      ) : (
+        <Pressable
+          style={({ hovered, pressed }) => [
+            styles.button,
+            isSubmitting && styles.buttonDisabled,
+            (hovered || pressed) && !isSubmitting && styles.buttonActive,
+          ]}
+          onPress={() => void handlePress()}
+          disabled={!request || isSubmitting}
+        >
+          <Text style={styles.buttonText}>
+            {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
+          </Text>
+        </Pressable>
+      )}
     </>
   );
 }
 
-function GoogleAuthButtonNative({ redirectTo }: GoogleAuthButtonProps) {
+function GoogleAuthButtonNative({
+  redirectTo,
+  variant = "default",
+}: GoogleAuthButtonProps) {
+  const isMobileVariant = variant === "mobile";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingConsent, setPendingConsent] = useState<PendingGoogleConsent | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -512,7 +572,7 @@ function GoogleAuthButtonNative({ redirectTo }: GoogleAuthButtonProps) {
               }
             }}
           />
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, isMobileVariant && styles.mobileModalCard]}>
             <Text style={styles.modalTitle}>Agree to Continue</Text>
             <Text style={styles.modalBody}>
               Before we create your Keystone account with Google, please agree
@@ -520,7 +580,7 @@ function GoogleAuthButtonNative({ redirectTo }: GoogleAuthButtonProps) {
             </Text>
 
             {pendingConsent ? (
-              <View style={styles.accountCard}>
+              <View style={[styles.accountCard, isMobileVariant && styles.mobileAccountCard]}>
                 <Text style={styles.accountLabel}>Google account</Text>
                 <Text style={styles.accountName}>
                   {pendingConsent.displayName?.trim() || pendingConsent.email}
@@ -532,61 +592,103 @@ function GoogleAuthButtonNative({ redirectTo }: GoogleAuthButtonProps) {
             <TermsAgreement
               accepted={acceptedTerms}
               onToggle={() => setAcceptedTerms((current) => !current)}
+              variant={isMobileVariant ? "mobile" : "default"}
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, styles.modalAction]}
-                onPress={() => {
-                  setPendingConsent(null);
-                  setAcceptedTerms(false);
-                }}
-                activeOpacity={0.82}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  styles.modalAction,
-                  (!acceptedTerms || isSubmitting) && styles.primaryButtonDisabled,
-                ]}
-                onPress={handleConsentContinue}
-                activeOpacity={0.82}
-                disabled={!acceptedTerms || isSubmitting}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {isSubmitting ? "Creating account..." : "Agree and Continue"}
-                </Text>
-              </TouchableOpacity>
+              {isMobileVariant ? (
+                <>
+                  <SurfaceButton
+                    label="Cancel"
+                    onPress={() => {
+                      setPendingConsent(null);
+                      setAcceptedTerms(false);
+                    }}
+                    disabled={isSubmitting}
+                    style={styles.modalAction}
+                  />
+                  <SurfaceButton
+                    label={isSubmitting ? "Creating account..." : "Agree and Continue"}
+                    onPress={() => void handleConsentContinue()}
+                    variant="primary"
+                    disabled={!acceptedTerms || isSubmitting}
+                    style={styles.modalAction}
+                  />
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, styles.modalAction]}
+                    onPress={() => {
+                      setPendingConsent(null);
+                      setAcceptedTerms(false);
+                    }}
+                    activeOpacity={0.82}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.secondaryButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      styles.modalAction,
+                      (!acceptedTerms || isSubmitting) && styles.primaryButtonDisabled,
+                    ]}
+                    onPress={handleConsentContinue}
+                    activeOpacity={0.82}
+                    disabled={!acceptedTerms || isSubmitting}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {isSubmitting ? "Creating account..." : "Agree and Continue"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
       </Modal>
 
-      <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
-        onPress={() => void handlePress()}
-        activeOpacity={0.85}
-        disabled={!nativeWebClientId || isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
-        </Text>
-      </TouchableOpacity>
-
-      {hasPreviousAccount ? (
+      {isMobileVariant ? (
+        <SurfaceButton
+          label={isSubmitting ? "Connecting to Google..." : "Continue with Google"}
+          onPress={() => void handlePress()}
+          disabled={!nativeWebClientId || isSubmitting}
+        />
+      ) : (
         <TouchableOpacity
-          style={styles.switchAccountButton}
-          onPress={() => void handlePress(true)}
-          activeOpacity={0.8}
-          disabled={isSubmitting}
+          style={[styles.button, isSubmitting && styles.buttonDisabled]}
+          onPress={() => void handlePress()}
+          activeOpacity={0.85}
+          disabled={!nativeWebClientId || isSubmitting}
         >
-          <Text style={styles.switchAccountText}>
-            Use a different Google account
+          <Text style={styles.buttonText}>
+            {isSubmitting ? "Connecting to Google..." : "Continue with Google"}
           </Text>
         </TouchableOpacity>
+      )}
+
+      {hasPreviousAccount ? (
+        isMobileVariant ? (
+          <SurfaceButton
+            label="Use a different Google account"
+            onPress={() => void handlePress(true)}
+            disabled={isSubmitting}
+            size="compact"
+            style={styles.mobileSwitchAccountButton}
+          />
+        ) : (
+          <TouchableOpacity
+            style={styles.switchAccountButton}
+            onPress={() => void handlePress(true)}
+            activeOpacity={0.8}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.switchAccountText}>
+              Use a different Google account
+            </Text>
+          </TouchableOpacity>
+        )
       ) : null}
     </>
   );
@@ -594,6 +696,7 @@ function GoogleAuthButtonNative({ redirectTo }: GoogleAuthButtonProps) {
 
 export default function GoogleAuthButton({
   redirectTo = null,
+  variant = "default",
 }: GoogleAuthButtonProps) {
   const hasClientId = !!getCurrentPlatformClientId();
   const isExpoGoNative =
@@ -611,10 +714,26 @@ export default function GoogleAuthButton({
     configuredWebOrigin !== currentWebOrigin;
 
   if (isExpoGoNative) {
+    if (variant === "mobile") {
+      return (
+        <SurfaceButton
+          label="Continue with Google"
+          onPress={() =>
+            Alert.alert(
+              "Google sign-in needs a development build",
+              "Expo Go cannot be used to test OAuth sign-in flows like Google on native. Use web for now, or run a development build and test again.",
+            )
+          }
+        />
+      );
+    }
+
     return (
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.85}
+      <Pressable
+        style={({ hovered, pressed }) => [
+          styles.button,
+          (hovered || pressed) && styles.buttonActive,
+        ]}
         onPress={() =>
           Alert.alert(
             "Google sign-in needs a development build",
@@ -623,15 +742,31 @@ export default function GoogleAuthButton({
         }
       >
         <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
   if (hasWebOriginMismatch) {
+    if (variant === "mobile") {
+      return (
+        <SurfaceButton
+          label="Continue with Google"
+          onPress={() =>
+            Alert.alert(
+              "Open the configured web URL",
+              `Google sign-in is configured for ${configuredWebOrigin}. Open the app from that exact address to avoid redirect mismatches.`,
+            )
+          }
+        />
+      );
+    }
+
     return (
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.85}
+      <Pressable
+        style={({ hovered, pressed }) => [
+          styles.button,
+          (hovered || pressed) && styles.buttonActive,
+        ]}
         onPress={() =>
           Alert.alert(
             "Open the configured web URL",
@@ -640,15 +775,31 @@ export default function GoogleAuthButton({
         }
       >
         <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
   if (!hasClientId) {
+    if (variant === "mobile") {
+      return (
+        <SurfaceButton
+          label="Continue with Google"
+          onPress={() =>
+            Alert.alert(
+              "Google sign-in isn't configured yet",
+              "Add your Google client IDs to the Expo environment first.",
+            )
+          }
+        />
+      );
+    }
+
     return (
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.85}
+      <Pressable
+        style={({ hovered, pressed }) => [
+          styles.button,
+          (hovered || pressed) && styles.buttonActive,
+        ]}
         onPress={() =>
           Alert.alert(
             "Google sign-in isn't configured yet",
@@ -657,15 +808,15 @@ export default function GoogleAuthButton({
         }
       >
         <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
   if (Platform.OS === "android" || Platform.OS === "ios") {
-    return <GoogleAuthButtonNative redirectTo={redirectTo} />;
+    return <GoogleAuthButtonNative redirectTo={redirectTo} variant={variant} />;
   }
 
-  return <GoogleAuthButtonWeb redirectTo={redirectTo} />;
+  return <GoogleAuthButtonWeb redirectTo={redirectTo} variant={variant} />;
 }
 
 const styles = StyleSheet.create({
@@ -673,9 +824,15 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
-    borderRadius: 10,
+    borderRadius: WEB_RADIUS.md,
     backgroundColor: Sketch.paper,
     alignItems: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  buttonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   buttonDisabled: {
     opacity: 0.7,
@@ -684,6 +841,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: Sketch.ink,
     fontSize: 15,
+    fontFamily: WEB_BODY_FONT,
   },
   switchAccountButton: {
     alignSelf: "center",
@@ -694,6 +852,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: Sketch.orange,
+    fontFamily: WEB_BODY_FONT,
+  },
+  mobileSwitchAccountButton: {
+    marginTop: 12,
+    alignSelf: "stretch",
   },
   modalOverlay: {
     flex: 1,
@@ -706,35 +869,45 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: Sketch.paper,
-    borderRadius: 20,
+    borderRadius: WEB_RADIUS.xl,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 20,
     gap: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 22,
-    elevation: 10,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  mobileModalCard: {
+    backgroundColor: BRAND.paper,
+    borderColor: BRAND.line,
+    borderRadius: 24,
+    ...CARD_SHADOW,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: Sketch.ink,
     letterSpacing: -0.3,
+    fontFamily: WEB_BODY_FONT,
   },
   modalBody: {
     fontSize: 13,
     lineHeight: 19,
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   accountCard: {
     backgroundColor: Sketch.paperDark,
-    borderRadius: 14,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     padding: 14,
     gap: 4,
+  },
+  mobileAccountCard: {
+    backgroundColor: BRAND.panel,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    ...SURFACE_SHADOW,
   },
   accountLabel: {
     fontSize: 11,
@@ -742,16 +915,19 @@ const styles = StyleSheet.create({
     color: Sketch.inkMuted,
     letterSpacing: 0.6,
     textTransform: "uppercase",
+    fontFamily: WEB_BODY_FONT,
   },
   accountName: {
     fontSize: 16,
     fontWeight: "700",
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
   accountEmail: {
     fontSize: 13,
     fontWeight: "500",
     color: Sketch.inkMuted,
+    fontFamily: WEB_BODY_FONT,
   },
   modalActions: {
     flexDirection: "row",
@@ -764,15 +940,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.orange,
-    borderRadius: 12,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    borderColor: Sketch.accentDark,
     paddingVertical: 13,
-    shadowColor: Sketch.orange,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
   },
   primaryButtonDisabled: {
     opacity: 0.45,
@@ -783,20 +955,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#fff",
+    fontFamily: WEB_BODY_FONT,
   },
   secondaryButton: {
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Sketch.paperDark,
-    borderRadius: 12,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
     borderColor: Sketch.inkFaint,
     paddingVertical: 13,
     paddingHorizontal: 16,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "600",
     color: Sketch.ink,
+    fontFamily: WEB_BODY_FONT,
   },
 });

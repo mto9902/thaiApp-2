@@ -1,14 +1,30 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import VowelsMobileScreen from "@/src/screens/mobile/VowelsMobileScreen";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
 import {
-  DesktopPage,
-  DesktopPanel,
-  DesktopSectionTitle,
-} from "@/src/components/web/DesktopScaffold";
+  DESKTOP_PAGE_WIDTH,
+  MOBILE_WEB_BREAKPOINT,
+} from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_RADIUS,
+} from "@/src/components/web/designSystem";
 import VowelText from "@/src/components/VowelText";
 import { vowels } from "@/src/data/vowels";
+
+const BRAND = WEB_BRAND;
+const BODY_FONT = WEB_BODY_FONT;
+const DISPLAY_FONT = WEB_DISPLAY_FONT;
 
 const LESSONS = [
   { group: 1, title: "Before Consonant" },
@@ -22,78 +38,193 @@ const LESSONS = [
 export default function VowelsWeb() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <VowelsMobileScreen />;
+  }
+
   const columns = width >= 1400 ? 3 : width >= 980 ? 2 : 1;
   const cardWidth = columns === 3 ? "31.8%" : columns === 2 ? "48.8%" : "100%";
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        eyebrow="Vowels"
-        title="Vowel placement"
-        subtitle="Learn vowel groups by where they sit around the consonant."
-        toolbar={
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.82}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        }
-      >
-        <DesktopPanel>
-          <DesktopSectionTitle
-            title="Browse groups"
-            caption="Study each placement pattern and open a group for examples and practice."
-          />
-          <View style={styles.grid}>
-            {LESSONS.map((item) => {
-              const groupVowels = vowels.filter((entry) => entry.group === item.group);
-              return (
-                <TouchableOpacity
-                  key={item.group}
-                  style={[styles.card, { width: cardWidth }]}
-                  onPress={() => router.push(`/vowels/${item.group}` as any)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={styles.eyebrow}>Group {item.group}</Text>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <View style={styles.previewRow}>
-                    {groupVowels.slice(0, 5).map((entry, index) => (
-                      <View key={`${entry.symbol}-${index}`} style={styles.previewChip}>
-                        <VowelText
-                          example={entry.example}
-                          style={styles.previewText}
-                          vowelColor={AppSketch.primary}
-                          consonantColor={AppSketch.ink}
-                        />
+      <DesktopAppShell>
+        <ScrollView
+          style={styles.page}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.shell}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>Vowels</Text>
+                <Text style={styles.title}>Vowel placement</Text>
+                <Text style={styles.subtitle}>
+                  Learn vowel groups by where they sit around the consonant.
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={() => router.back()}
+                style={({ hovered, pressed }) => [
+                  styles.backButton,
+                  (hovered || pressed) && styles.lightButtonActive,
+                ]}
+              >
+                <Ionicons name="arrow-back" size={18} color={BRAND.ink} />
+                <Text style={styles.backButtonText}>Back</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.surfaceCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeaderText}>
+                  <Text style={styles.sectionHeading}>Browse groups</Text>
+                  <Text style={styles.sectionSubheading}>
+                    Study each placement pattern and open a group for examples and practice.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.grid}>
+                {LESSONS.map((item) => {
+                  const groupVowels = vowels.filter((entry) => entry.group === item.group);
+
+                  return (
+                    <Pressable
+                      key={item.group}
+                      onPress={() => router.push(`/vowels/${item.group}` as any)}
+                      style={({ hovered, pressed }) => [
+                        styles.card,
+                        { width: cardWidth },
+                        (hovered || pressed) && styles.cardActive,
+                      ]}
+                    >
+                      <Text style={styles.cardEyebrow}>Group {item.group}</Text>
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <View style={styles.previewRow}>
+                        {groupVowels.slice(0, 5).map((entry, index) => (
+                          <View key={`${entry.symbol}-${index}`} style={styles.previewChip}>
+                            <VowelText
+                              example={entry.example}
+                              style={styles.previewText}
+                              vowelColor={BRAND.navy}
+                              consonantColor={BRAND.ink}
+                            />
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.footerText}>{groupVowels.length} vowels</Text>
-                    <Text style={styles.footerAction}>Open lesson</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                      <View style={styles.cardFooter}>
+                        <Text style={styles.footerText}>{groupVowels.length} vowels</Text>
+                        <View style={styles.footerActionRow}>
+                          <Text style={styles.footerAction}>Open lesson</Text>
+                          <Ionicons name="arrow-forward" size={16} color={BRAND.ink} />
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
           </View>
-        </DesktopPanel>
-      </DesktopPage>
+        </ScrollView>
+      </DesktopAppShell>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: BRAND.bg },
+  pageContent: { paddingHorizontal: 28, paddingVertical: 36 },
+  shell: { width: "100%", maxWidth: DESKTOP_PAGE_WIDTH, alignSelf: "center", gap: 24 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 20,
+  },
+  headerCopy: { flex: 1, gap: 8 },
+  eyebrow: {
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    fontFamily: BODY_FONT,
+  },
+  title: {
+    color: BRAND.ink,
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: DISPLAY_FONT,
+  },
+  subtitle: {
+    maxWidth: 760,
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 26,
+    fontFamily: BODY_FONT,
+  },
   backButton: {
+    minHeight: 42,
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    borderRadius: AppRadius.md,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  lightButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
   backButtonText: {
+    color: BRAND.ink,
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
-    color: AppSketch.ink,
+    fontFamily: BODY_FONT,
+  },
+  surfaceCard: {
+    backgroundColor: BRAND.paper,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    padding: 24,
+    gap: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  sectionHeaderText: { flex: 1, gap: 4 },
+  sectionHeading: {
+    color: BRAND.ink,
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: "800",
+    fontFamily: DISPLAY_FONT,
+  },
+  sectionSubheading: {
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 24,
+    fontFamily: BODY_FONT,
   },
   grid: {
     flexDirection: "row",
@@ -101,26 +232,36 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    borderRadius: AppRadius.lg,
+    borderRadius: WEB_RADIUS.lg,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
     padding: 18,
     gap: 12,
-    ...appShadow("sm"),
+    boxShadow: WEB_CARD_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
   },
-  eyebrow: {
+  cardActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: "0 1px 0 0 #d4d4d4, 0 1px 0 0 #d4d4d4, 0 2px 3px rgba(16, 42, 67, 0.04)" as any,
+  },
+  cardEyebrow: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
-    color: AppSketch.inkMuted,
+    color: BRAND.inkSoft,
     textTransform: "uppercase",
     letterSpacing: 1,
+    fontFamily: BODY_FONT,
   },
   cardTitle: {
     fontSize: 26,
-    fontWeight: "700",
-    color: AppSketch.ink,
+    lineHeight: 30,
+    fontWeight: "800",
+    color: BRAND.ink,
     letterSpacing: -0.6,
+    fontFamily: DISPLAY_FONT,
   },
   previewRow: {
     flexDirection: "row",
@@ -129,35 +270,45 @@ const styles = StyleSheet.create({
   },
   previewChip: {
     minWidth: 52,
-    borderRadius: AppRadius.md,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
-    borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
     paddingHorizontal: 12,
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   previewText: {
     fontSize: 20,
     fontWeight: "700",
-    color: AppSketch.ink,
+    color: BRAND.ink,
   },
   cardFooter: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: AppSketch.border,
+    borderTopColor: BRAND.line,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   footerText: {
     fontSize: 13,
-    color: AppSketch.inkMuted,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
+  },
+  footerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   footerAction: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
-    color: AppSketch.primary,
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
   },
 });

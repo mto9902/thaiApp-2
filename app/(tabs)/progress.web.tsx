@@ -2,19 +2,26 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
 
-import { AppRadius, AppSketch, appShadow } from "@/constants/theme-app";
+import { AppRadius, AppSketch } from "@/constants/theme-app";
 import {
   DesktopPage,
   DesktopPanel,
   DesktopSectionTitle,
 } from "@/src/components/web/DesktopScaffold";
+import {
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+} from "@/src/components/web/designSystem";
+import { MOBILE_WEB_BREAKPOINT } from "@/src/components/web/desktopLayout";
 import {
   CEFR_LEVEL_META,
   PUBLIC_CEFR_LEVELS,
@@ -22,6 +29,7 @@ import {
 } from "@/src/data/grammarLevels";
 import { GRAMMAR_STAGE_META } from "@/src/data/grammarStages";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
+import MobileGrammarProgressScreen from "@/src/screens/mobile/GrammarProgressScreen";
 import { getAllProgress, GrammarProgressData } from "@/src/utils/grammarProgress";
 import {
   buildStageProgressSummaries,
@@ -29,6 +37,16 @@ import {
 } from "@/src/utils/grammarStageRecommendation";
 
 export default function GrammarProgressWeb() {
+  const { width } = useWindowDimensions();
+
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <MobileGrammarProgressScreen />;
+  }
+
+  return <DesktopGrammarProgressContent />;
+}
+
+function DesktopGrammarProgressContent() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { grammarPoints } = useGrammarCatalog();
@@ -126,12 +144,14 @@ export default function GrammarProgressWeb() {
               caption="Resume the most relevant unit instead of hunting for where to go next."
             />
             {recommended ? (
-              <TouchableOpacity
-                style={styles.recommendCard}
+              <Pressable
+                style={({ hovered, pressed }) => [
+                  styles.recommendCard,
+                  (hovered || pressed) && styles.cardInteractiveActive,
+                ]}
                 onPress={() =>
-                      router.push(`/practice/topics?stage=${recommended.stage}` as any)
+                  router.push(`/practice/topics?stage=${recommended.stage}` as any)
                 }
-                activeOpacity={0.82}
               >
                 <Text style={styles.recommendEyebrow}>Recommended</Text>
                 <Text style={styles.recommendTitle}>
@@ -144,7 +164,7 @@ export default function GrammarProgressWeb() {
                   <Text style={styles.openText}>Open unit</Text>
                   <Ionicons name="chevron-forward" size={14} color={AppSketch.primary} />
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             ) : (
               <View style={styles.recommendCard}>
                 <Text style={styles.recommendTitle}>Everything is completed.</Text>
@@ -184,16 +204,16 @@ export default function GrammarProgressWeb() {
                     const meta = GRAMMAR_STAGE_META[stageSummary.stage];
                     const isRecommended = recommended?.stage === stageSummary.stage;
                     return (
-                      <TouchableOpacity
+                      <Pressable
                         key={stageSummary.stage}
-                        style={[
+                        style={({ hovered, pressed }) => [
                           styles.unitCard,
                           isRecommended && styles.unitCardRecommended,
+                          (hovered || pressed) && styles.cardInteractiveActive,
                         ]}
                         onPress={() =>
-                    router.push(`/practice/topics?stage=${stageSummary.stage}` as any)
+                          router.push(`/practice/topics?stage=${stageSummary.stage}` as any)
                         }
-                        activeOpacity={0.82}
                       >
                         <View style={styles.unitTop}>
                           <Text style={styles.unitStage}>{stageSummary.stage}</Text>
@@ -204,7 +224,7 @@ export default function GrammarProgressWeb() {
                         <Text style={styles.unitCount}>
                           {stageSummary.practiced}/{stageSummary.total}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -273,7 +293,8 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 130,
     justifyContent: "center",
-    ...appShadow("sm"),
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   recommendEyebrow: {
     fontSize: 12,
@@ -315,10 +336,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppSketch.border,
     backgroundColor: AppSketch.surface,
-    padding: 18,
-    gap: 12,
+    padding: 20,
+    gap: 14,
     alignSelf: "flex-start",
-    ...appShadow("sm"),
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   levelTop: {
     flexDirection: "row",
@@ -340,6 +361,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: AppSketch.inkMuted,
+    minHeight: 80,
   },
   levelPercent: {
     fontSize: 18,
@@ -351,23 +373,30 @@ const styles = StyleSheet.create({
     color: AppSketch.inkMuted,
   },
   unitList: {
-    gap: 10,
+    gap: 12,
   },
   unitCard: {
     borderRadius: AppRadius.md,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    backgroundColor: AppSketch.background,
-    padding: 14,
-    gap: 6,
+    backgroundColor: "#FAFAFA",
+    padding: 16,
+    gap: 8,
+    minHeight: 168,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   unitCardRecommended: {
     borderColor: AppSketch.primary,
   },
+  cardInteractiveActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
+  },
   unitTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
   },
   unitStage: {
@@ -381,9 +410,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: AppSketch.primary,
+    lineHeight: 16,
   },
   unitTitle: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: "700",
     color: AppSketch.ink,
   },
@@ -391,9 +422,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     color: AppSketch.inkMuted,
+    minHeight: 66,
   },
   unitCount: {
     fontSize: 12,
     color: AppSketch.inkMuted,
+    marginTop: "auto",
   },
 });

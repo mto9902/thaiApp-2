@@ -3,19 +3,34 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
 
-import { Sketch } from "@/constants/theme";
+import DesktopAppShell from "@/src/components/web/DesktopAppShell";
+import TrainerWordsMobileScreen from "@/src/screens/mobile/TrainerWordsMobileScreen";
 import {
-  DesktopPage,
-  DesktopPanel,
-  DesktopSectionTitle,
-} from "@/src/components/web/DesktopScaffold";
+  DESKTOP_PAGE_WIDTH,
+  MOBILE_WEB_BREAKPOINT,
+} from "@/src/components/web/desktopLayout";
+import {
+  WEB_BODY_FONT,
+  WEB_BRAND,
+  WEB_CARD_SHADOW,
+  WEB_DEPRESSED_TRANSFORM,
+  WEB_DISPLAY_FONT,
+  WEB_INTERACTIVE_TRANSITION,
+  WEB_LIGHT_BUTTON_PRESSED,
+  WEB_LIGHT_BUTTON_SHADOW,
+  WEB_NAVY_BUTTON_PRESSED,
+  WEB_NAVY_BUTTON_SHADOW,
+  WEB_RADIUS,
+  WEB_SENTENCE_SHADOW,
+} from "@/src/components/web/designSystem";
 import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import { alphabet } from "@/src/data/alphabet";
 import {
@@ -26,8 +41,11 @@ import {
   VOWEL_INFO,
 } from "@/src/data/trainerOptions";
 import { vowels } from "@/src/data/vowels";
-import { MUTED_APP_ACCENTS } from "@/src/utils/toneAccent";
 import { generateTrainerBatch } from "@/src/utils/trainerBatch";
+
+const BRAND = WEB_BRAND;
+const BODY_FONT = WEB_BODY_FONT;
+const DISPLAY_FONT = WEB_DISPLAY_FONT;
 
 function parseIdList(value?: string | string[]) {
   const source = Array.isArray(value) ? value[0] : value;
@@ -132,147 +150,262 @@ export default function TrainerWordsWeb() {
     void loadWords();
   }, [loadWords]);
 
+  if (width < MOBILE_WEB_BREAKPOINT) {
+    return <TrainerWordsMobileScreen />;
+  }
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <DesktopPage
-        eyebrow="Trainer"
-        title="Practice words"
-        subtitle="Practice a focused reading batch with your current difficulty and sound filters."
-        toolbar={
-          <View style={styles.toolbar}>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.82}>
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => void loadWords()} activeOpacity={0.82}>
-              <Ionicons name="refresh-outline" size={16} color="#fff" />
-              <Text style={styles.primaryButtonText}>More words</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      >
-        <View style={styles.pageStack}>
-          <View style={styles.summaryStrip}>
-            <View style={styles.summaryCard}>
-              <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.clay }]}>
-                {selectedConsonantCount}
-              </Text>
-              <Text style={styles.summaryLabel}>letters</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={[styles.summaryValue, { color: MUTED_APP_ACCENTS.slate }]}>
-                {selectedVowelCount}
-              </Text>
-              <Text style={styles.summaryLabel}>vowels</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValue}>{DIFFICULTY_META[difficulty].label}</Text>
-              <Text style={styles.summaryLabel}>difficulty</Text>
-            </View>
-          </View>
-
-          <DesktopPanel>
-            <DesktopSectionTitle
-              title="Current filters"
-              caption="These are the consonant and vowel groups feeding the generated word batch."
-            />
-            <View style={styles.filterWrap}>
-              {consonantLabels.map((label) => (
-                <View key={label} style={styles.filterChip}>
-                  <Text style={styles.filterChipText}>{label}</Text>
-                </View>
-              ))}
-              {vowelLabels.map((label) => (
-                <View key={label} style={styles.filterChip}>
-                  <Text style={styles.filterChipText}>{label}</Text>
-                </View>
-              ))}
-            </View>
-          </DesktopPanel>
-
-          <DesktopPanel>
-            <DesktopSectionTitle
-              title="Word batch"
-              caption="Tap a card or the speaker to hear the Thai. Refresh the batch while keeping the same setup."
-            />
-            {loading ? (
-              <View style={styles.stateCard}>
-                <ActivityIndicator size="large" color={Sketch.inkMuted} />
-              </View>
-            ) : noResults ? (
-              <View style={styles.stateCard}>
-                <Text style={styles.stateTitle}>No words found</Text>
-                <Text style={styles.stateSubtitle}>
-                  Try a wider consonant or vowel selection and generate again.
+      <DesktopAppShell>
+        <ScrollView
+          style={styles.page}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.shell}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>Trainer</Text>
+                <Text style={styles.title}>Practice words</Text>
+                <Text style={styles.subtitle}>
+                  Practice a focused reading batch with your current difficulty and sound
+                  filters.
                 </Text>
               </View>
-            ) : (
-              <View style={styles.wordGrid}>
-                {words.map((word, index) => (
-                  <TouchableOpacity
-                    key={`${word.thai}-${index}`}
-                    style={[styles.wordCard, { width: cardWidth }]}
-                    onPress={() => void playSentence(word.thai, { speed: "slow" })}
-                    activeOpacity={0.82}
-                  >
-                    <View style={styles.wordCardHeader}>
-                      <View style={styles.wordPrimaryCopy}>
-                        <Text style={styles.wordThai}>{word.thai}</Text>
-                        {word.romanization ? (
-                          <Text style={styles.wordRoman}>{word.romanization}</Text>
-                        ) : null}
-                      </View>
-                      <Ionicons name="volume-medium-outline" size={18} color={Sketch.inkMuted} />
-                    </View>
-                    <Text style={styles.wordEnglish}>{word.english}</Text>
-                  </TouchableOpacity>
+
+              <View style={styles.toolbar}>
+                <Pressable
+                  onPress={() => router.back()}
+                  style={({ hovered, pressed }) => [
+                    styles.secondaryButton,
+                    (hovered || pressed) && styles.lightButtonActive,
+                  ]}
+                >
+                  <Text style={styles.secondaryButtonText}>Back</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => void loadWords()}
+                  style={({ hovered, pressed }) => [
+                    styles.primaryButton,
+                    (hovered || pressed) && styles.primaryButtonActive,
+                  ]}
+                >
+                  <Ionicons name="refresh-outline" size={16} color="#fff" />
+                  <Text style={styles.primaryButtonText}>More words</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.summaryStrip}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{selectedConsonantCount}</Text>
+                <Text style={styles.summaryLabel}>letters</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{selectedVowelCount}</Text>
+                <Text style={styles.summaryLabel}>vowels</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryValue}>{DIFFICULTY_META[difficulty].label}</Text>
+                <Text style={styles.summaryLabel}>difficulty</Text>
+              </View>
+            </View>
+
+            <View style={styles.surfaceCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeaderText}>
+                  <Text style={styles.sectionHeading}>Current filters</Text>
+                  <Text style={styles.sectionSubheading}>
+                    These are the consonant and vowel groups feeding the generated word
+                    batch.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.filterWrap}>
+                {consonantLabels.map((label) => (
+                  <View key={label} style={styles.filterChip}>
+                    <Text style={styles.filterChipText}>{label}</Text>
+                  </View>
+                ))}
+                {vowelLabels.map((label) => (
+                  <View key={label} style={styles.filterChip}>
+                    <Text style={styles.filterChipText}>{label}</Text>
+                  </View>
                 ))}
               </View>
-            )}
-          </DesktopPanel>
-        </View>
-      </DesktopPage>
+            </View>
+
+            <View style={styles.surfaceCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeaderText}>
+                  <Text style={styles.sectionHeading}>Word batch</Text>
+                </View>
+              </View>
+
+              {loading ? (
+                <View style={styles.stateCard}>
+                  <ActivityIndicator size="large" color={BRAND.inkSoft} />
+                </View>
+              ) : noResults ? (
+                <View style={styles.stateCard}>
+                  <Text style={styles.stateTitle}>No words found</Text>
+                  <Text style={styles.stateSubtitle}>
+                    Try a wider consonant or vowel selection and generate again.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.wordGrid}>
+                  {words.map((word, index) => (
+                    <Pressable
+                      key={`${word.thai}-${index}`}
+                      onPress={() => void playSentence(word.thai, { speed: "slow" })}
+                      style={({ hovered, pressed }) => [
+                        styles.wordCard,
+                        { width: cardWidth },
+                        (hovered || pressed) && styles.wordCardActive,
+                      ]}
+                    >
+                      <View style={styles.wordCardHeader}>
+                        <View style={styles.wordPrimaryCopy}>
+                          <Text style={styles.wordThai}>{word.thai}</Text>
+                          {word.romanization ? (
+                            <Text style={styles.wordRoman}>{word.romanization}</Text>
+                          ) : null}
+                        </View>
+                        <Pressable
+                          onPress={() => void playSentence(word.thai, { speed: "slow" })}
+                          style={({ hovered, pressed }) => [
+                            styles.audioButton,
+                            (hovered || pressed) && styles.lightButtonActive,
+                          ]}
+                        >
+                          <Ionicons
+                            name="volume-medium-outline"
+                            size={18}
+                            color={BRAND.ink}
+                          />
+                        </Pressable>
+                      </View>
+                      <Text style={styles.wordEnglish}>{word.english}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </DesktopAppShell>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  pageStack: {
-    gap: 28,
+  page: {
+    flex: 1,
+    backgroundColor: BRAND.bg,
+  },
+  pageContent: {
+    paddingHorizontal: 28,
+    paddingVertical: 36,
+  },
+  shell: {
+    width: "100%",
+    maxWidth: DESKTOP_PAGE_WIDTH,
+    alignSelf: "center",
+    gap: 24,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 20,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 8,
+  },
+  eyebrow: {
+    color: BRAND.inkSoft,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    fontFamily: BODY_FONT,
+  },
+  title: {
+    color: BRAND.ink,
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: "800",
+    letterSpacing: -1,
+    fontFamily: DISPLAY_FONT,
+  },
+  subtitle: {
+    maxWidth: 760,
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 26,
+    fontFamily: BODY_FONT,
   },
   toolbar: {
     flexDirection: "row",
     gap: 10,
   },
+  secondaryButton: {
+    minHeight: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
+  },
+  secondaryButtonText: {
+    color: BRAND.ink,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+    fontFamily: BODY_FONT,
+  },
   primaryButton: {
+    minHeight: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#0D2237",
+    backgroundColor: BRAND.navy,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: Sketch.accent,
-    backgroundColor: Sketch.accent,
+    boxShadow: WEB_NAVY_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+    userSelect: "none",
   },
   primaryButtonText: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#fff",
+    fontFamily: BODY_FONT,
   },
-  secondaryButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+  lightButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_LIGHT_BUTTON_PRESSED as any,
   },
-  secondaryButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Sketch.ink,
+  primaryButtonActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: WEB_NAVY_BUTTON_PRESSED as any,
   },
   summaryStrip: {
     flexDirection: "row",
@@ -280,22 +413,59 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
+    borderRadius: WEB_RADIUS.md,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.cardBg,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.panel,
     padding: 18,
     gap: 4,
+    boxShadow: WEB_CARD_SHADOW as any,
   },
   summaryValue: {
     fontSize: 28,
     lineHeight: 32,
-    fontWeight: "700",
-    color: Sketch.ink,
+    fontWeight: "800",
+    color: BRAND.ink,
     letterSpacing: -0.6,
+    fontFamily: DISPLAY_FONT,
   },
   summaryLabel: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
+  },
+  surfaceCard: {
+    backgroundColor: BRAND.paper,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    padding: 24,
+    gap: 18,
+    boxShadow: WEB_CARD_SHADOW as any,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    gap: 4,
+  },
+  sectionHeading: {
+    color: BRAND.ink,
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: "800",
+    fontFamily: DISPLAY_FONT,
+  },
+  sectionSubheading: {
+    color: BRAND.inkSoft,
+    fontSize: 15,
+    lineHeight: 24,
+    fontFamily: BODY_FONT,
   },
   filterWrap: {
     flexDirection: "row",
@@ -304,15 +474,19 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
   },
   filterChipText: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
-    color: Sketch.ink,
+    color: BRAND.ink,
+    fontFamily: BODY_FONT,
   },
   stateCard: {
     minHeight: 220,
@@ -320,20 +494,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: BRAND.line,
+    borderRadius: 18,
+    backgroundColor: BRAND.panel,
+    boxShadow: WEB_CARD_SHADOW as any,
+    paddingHorizontal: 24,
   },
   stateTitle: {
     fontSize: 22,
-    fontWeight: "700",
-    color: Sketch.ink,
+    lineHeight: 28,
+    fontWeight: "800",
+    color: BRAND.ink,
+    fontFamily: DISPLAY_FONT,
   },
   stateSubtitle: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkMuted,
+    color: BRAND.inkSoft,
     textAlign: "center",
     maxWidth: 420,
+    fontFamily: BODY_FONT,
   },
   wordGrid: {
     flexDirection: "row",
@@ -342,10 +522,17 @@ const styles = StyleSheet.create({
   },
   wordCard: {
     borderWidth: 1,
-    borderColor: Sketch.inkFaint,
-    backgroundColor: Sketch.paper,
+    borderColor: BRAND.line,
+    backgroundColor: BRAND.paper,
+    borderRadius: 18,
     padding: 16,
     gap: 10,
+    boxShadow: WEB_SENTENCE_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
+  },
+  wordCardActive: {
+    transform: WEB_DEPRESSED_TRANSFORM as any,
+    boxShadow: "0 1px 0 0 #d4d4d4, 0 1px 0 0 #d4d4d4, 0 2px 3px rgba(16, 42, 67, 0.04)" as any,
   },
   wordCardHeader: {
     flexDirection: "row",
@@ -359,16 +546,34 @@ const styles = StyleSheet.create({
   },
   wordThai: {
     fontSize: 28,
-    fontWeight: "700",
-    color: Sketch.ink,
+    lineHeight: 34,
+    fontWeight: "800",
+    color: BRAND.ink,
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
   },
   wordRoman: {
     fontSize: 13,
-    color: Sketch.inkMuted,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
   },
   wordEnglish: {
     fontSize: 14,
     lineHeight: 22,
-    color: Sketch.inkLight,
+    color: BRAND.inkSoft,
+    fontFamily: BODY_FONT,
+  },
+  audioButton: {
+    width: 34,
+    height: 34,
+    minWidth: 34,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    ...WEB_INTERACTIVE_TRANSITION,
   },
 });

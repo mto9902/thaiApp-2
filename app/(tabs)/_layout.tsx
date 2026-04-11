@@ -37,7 +37,7 @@ export default function TabLayout() {
     Platform.OS === "android"
       ? Math.max(insets.bottom, 18)
       : Math.max(insets.bottom, 12);
-  const tabBarHeight = 50 + tabBarBottomPadding + 10;
+  const tabBarHeight = 56 + tabBarBottomPadding + 8;
 
   return (
     <Tabs
@@ -46,21 +46,23 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Sketch.inkMuted,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarItemStyle: {
+          paddingHorizontal: 0,
+        },
         tabBarStyle: {
           height: tabBarHeight,
           paddingBottom: tabBarBottomPadding,
-          paddingTop: 10,
+          paddingTop: 8,
+          paddingHorizontal: 10,
           backgroundColor: Sketch.paper,
-          borderTopWidth: 1,
-          borderTopColor: Sketch.inkFaint,
+          borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontWeight: "500",
+          fontWeight: "700",
           fontSize: 11,
-          marginTop: 4,
-          color: Sketch.inkMuted,
+          marginTop: 3,
         },
       }}
     >
@@ -117,6 +119,25 @@ export default function TabLayout() {
               color={focused ? Sketch.ink : Sketch.inkMuted}
             />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="sandbox"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="grammar-topics"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="grammar-lesson/[id]"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

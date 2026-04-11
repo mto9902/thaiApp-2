@@ -19,6 +19,7 @@ import React, {
   useState,
 } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
+import { fetchWithTimeout } from "../api/fetchWithTimeout";
 import { API_BASE } from "../config";
 import { getAuthToken } from "../utils/authStorage";
 
@@ -68,6 +69,19 @@ let purchasesConfigured = false;
 let configuredAppUserId: string | null = null;
 let configuredEmail: string | null = null;
 let customerInfoListener: CustomerInfoUpdateListener | null = null;
+let inflightServerPremiumRequest: Promise<boolean> | null = null;
+let lastServerPremiumSnapshot: {
+  token: string | null;
+  hasAccess: boolean;
+  fetchedAt: number;
+} = {
+  token: null,
+  hasAccess: false,
+  fetchedAt: 0,
+};
+
+const SERVER_PREMIUM_CACHE_MS = 10000;
+const SERVER_PREMIUM_TIMEOUT_MS = 4000;
 
 function hasPremiumEntitlement(customerInfo: CustomerInfo | null): boolean {
   return !!customerInfo?.entitlements.active?.[PREMIUM_ENTITLEMENT_ID];
@@ -129,21 +143,73 @@ export function SubscriptionProvider({
     const token = await getAuthToken();
     if (!token) {
       setServerHasPremium(false);
+      lastServerPremiumSnapshot = {
+        token: null,
+        hasAccess: false,
+        fetchedAt: Date.now(),
+      };
       return false;
     }
 
-    const res = await fetch(`${API_BASE}/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to load subscription status (${res.status})`);
+    const now = Date.now();
+    if (
+      lastServerPremiumSnapshot.token === token &&
+      now - lastServerPremiumSnapshot.fetchedAt < SERVER_PREMIUM_CACHE_MS
+    ) {
+      setServerHasPremium(lastServerPremiumSnapshot.hasAccess);
+      return lastServerPremiumSnapshot.hasAccess;
     }
 
-    const data = await res.json();
-    const hasAccess = Boolean(data?.has_keystone_access);
-    setServerHasPremium(hasAccess);
-    return hasAccess;
+    if (inflightServerPremiumRequest) {
+      return inflightServerPremiumRequest;
+    }
+
+    inflightServerPremiumRequest = (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          `${API_BASE}/me`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+          SERVER_PREMIUM_TIMEOUT_MS,
+        );
+
+        if (!res.ok) {
+          let details = "";
+          try {
+            const body = await res.text();
+            details = body ? `: ${body}` : "";
+          } catch {
+            details = "";
+          }
+          throw new Error(
+            `Failed to load subscription status (${res.status})${details}`,
+          );
+        }
+
+        const data = await res.json();
+        const hasAccess = Boolean(data?.has_keystone_access);
+        setServerHasPremium(hasAccess);
+        lastServerPremiumSnapshot = {
+          token,
+          hasAccess,
+          fetchedAt: Date.now(),
+        };
+        return hasAccess;
+      } catch (error) {
+        if (lastServerPremiumSnapshot.token === token) {
+          setServerHasPremium(lastServerPremiumSnapshot.hasAccess);
+          return lastServerPremiumSnapshot.hasAccess;
+        }
+        throw error;
+      }
+    })();
+
+    try {
+      return await inflightServerPremiumRequest;
+    } finally {
+      inflightServerPremiumRequest = null;
+    }
   }, []);
 
   const syncPremiumToServer = useCallback(async (hasAccess: boolean) => {
