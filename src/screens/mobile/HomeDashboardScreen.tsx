@@ -76,6 +76,8 @@ type LevelPickerOption = {
   targetPoint: GrammarPoint | null;
 };
 
+type PracticeMixFilterLevel = "All" | PublicCefrLevel;
+
 const BRAND = {
   bg: "#FAFAFA",
   paper: "#FFFFFF",
@@ -327,6 +329,10 @@ function localDateKey(date: Date) {
   ).padStart(2, "0")}`;
 }
 
+function shuffleIds(ids: string[]) {
+  return [...ids].sort(() => Math.random() - 0.5);
+}
+
 function formatDelay(nextDueAt: string) {
   const ms = Math.max(new Date(nextDueAt).getTime() - Date.now(), 0);
   const minutes = Math.ceil(ms / 60000);
@@ -560,6 +566,11 @@ export default function HomeDashboardScreen() {
   const [wordAudioEnabled, setWordAudioEnabled] = useState(false);
   const [toneGuideOpen, setToneGuideOpen] = useState(false);
   const [levelPickerOpen, setLevelPickerOpen] = useState(false);
+  const [showPracticeMixModal, setShowPracticeMixModal] = useState(false);
+  const [selectedPracticeMixLevels, setSelectedPracticeMixLevels] = useState<
+    PracticeMixFilterLevel[]
+  >(["All"]);
+  const [lockedNextLesson, setLockedNextLesson] = useState<GrammarPoint | null>(null);
   const [expandedMatchOptionIndex, setExpandedMatchOptionIndex] = useState<number | null>(null);
   const [sentenceReportOpen, setSentenceReportOpen] = useState(false);
   const [sentenceReportDraft, setSentenceReportDraft] = useState("");
@@ -741,6 +752,28 @@ export default function HomeDashboardScreen() {
   const practicedGrammar = useMemo(
     () => visibleGrammar.filter((point) => isGrammarPracticed(progress[point.id])),
     [progress, visibleGrammar],
+  );
+
+  const practiceMixCountsByLevel = useMemo(
+    () =>
+      PUBLIC_CEFR_LEVELS.reduce(
+        (acc, level) => {
+          acc[level] = practicedGrammar.filter((point) => point.level === level).length;
+          return acc;
+        },
+        {} as Record<PublicCefrLevel, number>,
+      ),
+    [practicedGrammar],
+  );
+
+  const filteredPracticeMixGrammar = useMemo(
+    () =>
+      selectedPracticeMixLevels.includes("All")
+        ? practicedGrammar
+        : practicedGrammar.filter((point) =>
+            selectedPracticeMixLevels.includes(point.level as PublicCefrLevel),
+          ),
+    [practicedGrammar, selectedPracticeMixLevels],
   );
 
   const nextAccessibleLesson = useMemo(
@@ -944,7 +977,15 @@ export default function HomeDashboardScreen() {
   const tools = useMemo(
     () => [
       { title: "Saved Bookmarks", detail: "Open saved grammar", icon: "bookmark-outline" as const, route: "/explore" },
-      { title: "Practice Mix", detail: practicedGrammar.length > 0 ? `${practicedGrammar.length} studied topics ready` : "Unlocks after your first lesson", icon: "shuffle-outline" as const, route: "/progress" },
+      {
+        title: "Practice Mix",
+        detail:
+          practicedGrammar.length > 0
+            ? `${practicedGrammar.length} studied topics ready`
+            : "Unlocks after your first lesson",
+        icon: "shuffle-outline" as const,
+        route: null,
+      },
       { title: "Alphabet Trainer", detail: "Alphabet drills and recall", icon: "school-outline" as const, route: "/trainer/" },
       { title: "Alphabet", detail: "Consonants and sound groups", icon: "text-outline" as const, route: "/alphabet/" },
       { title: "Numbers", detail: "Counting and quantities", icon: "calculator-outline" as const, route: "/numbers/" },
@@ -1038,6 +1079,48 @@ export default function HomeDashboardScreen() {
     [ensurePremiumAccess, isPremium, router],
   );
 
+  const togglePracticeMixLevel = useCallback((level: PracticeMixFilterLevel) => {
+    if (level === "All") {
+      setSelectedPracticeMixLevels(["All"]);
+      return;
+    }
+
+    setSelectedPracticeMixLevels((current) => {
+      const withoutAll = current.filter(
+        (value): value is PublicCefrLevel => value !== "All",
+      );
+
+      if (withoutAll.includes(level)) {
+        const next = withoutAll.filter((value) => value !== level);
+        return next.length > 0 ? next : ["All"];
+      }
+
+      return [...withoutAll, level];
+    });
+  }, []);
+
+  const openPracticeMixChooser = useCallback(() => {
+    if (practicedGrammar.length === 0) return;
+    setSelectedPracticeMixLevels(["All"]);
+    setShowPracticeMixModal(true);
+  }, [practicedGrammar.length]);
+
+  const startPracticeMix = useCallback(() => {
+    if (filteredPracticeMixGrammar.length === 0) return;
+
+    const shuffled = shuffleIds(filteredPracticeMixGrammar.map((point) => point.id));
+    const practiceRoute = `/practice/${shuffled[0]}/exercises?mix=${shuffled.join(",")}&source=progress`;
+
+    setShowPracticeMixModal(false);
+
+    if (!isPremium && filteredPracticeMixGrammar.some((point) => isPremiumGrammarPoint(point))) {
+      void ensurePremiumAccess("your studied Keystone Access lessons", practiceRoute);
+      return;
+    }
+
+    router.push(practiceRoute as any);
+  }, [ensurePremiumAccess, filteredPracticeMixGrammar, isPremium, router]);
+
   const handleLevelSelection = useCallback(
     async (option: LevelPickerOption) => {
       if (!option.targetPoint || exerciseBusy) return;
@@ -1063,11 +1146,32 @@ export default function HomeDashboardScreen() {
   const handleNextNavigation = useCallback(async () => {
     if (!nextLessonInSequence || exerciseBusy) return;
     if (!isPremium && isPremiumGrammarPoint(nextLessonInSequence)) {
-      await ensurePremiumAccess("continue learning", `/practice/${nextLessonInSequence.id}`);
+      setLockedNextLesson(nextLessonInSequence);
       return;
     }
     mini.goToNextGrammar();
-  }, [ensurePremiumAccess, exerciseBusy, isPremium, mini, nextLessonInSequence]);
+  }, [exerciseBusy, isPremium, mini, nextLessonInSequence]);
+
+  const handleLockedNextAccess = useCallback(async () => {
+    if (!lockedNextLesson) return;
+    const label = lockedNextLesson.title;
+    const route = `/practice/${lockedNextLesson.id}`;
+    setLockedNextLesson(null);
+
+    if (await isGuestUser()) {
+      const premiumParams = new URLSearchParams();
+      premiumParams.set("label", label);
+      premiumParams.set("redirectTo", route);
+
+      const loginParams = new URLSearchParams();
+      loginParams.set("redirectTo", `/premium?${premiumParams.toString()}`);
+
+      router.push(`/login?${loginParams.toString()}` as any);
+      return;
+    }
+
+    await ensurePremiumAccess(label, route);
+  }, [ensurePremiumAccess, lockedNextLesson, router]);
 
   const openReview = useCallback(() => {
     if (isGuest) {
@@ -1726,29 +1830,182 @@ export default function HomeDashboardScreen() {
           <Text style={styles.sectionHeading}>Study tools</Text>
           <Text style={styles.bodyText}>Use these tools whenever you want extra practice.</Text>
           <View style={styles.tileGrid}>
-            {tools.map((tool) => (
-              <SettledPressable
-                key={tool.title}
-                onPress={() => router.push(tool.route as any)}
-                style={({ pressed }: any) => [styles.tileCard, pressed ? styles.surfacePressed : null]}
-              >
-                <View style={styles.tileIconWrap}>
-                  {tool.title === "Alphabet" ? (
-                    <Text style={styles.tileThaiGlyph}>ก</Text>
-                  ) : (
-                    <Ionicons name={tool.icon} size={18} color={BRAND.ink} />
-                  )}
-                </View>
-                <View style={styles.tileCopy}>
-                  <Text style={styles.tileTitle}>{tool.title}</Text>
-                  <Text style={styles.tileDetail}>{tool.detail}</Text>
-                </View>
-                <Ionicons name="chevron-forward-outline" size={18} color={BRAND.ink} />
-              </SettledPressable>
-            ))}
+            {tools.map((tool) => {
+              const isPracticeMixTile = tool.title === "Practice Mix";
+              const isDisabled = isPracticeMixTile && practicedGrammar.length === 0;
+
+              return (
+                <SettledPressable
+                  key={tool.title}
+                  disabled={isDisabled}
+                  onPress={() => {
+                    if (isPracticeMixTile) {
+                      openPracticeMixChooser();
+                      return;
+                    }
+                    if (tool.route) router.push(tool.route as any);
+                  }}
+                  style={({ pressed }: any) => [
+                    styles.tileCard,
+                    isDisabled ? styles.tileCardDisabled : null,
+                    pressed && !isDisabled ? styles.surfacePressed : null,
+                  ]}
+                >
+                  <View style={styles.tileIconWrap}>
+                    {tool.title === "Alphabet" ? (
+                      <Text style={styles.tileThaiGlyph}>ก</Text>
+                    ) : (
+                      <Ionicons name={tool.icon} size={18} color={BRAND.ink} />
+                    )}
+                  </View>
+                  <View style={styles.tileCopy}>
+                    <Text style={styles.tileTitle}>{tool.title}</Text>
+                    <Text style={styles.tileDetail}>{tool.detail}</Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={18}
+                    color={isDisabled ? BRAND.muted : BRAND.ink}
+                  />
+                </SettledPressable>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showPracticeMixModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPracticeMixModal(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowPracticeMixModal(false)}
+        >
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderCopy}>
+                <Text style={styles.modalEyebrow}>Practice mix</Text>
+                <Text style={styles.modalTitle}>Choose what to practice</Text>
+                <Text style={styles.modalBody}>
+                  Pick which studied grammar topics to include.
+                </Text>
+              </View>
+              <SettledPressable
+                onPress={() => setShowPracticeMixModal(false)}
+                style={({ pressed }: any) => [
+                  styles.iconButton,
+                  Platform.OS === "web" ? WEB_UTILITY_BUTTON_STYLE : null,
+                  pressed ? styles.secondaryButtonPressed : null,
+                  pressed && Platform.OS === "web" ? WEB_UTILITY_BUTTON_PRESSED : null,
+                ]}
+              >
+                <Ionicons name="close" size={18} color={BRAND.ink} />
+              </SettledPressable>
+            </View>
+
+            <View style={styles.filterGrid}>
+              {(["All", ...PUBLIC_CEFR_LEVELS] as PracticeMixFilterLevel[]).map((level) => {
+                const count =
+                  level === "All" ? practicedGrammar.length : practiceMixCountsByLevel[level];
+                const selected = selectedPracticeMixLevels.includes(level);
+                const disabled = count === 0;
+
+                return (
+                  <SettledPressable
+                    key={level}
+                    disabled={disabled}
+                    onPress={() => togglePracticeMixLevel(level)}
+                    style={({ pressed }: any) => [
+                      styles.filterCard,
+                      selected ? styles.filterCardSelected : null,
+                      disabled ? styles.filterCardDisabled : null,
+                      pressed && !disabled ? styles.surfacePressed : null,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterLabel,
+                        selected ? styles.filterLabelSelected : null,
+                      ]}
+                    >
+                      {level}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.filterCount,
+                        selected ? styles.filterLabelSelected : null,
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </SettledPressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.modalSummary}>
+              <Text style={styles.modalSummaryEyebrow}>Selected set</Text>
+              <Text style={styles.modalSummaryText}>
+                {filteredPracticeMixGrammar.length} studied topic
+                {filteredPracticeMixGrammar.length === 1 ? "" : "s"}
+              </Text>
+            </View>
+
+            <View style={styles.modalActions}>
+              <SurfaceButton
+                label="Cancel"
+                onPress={() => setShowPracticeMixModal(false)}
+                style={styles.modalHalf}
+              />
+              <SurfaceButton
+                label="Start mix"
+                variant="primary"
+                disabled={filteredPracticeMixGrammar.length === 0}
+                onPress={startPracticeMix}
+                style={styles.modalHalf}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={Boolean(lockedNextLesson)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLockedNextLesson(null)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setLockedNextLesson(null)}
+        >
+          <Pressable style={[styles.modalCard, styles.accessPromptCard]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, styles.accessPromptTitle]}>
+              Get Keystone Access to continue learning
+            </Text>
+            <Text style={[styles.modalBody, styles.accessPromptBody]}>
+              The next grammar point, {lockedNextLesson?.title ?? "this lesson"}, is part of
+              Keystone Access.
+            </Text>
+            <View style={styles.accessPromptActions}>
+              <SurfaceButton
+                label="Get Keystone Access"
+                variant="primary"
+                onPress={() => void handleLockedNextAccess()}
+                style={styles.accessPromptPrimary}
+              />
+              <SurfaceButton
+                label="Not now"
+                onPress={() => setLockedNextLesson(null)}
+                style={styles.accessPromptSecondary}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal visible={levelPickerOpen} transparent animationType="fade" onRequestClose={() => setLevelPickerOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setLevelPickerOpen(false)}>
@@ -2619,6 +2876,9 @@ const styles = StyleSheet.create({
     gap: 12,
     ...SURFACE_SHADOW,
   },
+  tileCardDisabled: {
+    opacity: 0.45,
+  },
   tileIconWrap: {
     width: 36,
     height: 36,
@@ -2665,6 +2925,16 @@ const styles = StyleSheet.create({
     gap: 14,
     ...CARD_SHADOW,
   },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  modalHeaderCopy: {
+    flex: 1,
+    gap: 6,
+  },
   modalEyebrow: {
     fontSize: 12,
     lineHeight: 16,
@@ -2683,6 +2953,84 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: BRAND.inkSoft,
+  },
+  filterGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  filterCard: {
+    width: "31%",
+    minWidth: "31%",
+    backgroundColor: BRAND.panel,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BRAND.line,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    gap: 4,
+    ...SURFACE_SHADOW,
+  },
+  filterCardSelected: {
+    backgroundColor: BRAND.paper,
+    borderColor: BRAND.navy,
+  },
+  filterCardDisabled: {
+    opacity: 0.45,
+  },
+  filterLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
+    color: BRAND.ink,
+  },
+  filterCount: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: BRAND.inkSoft,
+  },
+  filterLabelSelected: {
+    color: BRAND.navy,
+  },
+  modalSummary: {
+    gap: 4,
+  },
+  modalSummaryEyebrow: {
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    color: BRAND.muted,
+    fontWeight: "700",
+  },
+  modalSummaryText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: BRAND.ink,
+    fontWeight: "700",
+  },
+  accessPromptCard: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  accessPromptTitle: {
+    textAlign: "center",
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  accessPromptBody: {
+    textAlign: "center",
+  },
+  accessPromptActions: {
+    flexDirection: "row",
+    gap: 10,
+    alignSelf: "stretch",
+  },
+  accessPromptPrimary: {
+    flex: 1.4,
+  },
+  accessPromptSecondary: {
+    flex: 1,
   },
   levelPickerList: {
     gap: 10,

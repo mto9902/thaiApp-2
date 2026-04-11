@@ -33,11 +33,16 @@ export default function TabLayout() {
 
   if (!checkedAuth) return null;
 
-  const tabBarBottomPadding =
-    Platform.OS === "android"
+  const isMobileWeb = Platform.OS === "web";
+  const tabBarTopPadding = isMobileWeb ? 4 : 8;
+  const tabBarBottomPadding = isMobileWeb
+    ? 6
+    : Platform.OS === "android"
       ? Math.max(insets.bottom, 18)
       : Math.max(insets.bottom, 12);
-  const tabBarHeight = 56 + tabBarBottomPadding + 8;
+  const tabBarHeight = isMobileWeb
+    ? 58
+    : 56 + tabBarBottomPadding + tabBarTopPadding;
 
   return (
     <Tabs
@@ -52,8 +57,8 @@ export default function TabLayout() {
         tabBarStyle: {
           height: tabBarHeight,
           paddingBottom: tabBarBottomPadding,
-          paddingTop: 8,
-          paddingHorizontal: 10,
+          paddingTop: tabBarTopPadding,
+          paddingHorizontal: isMobileWeb ? 8 : 10,
           backgroundColor: Sketch.paper,
           borderTopWidth: 0,
           elevation: 0,
@@ -61,8 +66,8 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontWeight: "700",
-          fontSize: 11,
-          marginTop: 3,
+          fontSize: isMobileWeb ? 10 : 11,
+          marginTop: isMobileWeb ? 1 : 3,
         },
       }}
     >

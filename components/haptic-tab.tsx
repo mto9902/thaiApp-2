@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Platform.OS === "web" ? 4 : 6,
+    paddingVertical: Platform.OS === "web" ? 0 : 2,
     alignItems: "stretch",
     justifyContent: "center",
   },
@@ -131,6 +131,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFBFD",
   },
   innerWeb: {
+    minHeight: 40,
+    borderRadius: 14,
     transitionDuration: "150ms",
     transitionProperty: "transform, box-shadow, background-color, border-color",
     transitionTimingFunction: "ease",
