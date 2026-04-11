@@ -42,6 +42,7 @@ export default function WebGlobals() {
       "(max-width: 767px) and (hover: none), (max-width: 767px) and (pointer: coarse)",
     );
     let rafId: number | null = null;
+    let observer: MutationObserver | null = null;
 
     const clearScrollAncestors = () => {
       document
@@ -57,12 +58,18 @@ export default function WebGlobals() {
       const scroller = document.querySelector(
         '[data-testid="keystone-mobile-page-scroll"]',
       );
+      if (!scroller) {
+        return false;
+      }
+
       let node = scroller?.parentElement ?? null;
 
       while (node && node.id !== "root") {
         node.classList.add(WEB_MOBILE_SCROLL_ANCESTOR_CLASS);
         node = node.parentElement;
       }
+
+      return true;
     };
 
     const applyDocumentScrollMode = () => {
@@ -72,7 +79,10 @@ export default function WebGlobals() {
       );
 
       if (mobileWebQuery.matches) {
-        markScrollAncestors();
+        const marked = markScrollAncestors();
+        if (!marked) {
+          scheduleDocumentScrollMode();
+        }
         return;
       }
 
@@ -89,18 +99,48 @@ export default function WebGlobals() {
       });
     };
 
+    const attachObserver = () => {
+      if (!mobileWebQuery.matches || observer) {
+        return;
+      }
+
+      const root = document.getElementById("root");
+      if (!root) {
+        return;
+      }
+
+      observer = new MutationObserver(() => {
+        scheduleDocumentScrollMode();
+      });
+
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+      });
+    };
+
+    const detachObserver = () => {
+      observer?.disconnect();
+      observer = null;
+    };
+
+    const handleMediaQueryChange = () => {
+      detachObserver();
+      attachObserver();
+      scheduleDocumentScrollMode();
+    };
+
+    attachObserver();
     scheduleDocumentScrollMode();
 
     if (typeof mobileWebQuery.addEventListener === "function") {
-      mobileWebQuery.addEventListener("change", scheduleDocumentScrollMode);
+      mobileWebQuery.addEventListener("change", handleMediaQueryChange);
       return () => {
         if (rafId !== null) {
           window.cancelAnimationFrame(rafId);
         }
-        mobileWebQuery.removeEventListener(
-          "change",
-          scheduleDocumentScrollMode,
-        );
+        mobileWebQuery.removeEventListener("change", handleMediaQueryChange);
+        detachObserver();
         document.documentElement.classList.remove(
           WEB_MOBILE_DOCUMENT_SCROLL_CLASS,
         );
@@ -108,12 +148,13 @@ export default function WebGlobals() {
       };
     }
 
-    mobileWebQuery.addListener(scheduleDocumentScrollMode);
+    mobileWebQuery.addListener(handleMediaQueryChange);
     return () => {
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }
-      mobileWebQuery.removeListener(scheduleDocumentScrollMode);
+      mobileWebQuery.removeListener(handleMediaQueryChange);
+      detachObserver();
       document.documentElement.classList.remove(
         WEB_MOBILE_DOCUMENT_SCROLL_CLASS,
       );
