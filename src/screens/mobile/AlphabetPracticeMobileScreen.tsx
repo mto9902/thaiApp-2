@@ -262,6 +262,7 @@ export default function AlphabetPracticeMobileScreen() {
       />
 
       <ScrollView
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

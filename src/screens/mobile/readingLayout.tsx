@@ -87,6 +87,7 @@ export function ReadingScreenShell({
         onSettingsChange={onSettingsChange}
       />
       <ScrollView
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

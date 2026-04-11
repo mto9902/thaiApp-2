@@ -253,6 +253,7 @@ export default function VowelPracticeMobileScreen() {
       />
 
       <ScrollView
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

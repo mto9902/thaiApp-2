@@ -37,6 +37,7 @@ export default function AuthMobileShell({
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
+            testID="keystone-mobile-page-scroll"
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}

@@ -235,6 +235,7 @@ export default function ProfileMobileScreen() {
         </View>
       ) : (
         <ScrollView
+          testID="keystone-mobile-page-scroll"
           contentContainerStyle={[
             styles.scrollContent,
             isGuest ? styles.guestScrollContent : null,

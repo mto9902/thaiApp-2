@@ -141,6 +141,7 @@ export default function GrammarTopicsMobileScreen() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ScrollView
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

@@ -1335,7 +1335,11 @@ export default function HomeDashboardScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        testID="keystone-mobile-page-scroll"
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{heroEyebrow}</Text>
           <Text style={styles.heroTitle}>{heroTitle}</Text>

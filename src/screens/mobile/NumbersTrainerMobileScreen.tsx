@@ -119,6 +119,7 @@ export default function NumbersTrainerMobileScreen() {
       />
 
       <ScrollView
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

@@ -88,6 +88,8 @@ export const WEB_INTERACTIVE_TRANSITION = {
 
 export const WEB_GLOBAL_STYLE_ID = "keystone-web-globals";
 export const WEB_GLOBAL_FONT_ID = "keystone-web-fonts";
+export const WEB_MOBILE_DOCUMENT_SCROLL_CLASS =
+  "keystone-mobile-document-scroll";
 
 export const WEB_GLOBAL_CSS = `
   html, body, #root {
@@ -115,5 +117,42 @@ export const WEB_GLOBAL_CSS = `
   a {
     color: inherit;
     text-decoration: none;
+  }
+
+  @media (max-width: 767px) and (hover: none), (max-width: 767px) and (pointer: coarse) {
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS},
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} body {
+      height: auto !important;
+      min-height: 100%;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+    }
+
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root {
+      display: block !important;
+      height: auto !important;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow: visible !important;
+    }
+
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root > div,
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root > div > div,
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root > div > div > div {
+      height: auto !important;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow: visible !important;
+    }
+
+    /*
+     * Expo's web reset pins body scrolling and React Native Web ScrollView
+     * creates an inner overflow pane. Samsung Browser only collapses its URL
+     * bar on document scroll, so phone-width web lets vertical ScrollViews
+     * overflow into the document instead.
+     */
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root [data-testid="keystone-mobile-page-scroll"] {
+      overflow-y: visible !important;
+    }
   }
 `;

@@ -415,6 +415,7 @@ export default function ReviewMobileScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
         <ScrollView
+          testID="keystone-mobile-page-scroll"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >

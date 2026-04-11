@@ -522,6 +522,7 @@ export default function GrammarLessonDetailMobileScreen() {
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ScrollView
         ref={scrollRef}
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

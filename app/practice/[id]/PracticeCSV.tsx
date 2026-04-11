@@ -551,7 +551,7 @@ export default function GrammarExercisesScreen() {
           }
         : null;
   const activeSentenceExplanationTarget: SentenceData | null =
-    mode === "breakdown" ? null : activeSentenceReportTarget;
+    activeSentenceReportTarget;
   const sentenceReportSent = sentenceReportStatus?.kind === "success";
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -615,15 +615,19 @@ export default function GrammarExercisesScreen() {
         throw new Error("No lesson is ready to explain yet.");
       }
 
-      const revealReady =
+      const explanationReady =
         mode === "wordScraps"
           ? result === "revealed"
           : mode === "matchThai"
             ? matchRevealed && (result === "wrong" || result === "revealed")
-            : false;
+            : mode === "breakdown";
 
-      if (!revealReady || !activeSentenceExplanationTarget) {
-        throw new Error("Reveal an answer first, then ask for an explanation.");
+      if (!explanationReady || !activeSentenceExplanationTarget) {
+        throw new Error(
+          mode === "breakdown"
+            ? "Pick a study example first, then ask for an explanation."
+            : "Reveal an answer first, then ask for an explanation.",
+        );
       }
 
       const explanation = await getSentenceExplanation({
@@ -1823,6 +1827,7 @@ export default function GrammarExercisesScreen() {
       >
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView
+          testID="keystone-mobile-page-scroll"
           contentContainerStyle={[st.scroll, isDesktopWeb && st.scrollDesktop]}
           showsVerticalScrollIndicator={false}
         >
@@ -1864,6 +1869,7 @@ export default function GrammarExercisesScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
+        testID="keystone-mobile-page-scroll"
         contentContainerStyle={[st.scroll, isDesktopWeb && st.scrollDesktop]}
         showsVerticalScrollIndicator={false}
         >
@@ -2160,28 +2166,56 @@ export default function GrammarExercisesScreen() {
                   </View>
                 </View>
 
-                <Pressable
-                  style={({ hovered, pressed }) => [
-                    st.primaryBtn,
-                    isDesktopWeb && st.primaryBtnDesktop,
-                    getInteractiveStateStyle("navy", hovered, pressed),
-                  ]}
-                  onPress={() => {
-                    trackWords(
-                      studyExamples.length > 0
-                        ? flattenStudyExampleWords(studyExamples)
-                        : activeBreakdown,
-                      "breakdown-next",
-                      studyExamples.length > 0 ? undefined : activeRomanTokens,
-                    );
-                    recordRound(true);
-                    fetchRound(
-                      randomMode(enabledModesRef.current, modeHistoryRef.current),
-                    );
-                  }}
-                >
-                  <Text style={st.primaryBtnText}>Continue</Text>
-                </Pressable>
+                <View style={isDesktopWeb ? st.ctaRowDesktop : st.revealedActionRow}>
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      st.primaryBtn,
+                      isDesktopWeb && st.primaryBtnDesktop,
+                      isDesktopWeb && st.ctaButtonDesktop,
+                      !isDesktopWeb && st.revealedActionButton,
+                      getInteractiveStateStyle("navy", hovered, pressed),
+                    ]}
+                    onPress={() => {
+                      trackWords(
+                        studyExamples.length > 0
+                          ? flattenStudyExampleWords(studyExamples)
+                          : activeBreakdown,
+                        "breakdown-next",
+                        studyExamples.length > 0 ? undefined : activeRomanTokens,
+                      );
+                      recordRound(true);
+                      fetchRound(
+                        randomMode(enabledModesRef.current, modeHistoryRef.current),
+                      );
+                    }}
+                  >
+                    <Text style={st.primaryBtnText}>Continue</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ hovered, pressed }) => [
+                      st.primaryBtn,
+                      st.secondaryBtn,
+                      isDesktopWeb && st.primaryBtnDesktop,
+                      isDesktopWeb && st.ctaButtonDesktop,
+                      !isDesktopWeb && st.revealedActionButton,
+                      sentenceExplanationLoading && st.primaryBtnDisabled,
+                      getInteractiveStateStyle(
+                        "light",
+                        hovered,
+                        pressed,
+                        sentenceExplanationLoading,
+                      ),
+                    ]}
+                    onPress={() => {
+                      void requestSentenceExplanation();
+                    }}
+                    disabled={sentenceExplanationLoading}
+                  >
+                    <Text style={[st.primaryBtnText, st.secondaryBtnText]}>
+                      {sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             )}
 

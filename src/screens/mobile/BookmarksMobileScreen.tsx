@@ -308,6 +308,7 @@ export default function BookmarksMobileScreen() {
           </View>
         ) : (
           <ScrollView
+            testID="keystone-mobile-page-scroll"
             contentContainerStyle={[
               styles.scrollContent,
               isGuest ? styles.guestScrollContent : null,
