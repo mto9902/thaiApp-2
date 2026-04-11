@@ -52,12 +52,42 @@ export default function WebGlobals() {
         });
     };
 
+    const getVisibleScroller = () => {
+      const scrollers = Array.from(
+        document.querySelectorAll('[data-testid="keystone-mobile-page-scroll"]'),
+      );
+
+      return (
+        scrollers.find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) {
+            return false;
+          }
+
+          let node: Element | null = candidate;
+          while (node && node.id !== "root") {
+            const style = window.getComputedStyle(node);
+            if (
+              node.getAttribute("aria-hidden") === "true" ||
+              style.display === "none" ||
+              style.visibility === "hidden" ||
+              style.pointerEvents === "none" ||
+              Number(style.opacity || "1") === 0
+            ) {
+              return false;
+            }
+            node = node.parentElement;
+          }
+
+          return true;
+        }) ?? scrollers[0] ?? null
+      );
+    };
+
     const markScrollAncestors = () => {
       clearScrollAncestors();
 
-      const scroller = document.querySelector(
-        '[data-testid="keystone-mobile-page-scroll"]',
-      );
+      const scroller = getVisibleScroller();
       if (!scroller) {
         return false;
       }
@@ -79,10 +109,7 @@ export default function WebGlobals() {
       );
 
       if (mobileWebQuery.matches) {
-        const marked = markScrollAncestors();
-        if (!marked) {
-          scheduleDocumentScrollMode();
-        }
+        markScrollAncestors();
         return;
       }
 
