@@ -583,6 +583,8 @@ export default function HomeDashboardScreen() {
   const [sentenceExplanationError, setSentenceExplanationError] = useState<string | null>(null);
   const [sentenceExplanation, setSentenceExplanation] = useState<string | null>(null);
   const sentenceReportInputRef = useRef<TextInput | null>(null);
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const toneGuideAnchorYRef = useRef(0);
 
   const checkAuth = useCallback(async () => {
     if (!(await canAccessApp())) {
@@ -898,7 +900,12 @@ export default function HomeDashboardScreen() {
   const activeSentence = mini.activeSentence;
   const exerciseBusy = mini.exerciseLoading || mini.transitionPending;
   const canPlayExerciseAudio =
-    mini.phase === "explanation" || mini.result === "correct" || mini.result === "revealed";
+    mini.phase === "explanation" ||
+    mini.result === "correct" ||
+    mini.result === "revealed" ||
+    (mini.currentMode === "matchThai" &&
+      mini.matchRevealed &&
+      mini.result === "wrong");
   const audioSentence =
     mini.phase === "explanation"
       ? previewSentence
@@ -1033,14 +1040,18 @@ export default function HomeDashboardScreen() {
     () =>
       [
         selectedLesson?.id ?? "",
+        mini.phase,
         mini.currentMode,
         mini.result,
+        previewSentence?.thai ?? "",
         activeSentence?.thai ?? "",
         mini.selectedOptionIndex ?? "none",
       ].join("::"),
     [
       activeSentence?.thai,
       mini.currentMode,
+      mini.phase,
+      previewSentence?.thai,
       mini.result,
       mini.selectedOptionIndex,
       selectedLesson?.id,
@@ -1286,8 +1297,23 @@ export default function HomeDashboardScreen() {
         throw new Error("No lesson is ready to explain yet.");
       }
 
-      if (!activeSentence || mini.result !== "revealed") {
-        throw new Error("Reveal an answer first, then ask for an explanation.");
+      const targetSentence =
+        mini.phase === "explanation"
+          ? previewSentence
+          : mini.currentMode === "matchThai" && mini.matchRevealed
+            ? mini.matchOptions.find((option) => option.isCorrect) ?? activeSentence
+            : activeSentence;
+
+      const canExplainCurrentMiniSentence =
+        mini.phase === "explanation"
+          ? Boolean(previewSentence)
+          : mini.result === "revealed" ||
+            (mini.currentMode === "matchThai" &&
+              mini.matchRevealed &&
+              mini.result === "wrong");
+
+      if (!targetSentence || !canExplainCurrentMiniSentence) {
+        throw new Error("Load a sentence first, then ask for an explanation.");
       }
       const explanation = await getSentenceExplanation({
         grammar: {
@@ -1299,7 +1325,7 @@ export default function HomeDashboardScreen() {
           explanation: selectedLesson.explanation,
           focus: selectedLesson.focus,
         },
-        sentence: activeSentence,
+        sentence: targetSentence,
       });
 
       setSentenceExplanation(explanation);
@@ -1315,10 +1341,31 @@ export default function HomeDashboardScreen() {
     }
   }, [
     activeSentence,
+    mini.currentMode,
+    mini.matchOptions,
+    mini.matchRevealed,
+    mini.phase,
     mini.result,
+    previewSentence,
     selectedLesson,
     sentenceExplanationLoading,
   ]);
+
+  const scrollMiniExerciseToTop = useCallback(() => {
+    if (Platform.OS === "web") return;
+
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(toneGuideAnchorYRef.current - 10, 0),
+        animated: true,
+      });
+    });
+  }, []);
+
+  const continueToNextMiniRound = useCallback(() => {
+    scrollMiniExerciseToTop();
+    mini.continueToNextRound();
+  }, [mini, scrollMiniExerciseToTop]);
 
   const screenReady = mini.hydrated && Boolean(selectedLesson);
 
@@ -1336,6 +1383,7 @@ export default function HomeDashboardScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
+        ref={scrollViewRef}
         testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -1411,7 +1459,12 @@ export default function HomeDashboardScreen() {
             </View>
           </View>
 
-          <View style={styles.toneGuideRow}>
+          <View
+            style={styles.toneGuideRow}
+            onLayout={(event) => {
+              toneGuideAnchorYRef.current = event.nativeEvent.layout.y;
+            }}
+          >
             <View style={styles.toneGuideInlineRow}>
               <Text style={styles.toneGuideStandaloneLabel}>Tone guide</Text>
               <SettledPressable
@@ -1573,7 +1626,7 @@ export default function HomeDashboardScreen() {
                 <Text style={styles.feedbackText}>
                   {mini.currentMode === "wordScraps"
                     ? "Check the word order, show the answer, or skip to the next round."
-                    : "Show the answer or skip to the next round."}
+                    : "Press Explain for the full explanation, or skip to the next round."}
                 </Text>
               </View>
             ) : null}
@@ -1738,11 +1791,28 @@ export default function HomeDashboardScreen() {
 
           <View style={styles.practiceFooter}>
             {mini.phase === "explanation" ? (
-              <SurfaceButton label="Start practice" onPress={mini.startMiniPractice} variant="primary" disabled={!mini.canStartMiniPractice || exerciseBusy} />
+              <>
+                <SurfaceButton label="Start practice" onPress={mini.startMiniPractice} variant="primary" disabled={!mini.canStartMiniPractice || exerciseBusy} />
+                <View style={styles.inlineActions}>
+                  <SurfaceButton
+                    label={mini.previewLoading ? "Loading..." : "Next Example"}
+                    onPress={mini.nextPreviewSentence}
+                    disabled={exerciseBusy || mini.previewLoading || !previewSentence}
+                    style={styles.inlineActionHalf}
+                  />
+                  <SurfaceButton
+                    label={sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                    onPress={() => void requestSentenceExplanation()}
+                    disabled={exerciseBusy || sentenceExplanationLoading || !previewSentence}
+                    style={styles.inlineActionHalf}
+                  />
+                </View>
+              </>
             ) : null}
             {mini.phase !== "explanation" && mini.result !== "correct" ? (
               <View style={styles.inlineActions}>
-                {mini.result !== "revealed" ? (
+                {mini.result !== "revealed" &&
+                !(mini.currentMode === "matchThai" && mini.result === "wrong") ? (
                   <SurfaceButton
                     label="Show answer"
                     onPress={mini.currentMode === "wordScraps" ? mini.revealBuildAnswer : mini.revealMatchAnswer}
@@ -1753,7 +1823,7 @@ export default function HomeDashboardScreen() {
                 {mini.result === "" ? (
                   <SurfaceButton
                     label="Skip"
-                    onPress={mini.continueToNextRound}
+                    onPress={continueToNextMiniRound}
                     disabled={exerciseBusy}
                     style={styles.inlineActionHalf}
                   />
@@ -1763,7 +1833,7 @@ export default function HomeDashboardScreen() {
                     <>
                       <SurfaceButton
                         label="Got it"
-                        onPress={mini.continueToNextRound}
+                        onPress={continueToNextMiniRound}
                         variant="primary"
                         disabled={exerciseBusy}
                         style={styles.inlineActionHalf}
@@ -1775,10 +1845,26 @@ export default function HomeDashboardScreen() {
                         style={styles.inlineActionHalf}
                       />
                     </>
+                  ) : mini.currentMode === "matchThai" ? (
+                    <>
+                      <SurfaceButton
+                        label={sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                        onPress={() => void requestSentenceExplanation()}
+                        disabled={exerciseBusy || sentenceExplanationLoading}
+                        style={styles.inlineActionHalf}
+                      />
+                      <SurfaceButton
+                        label="Skip"
+                        onPress={continueToNextMiniRound}
+                        variant="primary"
+                        disabled={exerciseBusy}
+                        style={styles.inlineActionHalf}
+                      />
+                    </>
                   ) : (
                     <SurfaceButton
                       label="Skip"
-                      onPress={mini.continueToNextRound}
+                      onPress={continueToNextMiniRound}
                       variant="primary"
                       disabled={exerciseBusy}
                     />

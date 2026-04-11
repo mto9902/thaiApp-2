@@ -113,6 +113,7 @@ export function useDashboardMiniExercise<TGrammar extends GrammarPoint>({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewRequestIdRef = useRef(0);
   const roundRequestIdRef = useRef(0);
   const transitionPendingRef = useRef(false);
 
@@ -244,15 +245,83 @@ export function useDashboardMiniExercise<TGrammar extends GrammarPoint>({
     });
   }, [anchorGrammarId, currentGrammarId, currentMode, currentPoint, hydrated, persistState]);
 
+  const fetchSentenceForCurrentGrammar = useCallback(async () => {
+    if (!currentPoint) {
+      return null;
+    }
+
+    const response = await getPractice(currentPoint.id);
+    return normalizePracticeSentence(response);
+  }, [currentPoint]);
+
+  const loadPreviewSentence = useCallback(
+    async ({
+      fresh = false,
+      excludeThai,
+    }: {
+      fresh?: boolean;
+      excludeThai?: string | null;
+    } = {}) => {
+      if (!currentPoint) {
+        setPreviewSentence(null);
+        return;
+      }
+
+      const requestId = previewRequestIdRef.current + 1;
+      previewRequestIdRef.current = requestId;
+      setPreviewLoading(true);
+
+      const fallbackPreview = normalizePracticeSentence({
+        thai: currentPoint.example?.thai,
+        romanization: currentPoint.example?.roman,
+        english: currentPoint.example?.english,
+        breakdown: currentPoint.example?.breakdown,
+      });
+
+      try {
+        let nextPreview: PracticeSentenceData | null = null;
+
+        if (fresh) {
+          const attempts = 4;
+          for (let index = 0; index < attempts; index += 1) {
+            const candidate = await fetchSentenceForCurrentGrammar();
+            if (!candidate) continue;
+            nextPreview = candidate;
+            if (!excludeThai || candidate.thai !== excludeThai) {
+              break;
+            }
+          }
+        } else {
+          const response = await getPracticePreview(currentPoint.id);
+          nextPreview = normalizePracticeSentence(response);
+        }
+
+        if (previewRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        setPreviewSentence(nextPreview ?? fallbackPreview);
+      } catch (error) {
+        console.error("Failed to load sandbox practice preview:", error);
+        if (previewRequestIdRef.current === requestId) {
+          setPreviewSentence((current) => current ?? fallbackPreview);
+        }
+      } finally {
+        if (previewRequestIdRef.current === requestId) {
+          setPreviewLoading(false);
+        }
+      }
+    },
+    [currentPoint, fetchSentenceForCurrentGrammar],
+  );
+
   useEffect(() => {
     if (!currentPoint) {
       setPreviewSentence(null);
       return;
     }
 
-    let cancelled = false;
     resetRoundState();
-    setPreviewLoading(true);
     setPhase("explanation");
 
     const fallbackPreview = normalizePracticeSentence({
@@ -263,40 +332,10 @@ export function useDashboardMiniExercise<TGrammar extends GrammarPoint>({
     });
 
     setPreviewSentence(fallbackPreview);
-
-    void getPracticePreview(currentPoint.id)
-      .then((response) => {
-        if (cancelled) return;
-        const normalized = normalizePracticeSentence(response);
-        setPreviewSentence(normalized ?? fallbackPreview);
-      })
-      .catch((error) => {
-        console.error("Failed to load sandbox practice preview:", error);
-        if (!cancelled) {
-          setPreviewSentence(fallbackPreview);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setPreviewLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPoint, resetRoundState]);
+    void loadPreviewSentence();
+  }, [currentPoint, loadPreviewSentence, resetRoundState]);
 
   useEffect(() => () => clearAdvanceTimeout(), [clearAdvanceTimeout]);
-
-  const fetchSentenceForCurrentGrammar = useCallback(async () => {
-    if (!currentPoint) {
-      return null;
-    }
-
-    const response = await getPractice(currentPoint.id);
-    return normalizePracticeSentence(response);
-  }, [currentPoint]);
 
   const fetchSentenceBatchForCurrentGrammar = useCallback(
     async (count: number) => {
@@ -459,6 +498,28 @@ export function useDashboardMiniExercise<TGrammar extends GrammarPoint>({
     if (exerciseLoading || transitionPendingRef.current) return;
     void fetchRound("wordScraps");
   }, [exerciseLoading, fetchRound]);
+
+  const nextPreviewSentence = useCallback(() => {
+    if (
+      phase !== "explanation" ||
+      previewLoading ||
+      exerciseLoading ||
+      transitionPendingRef.current
+    ) {
+      return;
+    }
+
+    void loadPreviewSentence({
+      fresh: true,
+      excludeThai: previewSentence?.thai ?? null,
+    });
+  }, [
+    exerciseLoading,
+    loadPreviewSentence,
+    phase,
+    previewLoading,
+    previewSentence?.thai,
+  ]);
 
   const handleWordTap = useCallback((word: PracticeBuilderWord) => {
     if (exerciseLoading || transitionPendingRef.current) return;
@@ -677,6 +738,7 @@ export function useDashboardMiniExercise<TGrammar extends GrammarPoint>({
     errorMessage,
     canStartMiniPractice,
     isSolved,
+    nextPreviewSentence,
     resetToExplanation,
     selectGrammar,
     startMiniPractice,

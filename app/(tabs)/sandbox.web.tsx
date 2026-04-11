@@ -43,6 +43,7 @@ import { useSentenceAudio } from "@/src/hooks/useSentenceAudio";
 import {
   getBreakdownRomanizations,
   PracticeBreakdownItem,
+  PracticeBuilderWord,
   PracticeSentenceData,
 } from "@/src/practice/miniExerciseHelpers";
 import { isPremiumGrammarPoint } from "@/src/subscription/premium";
@@ -121,11 +122,6 @@ function shuffleIds(ids: string[]) {
 function summarize(text: string) {
   const one = text.trim().split(/(?<=[.!?])\s+/)[0] || text.trim();
   return one.length <= 120 ? one : `${one.slice(0, 117).trim()}...`;
-}
-
-function toneColorForItem(item: PracticeBreakdownItem) {
-  const tone = getBreakdownTones(item)[0] as keyof typeof TONE | undefined;
-  return tone ? TONE[tone] : BRAND.ink;
 }
 
 function getItemRomanization(item: { romanization?: string; roman?: string }) {
@@ -413,58 +409,82 @@ function ToneSentence({
   return (
     <Text style={[styles.thaiSentence, style]}>
       {sentence.breakdown.map((item, index) => (
-        <Text key={`${item.thai}-${index}`} style={{ color: toneColorForItem(item) }}>
-          {item.thai}
-        </Text>
+        <ToneThaiText
+          key={`${item.thai}-${index}`}
+          thai={item.thai}
+          tones={getBreakdownTones(item)}
+          romanization={item.romanization || item.roman}
+          displayThaiSegments={item.displayThaiSegments}
+        />
       ))}
     </Text>
   );
 }
 
 function BuildAnswerBoard({
-  slots,
   prefilled,
   breakdown,
   romanTokens,
+  builtSentence,
   showRoman,
   showEnglish,
-  onRemoveSlot,
+  onRemoveWord,
 }: {
-  slots: (string | null)[];
   prefilled: (string | null)[];
   breakdown: PracticeBreakdownItem[];
   romanTokens: string[];
+  builtSentence: PracticeBuilderWord[];
   showRoman: boolean;
   showEnglish: boolean;
-  onRemoveSlot: (slotIndex: number) => void;
+  onRemoveWord: (wordId: number) => void;
 }) {
+  let builtCursor = 0;
+
   return (
     <View style={styles.answerBoard}>
-      {slots.map((slot, index) => {
+      {prefilled.map((prefilledThai, index) => {
+        const isPrefilled = prefilledThai !== null;
         const item = breakdown[index];
-        const romanization = romanTokens[index] || getItemRomanization(item ?? {});
-        const isPrefilled = prefilled[index] !== null;
+        const builtWord = isPrefilled ? null : (builtSentence[builtCursor] ?? null);
+
+        if (!isPrefilled) {
+          builtCursor += 1;
+        }
+
+        const slotThai = isPrefilled ? prefilledThai : builtWord?.thai ?? null;
+        const tones = isPrefilled
+          ? getBreakdownTones(item)
+          : builtWord?.tones ?? [];
+        const romanization = isPrefilled
+          ? romanTokens[index] || getItemRomanization(item ?? {})
+          : builtWord?.roman ?? "";
+        const english = isPrefilled
+          ? item?.english?.toUpperCase() ?? ""
+          : builtWord?.english ?? "";
+        const displayThaiSegments = isPrefilled
+          ? item?.displayThaiSegments
+          : builtWord?.displayThaiSegments;
 
         return (
           <Pressable
             key={`slot-${index}`}
-            disabled={!slot || isPrefilled}
-            onPress={() => slot && !isPrefilled && onRemoveSlot(index)}
+            disabled={!slotThai || !builtWord}
+            onPress={() => builtWord && onRemoveWord(builtWord.id)}
             style={({ hovered, pressed }) => [
               styles.matchWordTile,
               styles.answerWordTile,
-              !slot && styles.answerWordTileEmpty,
+              !slotThai && styles.answerWordTileEmpty,
               isPrefilled && styles.answerWordTilePrefilled,
-              slot && !isPrefilled && (hovered || pressed) && styles.cardDepressHover,
+              slotThai && !isPrefilled && (hovered || pressed) && styles.cardDepressHover,
             ]}
           >
-            {slot ? (
+            {slotThai ? (
               <>
                 <ToneThaiText
-                  thai={slot}
-                  tones={getBreakdownTones(item)}
+                  thai={slotThai}
+                  tones={tones}
                   romanization={romanization}
-                  displayThaiSegments={item?.displayThaiSegments}
+                  displayThaiSegments={displayThaiSegments}
                   style={[
                     styles.matchWordTileThai,
                     styles.answerWordTileThai,
@@ -483,7 +503,7 @@ function BuildAnswerBoard({
                     {romanization}
                   </Text>
                 ) : null}
-                {showEnglish && item?.english ? (
+                {showEnglish && english ? (
                   <Text
                     style={[
                       styles.matchWordTileEnglish,
@@ -491,7 +511,7 @@ function BuildAnswerBoard({
                       isPrefilled && styles.answerWordTilePrefilledText,
                     ]}
                   >
-                    {item.english.toUpperCase()}
+                    {english}
                   </Text>
                 ) : null}
               </>
@@ -900,7 +920,12 @@ export default function SandboxDashboardWeb() {
   const activeSentence = mini.activeSentence;
   const exerciseBusy = mini.exerciseLoading || mini.transitionPending;
   const canPlayExerciseAudio =
-    mini.phase === "explanation" || mini.result === "correct" || mini.result === "revealed";
+    mini.phase === "explanation" ||
+    mini.result === "correct" ||
+    mini.result === "revealed" ||
+    (mini.currentMode === "matchThai" &&
+      mini.matchRevealed &&
+      mini.result === "wrong");
   const audioSentence =
     mini.phase === "explanation"
       ? previewSentence
@@ -941,8 +966,10 @@ export default function SandboxDashboardWeb() {
     () =>
       [
         selectedLesson?.id ?? "",
+        mini.phase,
         mini.currentMode,
         mini.result,
+        previewSentence?.thai ?? "",
         activeSentence?.thai ?? "",
         mini.matchOptions.find((option) => option.isCorrect)?.thai ?? "",
         mini.selectedOptionIndex ?? "none",
@@ -951,6 +978,8 @@ export default function SandboxDashboardWeb() {
       activeSentence?.thai,
       mini.currentMode,
       mini.matchOptions,
+      mini.phase,
+      previewSentence?.thai,
       mini.result,
       mini.selectedOptionIndex,
       selectedLesson?.id,
@@ -1089,14 +1118,6 @@ export default function SandboxDashboardWeb() {
     (mini.result === "correct" || mini.result === "revealed") &&
     activeSentence;
 
-  function handleRemoveBuildSlot(slotIndex: number) {
-    const slotValue = mini.activeSlots[slotIndex];
-    const builtWord = mini.buildState.builtSentence.find((word) => word.thai === slotValue);
-    if (builtWord) {
-      mini.removeBuiltWord(builtWord.id);
-    }
-  }
-
   const submitSentenceReport = useCallback(async () => {
     if (sentenceReportBusy) return;
 
@@ -1211,12 +1232,22 @@ export default function SandboxDashboardWeb() {
       }
 
       const targetSentence =
-        mini.currentMode === "matchThai" && mini.matchRevealed
-          ? mini.matchOptions.find((option) => option.isCorrect) ?? activeSentence
-          : activeSentence;
+        mini.phase === "explanation"
+          ? previewSentence
+          : mini.currentMode === "matchThai" && mini.matchRevealed
+            ? mini.matchOptions.find((option) => option.isCorrect) ?? activeSentence
+            : activeSentence;
 
-      if (!targetSentence || mini.result !== "revealed") {
-        throw new Error("Reveal an answer first, then ask for an explanation.");
+      const canExplainCurrentMiniSentence =
+        mini.phase === "explanation"
+          ? Boolean(previewSentence)
+          : mini.result === "revealed" ||
+            (mini.currentMode === "matchThai" &&
+              mini.matchRevealed &&
+              mini.result === "wrong");
+
+      if (!targetSentence || !canExplainCurrentMiniSentence) {
+        throw new Error("Load a sentence first, then ask for an explanation.");
       }
 
       const explanation = await getSentenceExplanation({
@@ -1248,7 +1279,9 @@ export default function SandboxDashboardWeb() {
     mini.currentMode,
     mini.matchOptions,
     mini.matchRevealed,
+    mini.phase,
     mini.result,
+    previewSentence,
     selectedLesson,
     sentenceExplanationLoading,
   ]);
@@ -1352,11 +1385,11 @@ export default function SandboxDashboardWeb() {
           ))}
         </View>
 
-        <View style={styles.sectionActionRow}>
-          {exerciseBusy ? (
+        {exerciseBusy ? (
+          <View style={styles.explanationActionRow}>
             <Text style={styles.pendingText}>Preparing the next round...</Text>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
       </>
     );
   }
@@ -1386,13 +1419,13 @@ export default function SandboxDashboardWeb() {
               ) : (
                 <>
                   <BuildAnswerBoard
-                    slots={mini.activeSlots}
                     prefilled={mini.buildState.prefilled}
                     breakdown={activeSentence?.breakdown ?? []}
                     romanTokens={buildRomanTokens}
+                    builtSentence={mini.buildState.builtSentence}
                     showRoman={showRoman}
                     showEnglish={showEnglish}
-                    onRemoveSlot={handleRemoveBuildSlot}
+                    onRemoveWord={mini.removeBuiltWord}
                   />
                   <View style={styles.sentenceFooterCopy}>
                     <Text style={styles.exerciseHelperLabel}>Translate into Thai</Text>
@@ -1640,6 +1673,23 @@ export default function SandboxDashboardWeb() {
                     variant="secondary"
                     onPress={() => void requestSentenceExplanation()}
                     disabled={exerciseBusy || sentenceExplanationLoading}
+                    style={styles.inlineSentenceButton}
+                  />
+                </>
+              ) : mini.currentMode === "matchThai" ? (
+                <>
+                  <SurfaceButton
+                    label={sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                    variant="secondary"
+                    onPress={() => void requestSentenceExplanation()}
+                    disabled={exerciseBusy || sentenceExplanationLoading}
+                    style={styles.inlineSentenceButton}
+                  />
+                  <SurfaceButton
+                    label="Skip"
+                    variant="primary"
+                    onPress={mini.continueToNextRound}
+                    disabled={exerciseBusy}
                     style={styles.inlineSentenceButton}
                   />
                 </>
@@ -2118,7 +2168,27 @@ export default function SandboxDashboardWeb() {
               ) : null}
 
               <View style={styles.miniUtilityBar}>
-                <View style={styles.utilityStack}>
+                {mini.phase === "explanation" && !lockedNavigationPrompt ? (
+                  <View style={styles.explanationUtilityGroup}>
+                    <SurfaceButton
+                      label={mini.previewLoading ? "Loading..." : "Next Example"}
+                      variant="primary"
+                      onPress={mini.nextPreviewSentence}
+                      disabled={exerciseBusy || mini.previewLoading || !previewSentence}
+                      style={styles.explanationUtilityButton}
+                    />
+                    <SurfaceButton
+                      label={sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                      variant="secondary"
+                      onPress={() => void requestSentenceExplanation()}
+                      disabled={exerciseBusy || sentenceExplanationLoading || !previewSentence}
+                      style={styles.explanationUtilityButton}
+                    />
+                  </View>
+                ) : (
+                  <View />
+                )}
+                <View style={styles.utilityGroup}>
                   {mini.phase === "explanation" && !lockedNavigationPrompt ? (
                     <SurfaceButton
                       label="Start practice"
@@ -3082,6 +3152,28 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: "center",
   },
+  explanationActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    alignItems: "center",
+    paddingTop: 4,
+  },
+  explanationUtilityGroup: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    gap: 10,
+    alignItems: "center",
+    minWidth: 0,
+  },
+  explanationUtilityButton: {
+    width: 138,
+    minWidth: 138,
+    minHeight: 40,
+    height: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 0,
+  },
   pendingText: {
     color: BRAND.inkSoft,
     fontSize: 13,
@@ -3156,8 +3248,8 @@ const styles = StyleSheet.create({
   },
   miniUtilityBar: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
+    justifyContent: "space-between",
+    alignItems: "center",
     flexWrap: "wrap",
     gap: 14,
     paddingTop: 6,
@@ -3168,10 +3260,18 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: "center",
   },
-  utilityStack: {
+  utilityStackColumn: {
+    width: "100%",
+    gap: 10,
+  },
+  footerSecondaryRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  footerSecondaryButton: {
+    flex: 1,
+    minWidth: 0,
   },
   utilityButton: {
     minHeight: 40,

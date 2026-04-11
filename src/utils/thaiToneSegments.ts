@@ -104,12 +104,37 @@ function isThaiConsonant(char?: string) {
   return Boolean(char && /[\u0E01-\u0E2E]/u.test(char));
 }
 
-function splitRomanizationSyllables(romanization?: string | null) {
-  return String(romanization ?? "")
-    .trim()
-    .split(/[\s/-]+/u)
-    .map((part) => part.trim())
-    .filter(Boolean);
+function isThaiToneMark(char?: string) {
+  return Boolean(char && /[\u0E48-\u0E4B]/u.test(char));
+}
+
+function isThaiSilentMarker(char?: string) {
+  return char === "์";
+}
+
+function isThaiVowelCarrierO(chars: string[], index: number) {
+  if (chars[index] !== "อ" || index === 0) {
+    return false;
+  }
+
+  let hasLeadingConsonant = false;
+
+  for (let pointer = index - 1; pointer >= 0; pointer -= 1) {
+    const char = chars[pointer];
+
+    if (isThaiToneMark(char) || isThaiSilentMarker(char)) {
+      continue;
+    }
+
+    if (LEADING_THAI_VOWELS.has(char) || DEPENDENT_THAI_VOWELS.has(char)) {
+      return false;
+    }
+
+    hasLeadingConsonant = isThaiConsonant(char);
+    break;
+  }
+
+  return hasLeadingConsonant;
 }
 
 function getConsonantsBetween(chars: string[], start: number, endExclusive: number) {
@@ -166,7 +191,10 @@ function collectNuclei(chars: string[]) {
       continue;
     }
 
-    if (!DEPENDENT_THAI_VOWELS.has(char)) {
+    if (
+      !DEPENDENT_THAI_VOWELS.has(char) &&
+      !isThaiVowelCarrierO(chars, index)
+    ) {
       continue;
     }
 
@@ -194,9 +222,9 @@ function deriveSyllableStarts(chars: string[]) {
   const nuclei = collectNuclei(chars);
   const starts = [0];
 
-  for (let index = 1; index < nuclei.length; index += 1) {
+  for (let index = 0; index < nuclei.length; index += 1) {
     const nucleus = nuclei[index];
-    const minIndex = starts[starts.length - 1] + 1;
+    const minIndex = starts[starts.length - 1];
     const nextStart =
       nucleus.type === "leading"
         ? nucleus.index
@@ -208,6 +236,125 @@ function deriveSyllableStarts(chars: string[]) {
   }
 
   return starts;
+}
+
+function getPreviousSignificantIndex(chars: string[], index: number) {
+  for (let pointer = index - 1; pointer >= 0; pointer -= 1) {
+    const char = chars[pointer];
+    if (!isThaiToneMark(char) && !isThaiSilentMarker(char)) {
+      return pointer;
+    }
+  }
+  return -1;
+}
+
+function collectApproximateCandidateStarts(chars: string[]) {
+  const candidates = new Set<number>();
+
+  for (let index = 1; index < chars.length; index += 1) {
+    const char = chars[index];
+
+    if (char === "ๆ") {
+      candidates.add(index);
+      continue;
+    }
+
+    if (LEADING_THAI_VOWELS.has(char)) {
+      candidates.add(index);
+      continue;
+    }
+
+    if (!isThaiConsonant(char)) {
+      continue;
+    }
+
+    const previousIndex = getPreviousSignificantIndex(chars, index);
+    if (previousIndex >= 0 && LEADING_THAI_VOWELS.has(chars[previousIndex])) {
+      continue;
+    }
+
+    candidates.add(index);
+  }
+
+  return [...candidates].sort((a, b) => a - b);
+}
+
+function deriveApproximateStarts(
+  chars: string[],
+  toneCount: number,
+  preferredStarts: number[],
+) {
+  if (toneCount <= 1) {
+    return [0];
+  }
+
+  const candidates = collectApproximateCandidateStarts(chars);
+  const neededStarts = toneCount - 1;
+  if (candidates.length < neededStarts) {
+    return undefined;
+  }
+
+  const preferred = new Set(preferredStarts.filter((start) => start > 0));
+  const targets = Array.from(
+    { length: neededStarts },
+    (_, index) => (chars.length * (index + 1)) / toneCount,
+  );
+  const memo = new Map<
+    string,
+    { score: number; picks: number[] } | undefined
+  >();
+
+  const search = (
+    candidateIndex: number,
+    slotIndex: number,
+  ): { score: number; picks: number[] } | undefined => {
+    if (slotIndex >= neededStarts) {
+      return { score: 0, picks: [] };
+    }
+
+    const key = `${candidateIndex}:${slotIndex}`;
+    if (memo.has(key)) {
+      return memo.get(key);
+    }
+
+    const remainingSlots = neededStarts - slotIndex;
+    let best: { score: number; picks: number[] } | undefined;
+
+    for (
+      let index = candidateIndex;
+      index <= candidates.length - remainingSlots;
+      index += 1
+    ) {
+      const candidate = candidates[index];
+      const tail = search(index + 1, slotIndex + 1);
+
+      if (!tail) {
+        continue;
+      }
+
+      const score =
+        tail.score +
+        Math.abs(candidate - targets[slotIndex]) +
+        (preferred.has(candidate) ? -0.2 : 0);
+
+      if (
+        !best ||
+        score < best.score ||
+        (score === best.score && candidate < best.picks[0])
+      ) {
+        best = {
+          score,
+          picks: [candidate, ...tail.picks],
+        };
+      }
+    }
+
+    memo.set(key, best);
+    return best;
+  };
+
+  const result = search(0, 0);
+  return result ? [0, ...result.picks] : undefined;
 }
 
 function normalizeDisplayThaiSegments(
@@ -255,19 +402,17 @@ export function buildThaiToneSegments(
   const chars = Array.from(text);
   const starts = deriveSyllableStarts(chars);
 
-  if (starts.length !== toneList.length) {
-    const romanSyllables = splitRomanizationSyllables(romanization);
-    if (romanSyllables.length !== toneList.length) {
-      return [{ text, tone: toneList[0] }];
-    }
-  }
+  const finalStarts =
+    starts.length === toneList.length
+      ? starts
+      : deriveApproximateStarts(chars, toneList.length, starts);
 
-  if (starts.length !== toneList.length) {
+  if (!finalStarts || finalStarts.length !== toneList.length) {
     return [{ text, tone: toneList[0] }];
   }
 
-  return starts.map((start, index) => ({
-    text: chars.slice(start, starts[index + 1] ?? chars.length).join(""),
+  return finalStarts.map((start, index) => ({
+    text: chars.slice(start, finalStarts[index + 1] ?? chars.length).join(""),
     tone: toneList[index],
   }));
 }
