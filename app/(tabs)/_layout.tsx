@@ -54,16 +54,10 @@ export default function TabLayout() {
         tabBarItemStyle: {
           paddingHorizontal: 0,
         },
+        sceneStyle: {
+          overflow: "hidden",
+        },
         tabBarStyle: {
-          ...(isMobileWeb
-            ? ({
-                position: "fixed",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1200,
-              } as any)
-            : null),
           height: tabBarHeight,
           paddingBottom: tabBarBottomPadding,
           paddingTop: tabBarTopPadding,

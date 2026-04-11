@@ -88,12 +88,6 @@ export const WEB_INTERACTIVE_TRANSITION = {
 
 export const WEB_GLOBAL_STYLE_ID = "keystone-web-globals";
 export const WEB_GLOBAL_FONT_ID = "keystone-web-fonts";
-export const WEB_MOBILE_SCROLL_ANCESTOR_CLASS =
-  "keystone-mobile-scroll-ancestor";
-export const WEB_MOBILE_ACTIVE_SCROLL_CLASS =
-  "keystone-mobile-active-scroll";
-export const WEB_MOBILE_DOCUMENT_SCROLL_CLASS =
-  "keystone-mobile-document-scroll";
 
 export const WEB_GLOBAL_CSS = `
   html, body, #root {
@@ -121,60 +115,5 @@ export const WEB_GLOBAL_CSS = `
   a {
     color: inherit;
     text-decoration: none;
-  }
-
-  @media (max-width: 767px) and (hover: none), (max-width: 767px) and (pointer: coarse) {
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS},
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} body {
-      height: auto !important;
-      min-height: 100%;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-    }
-
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root {
-      display: block !important;
-      height: auto !important;
-      min-height: 100vh;
-      min-height: 100dvh;
-      overflow: visible !important;
-    }
-
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root .${WEB_MOBILE_SCROLL_ANCESTOR_CLASS} {
-      height: auto !important;
-      max-height: none !important;
-      min-height: 0 !important;
-      inset: auto !important;
-      overflow: visible !important;
-      position: static !important;
-    }
-
-    /*
-     * Expo's web reset pins body scrolling and React Native Web ScrollView
-     * creates an inner overflow pane. Samsung Browser only collapses its URL
-     * bar on document scroll, so phone-width web lets vertical ScrollViews
-     * overflow into the document instead.
-     */
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root .${WEB_MOBILE_ACTIVE_SCROLL_CLASS} {
-      box-sizing: border-box !important;
-      flex: initial !important;
-      flex-grow: 0 !important;
-      flex-shrink: 0 !important;
-      height: auto !important;
-      max-height: none !important;
-      min-height: 100vh;
-      min-height: 100dvh;
-      overflow-y: visible !important;
-      padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
-      transform: none !important;
-    }
-
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root [role="tablist"] {
-      bottom: 0 !important;
-      left: 0 !important;
-      position: fixed !important;
-      right: 0 !important;
-      z-index: 1200 !important;
-    }
   }
 `;

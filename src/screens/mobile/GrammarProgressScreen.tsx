@@ -301,11 +301,7 @@ export default function GrammarProgressScreen() {
   const recommendedMeta = recommended ? GRAMMAR_STAGE_META[recommended.stage] : null;
 
   return (
-    <SafeAreaView
-      testID="keystone-mobile-screen-root"
-      edges={["top"]}
-      style={styles.safeArea}
-    >
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <ScrollView
         testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}

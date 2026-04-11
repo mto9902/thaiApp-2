@@ -1324,11 +1324,7 @@ export default function HomeDashboardScreen() {
 
   if (!screenReady || !selectedLesson) {
     return (
-      <SafeAreaView
-        testID="keystone-mobile-screen-root"
-        style={styles.safeArea}
-        edges={["top"]}
-      >
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.loadingScreen}>
           <ActivityIndicator size="large" color={BRAND.navy} />
           <Text style={styles.loadingScreenText}>Preparing your mobile dashboard...</Text>
@@ -1338,11 +1334,7 @@ export default function HomeDashboardScreen() {
   }
 
   return (
-    <SafeAreaView
-      testID="keystone-mobile-screen-root"
-      style={styles.safeArea}
-      edges={["top"]}
-    >
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
         testID="keystone-mobile-page-scroll"
         contentContainerStyle={styles.scrollContent}

@@ -228,11 +228,7 @@ export default function ProfileMobileScreen() {
   ];
 
   return (
-    <SafeAreaView
-      testID="keystone-mobile-screen-root"
-      edges={["top"]}
-      style={styles.safeArea}
-    >
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={BRAND.inkSoft} />
