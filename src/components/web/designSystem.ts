@@ -88,6 +88,8 @@ export const WEB_INTERACTIVE_TRANSITION = {
 
 export const WEB_GLOBAL_STYLE_ID = "keystone-web-globals";
 export const WEB_GLOBAL_FONT_ID = "keystone-web-fonts";
+export const WEB_MOBILE_SCROLL_ANCESTOR_CLASS =
+  "keystone-mobile-scroll-ancestor";
 export const WEB_MOBILE_DOCUMENT_SCROLL_CLASS =
   "keystone-mobile-document-scroll";
 
@@ -136,13 +138,13 @@ export const WEB_GLOBAL_CSS = `
       overflow: visible !important;
     }
 
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root > div,
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root > div > div,
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root > div > div > div {
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root .${WEB_MOBILE_SCROLL_ANCESTOR_CLASS} {
       height: auto !important;
-      min-height: 100vh;
-      min-height: 100dvh;
+      max-height: none !important;
+      min-height: 0 !important;
+      inset: auto !important;
       overflow: visible !important;
+      position: static !important;
     }
 
     /*
@@ -152,7 +154,15 @@ export const WEB_GLOBAL_CSS = `
      * overflow into the document instead.
      */
     html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root [data-testid="keystone-mobile-page-scroll"] {
+      flex: initial !important;
+      flex-grow: 0 !important;
+      flex-shrink: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+      min-height: 100vh;
+      min-height: 100dvh;
       overflow-y: visible !important;
+      transform: none !important;
     }
   }
 `;

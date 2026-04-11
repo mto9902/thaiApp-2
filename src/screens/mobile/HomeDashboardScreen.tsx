@@ -914,7 +914,7 @@ export default function HomeDashboardScreen() {
     : getProfileDisplayName(profile) || "Keystone learner";
   const profileEmail = isGuest ? "Sign in to sync progress" : profile?.email || "No email available";
   const isNewUser = practicedGrammar.length === 0;
-  const heroEyebrow = isNewUser ? "Welcome" : "Welcome back";
+  const heroEyebrow = isNewUser ? "Welcome" : "";
   const heroTitle = isNewUser ? "Welcome to Keystone Thai" : "Welcome back";
   const heroSubtitle = isNewUser
     ? "Start with your first lesson whenever you're ready."
@@ -1341,7 +1341,7 @@ export default function HomeDashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>{heroEyebrow}</Text>
+          {heroEyebrow ? <Text style={styles.eyebrow}>{heroEyebrow}</Text> : null}
           <Text style={styles.heroTitle}>{heroTitle}</Text>
           <Text style={styles.heroSubtitle}>{heroSubtitle}</Text>
         </View>
