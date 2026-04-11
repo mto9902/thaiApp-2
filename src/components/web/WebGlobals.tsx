@@ -97,11 +97,17 @@ export default function WebGlobals() {
       }
 
       scroller.classList.add(WEB_MOBILE_ACTIVE_SCROLL_CLASS);
+      const screenRoot = scroller.closest(
+        '[data-testid="keystone-mobile-screen-root"]',
+      );
 
       let node = scroller?.parentElement ?? null;
 
       while (node && node.id !== "root") {
         node.classList.add(WEB_MOBILE_SCROLL_ANCESTOR_CLASS);
+        if (screenRoot && node === screenRoot) {
+          break;
+        }
         node = node.parentElement;
       }
 
