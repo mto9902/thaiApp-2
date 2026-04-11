@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import {
+  WEB_MOBILE_ACTIVE_SCROLL_CLASS,
   WEB_FONT_HREF,
   WEB_GLOBAL_CSS,
   WEB_GLOBAL_FONT_ID,
@@ -46,9 +47,12 @@ export default function WebGlobals() {
 
     const clearScrollAncestors = () => {
       document
-        .querySelectorAll(`.${WEB_MOBILE_SCROLL_ANCESTOR_CLASS}`)
+        .querySelectorAll(
+          `.${WEB_MOBILE_SCROLL_ANCESTOR_CLASS}, .${WEB_MOBILE_ACTIVE_SCROLL_CLASS}`,
+        )
         .forEach((node) => {
           node.classList.remove(WEB_MOBILE_SCROLL_ANCESTOR_CLASS);
+          node.classList.remove(WEB_MOBILE_ACTIVE_SCROLL_CLASS);
         });
     };
 
@@ -92,6 +96,8 @@ export default function WebGlobals() {
         return false;
       }
 
+      scroller.classList.add(WEB_MOBILE_ACTIVE_SCROLL_CLASS);
+
       let node = scroller?.parentElement ?? null;
 
       while (node && node.id !== "root") {
@@ -109,10 +115,14 @@ export default function WebGlobals() {
       );
 
       if (mobileWebQuery.matches) {
-        markScrollAncestors();
+        const marked = markScrollAncestors();
+        if (marked) {
+          detachObserver();
+        }
         return;
       }
 
+      detachObserver();
       clearScrollAncestors();
     };
 
@@ -153,11 +163,15 @@ export default function WebGlobals() {
 
     const handleMediaQueryChange = () => {
       detachObserver();
-      attachObserver();
+      if (mobileWebQuery.matches) {
+        attachObserver();
+      }
       scheduleDocumentScrollMode();
     };
 
-    attachObserver();
+    if (mobileWebQuery.matches) {
+      attachObserver();
+    }
     scheduleDocumentScrollMode();
 
     if (typeof mobileWebQuery.addEventListener === "function") {

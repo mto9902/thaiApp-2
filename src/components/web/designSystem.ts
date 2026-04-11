@@ -90,6 +90,8 @@ export const WEB_GLOBAL_STYLE_ID = "keystone-web-globals";
 export const WEB_GLOBAL_FONT_ID = "keystone-web-fonts";
 export const WEB_MOBILE_SCROLL_ANCESTOR_CLASS =
   "keystone-mobile-scroll-ancestor";
+export const WEB_MOBILE_ACTIVE_SCROLL_CLASS =
+  "keystone-mobile-active-scroll";
 export const WEB_MOBILE_DOCUMENT_SCROLL_CLASS =
   "keystone-mobile-document-scroll";
 
@@ -153,7 +155,7 @@ export const WEB_GLOBAL_CSS = `
      * bar on document scroll, so phone-width web lets vertical ScrollViews
      * overflow into the document instead.
      */
-    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root [data-testid="keystone-mobile-page-scroll"] {
+    html.${WEB_MOBILE_DOCUMENT_SCROLL_CLASS} #root .${WEB_MOBILE_ACTIVE_SCROLL_CLASS} {
       box-sizing: border-box !important;
       flex: initial !important;
       flex-grow: 0 !important;
