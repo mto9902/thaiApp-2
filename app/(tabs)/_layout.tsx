@@ -34,8 +34,18 @@ export default function TabLayout() {
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
 
+    const isSamsungBrowser =
+      typeof navigator !== "undefined" &&
+      /SamsungBrowser/i.test(navigator.userAgent ?? "");
     const visualViewport = window.visualViewport;
     const root = document.documentElement;
+
+    if (isSamsungBrowser) {
+      root.style.setProperty("--keystone-mobile-bottom-offset", "0px");
+      return () => {
+        root.style.removeProperty("--keystone-mobile-bottom-offset");
+      };
+    }
 
     const updateBottomOffset = () => {
       const viewport = window.visualViewport;
