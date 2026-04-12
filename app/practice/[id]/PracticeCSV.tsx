@@ -49,6 +49,7 @@ import {
   SettledPressable,
 } from "@/src/screens/mobile/dashboardSurface";
 import { getSentenceExplanation } from "@/src/api/getSentenceExplanation";
+import { submitSupportRequest } from "@/src/api/submitSupportRequest";
 import { getPractice } from "../../../src/api/getPractice";
 import { API_BASE } from "../../../src/config";
 import { useGrammarCatalog } from "../../../src/grammar/GrammarCatalogProvider";
@@ -675,39 +676,6 @@ export default function GrammarExercisesScreen() {
       return;
     }
 
-    const token = await getAuthToken();
-    const isGuest = await isGuestUser();
-    if (!token || isGuest) {
-      setSentenceReportStatus({
-        kind: "error",
-        message: "Sign in to report sentence issues.",
-      });
-      return;
-    }
-
-    let accountEmail = "";
-    try {
-      const meRes = await fetch(`${API_BASE}/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (meRes.ok) {
-        const meData = await meRes.json().catch(() => null);
-        if (typeof meData?.email === "string") {
-          accountEmail = meData.email.trim().toLowerCase();
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load report email:", error);
-    }
-
-    if (!accountEmail) {
-      setSentenceReportStatus({
-        kind: "error",
-        message: "We couldn't confirm your account email. Please sign in again.",
-      });
-      return;
-    }
-
     const contextLines = [
       "[Practice exercise sentence report]",
       `Lesson: ${grammarPoint?.title ?? "Unknown"} (${grammarPoint?.id ?? "unknown"})`,
@@ -742,22 +710,9 @@ export default function GrammarExercisesScreen() {
       setSentenceReportBusy(true);
       setSentenceReportStatus(null);
 
-      const res = await fetch(`${API_BASE}/support/request`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          email: accountEmail,
-          message: [message, ...contextLines].join("\n\n"),
-        }),
+      const data = await submitSupportRequest({
+        message: [message, ...contextLines].join("\n\n"),
       });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error || `Failed to send report (${res.status})`);
-      }
 
       setSentenceReportDraft("");
       setSentenceReportStatus({

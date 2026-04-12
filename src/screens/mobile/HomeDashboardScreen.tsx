@@ -47,6 +47,7 @@ import { isPremiumGrammarPoint } from "@/src/subscription/premium";
 import { useSubscription } from "@/src/subscription/SubscriptionProvider";
 import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { getSentenceExplanation } from "@/src/api/getSentenceExplanation";
+import { submitSupportRequest } from "@/src/api/submitSupportRequest";
 import { canAccessApp, isGuestUser } from "@/src/utils/auth";
 import { getAuthToken } from "@/src/utils/authStorage";
 import { getBreakdownTones } from "@/src/utils/breakdownTones";
@@ -1209,15 +1210,6 @@ export default function HomeDashboardScreen() {
       return;
     }
 
-    const token = await getAuthToken();
-    if (!token || isGuest || !profile?.email) {
-      setSentenceReportStatus({
-        kind: "error",
-        message: "Sign in to report sentence issues.",
-      });
-      return;
-    }
-
     const contextLines = [
       "[Dashboard sentence report]",
       `Lesson: ${selectedLesson?.title ?? "Unknown"} (${selectedLesson?.id ?? "unknown"})`,
@@ -1238,22 +1230,10 @@ export default function HomeDashboardScreen() {
       setSentenceReportBusy(true);
       setSentenceReportStatus(null);
 
-      const res = await fetch(`${API_BASE}/support/request`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          email: profile.email,
-          message: `${message}\n\n${contextLines.join("\n")}`,
-        }),
+      const data = await submitSupportRequest({
+        email: profile?.email,
+        message: `${message}\n\n${contextLines.join("\n")}`,
       });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error || `Failed to send report (${res.status})`);
-      }
 
       setSentenceReportDraft("");
       setSentenceReportStatus({
@@ -1272,7 +1252,6 @@ export default function HomeDashboardScreen() {
       setSentenceReportBusy(false);
     }
   }, [
-    isGuest,
     mini.currentMode,
     mini.phase,
     profile?.email,

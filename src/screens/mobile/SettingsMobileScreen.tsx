@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AccentSwitch from "@/src/components/AccentSwitch";
+import { submitSupportRequest as sendSupportRequest } from "@/src/api/submitSupportRequest";
 import { API_BASE } from "@/src/config";
 import {
   BRAND,
@@ -27,7 +28,6 @@ import {
 } from "@/src/screens/mobile/dashboardSurface";
 import { usePremiumAccess } from "@/src/subscription/usePremiumAccess";
 import { clearAuthState } from "@/src/utils/auth";
-import { getAuthToken } from "@/src/utils/authStorage";
 import {
   DEFAULT_GRAMMAR_EXERCISE_SETTINGS,
   getGrammarExerciseSettings,
@@ -411,22 +411,7 @@ export default function SettingsMobileScreen() {
     try {
       setSupportBusy(true);
       setSupportStatus(null);
-      const token = await getAuthToken();
-      if (!token) return;
-
-      const res = await fetch(`${API_BASE}/support/request`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ email, message }),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error || `Failed to send support request (${res.status})`);
-      }
+      const data = await sendSupportRequest({ email, message });
 
       setSupportModalVisible(false);
       setSupportMessage("");

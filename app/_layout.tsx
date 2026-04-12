@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import SoftLaunchNoticeGate from '@/src/components/SoftLaunchNoticeGate';
 import { GrammarCatalogProvider } from '@/src/grammar/GrammarCatalogProvider';
 import { SubscriptionProvider } from '@/src/subscription/SubscriptionProvider';
 
@@ -17,6 +18,7 @@ export default function RootLayout() {
   const isAuthPath =
     pathname === '/login' ||
     pathname === '/register' ||
+    pathname === '/forgot-password' ||
     pathname.startsWith('/auth/');
 
   return (
@@ -38,6 +40,7 @@ export default function RootLayout() {
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
+          <SoftLaunchNoticeGate />
           <StatusBar style="auto" />
         </GrammarCatalogProvider>
       </SubscriptionProvider>
