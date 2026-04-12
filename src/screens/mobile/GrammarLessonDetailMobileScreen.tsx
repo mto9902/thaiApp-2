@@ -11,7 +11,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getSentenceExplanation } from "@/src/api/getSentenceExplanation";
+import { getPractice } from "@/src/api/getPractice";
 import { getPracticePreview, type PracticePreview } from "@/src/api/getPracticePreview";
+import SentenceExplanationModal from "@/src/components/mobile/SentenceExplanationModal";
+import ToneDots from "@/src/components/ToneDots";
 import { API_BASE } from "@/src/config";
 import { GRAMMAR_STAGE_META } from "@/src/data/grammarStages";
 import { useGrammarCatalog } from "@/src/grammar/GrammarCatalogProvider";
@@ -313,6 +317,11 @@ export default function GrammarLessonDetailMobileScreen() {
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [previewExample, setPreviewExample] = useState<PracticePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [sentenceExplanationOpen, setSentenceExplanationOpen] = useState(false);
+  const [sentenceExplanationLoading, setSentenceExplanationLoading] = useState(false);
+  const [sentenceExplanationError, setSentenceExplanationError] = useState<string | null>(null);
+  const [sentenceExplanation, setSentenceExplanation] = useState<string | null>(null);
 
   const currentGrammarIds = useMemo(
     () => new Set(grammarPoints.map((point) => point.id)),
@@ -501,6 +510,7 @@ export default function GrammarLessonDetailMobileScreen() {
     example.roman || "",
     example.breakdown,
   );
+  const activeExampleThai = example.thai || grammar.example?.thai || "";
   const keyForms = getKeyForms(
     grammar.focus?.particle,
     grammar.focus?.romanization,
@@ -517,6 +527,74 @@ export default function GrammarLessonDetailMobileScreen() {
             meaning: grammar.focus.meaning,
           },
         ];
+
+  async function loadNextPreviewExample() {
+    if (!grammar?.id) return;
+
+    setPreviewLoading(true);
+    setSentenceExplanationOpen(false);
+    setSentenceExplanation(null);
+    setSentenceExplanationError(null);
+
+    try {
+      const currentThai = activeExampleThai.trim();
+      let nextPreview: PracticePreview | null = null;
+
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const candidate = (await getPractice(grammar.id)) as PracticePreview;
+        nextPreview = candidate;
+        if (!currentThai || candidate.thai.trim() !== currentThai) {
+          break;
+        }
+      }
+
+      if (nextPreview) {
+        setPreviewExample(nextPreview);
+      }
+    } catch (error) {
+      console.error(
+        "[GrammarLessonDetailMobileScreen] next preview failed:",
+        error,
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  async function requestSentenceExplanation() {
+    setSentenceExplanationOpen(true);
+    setSentenceExplanationLoading(true);
+    setSentenceExplanationError(null);
+
+    try {
+      const explanationText = await getSentenceExplanation({
+        grammar: {
+          id: grammar.id,
+          title: grammar.title,
+          level: grammar.level,
+          stage: grammar.stage,
+          pattern: grammar.pattern,
+          explanation: grammar.explanation,
+          focus: grammar.focus,
+        },
+        sentence: {
+          thai: example.thai,
+          romanization: exampleDisplayRomanization,
+          english: example.english,
+          breakdown: example.breakdown,
+        },
+      });
+
+      setSentenceExplanation(explanationText);
+    } catch (error: any) {
+      setSentenceExplanationError(
+        error?.message || "Could not generate an explanation right now.",
+      );
+      setSentenceExplanation(null);
+    } finally {
+      setSentenceExplanationLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -654,20 +732,45 @@ export default function GrammarLessonDetailMobileScreen() {
                       pressed ? styles.lightSurfacePressed : null,
                     ]}
                   >
-                    <ToneThaiText
-                      thai={item.thai}
-                      tones={getBreakdownTones(item)}
-                      romanization={item.romanization || item.roman || exampleRomanTokens[index]}
-                      displayThaiSegments={item.displayThaiSegments}
-                      style={styles.wordThai}
-                      fallbackColor={BRAND.ink}
-                    />
+                    <View style={styles.wordCardTop}>
+                      <ToneThaiText
+                        thai={item.thai}
+                        tones={getBreakdownTones(item)}
+                        romanization={item.romanization || item.roman || exampleRomanTokens[index]}
+                        displayThaiSegments={item.displayThaiSegments}
+                        style={styles.wordThai}
+                        fallbackColor={BRAND.ink}
+                      />
+                      {getBreakdownTones(item).length > 0 ? (
+                        <ToneDots
+                          tones={getBreakdownTones(item)}
+                          style={styles.wordToneDots}
+                        />
+                      ) : null}
+                    </View>
                     <Text style={styles.wordRoman}>
                       {item.romanization || item.roman || exampleRomanTokens[index]}
                     </Text>
-                    <Text style={styles.wordEnglish}>{item.english}</Text>
+                    <Text style={styles.wordEnglish}>
+                      {String(item.english).toUpperCase()}
+                    </Text>
                   </SettledPressable>
                 ))}
+              </View>
+
+              <View style={styles.inlineActions}>
+                <SurfaceButton
+                  label={previewLoading ? "Loading..." : "Next Example"}
+                  onPress={() => void loadNextPreviewExample()}
+                  disabled={previewLoading}
+                  style={styles.inlineActionHalf}
+                />
+                <SurfaceButton
+                  label={sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                  onPress={() => void requestSentenceExplanation()}
+                  disabled={sentenceExplanationLoading}
+                  style={styles.inlineActionHalf}
+                />
               </View>
             </View>
 
@@ -693,6 +796,13 @@ export default function GrammarLessonDetailMobileScreen() {
           </>
         )}
       </ScrollView>
+      <SentenceExplanationModal
+        visible={sentenceExplanationOpen}
+        loading={sentenceExplanationLoading}
+        error={sentenceExplanationError}
+        explanation={sentenceExplanation}
+        onClose={() => setSentenceExplanationOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -932,33 +1042,62 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+    alignSelf: "flex-start",
   },
   wordCard: {
-    width: "48%",
-    minWidth: "48%",
-    backgroundColor: BRAND.paper,
-    borderRadius: 18,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BRAND.line,
-    padding: 14,
-    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    gap: 3,
+    alignItems: "flex-start",
+    alignSelf: "flex-start",
+    minWidth: 92,
+    maxWidth: "100%",
     ...SURFACE_SHADOW,
   },
-  wordThai: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: "800",
+  wordCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
   },
-  wordRoman: {
-    fontSize: 16,
-    lineHeight: 22,
+  wordThai: {
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: "700",
     color: BRAND.ink,
+    flexShrink: 1,
+  },
+  wordRoman: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "500",
+    color: BRAND.inkSoft,
+    opacity: 0.9,
+    marginTop: 4,
+    letterSpacing: 0.3,
   },
   wordEnglish: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: "600",
     color: BRAND.inkSoft,
+    opacity: 0.9,
+    marginTop: 3,
+    letterSpacing: 0.5,
+  },
+  wordToneDots: {
+    marginLeft: 2,
+  },
+  inlineActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  inlineActionHalf: {
+    flex: 1,
   },
   buttonStack: {
     gap: 10,

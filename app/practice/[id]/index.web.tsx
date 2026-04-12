@@ -11,7 +11,10 @@ import {
 } from "react-native";
 
 import { AppRadius, AppSketch } from "@/constants/theme-app";
+import { getSentenceExplanation } from "@/src/api/getSentenceExplanation";
+import { getPractice } from "@/src/api/getPractice";
 import { getPracticePreview, PracticePreview } from "@/src/api/getPracticePreview";
+import SentenceExplanationModal from "@/src/components/mobile/SentenceExplanationModal";
 import ToneDots from "@/src/components/ToneDots";
 import ToneThaiText from "@/src/components/ToneThaiText";
 import {
@@ -264,6 +267,11 @@ function DesktopGrammarDetailWeb() {
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [previewExample, setPreviewExample] = useState<PracticePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [sentenceExplanationOpen, setSentenceExplanationOpen] = useState(false);
+  const [sentenceExplanationLoading, setSentenceExplanationLoading] = useState(false);
+  const [sentenceExplanationError, setSentenceExplanationError] = useState<string | null>(null);
+  const [sentenceExplanation, setSentenceExplanation] = useState<string | null>(null);
 
   const grammar = grammarPoints.find((point) => point.id === id);
   const backToTopicsHref = grammar?.stage
@@ -482,6 +490,7 @@ function DesktopGrammarDetailWeb() {
     example.roman || "",
     example.breakdown,
   );
+  const activeExampleThai = example.thai || grammar.example?.thai || "";
   const keyForms = getKeyForms(
     grammar.focus?.particle,
     grammar.focus?.romanization,
@@ -561,8 +570,73 @@ function DesktopGrammarDetailWeb() {
           </Text>
         </Pressable>
       </View>
-    </DesktopPanel>
+      </DesktopPanel>
   );
+
+  async function loadNextPreviewExample() {
+    if (!grammar?.id) return;
+
+    setPreviewLoading(true);
+    setSentenceExplanationOpen(false);
+    setSentenceExplanation(null);
+    setSentenceExplanationError(null);
+
+    try {
+      const currentThai = activeExampleThai.trim();
+      let nextPreview: PracticePreview | null = null;
+
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const candidate = (await getPractice(grammar.id)) as PracticePreview;
+        nextPreview = candidate;
+        if (!currentThai || candidate.thai.trim() !== currentThai) {
+          break;
+        }
+      }
+
+      if (nextPreview) {
+        setPreviewExample(nextPreview);
+      }
+    } catch (error) {
+      console.error("[GrammarDetailWeb] next preview failed:", error);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  async function requestSentenceExplanation() {
+    setSentenceExplanationOpen(true);
+    setSentenceExplanationLoading(true);
+    setSentenceExplanationError(null);
+
+    try {
+      const explanationText = await getSentenceExplanation({
+        grammar: {
+          id: grammar.id,
+          title: grammar.title,
+          level: grammar.level,
+          stage: grammar.stage,
+          pattern: grammar.pattern,
+          explanation: grammar.explanation,
+          focus: grammar.focus,
+        },
+        sentence: {
+          thai: example.thai,
+          romanization: exampleDisplayRomanization,
+          english: example.english,
+          breakdown: example.breakdown,
+        },
+      });
+
+      setSentenceExplanation(explanationText);
+    } catch (error: any) {
+      setSentenceExplanationError(
+        error?.message || "Could not generate an explanation right now.",
+      );
+      setSentenceExplanation(null);
+    } finally {
+      setSentenceExplanationLoading(false);
+    }
+  }
 
   return (
     <>
@@ -713,8 +787,42 @@ function DesktopGrammarDetailWeb() {
                     </Pressable>
                   ))}
                 </View>
+                <View style={styles.breakdownActions}>
+                  <Pressable
+                    onPress={() => void loadNextPreviewExample()}
+                    disabled={previewLoading}
+                    style={({ hovered, pressed }) => [
+                      styles.primaryButton,
+                      styles.exampleActionButton,
+                      previewLoading && styles.secondaryButtonDisabled,
+                      (hovered || pressed) && !previewLoading
+                        ? styles.primaryButtonActive
+                        : null,
+                    ]}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {previewLoading ? "Loading..." : "Next Example"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => void requestSentenceExplanation()}
+                    disabled={sentenceExplanationLoading}
+                    style={({ hovered, pressed }) => [
+                      styles.secondaryButton,
+                      styles.exampleActionButton,
+                      sentenceExplanationLoading && styles.secondaryButtonDisabled,
+                      (hovered || pressed) && !sentenceExplanationLoading
+                        ? styles.lightButtonActive
+                        : null,
+                    ]}
+                  >
+                    <Text style={styles.secondaryButtonText}>
+                      {sentenceExplanationLoading ? "Explaining..." : "Explain"}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
-              </DesktopPanel>
+            </DesktopPanel>
             </View>
 
             <View style={styles.sideColumn}>
@@ -806,6 +914,13 @@ function DesktopGrammarDetailWeb() {
           </View>
         </DesktopPage>
       </DesktopAppShell>
+      <SentenceExplanationModal
+        visible={sentenceExplanationOpen}
+        loading={sentenceExplanationLoading}
+        error={sentenceExplanationError}
+        explanation={sentenceExplanation}
+        onClose={() => setSentenceExplanationOpen(false)}
+      />
     </>
   );
 }
@@ -999,39 +1114,63 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
+    alignSelf: "flex-start",
+  },
+  breakdownActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 12,
   },
   wordCard: {
-    minWidth: 164,
-    maxWidth: 240,
+    minWidth: 128,
+    maxWidth: 220,
     borderWidth: 1,
     borderColor: AppSketch.border,
-    backgroundColor: AppSketch.surface,
-    padding: 14,
-    gap: 6,
-    borderRadius: AppRadius.md,
-    boxShadow: WEB_CARD_SHADOW as any,
+    backgroundColor: "#F5F5F5",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 3,
+    borderRadius: 12,
+    alignItems: "flex-start",
+    alignSelf: "flex-start",
+    boxShadow: WEB_LIGHT_BUTTON_SHADOW as any,
+    cursor: "pointer",
+    ...WEB_INTERACTIVE_TRANSITION,
   },
   wordCardTop: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    alignSelf: "flex-start",
   },
   wordThai: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "700",
     color: AppSketch.ink,
+    flexShrink: 1,
+    fontFamily: WEB_THAI_FONT,
   },
   wordRoman: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: "500",
     color: AppSketch.inkMuted,
+    opacity: 0.9,
+    marginTop: 4,
+    letterSpacing: 0.3,
     fontFamily: WEB_BODY_FONT,
   },
   wordEnglish: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: AppSketch.inkSecondary,
-    letterSpacing: 0.6,
+    fontSize: 9,
+    fontWeight: "600",
+    color: AppSketch.inkLight,
+    opacity: 0.9,
+    marginTop: 3,
+    letterSpacing: 0.5,
     fontFamily: WEB_BODY_FONT,
+  },
+  toneDots: {
+    marginLeft: 2,
   },
   toneDot: {
     width: 10,
@@ -1119,6 +1258,11 @@ const styles = StyleSheet.create({
   },
   secondaryButtonDisabled: {
     opacity: 0.62,
+  },
+  exampleActionButton: {
+    minWidth: 168,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
   },
   secondaryButtonText: {
     fontSize: 13,

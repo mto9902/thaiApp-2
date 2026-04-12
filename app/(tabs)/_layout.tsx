@@ -31,6 +31,50 @@ export default function TabLayout() {
     checkAuth();
   }, [checkAuth]);
 
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+
+    const visualViewport = window.visualViewport;
+    const root = document.documentElement;
+
+    const updateBottomOffset = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) {
+        root.style.setProperty("--keystone-mobile-bottom-offset", "0px");
+        return;
+      }
+
+      const bottomGap = Math.max(
+        window.innerHeight - (viewport.height + viewport.offsetTop),
+        0,
+      );
+
+      root.style.setProperty(
+        "--keystone-mobile-bottom-offset",
+        `${bottomGap}px`,
+      );
+    };
+
+    updateBottomOffset();
+
+    if (!visualViewport) {
+      return () => {
+        root.style.removeProperty("--keystone-mobile-bottom-offset");
+      };
+    }
+
+    visualViewport.addEventListener("resize", updateBottomOffset);
+    visualViewport.addEventListener("scroll", updateBottomOffset);
+    window.addEventListener("resize", updateBottomOffset);
+
+    return () => {
+      visualViewport.removeEventListener("resize", updateBottomOffset);
+      visualViewport.removeEventListener("scroll", updateBottomOffset);
+      window.removeEventListener("resize", updateBottomOffset);
+      root.style.removeProperty("--keystone-mobile-bottom-offset");
+    };
+  }, []);
+
   if (!checkedAuth) return null;
 
   const isMobileWeb = Platform.OS === "web";
@@ -46,6 +90,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      safeAreaInsets={
+        isMobileWeb ? ({ top: 0, right: 0, bottom: 0, left: 0 } as any) : undefined
+      }
       screenOptions={{
         tabBarActiveTintColor: Sketch.ink,
         tabBarInactiveTintColor: Sketch.inkMuted,
@@ -59,6 +106,8 @@ export default function TabLayout() {
         },
         tabBarStyle: {
           height: tabBarHeight,
+          minHeight: tabBarHeight,
+          maxHeight: tabBarHeight,
           paddingBottom: tabBarBottomPadding,
           paddingTop: tabBarTopPadding,
           paddingHorizontal: isMobileWeb ? 8 : 10,
@@ -66,6 +115,14 @@ export default function TabLayout() {
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
+          ...(isMobileWeb
+            ? ({
+                position: "fixed",
+                left: 0,
+                right: 0,
+                bottom: "var(--keystone-mobile-bottom-offset, 0px)",
+              } as any)
+            : null),
         },
         tabBarLabelStyle: {
           fontWeight: "700",
